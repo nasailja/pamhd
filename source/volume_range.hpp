@@ -144,7 +144,7 @@ or
 size_t samples = 2;
 array<double, 2>
 	start{-1.0, -2.0},
-	end{ 1.0,  2.0};
+	end{1.0, 2.0};
 
 for (const auto& coord: volume_range(start, end, samples)) {
 	for (const auto value: coord) {
