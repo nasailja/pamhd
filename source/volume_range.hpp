@@ -116,7 +116,7 @@ Produces coordinates inside given volume.
 Supports either std::array or boost::array.
 Requires only O(D) memory where D in the number of
 dimensions in start and end. Given number of samples
-is produced in each dimensions so the total number is
+is produced in each dimension so the total number is
 D * samples. For each dimension separately the samples
 have equal amounts of space on both sides so the first
 and last samples are at a distance of dx from start
