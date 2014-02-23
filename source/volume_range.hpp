@@ -36,6 +36,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "boost/coroutine/all.hpp"
 #include "functional"
+#include "type_traits"
 
 
 namespace pamhd {
@@ -117,7 +118,7 @@ Supports either std::array or boost::array.
 Requires only O(D) memory where D in the number of
 dimensions in start and end. Given number of samples
 is produced in each dimension so the total number is
-D * samples. For each dimension separately the samples
+samples^D. For each dimension separately the samples
 have equal amounts of space on both sides so the first
 and last samples are at a distance of dx from start
 and end respectively and the distance between each
@@ -174,13 +175,19 @@ template <
 >::pull_type volume_range(
 	const Container_T<Value_T, Length>& start,
 	const Container_T<Value_T, Length>& end,
-	const size_t samples
+	const size_t samples_per_dim
 ) {
+	static_assert(
+		std::is_floating_point<Value_T>::value,
+		"Only floating point value types supported, "
+		"but patches more than welcome"
+	);
+
 	Container_T<Value_T, Length> increment;
 
 	// TODO: could loop at comple time
 	for (size_t i = 0; i < Length; i++) {
-		increment[i] = (end[i] - start[i]) / samples;
+		increment[i] = (end[i] - start[i]) / samples_per_dim;
 	}
 
 	return
