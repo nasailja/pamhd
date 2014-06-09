@@ -1,0 +1,28 @@
+TESTS_VOLUME_RANGE_EXECUTABLES = \
+  tests/volume_range/number_of_samples.exe
+
+TESTS_VOLUME_RANGE_TESTS = \
+  tests/volume_range/number_of_samples.tst
+
+tests/volume_range_executables: $(TESTS_VOLUME_RANGE_EXECUTABLES)
+
+tests/volume_range_tests: $(TESTS_VOLUME_RANGE_TESTS)
+
+tests/volume_range_clean:
+	@echo "CLEAN tests/volume_range" && rm -f \
+	  $(TESTS_VOLUME_RANGE_EXECUTABLES) \
+	  $(TESTS_VOLUME_RANGE_TESTS)
+
+EXECUTABLES += tests/volume_range_executables
+TESTS += tests/volume_range_tests
+CLEAN += tests/volume_range_clean
+
+tests/volume_range/number_of_samples.exe: tests/volume_range/number_of_samples.cpp source/volume_range.hpp
+	@echo "CXX "$< && $(CXX) \
+	  $(CPPFLAGS) \
+	  $(CXXFLAGS) \
+	  $(LDFLAGS) \
+	  $(BOOST_CPPFLAGS) \
+	  $(BOOST_LDFLAGS) \
+	  $(BOOST_LIBS) \
+	  $< -o $@
