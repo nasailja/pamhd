@@ -54,29 +54,9 @@ template <
 	const Total_Energy_Density_T Nrj{};
 	const Magnetic_Field_T Mag{};
 
-	// compute Roe-averaged data from negative and positive states
-	const auto
-		density_root_neg = std::sqrt(state_neg[Rho]),
-		density_root_pos = std::sqrt(state_pos[Rho]),
-		inverse_density_root_sum = 1.0 / (density_root_neg + density_root_pos);
-
 	const auto
 		velocity_neg(state_neg[Mom] / state_neg[Rho]),
-		velocity_pos(state_pos[Mom] / state_pos[Rho]),
-		velocity_roe(
-			inverse_density_root_sum
-			* (
-				density_root_neg * velocity_neg
-				+ density_root_pos * velocity_pos
-			)
-		),
-		mag_roe(
-			inverse_density_root_sum
-			* (
-				density_root_pos * state_neg[Mag]
-				+ density_root_neg * state_pos[Mag]
-			)
-		);
+		velocity_pos(state_pos[Mom] / state_pos[Rho]);
 
 	const auto
 		pressure_neg
