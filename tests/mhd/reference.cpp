@@ -37,7 +37,6 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "gensimcell.hpp"
 #include "mhd/common.hpp"
 #include "mhd/hll_athena.hpp"
-#include "mhd/solvers_isis.hpp"
 #include "mhd/variables.hpp"
 
 
