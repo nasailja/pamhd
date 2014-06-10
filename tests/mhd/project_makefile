@@ -1,0 +1,39 @@
+TESTS_MHD_EXECUTABLES = \
+  tests/mhd/reference.exe
+
+TESTS_MHD_TESTS = \
+  tests/mhd/reference.tst
+
+tests/mhd_executables: $(TESTS_MHD_EXECUTABLES)
+
+tests/mhd_tests: $(TESTS_MHD_TESTS)
+
+tests/mhd_clean_results:
+	@echo "CLEAN RESULTS tests/mhd" && rm -f \
+	  tests/mhd/mhd_*dat \
+	  tests/mhd/mhd_*png
+
+tests/mhd_clean:
+	@echo "CLEAN tests/mhd" && rm -f \
+	  $(TESTS_MHD_EXECUTABLES) \
+	  $(TESTS_MHD_TESTS)
+
+EXECUTABLES += tests/mhd_executables
+TESTS += tests/mhd_tests
+CLEAN += tests/mhd_clean
+
+tests/mhd/reference.exe: \
+  tests/mhd/reference.cpp \
+  source/mhd/hll_athena.hpp \
+  source/mhd/variables.hpp \
+  source/mhd/common.hpp
+	@echo "CXX "$< && $(CXX) \
+	  $(CPPFLAGS) \
+	  $(CXXFLAGS) \
+	  $(LDFLAGS) \
+	  $(GENSIMCELL_CPPFLAGS) \
+	  $(EIGEN_CPPFLAGS) \
+	  $(BOOST_CPPFLAGS) \
+	  $(BOOST_LDFLAGS) \
+	  $(BOOST_LIBS) \
+	  $< -o $@

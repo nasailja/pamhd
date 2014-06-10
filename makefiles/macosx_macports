@@ -1,0 +1,13 @@
+CXX = g++-mp-4.8
+
+GENSIMCELL_CPPFLAGS = -I $(HOME)/include
+
+EIGEN_CPPFLAGS = -I /opt/local/include/eigen3
+
+BOOST_CPPFLAGS = -I /opt/local/include
+BOOST_LDFLAGS = -L /opt/local/lib
+BOOST_LIBS = \
+  -lboost_coroutine-mt \
+  -lboost_system-mt \
+  -lboost_random-mt \
+  -lboost_program_options-mt

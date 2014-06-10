@@ -20,7 +20,8 @@ all: test
 
 
 include \
-  tests/volume_range/project_makefile
+  tests/volume_range/project_makefile \
+  tests/mhd/project_makefile
 
 
 %.tst: %.exe
