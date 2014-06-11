@@ -34,7 +34,13 @@ namespace athena {
 
 
 /*!
-Returns the flux between states in negative and positive x direction.
+Returns the flux between states.
+
+\param [Mass_Density_T] Used to access mass density in MHD states
+\param [state_neg] MHD state in negative x direction from the face
+\param [state_pos] MHD state in positive x direction from the face
+\param [area] Area of the face shared by volumes of state_neg and state_pos
+\param [dt] Length of time for which flux is calculated
 */
 template <
 	class MHD_T,
@@ -45,6 +51,8 @@ template <
 > std::pair<MHD_T, double> get_flux_hll(
 	const MHD_T& state_neg,
 	const MHD_T& state_pos,
+	const double area,
+	const double dt,
 	const double adiabatic_index,
 	const double vacuum_permeability
 ) {
@@ -182,8 +190,12 @@ template <
 		= 0.5 * (flux_neg[Mag] + flux_pos[Mag])
 		+ factor * (flux_neg[Mag] - flux_pos[Mag]);
 
-	return std::make_pair(ret_val, std::max(std::fabs(bp), std::fabs(bm)));
+	ret_val[Rho] *= area * dt;
+	ret_val[Mom] *= area * dt;
+	ret_val[Nrj] *= area * dt;
+	ret_val[Mag] *= area * dt;
 
+	return std::make_pair(ret_val, std::max(std::fabs(bp), std::fabs(bm)));
 }
 
 

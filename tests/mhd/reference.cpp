@@ -243,9 +243,7 @@ template <
 
 	const double
 		cell_size = get_cell_size(),
-		face_area = 1.0,
-		cell_volume = face_area * cell_size,
-		flux_multiplier = dt * face_area / cell_volume;
+		face_area = 1.0;
 
 	double max_dt = std::numeric_limits<double>::max();
 
@@ -273,6 +271,8 @@ template <
 			>(
 				cell[MHD_T()],
 				neighbor[MHD_T()],
+				face_area,
+				dt,
 				adiabatic_index,
 				vacuum_permeability
 			);
@@ -303,6 +303,8 @@ template <
 	}
 
 	// apply fluxes
+	const double inverse_volume = 1.0 / (face_area * cell_size);
+
 	for (auto& cell: grid) {
 		pamhd::mhd::apply_flux<
 			Grid_T::value_type,
@@ -314,7 +316,7 @@ template <
 			Magnetic_Field_T
 		>(
 			cell,
-			flux_multiplier
+			inverse_volume
 		);
 	}
 
