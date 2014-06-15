@@ -4,8 +4,7 @@ TESTS_MHD_EXECUTABLES = \
   tests/mhd/mhd2gnuplot.exe
 
 TESTS_MHD_TESTS = \
-  tests/mhd/reference.tst \
-  tests/mhd/shock_tube.tst
+  tests/mhd/reference.tst
 
 tests/mhd_executables: $(TESTS_MHD_EXECUTABLES)
 
