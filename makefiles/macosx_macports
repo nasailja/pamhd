@@ -1,8 +1,13 @@
 CXX = g++-mp-4.8
+MPICXX = mpicxx
 
-GENSIMCELL_CPPFLAGS = -I $(HOME)/include
+DCCRG_CPPFLAGS = -I $(HOME)/include
+DCCRG_LDFLAGS = -L $(HOME)/lib
+DCCRG_LIBS = -lzoltan
 
 EIGEN_CPPFLAGS = -I /opt/local/include/eigen3
+
+GENSIMCELL_CPPFLAGS = -I $(HOME)/include
 
 BOOST_CPPFLAGS = -I /opt/local/include
 BOOST_LDFLAGS = -L /opt/local/lib

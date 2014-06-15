@@ -1,5 +1,5 @@
 /*
-MHD variables and cell class of PAMHD.
+Saves the MHD solution of PAMHD.
 
 Copyright 2014 Ilja Honkonen
 All rights reserved.
@@ -14,7 +14,7 @@ are permitted provided that the following conditions are met:
   list of conditions and the following disclaimer in the documentation and/or
   other materials provided with the distribution.
 
-* Neither the name of copyright holders nor the names of their contributors
+* Neither the names of the copyright holders nor the names of their contributors
   may be used to endorse or promote products derived from this software
   without specific prior written permission.
 
@@ -30,10 +30,11 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef PAMHD_MHD_VARIABLES_HPP
-#define PAMHD_MHD_VARIABLES_HPP
+#ifndef PAMHD_MHD_SAVE_HPP
+#define PAMHD_MHD_SAVE_HPP
 
-#include "Eigen/Core"
+#include "cmath"
+#include "limits"
 
 #include "gensimcell.hpp"
 
@@ -41,67 +42,48 @@ namespace pamhd {
 namespace mhd {
 
 
-/*
-Variables used by magnetohydrodynamic (MHD) solver
+/*!
+Saves the MHD solution into a file with name derived from simulation time. 
+
+MHD_T and subsequent arguments refer to the MHD solution to save.
+
+The transfer of all first level variables must be switched
+off before this function is called. After save returns the
+transfer of all first level variables is switched off.
+Transfer of variables in MHD_T must be switched on.
+
+Grid_T is assumed to provide the dccrg API.
 */
+template <
+	class Grid_T,
+	class Cell_T,
+	class MHD_T
+> void save(
+	Grid_T& grid,
+	const double simulation_time
+) {
+	Cell_T::set_transfer_all(true, MHD_T());
 
-struct Mass_Density {
-	using data_type = double;
-	static constexpr char name[] = "mass";
-};
+	// get the file name
+	std::ostringstream time_string;
+	time_string
+		<< std::scientific
+		<< std::setprecision(6)
+		<< simulation_time;
 
-struct Momentum_Density {
-	using data_type = Eigen::Vector3d;
-	static constexpr char name[] = "momentum";
-};
+	// use an empty header with a sane address
+	char dummy;
+	std::tuple<void*, int, MPI_Datatype> header{(void*) &dummy, 0, MPI_BYTE};
 
-struct Total_Energy_Density {
-	using data_type = double;
-	static constexpr char name[] = "energy";
-};
+	grid.save_grid_data(
+		"mhd_" + time_string.str() + "_s.dc",
+		0,
+		header
+	);
 
-struct Magnetic_Field {
-	using data_type = Eigen::Vector3d;
-	static constexpr char name[] = "magnetic field";
-};
-
-struct Velocity {
-	using data_type = Eigen::Vector3d;
-	static constexpr char name[] = "velocity";
-};
-
-struct Pressure {
-	using data_type = double;
-	static constexpr char name[] = "pressure";
-};
-
-
-//! Set of conservative MHD variables
-using MHD_Conservative = gensimcell::Cell<
-	Mass_Density,
-	Momentum_Density,
-	Total_Energy_Density,
-	Magnetic_Field
->;
-
-//! Set of primitive MHD variables
-using MHD_Primitive = gensimcell::Cell<
-	Mass_Density,
-	Velocity,
-	Pressure,
-	Magnetic_Field
->;
-
-//! Represents current state of MHD in simulation cell
-struct MHD_State_Conservative {
-	using data_type = MHD_Conservative;
-};
-
-//! Represents change of MHD in simulation cell for next step
-struct MHD_Flux_Conservative {
-	using data_type = MHD_Conservative;
-};
+	Cell_T::set_transfer_all(false, MHD_T());
+}
 
 }} // namespaces
 
-#endif // ifndef PAMHD_MHD_VARIABLES_HPP
+#endif // ifndef PAMHD_MHD_SAVE_HPP

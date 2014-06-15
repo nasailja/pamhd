@@ -1,8 +1,11 @@
 TESTS_MHD_EXECUTABLES = \
-  tests/mhd/reference.exe
+  tests/mhd/reference.exe \
+  tests/mhd/shock_tube.exe \
+  tests/mhd/mhd2gnuplot.exe
 
 TESTS_MHD_TESTS = \
-  tests/mhd/reference.tst
+  tests/mhd/reference.tst \
+  tests/mhd/shock_tube.tst
 
 tests/mhd_executables: $(TESTS_MHD_EXECUTABLES)
 
@@ -10,8 +13,9 @@ tests/mhd_tests: $(TESTS_MHD_TESTS)
 
 tests/mhd_clean_results:
 	@echo "CLEAN RESULTS tests/mhd" && rm -f \
-	  tests/mhd/mhd_*dat \
-	  tests/mhd/mhd_*png
+	  tests/mhd/*.dat \
+	  tests/mhd/*.png \
+	  tests/mhd/*.dc
 
 tests/mhd_clean:
 	@echo "CLEAN tests/mhd" && rm -f \
@@ -20,20 +24,48 @@ tests/mhd_clean:
 
 EXECUTABLES += tests/mhd_executables
 TESTS += tests/mhd_tests
+RESULTS += tests/mhd_clean_results
 CLEAN += tests/mhd_clean
 
-tests/mhd/reference.exe: \
-  tests/mhd/reference.cpp \
-  source/mhd/hll_athena.hpp \
+MHD_COMMON_HEADERS = \
+  source/mhd/common.hpp \
   source/mhd/variables.hpp \
-  source/mhd/common.hpp
+  source/mhd/solve.hpp \
+  source/mhd/hll_athena.hpp
+
+tests/mhd/reference.exe: tests/mhd/reference.cpp $(MHD_COMMON_HEADERS)
 	@echo "CXX "$< && $(CXX) \
 	  $(CPPFLAGS) \
 	  $(CXXFLAGS) \
 	  $(LDFLAGS) \
-	  $(GENSIMCELL_CPPFLAGS) \
 	  $(EIGEN_CPPFLAGS) \
+	  $(GENSIMCELL_CPPFLAGS) \
 	  $(BOOST_CPPFLAGS) \
 	  $(BOOST_LDFLAGS) \
 	  $(BOOST_LIBS) \
+	  $< -o $@
+
+tests/mhd/shock_tube.exe: tests/mhd/shock_tube.cpp $(MHD_COMMON_HEADERS)
+	@echo "MPICXX "$< && $(MPICXX) \
+	  $(CPPFLAGS) \
+	  $(CXXFLAGS) \
+	  $(LDFLAGS) \
+	  $(DCCRG_CPPFLAGS) \
+	  $(DCCRG_LDFLAGS) \
+	  $(DCCRG_LIBS) \
+	  $(EIGEN_CPPFLAGS) \
+	  $(GENSIMCELL_CPPFLAGS) \
+	  $(BOOST_CPPFLAGS) \
+	  $(BOOST_LDFLAGS) \
+	  $(BOOST_LIBS) \
+	  $< -o $@
+
+tests/mhd/mhd2gnuplot.exe: tests/mhd/mhd2gnuplot.cpp source/mhd/variables.hpp
+	@echo "MPICXX "$< && $(MPICXX) \
+	  $(CPPFLAGS) \
+	  $(CXXFLAGS) \
+	  $(LDFLAGS) \
+	  $(DCCRG_CPPFLAGS) \
+	  $(EIGEN_CPPFLAGS) \
+	  $(GENSIMCELL_CPPFLAGS) \
 	  $< -o $@

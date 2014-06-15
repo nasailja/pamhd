@@ -1,5 +1,5 @@
 all:
-	@make tests/mhd_tests -C ../..
+	@make tests/mhd_executables tests/mhd_tests -C ../..
 
 r: results
 results:

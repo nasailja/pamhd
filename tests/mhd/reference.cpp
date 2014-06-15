@@ -52,7 +52,10 @@ constexpr double
 // 1 boundary cell in each direction
 constexpr size_t grid_length = 1000 + 2;
 
-using Cell_T = pamhd::mhd::Cell_T;
+using Cell_T = gensimcell::Cell<
+	pamhd::mhd::MHD_State_Conservative,
+	pamhd::mhd::MHD_Flux_Conservative
+>;
 using Grid_T = std::array<Cell_T, grid_length>;
 
 
