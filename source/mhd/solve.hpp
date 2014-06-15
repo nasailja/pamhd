@@ -86,13 +86,6 @@ template <
 				cell_length[0] * cell_length[1]
 			};
 
-		const double min_cell_length
-			= std::min({
-				cell_length[0],
-				cell_length[1],
-				cell_length[2]
-			});
-
 		const auto face_neighbors = grid.get_face_neighbors_of(cell_id);
 		for (const auto& item: face_neighbors) {
 			const uint64_t neighbor_id = item.first;
@@ -192,7 +185,7 @@ template <
 					<< std::endl;
 				abort();
 			}
-			max_dt = std::min(max_dt, min_cell_length / max_vel);
+			max_dt = std::min(max_dt, cell_length[neighbor_dim] / max_vel);
 
 			// TODO: rotate vector variables of flux back
 
