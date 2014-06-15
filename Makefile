@@ -5,7 +5,7 @@ ENVIRONMENT_MAKEFILE = makefiles/macosx_macports
 #
 # The lines below are not intended to be modified by users
 #
-CXXFLAGS = -std=c++0x -W -Wall -Wextra -pedantic -O3
+CXXFLAGS = -std=c++11 -W -Wall -Wextra -pedantic -O3
 CPPFLAGS = -I source
 include $(ENVIRONMENT_MAKEFILE)
 
@@ -21,7 +21,8 @@ all: test
 
 include \
   tests/volume_range/project_makefile \
-  tests/mhd/project_makefile
+  tests/mhd/project_makefile \
+  tests/program_options/project_makefile
 
 
 %.tst: %.exe

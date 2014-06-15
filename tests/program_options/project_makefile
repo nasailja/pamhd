@@ -1,0 +1,29 @@
+TESTS_PROGRAM_OPTIONS_EXECUTABLES = \
+  tests/program_options/eigen.exe
+
+TESTS_PROGRAM_OPTIONS_TESTS = \
+  tests/program_options/eigen.tst
+
+tests/program_options_executables: $(TESTS_PROGRAM_OPTIONS_EXECUTABLES)
+
+tests/program_options_tests: $(TESTS_PROGRAM_OPTIONS_TESTS)
+
+tests/program_options_clean:
+	@echo "CLEAN tests/program_options" && rm -f \
+	  $(TESTS_PROGRAM_OPTIONS_EXECUTABLES) \
+	  $(TESTS_PROGRAM_OPTIONS_TESTS)
+
+EXECUTABLES += tests/program_options_executables
+TESTS += tests/program_options_tests
+CLEAN += tests/program_options_clean
+
+tests/program_options/eigen.exe: tests/program_options/eigen.cpp
+	@echo "CXX "$< && $(CXX) \
+	  $(CPPFLAGS) \
+	  $(CXXFLAGS) \
+	  $(LDFLAGS) \
+	  $(EIGEN_CPPFLAGS) \
+	  $(BOOST_CPPFLAGS) \
+	  $(BOOST_LDFLAGS) \
+	  $(BOOST_LIBS) \
+	  $< -o $@
