@@ -95,6 +95,16 @@ int main(int argc, char* argv[])
 {
 	Variables_To_Options<Is_Alive> gol_var_opts;
 	Variables_To_Options<Mass_Density, Energy_Density> mhd_var_opts;
+
+	static_assert(
+		Variables_To_Options<Is_Alive>::number_of_variables == 1,
+		"Incorrect number of variables reported"
+	);
+	static_assert(
+		Variables_To_Options<Mass_Density, Energy_Density>::number_of_variables == 2,
+		"Incorrect number of variables reported"
+	);
+
 	// set default values before adding options to boost
 	gol_var_opts[Is_Alive()].push_back(true);
 	gol_var_opts[Is_Alive()].push_back(false);

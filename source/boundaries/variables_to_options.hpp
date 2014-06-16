@@ -49,9 +49,11 @@ template<
 	public Variables_To_Options<Rest_Of_Variables...>
 {
 public:
-
 	using Variables_To_Options<Rest_Of_Variables...>::add_options;
 	using Variables_To_Options<Rest_Of_Variables...>::operator[];
+
+	static constexpr size_t number_of_variables
+		= 1 + Variables_To_Options<Rest_Of_Variables...>::number_of_variables;
 
 	void add_options(
 		boost::program_options::options_description& options,
@@ -108,6 +110,7 @@ protected:
 template<class Last_Variable> class Variables_To_Options<Last_Variable>
 {
 public:
+	static constexpr size_t number_of_variables = 1;
 
 	void add_options(
 		boost::program_options::options_description& options,
