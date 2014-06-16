@@ -1,0 +1,30 @@
+TESTS_BOUNDARIES_EXECUTABLES = \
+  tests/boundaries/variables_to_options.exe
+
+TESTS_BOUNDARIES_TESTS = \
+  tests/boundaries/variables_to_options.tst
+
+tests/boundaries_executables: $(TESTS_BOUNDARIES_EXECUTABLES)
+
+tests/boundaries_tests: $(TESTS_BOUNDARIES_TESTS)
+
+tests/boundaries_clean:
+	@echo "CLEAN tests/boundaries" && rm -f \
+	  $(TESTS_BOUNDARIES_EXECUTABLES) \
+	  $(TESTS_BOUNDARIES_TESTS)
+
+EXECUTABLES += tests/boundaries_executables
+TESTS += tests/boundaries_tests
+CLEAN += tests/boundaries_clean
+
+tests/boundaries/variables_to_options.exe: \
+  tests/boundaries/variables_to_options.cpp \
+  source/boundaries/variables_to_options.hpp
+	@echo "CXX "$< && $(CXX) \
+	  $(CPPFLAGS) \
+	  $(CXXFLAGS) \
+	  $(LDFLAGS) \
+	  $(BOOST_CPPFLAGS) \
+	  $(BOOST_LDFLAGS) \
+	  $(BOOST_LIBS) \
+	  $< -o $@

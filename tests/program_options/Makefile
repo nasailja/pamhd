@@ -1,5 +1,5 @@
 all:
-	@make tests/program_options_tests -C ../..
+	@make tests/program_options_executables tests/program_options_tests -C ../..
 
 c: clean
 clean:

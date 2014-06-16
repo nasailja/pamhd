@@ -1,8 +1,11 @@
 TESTS_PROGRAM_OPTIONS_EXECUTABLES = \
-  tests/program_options/eigen.exe
+  tests/program_options/eigen.exe \
+  tests/program_options/variable.exe \
+  tests/program_options/variables.exe
 
 TESTS_PROGRAM_OPTIONS_TESTS = \
-  tests/program_options/eigen.tst
+  tests/program_options/eigen.tst \
+  tests/program_options/variable.tst
 
 tests/program_options_executables: $(TESTS_PROGRAM_OPTIONS_EXECUTABLES)
 
@@ -23,6 +26,26 @@ tests/program_options/eigen.exe: tests/program_options/eigen.cpp
 	  $(CXXFLAGS) \
 	  $(LDFLAGS) \
 	  $(EIGEN_CPPFLAGS) \
+	  $(BOOST_CPPFLAGS) \
+	  $(BOOST_LDFLAGS) \
+	  $(BOOST_LIBS) \
+	  $< -o $@
+
+tests/program_options/variable.exe: tests/program_options/variable.cpp
+	@echo "CXX "$< && $(CXX) \
+	  $(CPPFLAGS) \
+	  $(CXXFLAGS) \
+	  $(LDFLAGS) \
+	  $(BOOST_CPPFLAGS) \
+	  $(BOOST_LDFLAGS) \
+	  $(BOOST_LIBS) \
+	  $< -o $@
+
+tests/program_options/variables.exe: tests/program_options/variables.cpp
+	@echo "CXX "$< && $(CXX) \
+	  $(CPPFLAGS) \
+	  $(CXXFLAGS) \
+	  $(LDFLAGS) \
 	  $(BOOST_CPPFLAGS) \
 	  $(BOOST_LDFLAGS) \
 	  $(BOOST_LIBS) \
