@@ -50,11 +50,25 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using namespace std;
 
 namespace Eigen {
-	void validate(
+	template <
+		class Scalar,
+		int Rows,
+		int Cols,
+		int Options,
+		int MaxRows,
+		int MaxCols
+	> void validate(
 		boost::any& value,
 		const std::vector<std::string>& all_parsed,
-		Eigen::Vector3d*,
-		double
+		Eigen::Matrix<
+			Scalar,
+			Rows,
+			Cols,
+			Options,
+			MaxRows,
+			MaxCols
+		>*,
+		long
 	) {
 		boost::program_options::validators::check_first_occurrence(value);
 
