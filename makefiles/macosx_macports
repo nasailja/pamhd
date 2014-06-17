@@ -16,3 +16,5 @@ BOOST_LIBS = \
   -lboost_system-mt \
   -lboost_random-mt \
   -lboost_program_options-mt
+
+PRETTYPRINT_CPPFLAGS = -I $(HOME)/include

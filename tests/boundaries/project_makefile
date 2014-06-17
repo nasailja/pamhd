@@ -1,8 +1,10 @@
 TESTS_BOUNDARIES_EXECUTABLES = \
-  tests/boundaries/variables_to_options.exe
+  tests/boundaries/variables_to_options.exe \
+  tests/boundaries/one_variable_boundary.exe
 
 TESTS_BOUNDARIES_TESTS = \
-  tests/boundaries/variables_to_options.tst
+  tests/boundaries/variables_to_options.tst \
+  tests/boundaries/one_variable_boundary.tst
 
 tests/boundaries_executables: $(TESTS_BOUNDARIES_EXECUTABLES)
 
@@ -27,4 +29,17 @@ tests/boundaries/variables_to_options.exe: \
 	  $(BOOST_CPPFLAGS) \
 	  $(BOOST_LDFLAGS) \
 	  $(BOOST_LIBS) \
+	  $< -o $@
+
+tests/boundaries/one_variable_boundary.exe: \
+  tests/boundaries/one_variable_boundary.cpp \
+  source/boundaries/variables_to_options.hpp
+	@echo "CXX "$< && $(CXX) \
+	  $(CPPFLAGS) \
+	  $(CXXFLAGS) \
+	  $(LDFLAGS) \
+	  $(BOOST_CPPFLAGS) \
+	  $(BOOST_LDFLAGS) \
+	  $(BOOST_LIBS) \
+	  $(PRETTYPRINT_CPPFLAGS) \
 	  $< -o $@

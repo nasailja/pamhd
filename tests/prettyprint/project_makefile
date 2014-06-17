@@ -1,0 +1,18 @@
+TESTS_PRETTYPRINT_EXECUTABLES = \
+  tests/prettyprint/compile.exe
+
+tests/prettyprint_executables: $(TESTS_PRETTYPRINT_EXECUTABLES)
+
+tests/prettyprint_clean:
+	@echo "CLEAN tests/prettyprint" && rm -f $(TESTS_PRETTYPRINT_EXECUTABLES)
+
+EXECUTABLES += tests/prettyprint_executables
+CLEAN += tests/prettyprint_clean
+
+tests/prettyprint/compile.exe: tests/prettyprint/compile.cpp
+	@echo "CXX "$< && $(CXX) \
+	  $(CPPFLAGS) \
+	  $(CXXFLAGS) \
+	  $(LDFLAGS) \
+	  $(PRETTYPRINT_CPPFLAGS) \
+	  $< -o $@
