@@ -387,7 +387,7 @@ public:
 		return this->boundaries[Start_T()].size();
 	}
 
-	//! Returns list of cells which belong to given boundary
+	//! Returns cells which belong to given boundary
 	const std::vector<Cell_T>& get_boundary_cells(
 		const size_t boundary_index
 	) const {
