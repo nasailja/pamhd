@@ -1,10 +1,12 @@
 TESTS_BOUNDARIES_EXECUTABLES = \
   tests/boundaries/variables_to_options.exe \
-  tests/boundaries/one_variable_boundary.exe
+  tests/boundaries/one_variable_boundary.exe \
+  tests/boundaries/many_variable_boundary.exe
 
 TESTS_BOUNDARIES_TESTS = \
   tests/boundaries/variables_to_options.tst \
-  tests/boundaries/one_variable_boundary.tst
+  tests/boundaries/one_variable_boundary.tst \
+  tests/boundaries/many_variable_boundary.tst
 
 tests/boundaries_executables: $(TESTS_BOUNDARIES_EXECUTABLES)
 
@@ -19,28 +21,26 @@ EXECUTABLES += tests/boundaries_executables
 TESTS += tests/boundaries_tests
 CLEAN += tests/boundaries_clean
 
-tests/boundaries/variables_to_options.exe: \
+TEST_BOUNDARIES_DEPS = \
   tests/boundaries/variables_to_options.cpp \
   source/boundaries/variables_to_options.hpp
-	@echo "CXX "$< && $(CXX) \
-	  $(CPPFLAGS) \
-	  $(CXXFLAGS) \
-	  $(LDFLAGS) \
-	  $(BOOST_CPPFLAGS) \
-	  $(BOOST_LDFLAGS) \
-	  $(BOOST_LIBS) \
-	  $(PRETTYPRINT_CPPFLAGS) \
-	  $< -o $@
 
-tests/boundaries/one_variable_boundary.exe: \
-  tests/boundaries/one_variable_boundary.cpp \
-  source/boundaries/variables_to_options.hpp
-	@echo "CXX "$< && $(CXX) \
-	  $(CPPFLAGS) \
-	  $(CXXFLAGS) \
-	  $(LDFLAGS) \
-	  $(BOOST_CPPFLAGS) \
-	  $(BOOST_LDFLAGS) \
-	  $(BOOST_LIBS) \
-	  $(PRETTYPRINT_CPPFLAGS) \
-	  $< -o $@
+TEST_BOUNDARIES_COMPILE_COMMAND = \
+  $(CXX) \
+  $(CPPFLAGS) \
+  $(CXXFLAGS) \
+  $(LDFLAGS) \
+  $(BOOST_CPPFLAGS) \
+  $(BOOST_LDFLAGS) \
+  $(BOOST_LIBS) \
+  $(PRETTYPRINT_CPPFLAGS) \
+  $< -o $@
+
+tests/boundaries/variables_to_options.exe: $(TEST_BOUNDARIES_DEPS)
+	@echo "CXX "$< && $(TEST_BOUNDARIES_COMPILE_COMMAND)
+
+tests/boundaries/one_variable_boundary.exe: $(TEST_BOUNDARIES_DEPS)
+	@echo "CXX "$< && $(TEST_BOUNDARIES_COMPILE_COMMAND)
+
+tests/boundaries/many_variable_boundary.exe: $(TEST_BOUNDARIES_DEPS)
+	@echo "CXX "$< && $(TEST_BOUNDARIES_COMPILE_COMMAND)
