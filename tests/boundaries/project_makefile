@@ -22,7 +22,6 @@ TESTS += tests/boundaries_tests
 CLEAN += tests/boundaries_clean
 
 TEST_BOUNDARIES_DEPS = \
-  tests/boundaries/variables_to_options.cpp \
   source/boundaries/variables_to_options.hpp
 
 TEST_BOUNDARIES_COMPILE_COMMAND = \
@@ -36,11 +35,17 @@ TEST_BOUNDARIES_COMPILE_COMMAND = \
   $(PRETTYPRINT_CPPFLAGS) \
   $< -o $@
 
-tests/boundaries/variables_to_options.exe: $(TEST_BOUNDARIES_DEPS)
+tests/boundaries/variables_to_options.exe: \
+  tests/boundaries/variables_to_options.cpp \
+  $(TEST_BOUNDARIES_DEPS)
 	@echo "CXX "$< && $(TEST_BOUNDARIES_COMPILE_COMMAND)
 
-tests/boundaries/one_variable_boundary.exe: $(TEST_BOUNDARIES_DEPS)
+tests/boundaries/one_variable_boundary.exe: \
+  tests/boundaries/one_variable_boundary.cpp \
+  $(TEST_BOUNDARIES_DEPS)
 	@echo "CXX "$< && $(TEST_BOUNDARIES_COMPILE_COMMAND)
 
-tests/boundaries/many_variable_boundary.exe: $(TEST_BOUNDARIES_DEPS)
+tests/boundaries/many_variable_boundary.exe: \
+  tests/boundaries/many_variable_boundary.cpp \
+  $(TEST_BOUNDARIES_DEPS)
 	@echo "CXX "$< && $(TEST_BOUNDARIES_COMPILE_COMMAND)

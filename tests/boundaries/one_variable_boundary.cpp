@@ -100,45 +100,6 @@ template <class Vector_T> struct End {
 };
 
 
-namespace std {
-	template<class T, size_t N> void validate(
-		boost::any& value,
-		const std::vector<string>& all_parsed,
-		array<T, N>*,
-		long
-	) {
-		boost::program_options::validators::check_first_occurrence(value);
-
-		const string& parsed
-			= boost::program_options::validators::get_single_string(all_parsed);
-
-		vector<string> components;
-		components = boost::algorithm::split(
-			components,
-			parsed,
-			boost::algorithm::is_any_of(" \t,;"),
-			boost::algorithm::token_compress_on
-		);
-
-		if (components.size() != N) {
-			std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
-				<< "Option must have " << N << " values "
-				<< "separated by e.g. a , or a space but given option ("
-				<< parsed << ") has " << components.size()
-				<< std::endl;
-			abort();
-		}
-
-		array<T, N> final;
-		for (size_t i = 0; i < N; i++) {
-			final[i] = boost::lexical_cast<T>(components[i]);
-		}
-
-		value = final;
-	}
-}
-
-
 template<
 	class Cell_T,
 	class Vector_T,
