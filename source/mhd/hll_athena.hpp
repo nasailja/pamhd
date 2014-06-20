@@ -174,26 +174,8 @@ template <
 	MHD_T ret_val;
 
 	const auto factor = 0.5 * (bp + bm) / (bp - bm);
-	ret_val[Rho]
-		= 0.5 * (flux_neg[Rho] + flux_pos[Rho])
-		+ factor * (flux_neg[Rho] - flux_pos[Rho]);
-
-	ret_val[Mom]
-		= 0.5 * (flux_neg[Mom] + flux_pos[Mom])
-		+ factor * (flux_neg[Mom] - flux_pos[Mom]);
-
-	ret_val[Nrj]
-		= 0.5 * (flux_neg[Nrj] + flux_pos[Nrj])
-		+ factor * (flux_neg[Nrj] - flux_pos[Nrj]);
-
-	ret_val[Mag]
-		= 0.5 * (flux_neg[Mag] + flux_pos[Mag])
-		+ factor * (flux_neg[Mag] - flux_pos[Mag]);
-
-	ret_val[Rho] *= area * dt;
-	ret_val[Mom] *= area * dt;
-	ret_val[Nrj] *= area * dt;
-	ret_val[Mag] *= area * dt;
+	ret_val = (flux_neg + flux_pos) / 2 + (flux_neg - flux_pos) * factor;
+	ret_val *= area * dt;
 
 	return std::make_pair(ret_val, std::max(std::fabs(bp), std::fabs(bm)));
 }

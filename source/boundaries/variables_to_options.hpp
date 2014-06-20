@@ -34,6 +34,76 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define PAMHD_VARIABLES_TO_OPTIONS_HPP
 
 
+#include "boost/algorithm/string/classification.hpp"
+#include "boost/algorithm/string/constants.hpp"
+#include "boost/algorithm/string/split.hpp"
+#include "boost/lexical_cast.hpp"
+#include "boost/program_options.hpp"
+
+#include "prettyprint.hpp"
+
+
+// add support for Eigen types
+#ifdef EIGEN_WORLD_VERSION
+namespace Eigen {
+	template <
+		// TODO variadic: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=61539
+		class Scalar,
+		int Rows,
+		int Cols,
+		int Options,
+		int MaxRows,
+		int MaxCols
+	> void validate(
+		boost::any& value,
+		const std::vector<std::string>& all_parsed,
+		Eigen::Matrix<
+			Scalar,
+			Rows,
+			Cols,
+			Options,
+			MaxRows,
+			MaxCols
+		>*,
+		long
+	) {
+		boost::program_options::validators::check_first_occurrence(value);
+
+		const std::string& parsed
+			= boost::program_options::validators::get_single_string(all_parsed);
+
+		std::vector<std::string> components;
+		components = boost::algorithm::split(
+			components,
+			parsed,
+			boost::algorithm::is_any_of(" \t,;"),
+			boost::algorithm::token_compress_on
+		);
+
+		using Data_T = Eigen::Matrix<
+			Scalar,
+			Rows,
+			Cols,
+			Options,
+			MaxRows,
+			MaxCols
+		>;
+
+		Data_T final;
+
+		size_t i = 0;
+		for (typename Data_T::Index row = 0; row < Rows; row++) {
+		for (typename Data_T::Index col = 0; col < Cols; col++) {
+			final(row, col) = boost::lexical_cast<Scalar>(components[i]);
+			i++;
+		}}
+
+		value = final;
+	}
+}
+#endif // ifdef EIGEN_WORLD_VERSION
+
+
 namespace pamhd {
 namespace boundaries {
 
@@ -59,22 +129,11 @@ public:
 		boost::program_options::options_description& options,
 		const std::string& option_name_prefix
 	) {
-		// make text representation of default value
-		std::string values_str(" ");
-		for (const auto& value: this->values) {
-			values_str += boost::lexical_cast<std::string>(value) + " ";
-		}
-
 		options.add_options()
 			((option_name_prefix + Current_Variable::get_option_name()).c_str(), 
 				boost::program_options::value<
 					std::vector<typename Current_Variable::data_type>
-				>(&this->values)
-					->multitoken()
-					->default_value(
-						this->values,
-						values_str.c_str()
-					),
+				>(&this->values)->multitoken()->default_value(this->values),
 				Current_Variable::get_option_help().c_str());
 
 		Variables_To_Options<Rest_Of_Variables...>::add_options(
@@ -116,22 +175,11 @@ public:
 		boost::program_options::options_description& options,
 		const std::string& option_name_prefix
 	) {
-		// make text representation of default value
-		std::string values_str(" ");
-		for (const auto& value: this->values) {
-			values_str += boost::lexical_cast<std::string>(value) + " ";
-		}
-
 		options.add_options()
 			((option_name_prefix + Last_Variable::get_option_name()).c_str(), 
 				boost::program_options::value<
 					std::vector<typename Last_Variable::data_type>
-				>(&this->values)
-					->multitoken()
-					->default_value(
-						this->values,
-						values_str.c_str()
-					),
+				>(&this->values)->multitoken()->default_value(this->values),
 				Last_Variable::get_option_help().c_str());
 	}
 

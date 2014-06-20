@@ -239,11 +239,6 @@ template <
 		"The data types of variables MHD_T and MHD_Flux_T must be equal"
 	);
 
-	const Mass_Density_T Rho{};
-	const Momentum_Density_T M{};
-	const Total_Energy_Density_T E{};
-	const Magnetic_Field_T B{};
-
 	const double
 		cell_size = get_cell_size(),
 		face_area = 1.0;
@@ -292,16 +287,10 @@ template <
 
 		if (cell_i > 0) {
 			// positive flux flows neg->pos, i.e. out of current cell
-			cell[MHD_Flux_T()][Rho] -= flux[Rho];
-			cell[MHD_Flux_T()][M] -= flux[M];
-			cell[MHD_Flux_T()][E] -= flux[E];
-			cell[MHD_Flux_T()][B] -= flux[B];
+			cell[MHD_Flux_T()] -= flux;
 		}
 		if (cell_i < std::tuple_size<Grid_T>::value - 2) {
-			neighbor[MHD_Flux_T()][Rho] += flux[Rho];
-			neighbor[MHD_Flux_T()][M] += flux[M];
-			neighbor[MHD_Flux_T()][E] += flux[E];
-			neighbor[MHD_Flux_T()][B] += flux[B];
+			neighbor[MHD_Flux_T()] += flux;
 		}
 	}
 

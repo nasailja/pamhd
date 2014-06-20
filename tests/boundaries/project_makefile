@@ -29,6 +29,7 @@ tests/boundaries/variables_to_options.exe: \
 	  $(BOOST_CPPFLAGS) \
 	  $(BOOST_LDFLAGS) \
 	  $(BOOST_LIBS) \
+	  $(PRETTYPRINT_CPPFLAGS) \
 	  $< -o $@
 
 tests/boundaries/one_variable_boundary.exe: \

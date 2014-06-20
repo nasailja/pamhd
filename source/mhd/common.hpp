@@ -295,21 +295,16 @@ template <
 	auto& state = cell_data[MHD_T()];
 	auto& flux = cell_data[MHD_Flux_T()];
 
-	state[Mass_Density_T()] += factor * flux[Mass_Density_T()];
-	flux[Mass_Density_T()] = 0;
+	state += flux * factor;
 
-	state[Momentum_Density_T()] += factor * flux[Momentum_Density_T()];
-	flux[Momentum_Density_T()][0] =
-	flux[Momentum_Density_T()][1] =
-	flux[Momentum_Density_T()][2] = 0;
-
-	state[Total_Energy_Density_T()] += factor * flux[Total_Energy_Density_T()];
-	flux[Total_Energy_Density_T()] = 0;
-
-	state[Magnetic_Field_T()] += factor * flux[Magnetic_Field_T()];
-	flux[Magnetic_Field_T()][0] =
-	flux[Magnetic_Field_T()][1] =
-	flux[Magnetic_Field_T()][2] = 0;
+	flux[Mass_Density_T()]         =
+	flux[Momentum_Density_T()][0]  =
+	flux[Momentum_Density_T()][1]  =
+	flux[Momentum_Density_T()][2]  =
+	flux[Total_Energy_Density_T()] =
+	flux[Magnetic_Field_T()][0]    =
+	flux[Magnetic_Field_T()][1]    =
+	flux[Magnetic_Field_T()][2]    = 0;
 }
 
 
