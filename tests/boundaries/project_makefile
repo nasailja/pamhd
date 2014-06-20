@@ -1,12 +1,14 @@
 TESTS_BOUNDARIES_EXECUTABLES = \
   tests/boundaries/variables_to_options.exe \
   tests/boundaries/one_variable_boundary.exe \
-  tests/boundaries/many_variable_boundary.exe
+  tests/boundaries/many_variable_boundary.exe \
+  tests/boundaries/box.exe
 
 TESTS_BOUNDARIES_TESTS = \
   tests/boundaries/variables_to_options.tst \
   tests/boundaries/one_variable_boundary.tst \
-  tests/boundaries/many_variable_boundary.tst
+  tests/boundaries/many_variable_boundary.tst \
+  tests/boundaries/box.tst
 
 tests/boundaries_executables: $(TESTS_BOUNDARIES_EXECUTABLES)
 
@@ -47,5 +49,10 @@ tests/boundaries/one_variable_boundary.exe: \
 
 tests/boundaries/many_variable_boundary.exe: \
   tests/boundaries/many_variable_boundary.cpp \
+  $(TEST_BOUNDARIES_DEPS)
+	@echo "CXX "$< && $(TEST_BOUNDARIES_COMPILE_COMMAND)
+
+tests/boundaries/box.exe: \
+  tests/boundaries/box.cpp \
   $(TEST_BOUNDARIES_DEPS)
 	@echo "CXX "$< && $(TEST_BOUNDARIES_COMPILE_COMMAND)
