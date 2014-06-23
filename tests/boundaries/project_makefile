@@ -3,14 +3,16 @@ TESTS_BOUNDARIES_EXECUTABLES = \
   tests/boundaries/one_variable_boundary.exe \
   tests/boundaries/many_variable_boundary.exe \
   tests/boundaries/box.exe \
-  tests/boundaries/initial_condition.exe
+  tests/boundaries/initial_condition.exe \
+  tests/boundaries/game_of_life/serial.exe
 
 TESTS_BOUNDARIES_TESTS = \
   tests/boundaries/variables_to_options.tst \
   tests/boundaries/one_variable_boundary.tst \
   tests/boundaries/many_variable_boundary.tst \
   tests/boundaries/box.tst \
-  tests/boundaries/initial_condition.tst
+  tests/boundaries/initial_condition.tst \
+  tests/boundaries/game_of_life/serial.tst
 
 tests/boundaries_executables: $(TESTS_BOUNDARIES_EXECUTABLES)
 
@@ -62,6 +64,13 @@ tests/boundaries/box.exe: \
 
 tests/boundaries/initial_condition.exe: \
   tests/boundaries/initial_condition.cpp \
+  source/boundaries/initial_condition.hpp \
+  source/boundaries/box.hpp \
+  $(TEST_BOUNDARIES_DEPS)
+	@echo "CXX "$< && $(TEST_BOUNDARIES_COMPILE_COMMAND)
+
+tests/boundaries/game_of_life/serial.exe: \
+  tests/boundaries/game_of_life/serial.cpp \
   source/boundaries/initial_condition.hpp \
   source/boundaries/box.hpp \
   $(TEST_BOUNDARIES_DEPS)

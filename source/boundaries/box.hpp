@@ -363,8 +363,8 @@ public:
 			bool overlaps = true;
 			for (size_t coord_i = 0; coord_i < cell_start.size(); coord_i++) {
 				if (
-					cell_start[coord_i] > bdy_end[coord_i]
-					or cell_end[coord_i] < bdy_start[coord_i]
+					cell_start[coord_i] >= bdy_end[coord_i]
+					or cell_end[coord_i] <= bdy_start[coord_i]
 				) {
 					overlaps = false;
 					break;

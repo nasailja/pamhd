@@ -50,6 +50,60 @@ template<
 public:
 
 	/*!
+	Adds data of given variables as default.
+
+	Does nothing if default values have already been set.
+	*/
+	template<
+		class... Default_Data
+	> void add_default_data(
+		const Default_Data&... default_data
+	) {}
+
+	//! Start/continues recursion over variables and their data
+	template<class Variable, class Data, class... Rest> void add_default_data(
+		const Variable&,
+		const Data& data,
+		const Rest&... rest
+	) {
+		static_assert(
+			std::is_same<typename Variable::data_type, Data>::value,
+			"Variable and its data must be equal"
+		);
+
+		if (this->default_[Variable()].size() > 0) {
+			return;
+		}
+
+		this->default_[Variable()].push_back(data);
+		this->add_default_data(rest...);
+	}
+
+	//! Stops recursion over variables and their data
+	template<class Last_Variable, class Last_Data> void add_default_data(
+		const Last_Variable&,
+		const Last_Data& data
+	) {
+		if (this->default_[Last_Variable()].size() > 0) {
+			return;
+		}
+
+		this->default_[Last_Variable()].push_back(data);
+	}
+
+
+	template<
+		class Variable
+	> const std::vector<
+		typename Variable::data_type
+	>& get_default_data(
+		const Variable& variable
+	) {
+		return this->default_[variable];
+	}
+
+
+	/*!
 	Invalidates previous boundary indices.
 	*/
 	template<class... Boundary_Data> void add_boundary_box(
@@ -76,17 +130,6 @@ public:
 		const Vector_T& cell_end
 	) {
 		return this->boxes.add_cell(cell, cell_start, cell_end);
-	}
-
-
-	template<
-		class Variable
-	> const std::vector<
-		typename Variable::data_type
-	>& get_default_data(
-		const Variable& variable
-	) {
-		return this->default_[variable];
 	}
 
 
