@@ -187,7 +187,7 @@ public:
 
 		const size_t bdy_i = this->get_boundary_index(given_time);
 
-		// cell have now been classified so don't use previous cell lists
+		// cells have now been classified so don't use previous cell lists
 		if (not this->boundary_cells[bdy_i]) {
 			this->boundary_cells[bdy_i] = std::vector<Cell_T>();
 		}

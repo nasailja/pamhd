@@ -315,6 +315,64 @@ public:
 
 
 	/*!
+	Adds a cell to given boundary if they overlap.
+
+	\param boundary_index Boundary to classify cell against
+	\param cell Cell to add
+	\param cell_start Start coordinate of cell
+	\param cell_end End coordinate of cell
+
+	Returns 1 if cell was added to boundary, 0 otherwise.
+
+	*/
+	size_t add_cell(
+		const size_t boundary_index,
+		const Cell_T& cell,
+		const Vector_T& cell_start,
+		const Vector_T& cell_end
+	) {
+		for (size_t i = 0; i < cell_start.size(); i++) {
+			if (cell_start[i] > cell_end[i]) {
+				std::cerr <<  __FILE__ << "(" << __LINE__<< ") "
+					<< "Starting coordinate at index " << i
+					<< " is larger than ending coordinate: "
+					<< cell_start[i] << " > " << cell_end[i]
+					<< std::endl;
+				abort();
+			}
+		}
+
+		if (this->boundaries[Start_T()].size() <= boundary_index) {
+			std::cerr <<  __FILE__ << "(" << __LINE__<< ") "
+				<< "Invalid boundary given."
+				<< std::endl;
+			abort();
+		}
+
+		const auto
+			&bdy_start = this->boundaries[Start_T()][boundary_index],
+			&bdy_end = this->boundaries[End_T()][boundary_index];
+
+		bool overlaps = true;
+		for (size_t coord_i = 0; coord_i < cell_start.size(); coord_i++) {
+			if (
+				cell_start[coord_i] >= bdy_end[coord_i]
+				or cell_end[coord_i] <= bdy_start[coord_i]
+			) {
+				overlaps = false;
+				break;
+			}
+		}
+
+		if (overlaps) {
+			this->boundary_cells[boundary_index].push_back(cell);
+			return 1;
+		}
+
+		return 0;
+	}
+
+	/*!
 	Adds a cell to all existing boundaries with which the cell overlaps.
 
 	\param cell Cell to add
