@@ -115,7 +115,7 @@ private:
 	template<
 		class... Boundary_Data
 	> void add_boundary_data(
-		const Boundary_Data&... boundary_data
+		const Boundary_Data&...
 	) {}
 
 	//! Start/continues recursion over variables and their data
@@ -342,6 +342,8 @@ public:
 			}
 		}
 
+		this->boundary_cells.resize(this->boundaries[Start_T()].size());
+
 		if (this->boundaries[Start_T()].size() <= boundary_index) {
 			std::cerr <<  __FILE__ << "(" << __LINE__<< ") "
 				<< "Invalid boundary given."
@@ -414,25 +416,7 @@ public:
 			bdy_i < this->boundaries[Start_T()].size();
 			bdy_i++
 		) {
-			const auto
-				&bdy_start = this->boundaries[Start_T()][bdy_i],
-				&bdy_end = this->boundaries[End_T()][bdy_i];
-
-			bool overlaps = true;
-			for (size_t coord_i = 0; coord_i < cell_start.size(); coord_i++) {
-				if (
-					cell_start[coord_i] >= bdy_end[coord_i]
-					or cell_end[coord_i] <= bdy_start[coord_i]
-				) {
-					overlaps = false;
-					break;
-				}
-			}
-
-			if (overlaps) {
-				this->boundary_cells[bdy_i].push_back(cell);
-				ret_val++;
-			}
+			ret_val += this->add_cell(bdy_i, cell, cell_start, cell_end);
 		}
 
 		return ret_val;
@@ -452,12 +436,24 @@ public:
 		return this->boundary_cells[boundary_index];
 	}
 
+
 	//! Returns data of given variable in given boundary
 	template<class Variable> const typename Variable::data_type& get_boundary_data(
 		const Variable&,
 		const size_t boundary_index
 	) const {
 		return this->boundaries[Variable()][boundary_index];
+	}
+
+	//! Returns data of given variable in all boundaries
+	template<
+		class Variable
+	> const std::vector<
+		typename Variable::data_type
+	>& get_all_boundary_data(
+		const Variable&
+	) const {
+		return this->boundaries[Variable()];
 	}
 
 
