@@ -184,6 +184,16 @@ public:
 	}
 
 
+	/*!
+	Removes data of all variables.
+	*/
+	void clear()
+	{
+		this->values.clear();
+		Variables_To_Options<Rest_Of_Variables...>::clear();
+	}
+
+
 	std::vector<
 		typename Current_Variable::data_type
 	>& operator[](
@@ -202,6 +212,9 @@ public:
 
 
 protected:
+	using Variables_To_Options<Rest_Of_Variables...>::clear;
+
+private:
 	std::vector<typename Current_Variable::data_type> values;
 };
 
@@ -225,6 +238,12 @@ public:
 	}
 
 
+	void clear()
+	{
+		this->values.clear();
+	}
+
+
 	std::vector<
 		typename Last_Variable::data_type
 	>& operator[](
@@ -242,7 +261,7 @@ public:
 	}
 
 
-protected:
+private:
 	std::vector<typename Last_Variable::data_type> values;
 };
 
