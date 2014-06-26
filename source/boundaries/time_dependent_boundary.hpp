@@ -74,9 +74,6 @@ template<
 public:
 
 
-	/*!
-	Invalidates previous boundary indices.
-	*/
 	template<class... Boundary_Data> void add_boundary_data(
 		const Vector_T& geometry_start,
 		const Vector_T& geometry_end,
@@ -150,7 +147,7 @@ public:
 		const Variable&,
 		const Time_T& given_time
 	) const {
-		return this->boxes.get_boundary_data(
+		return this->boundaries.get_boundary_data(
 			Variable(),
 			this->get_boundary_index(given_time)
 		);
@@ -180,6 +177,21 @@ private:
 
 		if (times.size() == 1) {
 			return 0;
+		}
+
+		// check that time values are ascending
+		Time_T previous = times[0];
+		for (size_t i = 1; i < times.size(); i++) {
+			const Time_T& next = times[i];
+			if (next < previous) {
+				std::cerr <<  __FILE__ << "(" << __LINE__<< ") "
+					<< "Time stamp at index " << i << "(" << next
+					<< ") has lower value than at index " << i - 1
+					<< " (" << previous << ")"
+					<< std::endl;
+				abort();
+			}
+			previous = next;
 		}
 
 		size_t bdy_i = 0;

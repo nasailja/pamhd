@@ -6,7 +6,8 @@ TESTS_BOUNDARIES_EXECUTABLES = \
   tests/boundaries/initial_condition.exe \
   tests/boundaries/game_of_life/serial.exe \
   tests/boundaries/time_dependent_boundary_experiment.exe \
-  tests/boundaries/time_dependent_boundary.exe
+  tests/boundaries/time_dependent_boundary.exe \
+  tests/boundaries/game_of_life/time_dependent.exe
 
 TESTS_BOUNDARIES_TESTS = \
   tests/boundaries/variables_to_options.tst \
@@ -16,7 +17,8 @@ TESTS_BOUNDARIES_TESTS = \
   tests/boundaries/initial_condition.tst \
   tests/boundaries/game_of_life/serial.tst \
   tests/boundaries/time_dependent_boundary_experiment.tst \
-  tests/boundaries/time_dependent_boundary.tst
+  tests/boundaries/time_dependent_boundary.tst \
+  tests/boundaries/game_of_life/time_dependent.tst
 
 tests/boundaries_executables: $(TESTS_BOUNDARIES_EXECUTABLES)
 
@@ -88,5 +90,13 @@ tests/boundaries/time_dependent_boundary_experiment.exe: \
 tests/boundaries/time_dependent_boundary.exe: \
   tests/boundaries/time_dependent_boundary.cpp \
   source/boundaries/time_dependent_boundary.hpp \
+  source/boundaries/box.hpp \
+  $(TEST_BOUNDARIES_DEPS)
+	@echo "CXX "$< && $(TEST_BOUNDARIES_COMPILE_COMMAND)
+
+tests/boundaries/game_of_life/time_dependent.exe: \
+  tests/boundaries/game_of_life/time_dependent.cpp \
+  source/boundaries/time_dependent_boundary.hpp \
+  source/boundaries/box.hpp \
   $(TEST_BOUNDARIES_DEPS)
 	@echo "CXX "$< && $(TEST_BOUNDARIES_COMPILE_COMMAND)
