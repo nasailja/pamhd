@@ -1,0 +1,25 @@
+A compiler with support for C++11 or at least variadic
+template parameters is required.
+
+
+Required software:
+
+Boost (>= 1.54): http://boost.org/
+
+dccrg (latest version from c++11 branch): https://gitorious.org/dccrg/dccrg
+dccrg has requirements of its own, see: https://gitorious.org/dccrg/pages/Install
+
+Eigen version 3: http://eigen.tuxfamily.org/
+
+Generic simulation cell: https://github.com/nasailja/gensimcell
+
+C++ Prettyprint: https://github.com/louisdx/cxx-prettyprint
+
+An implementation of MPI (e.g. http://open-mpi.org/ version >= 1.6)
+
+
+In order to compile and test PAMHD change the variable
+ENVIRONMENT_MAKEFILE in the top level Makefile to point
+to the correct environment-specific makefile or create
+your own. Then run make from the top level directory,
+tests will be executed automatically.
