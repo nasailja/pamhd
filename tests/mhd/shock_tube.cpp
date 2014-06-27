@@ -208,6 +208,9 @@ int main(int argc, char* argv[])
 
 	boost::program_options::options_description
 		options(
+			"All supported options"
+		),
+		basic_options(
 			"Usage: program_name [options], where options are:"
 		),
 		initial_condition_options(
@@ -218,7 +221,7 @@ int main(int argc, char* argv[])
 			"Options for plasma state at negative and positive ends of shock tube"
 		);
 
-	options.add_options()
+	basic_options.add_options()
 		("help", "Print this help message")
 		("verbose", "Print run time information")
 		("initial-help", "Print help for initial condition options")
@@ -255,6 +258,7 @@ int main(int argc, char* argv[])
 			"Save results every arg seconds, 0 saves "
 			"initial and final states, -1 doesn't save");
 
+	options.add(basic_options);
 	initial_condition.add_options(options, "initial.");
 	boundary_negative.add_options(options, "neg.");
 	boundary_positive.add_options(options, "pos.");
@@ -272,7 +276,7 @@ int main(int argc, char* argv[])
 
 	if (option_variables.count("help") > 0) {
 		if (rank == 0) {
-			cout << options << endl;
+			cout << basic_options << endl;
 		}
 		MPI_Finalize();
 		return EXIT_SUCCESS;
