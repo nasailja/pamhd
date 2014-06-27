@@ -210,6 +210,7 @@ int main(int argc, char* argv[])
 		options(
 			"All supported options"
 		),
+		// grouped options for printing help
 		basic_options(
 			"Usage: program_name [options], where options are:"
 		),
@@ -262,7 +263,7 @@ int main(int argc, char* argv[])
 	initial_condition.add_options(options, "initial.");
 	boundary_negative.add_options(options, "neg.");
 	boundary_positive.add_options(options, "pos.");
-	// for printing help
+
 	initial_condition.add_options(initial_condition_options, "initial.");
 	boundary_negative.add_options(boundary_options, "neg.");
 	boundary_positive.add_options(boundary_options, "pos.");
