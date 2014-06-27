@@ -47,34 +47,66 @@ Variables used by magnetohydrodynamic (MHD) solver
 
 struct Mass_Density {
 	using data_type = double;
-	static constexpr char name[] = "mass";
+	static const std::string get_name() { return {"mass density"}; }
+	static const std::string get_option_name() { return {"mass-density"}; }
+	static const std::string get_option_help() { return {"Plasma mass density (kg / m^3)"}; }
 };
 
 struct Momentum_Density {
 	using data_type = Eigen::Vector3d;
-	static constexpr char name[] = "momentum";
+	static const std::string get_name() { return {"momentum density"}; }
+	static const std::string get_option_name() { return {"momentum-density"}; }
+	static const std::string get_option_help() { return {"Plasma momentum density (kg / m^3 * m / s)"}; }
 };
 
 struct Total_Energy_Density {
 	using data_type = double;
-	static constexpr char name[] = "energy";
+	static const std::string get_name() { return {"total energy density"}; }
+	static const std::string get_option_name() { return {"total-energy-density"}; }
+	static const std::string get_option_help() { return {"Plasma total energy density (J / m^3)"}; }
 };
 
 struct Magnetic_Field {
 	using data_type = Eigen::Vector3d;
-	static constexpr char name[] = "magnetic field";
+	static const std::string get_name() { return {"magnetic field"}; }
+	static const std::string get_option_name() { return {"magnetic-field"}; }
+	static const std::string get_option_help() { return {"Plasma magnetic field (T)"}; }
 };
 
 struct Velocity {
 	using data_type = Eigen::Vector3d;
-	static constexpr char name[] = "velocity";
+	static const std::string get_name() { return {"velocity"}; }
+	static const std::string get_option_name() { return {"velocity"}; }
+	static const std::string get_option_help() { return {"Plasma velocity (m / s)"}; }
 };
 
 struct Pressure {
 	using data_type = double;
-	static constexpr char name[] = "pressure";
+	static const std::string get_name() { return {"pressure"}; }
+	static const std::string get_option_name() { return {"pressure"}; }
+	static const std::string get_option_help() { return {"Plasma thermal pressure (Pa)"}; }
 };
 
+struct Number_Density {
+	using data_type = double;
+	static const std::string get_name() { return {"number density"}; }
+	static const std::string get_option_name() { return {"number-density"}; }
+	static const std::string get_option_help() { return {"Plasma number density (protons / m^3)"}; }
+};
+
+struct MPI_Rank {
+	using data_type = int;
+	static const std::string get_name() { return {"MPI rank"}; }
+	static const std::string get_option_name() { return {"mpi-rank"}; }
+	static const std::string get_option_help() { return {"Owner (MPI process) of cell"}; }
+};
+
+struct Cell_Type {
+	using data_type = int;
+	static const std::string get_name() { return {"cell type"}; }
+	static const std::string get_option_name() { return {"cell-type"}; }
+	static const std::string get_option_help() { return {"Owner (MPI process) of cell"}; }
+};
 
 //! Set of conservative MHD variables
 using MHD_Conservative = gensimcell::Cell<

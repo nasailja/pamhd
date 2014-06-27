@@ -245,9 +245,9 @@ template <
 
 template <
 	class MHD_Conservative_T,
+	class MHD_Primitive_T,
 	class Momentum_Density_T,
 	class Total_Energy_Density_T,
-	class MHD_Primitive_T,
 	class Mass_Density_T,
 	class Velocity_T,
 	class Pressure_T,

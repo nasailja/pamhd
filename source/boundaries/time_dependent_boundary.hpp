@@ -154,6 +154,12 @@ public:
 	}
 
 
+	//! Removes all cells from this boundary.
+	void clear_cells()
+	{
+		this->boundaries.clear_cells();
+	}
+
 
 private:
 	Box<Cell_T, Vector_T, detail::Time<Time_T>, Variables...> boundaries;

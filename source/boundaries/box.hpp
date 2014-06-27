@@ -437,6 +437,15 @@ public:
 	}
 
 
+	//! Removes all cells from all boxes.
+	void clear_cells()
+	{
+		for (auto& cells: this->boundary_cells) {
+			cells.clear();
+		}
+	}
+
+
 	//! Returns data of given variable in given boundary
 	template<class Variable> const typename Variable::data_type& get_boundary_data(
 		const Variable&,
