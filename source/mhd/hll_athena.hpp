@@ -137,7 +137,7 @@ template <
 		= velocity_pos[0] * (pressure_pos + state_pos[Nrj])
 		- bp * state_pos[Nrj];
 
-	const auto
+	const auto&
 		B_neg = state_neg[Mag],
 		B_pos = state_pos[Mag];
 

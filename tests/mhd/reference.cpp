@@ -298,18 +298,23 @@ template <
 	const double inverse_volume = 1.0 / (face_area * cell_size);
 
 	for (auto& cell: grid) {
-		pamhd::mhd::apply_flux<
+		pamhd::mhd::apply_fluxes<
 			Grid_T::value_type,
 			MHD_T,
+			MHD_Flux_T
+		>(
+			cell,
+			inverse_volume
+		);
+
+		pamhd::mhd::zero_fluxes<
+			Grid_T::value_type,
 			MHD_Flux_T,
 			Mass_Density_T,
 			Momentum_Density_T,
 			Total_Energy_Density_T,
 			Magnetic_Field_T
-		>(
-			cell,
-			inverse_volume
-		);
+		>(cell);
 	}
 
 	return max_dt;

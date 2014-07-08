@@ -27,6 +27,8 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 #include "gensimcell.hpp"
 
+#include "mhd/hll_athena.hpp"
+
 namespace pamhd {
 namespace mhd {
 
@@ -134,30 +136,62 @@ template <
 			const double shared_area
 				= std::min(cell_area[neighbor_dim], neighbor_area[neighbor_dim]);
 
-			if (neighbor_dim != 0) {
-				std::cerr <<  __FILE__ << "(" << __LINE__ << ") Dimension"
-					<< neighbor_dim << " not supported."
-					<< std::endl;
-				abort();
-			}
-			// TODO: rotate vector variables for other dimensions
+			// take into account direction of neighbor from cell
 			const typename MHD_T::data_type
 				state_neg
 					= [&](){
 						if (neighbor_dir > 0) {
-							return (*cell_data)[MHD_T()];
+							return get_rotated_state<
+								MHD_T,
+								Mass_Density_T,
+								Momentum_Density_T,
+								Total_Energy_Density_T,
+								Magnetic_Field_T
+							>(
+								(*cell_data)[MHD_T()],
+								abs(neighbor_dir)
+							);
 						} else {
-							return (*neighbor_data)[MHD_T()];
+							return get_rotated_state<
+								MHD_T,
+								Mass_Density_T,
+								Momentum_Density_T,
+								Total_Energy_Density_T,
+								Magnetic_Field_T
+							>(
+								(*neighbor_data)[MHD_T()],
+								abs(neighbor_dir)
+							);
 						}
 					}(),
+
 				state_pos
 					= [&](){
 						if (neighbor_dir > 0) {
-							return (*neighbor_data)[MHD_T()];
+							return get_rotated_state<
+								MHD_T,
+								Mass_Density_T,
+								Momentum_Density_T,
+								Total_Energy_Density_T,
+								Magnetic_Field_T
+							>(
+								(*neighbor_data)[MHD_T()],
+								abs(neighbor_dir)
+							);
 						} else {
-							return (*cell_data)[MHD_T()];
+							return get_rotated_state<
+								MHD_T,
+								Mass_Density_T,
+								Momentum_Density_T,
+								Total_Energy_Density_T,
+								Magnetic_Field_T
+							>(
+								(*cell_data)[MHD_T()],
+								abs(neighbor_dir)
+							);
 						}
 					}();
+
 
 			typename MHD_Flux_T::data_type flux;
 			double max_vel;
@@ -187,7 +221,15 @@ template <
 			}
 			max_dt = std::min(max_dt, cell_length[neighbor_dim] / max_vel);
 
-			// TODO: rotate vector variables of flux back
+			// rotate flux back
+			flux = get_rotated_state<
+				MHD_T,
+				Mass_Density_T,
+				Momentum_Density_T,
+				Total_Energy_Density_T,
+				Magnetic_Field_T
+			>(flux, -abs(neighbor_dir));
+
 
 			const MHD_Flux_T Flux{};
 			if (neighbor_dir > 0) {
@@ -224,19 +266,13 @@ template <
 
 /*!
 Applies the MHD solution to given cells.
-
-Zeros fluxes.
 */
 template <
 	class Grid_T,
 	class Cell_T,
 	class MHD_T,
-	class MHD_Flux_T,
-	class Mass_Density_T,
-	class Momentum_Density_T,
-	class Total_Energy_Density_T,
-	class Magnetic_Field_T
-> void apply_solution(
+	class MHD_Flux_T
+> void apply_fluxes(
 	Grid_T& grid,
 	const std::vector<uint64_t>& cells
 ) {
@@ -257,18 +293,44 @@ template <
 		const auto length = grid.geometry.get_length(cell_id);
 		const double inverse_volume = 1.0 / (length[0] * length[1] * length[2]);
 
-		apply_flux<
+		apply_fluxes<Cell_T, MHD_T, MHD_Flux_T>((*cell_data), inverse_volume);
+	}
+}
+
+/*!
+Applies the MHD solution to given cells.
+
+Zeros fluxes.
+*/
+template <
+	class Grid_T,
+	class Cell_T,
+	class MHD_Flux_T,
+	class Mass_Density_T,
+	class Momentum_Density_T,
+	class Total_Energy_Density_T,
+	class Magnetic_Field_T
+> void zero_fluxes(
+	Grid_T& grid,
+	const std::vector<uint64_t>& cells
+) {
+	for (const auto& cell_id: cells) {
+		auto* cell_data = grid[cell_id];
+		if (cell_data == NULL) {
+			std::cerr <<  __FILE__ << "(" << __LINE__ << "): "
+				<< " No data for cell " << cell_id
+				<< std::endl;
+			abort();
+		}
+
+		zero_fluxes<
 			Cell_T,
-			MHD_T,
 			MHD_Flux_T,
 			Mass_Density_T,
 			Momentum_Density_T,
 			Total_Energy_Density_T,
 			Magnetic_Field_T
-		>(
-			(*cell_data),
-			inverse_volume
-		);
+		>(*cell_data);
 	}
 }
 

@@ -65,7 +65,13 @@ template <
 	const auto
 		rho = state[Mass_Density_T()],
 		nrj = state[Total_Energy_Density_T()],
-		kinetic_energy = 0.5 * mom.squaredNorm() / rho,
+		kinetic_energy = [&](){
+			if (rho == 0) {
+				return 0.0;
+			} else {
+				return 0.5 * mom.squaredNorm() / rho;
+			}
+		}(),
 		magnetic_energy = 0.5 * B.squaredNorm() / vacuum_permeability;
 
 	return (nrj - kinetic_energy - magnetic_energy) * (adiabatic_index - 1);
@@ -128,6 +134,10 @@ template <
 			>(state, adiabatic_index, vacuum_permeability),
 		rho = state[Mass_Density_T()];
 
+	if (rho == 0) {
+		return 299792458;
+	}
+
 	return std::sqrt(adiabatic_index * pressure / rho);
 }
 
@@ -148,6 +158,10 @@ template <
 	const auto
 		rho = state[Mass_Density_T()],
 		B_mag = state[Magnetic_Field_T()].norm();
+
+	if (rho == 0) {
+		return 299792458;
+	}
 
 	return B_mag / std::sqrt(vacuum_permeability * rho);
 }
@@ -170,19 +184,23 @@ template <
 	const double vacuum_permeability
 ) {
 	const auto
-		B_in_dim = state[Magnetic_Field_T()][0],
 		B_mag = state[Magnetic_Field_T()].norm(),
-		sound2
-			= std::pow(
-				get_sound_speed<
-					MHD_T,
-					Mass_Density_T,
-					Momentum_Density_T,
-					Total_Energy_Density_T,
-					Magnetic_Field_T
-				>(state, adiabatic_index, vacuum_permeability),
-				2
-			),
+		sound
+			= get_sound_speed<
+				MHD_T,
+				Mass_Density_T,
+				Momentum_Density_T,
+				Total_Energy_Density_T,
+				Magnetic_Field_T
+			>(state, adiabatic_index, vacuum_permeability);
+
+	if (B_mag == 0) {
+		return sound;
+	}
+
+	const auto
+		B_in_dim = state[Magnetic_Field_T()][0],
+		sound2 = sound * sound,
 		alfven2
 			= std::pow(
 				get_alfven_speed<
@@ -276,27 +294,104 @@ template <
 }
 
 
+template<class Vector_T> Vector_T get_rotated_vector(
+	const Vector_T& v,
+	const int direction
+) {
+	Vector_T ret_val;
+
+	switch(direction) {
+	case -3:
+		ret_val[0] = v[1];
+		ret_val[1] = v[2];
+		ret_val[2] = v[0];
+		return ret_val;
+	case -2:
+		ret_val[0] = v[2];
+		ret_val[1] = v[0];
+		ret_val[2] = v[1];
+		return ret_val;
+	case -1:
+	case 1:
+		return v;
+	case 2:
+		ret_val[0] = v[1];
+		ret_val[1] = v[2];
+		ret_val[2] = v[0];
+		return ret_val;
+	case 3:
+		ret_val[0] = v[2];
+		ret_val[1] = v[0];
+		ret_val[2] = v[1];
+		return ret_val;
+	default:
+		std::cerr <<  __FILE__ << "(" << __LINE__ << ") "
+			<< "Invalid direction: " << direction
+			<< std::endl;
+		abort();
+	}
+}
+
+
+/*!
+Returns given MHD state with vector variables rotated.
+
+Rotates vector variables so that given direction becomes
+the first one.
+Negative value reverses the operation, e.g.
+state == get_rotated(get_rotated(state, 2), -2);
+
+Direction starts from 1 and values of -1 and 1 do nothing.
+*/
+template <
+	class MHD_T,
+	class Mass_Density_T,
+	class Momentum_Density_T,
+	class Total_Energy_Density_T,
+	class Magnetic_Field_T
+> typename MHD_T::data_type get_rotated_state(
+	const typename MHD_T::data_type& state,
+	const int direction
+) {
+	typename MHD_T::data_type ret_val;
+
+	ret_val[Mass_Density_T()] = state[Mass_Density_T()];
+	ret_val[Total_Energy_Density_T()] = state[Total_Energy_Density_T()];
+	ret_val[Momentum_Density_T()] = get_rotated_vector(state[Momentum_Density_T()], direction);
+	ret_val[Magnetic_Field_T()] = get_rotated_vector(state[Magnetic_Field_T()], direction);
+
+	return ret_val;
+}
+
+
 /*!
 Positive flux adds to given cell multiplied with given factor.
-Zeroes flux afterwards.
 */
 template <
 	class Cell_T,
 	class MHD_T,
+	class MHD_Flux_T
+> void apply_fluxes(
+	Cell_T& cell_data,
+	const double factor
+) {
+	cell_data[MHD_T()] += cell_data[MHD_Flux_T()] * factor;
+}
+
+
+/*!
+Zeroes fluxes of given variables.
+*/
+template <
+	class Cell_T,
 	class MHD_Flux_T,
 	class Mass_Density_T,
 	class Momentum_Density_T,
 	class Total_Energy_Density_T,
 	class Magnetic_Field_T
-> void apply_flux(
-	Cell_T& cell_data,
-	const double factor
-) {
-	auto& state = cell_data[MHD_T()];
+> void zero_fluxes(Cell_T& cell_data)
+{
 	auto& flux = cell_data[MHD_Flux_T()];
-
-	state += flux * factor;
-
 	flux[Mass_Density_T()]         =
 	flux[Momentum_Density_T()][0]  =
 	flux[Momentum_Density_T()][1]  =

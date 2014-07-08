@@ -134,6 +134,13 @@ struct MHD_Flux_Conservative {
 	using data_type = MHD_Conservative;
 };
 
+using Cell = gensimcell::Cell<
+	MHD_State_Conservative,
+	MPI_Rank,
+	Cell_Type,
+	MHD_Flux_Conservative
+>;
+
 }} // namespaces
 
 #endif // ifndef PAMHD_MHD_VARIABLES_HPP

@@ -96,6 +96,18 @@ public:
 	}
 
 
+	/*
+	Returns true if boundary has been set, false otherwise.
+	*/
+	bool exists() const
+	{
+		if (this->boundaries.get_number_of_boundaries() == 0)
+			return false;
+		else
+			return true;
+	}
+
+
 	void add_options(
 		boost::program_options::options_description& options,
 		const std::string& option_name_prefix

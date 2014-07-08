@@ -33,8 +33,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef PAMHD_MHD_SAVE_HPP
 #define PAMHD_MHD_SAVE_HPP
 
-#include "cmath"
-#include "limits"
+#include "iomanip"
 
 #include "gensimcell.hpp"
 
@@ -42,47 +41,88 @@ namespace pamhd {
 namespace mhd {
 
 
-/*!
-Saves the MHD solution into a file with name derived from simulation time. 
+class Save
+{
+public:
 
-MHD_T and subsequent arguments refer to the MHD solution to save.
+	static std::string get_header_template()
+	{
+		return {"fluxes = "};
+	}
 
-The transfer of all first level variables must be switched
-off before this function is called. After save returns the
-transfer of all first level variables is switched off.
-Transfer of variables in MHD_T must be switched on.
+	static size_t get_header_size()
+	{
+		return get_header_template().size() + 2;
+	}
 
-Grid_T is assumed to provide the dccrg API.
-*/
-template <
-	class Grid_T,
-	class Cell_T,
-	class MHD_T
-> void save(
-	Grid_T& grid,
-	const double simulation_time
-) {
-	Cell_T::set_transfer_all(true, MHD_T());
 
-	// get the file name
-	std::ostringstream time_string;
-	time_string
-		<< std::scientific
-		<< std::setprecision(6)
-		<< simulation_time;
+	/*!
+	Saves the MHD solution into a file with name derived from simulation time.
 
-	// use an empty header with a sane address
-	char dummy;
-	std::tuple<void*, int, MPI_Datatype> header{(void*) &dummy, 0, MPI_BYTE};
+	MHD_T and subsequent arguments refer to the MHD solution to save.
 
-	grid.save_grid_data(
-		"mhd_" + time_string.str() + "_s.dc",
-		0,
-		header
-	);
+	The transfer of all first level variables must be switched
+	off before this function is called. After save returns the
+	transfer of all first level variables is switched off.
+	Transfer of variables in MHD_T must be switched on.
 
-	Cell_T::set_transfer_all(false, MHD_T());
-}
+	Grid_T is assumed to provide the dccrg API.
+
+	Return true on success, false otherwise.
+	*/
+	template <
+		class Grid_T,
+		class Cell_T,
+		class MHD_T,
+		class MHD_Flux_T
+	> static bool save(
+		Grid_T& grid,
+		const double simulation_time,
+		const bool save_fluxes
+	) {
+		Cell_T::set_transfer_all(true, MHD_T());
+
+		std::string header_data(get_header_template());
+		if (save_fluxes) {
+			header_data += "y\n";
+			Cell_T::set_transfer_all(true, MHD_Flux_T());
+		} else {
+			header_data += "n\n";
+		}
+		if (header_data.size() != get_header_size()) {
+			std::cerr << __FILE__ << ":" << __LINE__
+				<< ": Invalid size for header: " << header_data.size()
+				<< ", should be " << get_header_size()
+				<< std::endl;
+			return false;
+		}
+
+		std::tuple<void*, int, MPI_Datatype> header{
+			(void*) header_data.data(),
+			get_header_size(),
+			MPI_BYTE
+		};
+
+		std::ostringstream time_string;
+		time_string
+			<< std::scientific
+			<< std::setprecision(3)
+			<< simulation_time;
+
+		const bool ret_val = grid.save_grid_data(
+			"mhd_" + time_string.str() + "_s.dc",
+			0,
+			header
+		);
+
+		if (save_fluxes) {
+			Cell_T::set_transfer_all(false, MHD_Flux_T());
+		}
+		Cell_T::set_transfer_all(false, MHD_T());
+
+		return ret_val;
+	}
+};
 
 }} // namespaces
 

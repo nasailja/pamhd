@@ -1,5 +1,5 @@
 /*
-Shock tube test program for MHD solvers of PAMHD.
+MHD test program of PAMHD.
 
 Copyright 2014 Ilja Honkonen
 All rights reserved.
@@ -46,7 +46,6 @@ to get MPI support for Eigen types in generic cell
 #include "gensimcell.hpp"
 
 #include "mhd/common.hpp"
-#include "mhd/hll_athena.hpp"
 #include "mhd/initialize.hpp"
 #include "mhd/save.hpp"
 #include "mhd/solve.hpp"
@@ -76,11 +75,6 @@ int main(int argc, char* argv[])
 		pamhd::mhd::Total_Energy_Density(),
 		pamhd::mhd::Magnetic_Field()
 	);
-
-	constexpr double
-		adiabatic_index = 5.0 / 3.0,    
-		vacuum_permeability = 4e-7 * M_PI,
-		proton_mass = 1.672621777e-27;
 
 	/*
 	Initialize MPI
@@ -133,78 +127,30 @@ int main(int argc, char* argv[])
 			pamhd::mhd::Pressure,
 			pamhd::mhd::Magnetic_Field
 		>;
-	Boundary_T boundary_negative, boundary_positive;
+	std::array<Boundary_T, 6> boundaries; // order: -x, +x, -y, +y, -z, +z
 
 
 	/*
 	Program options
 	*/
 
-	// defaults for non-MHD options
-	bool verbose = false;
-	size_t normal_cells = 1000, total_cells = normal_cells + 2;
-	double save_mhd_n = -1, tube_length = 1e5, cell_length = tube_length / normal_cells;
-	std::array<uint64_t, 3> grid_length = {total_cells, 1, 1};
+	bool verbose = false, save_fluxes = false;
+	double
+		save_mhd_n = -1,
+		start_time = 0,
+		end_time = 1,
+		adiabatic_index = 5.0 / 3.0,    
+		vacuum_permeability = 4e-7 * M_PI,
+		proton_mass = 1.672621777e-27;
 	std::string
 		mhd_solver("hll_athena"),
-		config_file_name(""),
-		initial_condition_file_name(""),
-		boundary_file_name("");
+		config_file_name("");
 
-	// defaults for MHD options
-	initial_condition.add_default_data(
-		pamhd::mhd::Number_Density{},
-		pamhd::mhd::Number_Density::data_type{1e6},
-		pamhd::mhd::Velocity{},
-		pamhd::mhd::Velocity::data_type(0, 0, 0),
-		pamhd::mhd::Pressure{},
-		pamhd::mhd::Pressure::data_type{1e-12},
-		pamhd::mhd::Magnetic_Field{},
-		pamhd::mhd::Magnetic_Field::data_type(1.5e-9, -1e-9, 0)
-	);
-	// negative half of shock tube
-	initial_condition.add_boundary_box(
-		{-cell_length, -cell_length, -cell_length},
-		{cell_length * (normal_cells / 2), 0, 0},
-		pamhd::mhd::Number_Density{},
-		pamhd::mhd::Number_Density::data_type{3e6},
-		pamhd::mhd::Velocity{},
-		pamhd::mhd::Velocity::data_type(0, 0, 0),
-		pamhd::mhd::Pressure{},
-		pamhd::mhd::Pressure::data_type{3e-12},
-		pamhd::mhd::Magnetic_Field{},
-		pamhd::mhd::Magnetic_Field::data_type(1.5e-9, 1e-9, 0)
-	);
-
-	// negative end of shock tube
-	boundary_negative.add_boundary_data(
-		{-cell_length, -cell_length, -cell_length},
-		{0, 0, 0},
-		0,
-		pamhd::mhd::Number_Density{},
-		pamhd::mhd::Number_Density::data_type{3e6},
-		pamhd::mhd::Velocity{},
-		pamhd::mhd::Velocity::data_type(0, 0, 0),
-		pamhd::mhd::Pressure{},
-		pamhd::mhd::Pressure::data_type{3e-12},
-		pamhd::mhd::Magnetic_Field{},
-		pamhd::mhd::Magnetic_Field::data_type(1.5e-9, 1e-9, 0)
-	);
-	// positive end of shock tube
-	boundary_positive.add_boundary_data(
-		{cell_length * normal_cells, -cell_length, -cell_length},
-		{cell_length * (normal_cells + 1), 0, 0},
-		0,
-		pamhd::mhd::Number_Density{},
-		pamhd::mhd::Number_Density::data_type{1e6},
-		pamhd::mhd::Velocity{},
-		pamhd::mhd::Velocity::data_type(0, 0, 0),
-		pamhd::mhd::Pressure{},
-		pamhd::mhd::Pressure::data_type{1e-12},
-		pamhd::mhd::Magnetic_Field{},
-		pamhd::mhd::Magnetic_Field::data_type(1.5e-9, -1e-9, 0)
-	);
-
+	std::array<uint64_t, 3> number_of_cells{1, 1, 1};
+	std::array<double, 3>
+		simulation_volume{1, 1, 1},
+		simulation_volume_start{0, 0, 0};
+	std::array<bool, 3> is_periodic{false, false, false};
 
 	boost::program_options::options_description
 		options(
@@ -230,43 +176,59 @@ int main(int argc, char* argv[])
 		("config-file",
 			boost::program_options::value<std::string>(&config_file_name)
 				->default_value(config_file_name),
-			"Read (additional) options from file arg (command line supersedes, not "
-			"read if name empty, read before processing initial and boundary conditions)")
-		("initial-file",
-			boost::program_options::value<std::string>(&initial_condition_file_name)
-				->default_value(initial_condition_file_name),
-			"Read initial condition from file arg (added to command line data, "
-			"not read if name empty)")
-		("boundary-file",
-			boost::program_options::value<std::string>(&boundary_file_name)
-				->default_value(boundary_file_name),
-			"Read boundary conditions from file arg (added to command line data, "
-			"not read if name empty)")
+			"Read options from file arg (added to command line, not read if name empty)")
 		("cells",
-			boost::program_options::value<size_t>(&normal_cells)
-				->default_value(normal_cells),
-			"Number of grid cells along the tube excluding boundary cells")
-		("length",
-			boost::program_options::value<double>(&tube_length)
-				->default_value(tube_length),
-			"Length of the shock tube (m)")
-		("mhd-solver",
+			boost::program_options::value<std::array<uint64_t, 3>>(&number_of_cells)
+				->default_value(number_of_cells),
+			"Number of grid cells, including any boundary cells")
+		("periodic",
+			boost::program_options::value<std::array<bool, 3>>(&is_periodic)
+				->default_value(is_periodic),
+			"Whether grid is periodic (1 == yes, 0 == no")
+		("time-start",
+			boost::program_options::value<double>(&start_time)
+				->default_value(start_time),
+			"Start time of simulation (s)")
+		("time-length",
+			boost::program_options::value<double>(&end_time)
+				->default_value(end_time),
+			"Length of simulation (s)")
+		("volume-start",
+			boost::program_options::value<std::array<double, 3>>(&simulation_volume_start)
+				->default_value(simulation_volume_start),
+			"Start coordinate of simulated volume, including any boundaries (m)")
+		("volume-length",
+			boost::program_options::value<std::array<double, 3>>(&simulation_volume)
+				->default_value(simulation_volume),
+			"Length of simulated volume, including any boundaries (m)")
+		("solver-mhd",
 			boost::program_options::value<std::string>(&mhd_solver)
 				->default_value(mhd_solver),
 			"MHD solver to use, one of: hll_athena")
 		("save-mhd-n",
-			boost::program_options::value<double>(&save_mhd_n)->default_value(save_mhd_n),
+			boost::program_options::value<double>(&save_mhd_n)
+				->default_value(save_mhd_n),
 			"Save results every arg seconds, 0 saves "
-			"initial and final states, -1 doesn't save");
+			"initial and final states, -1 doesn't save")
+		("save-mhd-fluxes", "Save fluxes of MHD variables");
 
 	options.add(basic_options);
 	initial_condition.add_options(options, "initial.");
-	boundary_negative.add_options(options, "neg.");
-	boundary_positive.add_options(options, "pos.");
+	boundaries[0].add_options(options, "x-neg.");
+	boundaries[1].add_options(options, "x-pos.");
+	boundaries[2].add_options(options, "y-neg.");
+	boundaries[3].add_options(options, "y-pos.");
+	boundaries[4].add_options(options, "z-neg.");
+	boundaries[5].add_options(options, "z-pos.");
 
+	// group options for printing help
 	initial_condition.add_options(initial_condition_options, "initial.");
-	boundary_negative.add_options(boundary_options, "neg.");
-	boundary_positive.add_options(boundary_options, "pos.");
+	boundaries[0].add_options(boundary_options, "x-neg.");
+	boundaries[1].add_options(boundary_options, "x-pos.");
+	boundaries[2].add_options(boundary_options, "y-neg.");
+	boundaries[3].add_options(boundary_options, "y-pos.");
+	boundaries[4].add_options(boundary_options, "z-neg.");
+	boundaries[5].add_options(boundary_options, "z-pos.");
 
 	boost::program_options::variables_map option_variables;
 	boost::program_options::store(
@@ -303,6 +265,10 @@ int main(int argc, char* argv[])
 		verbose = true;
 	}
 
+	if (option_variables.count("save-mhd-fluxes") > 0) {
+		save_fluxes = true;
+	}
+
 	if (config_file_name != "") {
 		boost::program_options::store(
 			boost::program_options::parse_config_file<char>(
@@ -314,33 +280,20 @@ int main(int argc, char* argv[])
 		boost::program_options::notify(option_variables);
 	}
 
-	if (initial_condition_file_name != "") {
-		boost::program_options::store(
-			boost::program_options::parse_config_file<char>(
-				initial_condition_file_name.c_str(),
-				options
-			),
-			option_variables
-		);
-		boost::program_options::notify(option_variables);
+	if (option_variables.count("verbose") > 0) {
+		verbose = true;
 	}
 
-	if (boundary_file_name != "") {
-		boost::program_options::store(
-			boost::program_options::parse_config_file<char>(
-				boundary_file_name.c_str(),
-				options
-			),
-			option_variables
-		);
-		boost::program_options::notify(option_variables);
+	if (option_variables.count("save-mhd-fluxes") > 0) {
+		save_fluxes = true;
 	}
-
 
 	// update derived grid parameters based on given options
-	cell_length = tube_length / normal_cells;
-	total_cells = normal_cells + 2;
-	grid_length[0] = total_cells;
+	std::array<double, 3> cell_volume{
+		simulation_volume[0] / number_of_cells[0],
+		simulation_volume[1] / number_of_cells[1],
+		simulation_volume[2] / number_of_cells[2]
+	};
 
 
 	/*
@@ -351,7 +304,7 @@ int main(int argc, char* argv[])
 
 	const unsigned int neighborhood_size = 1;
 	if (not grid.initialize(
-		grid_length,
+		number_of_cells,
 		comm,
 		"RANDOM",
 		neighborhood_size,
@@ -366,12 +319,9 @@ int main(int argc, char* argv[])
 
 	// set grid geometry
 	dccrg::Cartesian_Geometry::Parameters geom_params;
-	geom_params.start[0] =
-	geom_params.start[1] =
-	geom_params.start[2] = -cell_length;
-	geom_params.level_0_cell_length[0] =
-	geom_params.level_0_cell_length[1] =
-	geom_params.level_0_cell_length[2] = cell_length;
+	geom_params.start = simulation_volume_start;
+	geom_params.level_0_cell_length = cell_volume;
+
 	if (not grid.set_geometry(geom_params)) {
 		std::cerr << __FILE__ << ":" << __LINE__
 			<< ": Couldn't set grid geometry."
@@ -392,7 +342,7 @@ int main(int argc, char* argv[])
 		outer_cells = grid.get_local_cells_on_process_boundary();
 
 	if (verbose and rank == 0) {
-		cout << "Initializing MHD" << endl;
+		cout << "Initializing MHD... " << endl;
 	}
 	pamhd::mhd::initialize<
 		Grid_T,
@@ -411,49 +361,56 @@ int main(int argc, char* argv[])
 		vacuum_permeability,
 		proton_mass
 	);
+	if (verbose and rank == 0) {
+		cout << "Done initializing MHD" << endl;
+	}
 
 	/*
 	Simulate
 	*/
 
-	const double simulation_duration = 1;
 	double
 		max_dt = 0,
-		simulation_time = 0,
+		simulation_time = start_time,
 		next_mhd_save = save_mhd_n;
-	while (simulation_time < simulation_duration) {
+	while (simulation_time < end_time) {
 
 		Cell_T::set_transfer_all(
 			true,
 			pamhd::mhd::MHD_State_Conservative()
 		);
-		grid.balance_load();
+		/*grid.balance_load();
+
+		cells = grid.get_cells();
+		inner_cells = grid.get_local_cells_not_on_process_boundary();
+		outer_cells = grid.get_local_cells_on_process_boundary();*/
 
 		/*
 		Apply boundaries
 		*/
 
 		// remove classifications from previous steps
-		boundary_negative.clear_cells();
-		boundary_positive.clear_cells();
+		for (size_t i = 0; i < boundaries.size(); i++) {
+			boundaries[i].clear_cells();
+		}
 
 		for (const auto cell_id: cells) {
 			const auto
 				cell_min = grid.geometry.get_min(cell_id),
 				cell_max = grid.geometry.get_max(cell_id);
 
-			boundary_negative.add_cell(
-				cell_id,
-				cell_min,
-				cell_max,
-				simulation_time
-			);
-			boundary_positive.add_cell(
-				cell_id,
-				cell_min,
-				cell_max,
-				simulation_time
-			);
+			for (size_t i = 0; i < boundaries.size(); i++) {
+				if (not boundaries[i].exists()) {
+					continue;
+				}
+
+				boundaries[i].add_cell(
+					cell_id,
+					cell_min,
+					cell_max,
+					simulation_time
+				);
+			}
 		}
 
 		const pamhd::mhd::Mass_Density Rho{};
@@ -462,97 +419,40 @@ int main(int argc, char* argv[])
 		const pamhd::mhd::Pressure P{};
 		const pamhd::mhd::Magnetic_Field B{};
 
-		for (const auto cell_id: boundary_negative.get_boundary_cells(simulation_time)) {
-			auto* cell_data = grid[cell_id];
-			if (cell_data == NULL) {
-				std::cerr <<  __FILE__ << "(" << __LINE__ << ") No data for cell: "
-					<< cell_id
-					<< std::endl;
-				abort();
+		for (size_t i = 0; i < boundaries.size(); i++) {
+			if (not boundaries[i].exists()) {
+				continue;
 			}
 
-			pamhd::mhd::MHD_Primitive temp;
-			temp[Rho]
-				= boundary_negative.get_boundary_data(N, simulation_time)
-				* proton_mass;
-			temp[V] = boundary_negative.get_boundary_data(V, simulation_time);
-			temp[P] = boundary_negative.get_boundary_data(P, simulation_time);
-			temp[B] = boundary_negative.get_boundary_data(B, simulation_time);
+			for (const auto cell_id: boundaries[i].get_boundary_cells(simulation_time)) {
+				auto* cell_data = grid[cell_id];
+				if (cell_data == NULL) {
+					std::cerr <<  __FILE__ << "(" << __LINE__ << "): "
+						"No data for cell: " << cell_id
+						<< std::endl;
+					abort();
+				}
 
-			auto& state = (*cell_data)[pamhd::mhd::MHD_State_Conservative()];
-			state = pamhd::mhd::get_conservative<
-				pamhd::mhd::MHD_Conservative,
-				pamhd::mhd::MHD_Primitive,
-				pamhd::mhd::Momentum_Density,
-				pamhd::mhd::Total_Energy_Density,
-				pamhd::mhd::Mass_Density,
-				pamhd::mhd::Velocity,
-				pamhd::mhd::Pressure,
-				pamhd::mhd::Magnetic_Field
-			>(temp, adiabatic_index, vacuum_permeability);
-		}
+				pamhd::mhd::MHD_Primitive temp;
+				temp[Rho]
+					= boundaries[i].get_boundary_data(N, simulation_time)
+					* proton_mass;
+				temp[V] = boundaries[i].get_boundary_data(V, simulation_time);
+				temp[P] = boundaries[i].get_boundary_data(P, simulation_time);
+				temp[B] = boundaries[i].get_boundary_data(B, simulation_time);
 
-		for (const auto cell_id: boundary_positive.get_boundary_cells(simulation_time)) {
-			auto* cell_data = grid[cell_id];
-			if (cell_data == NULL) {
-				std::cerr <<  __FILE__ << "(" << __LINE__ << ") No data for cell: "
-					<< cell_id
-					<< std::endl;
-				abort();
+				auto& state = (*cell_data)[pamhd::mhd::MHD_State_Conservative()];
+				state = pamhd::mhd::get_conservative<
+					pamhd::mhd::MHD_Conservative,
+					pamhd::mhd::MHD_Primitive,
+					pamhd::mhd::Momentum_Density,
+					pamhd::mhd::Total_Energy_Density,
+					pamhd::mhd::Mass_Density,
+					pamhd::mhd::Velocity,
+					pamhd::mhd::Pressure,
+					pamhd::mhd::Magnetic_Field
+				>(temp, adiabatic_index, vacuum_permeability);
 			}
-
-			pamhd::mhd::MHD_Primitive temp;
-			temp[Rho]
-				= boundary_positive.get_boundary_data(N, simulation_time)
-				* proton_mass;
-			temp[V] = boundary_positive.get_boundary_data(V, simulation_time);
-			temp[P] = boundary_positive.get_boundary_data(P, simulation_time);
-			temp[B] = boundary_positive.get_boundary_data(B, simulation_time);
-
-			auto& state = (*cell_data)[pamhd::mhd::MHD_State_Conservative()];
-			state = pamhd::mhd::get_conservative<
-				pamhd::mhd::MHD_Conservative,
-				pamhd::mhd::MHD_Primitive,
-				pamhd::mhd::Momentum_Density,
-				pamhd::mhd::Total_Energy_Density,
-				pamhd::mhd::Mass_Density,
-				pamhd::mhd::Velocity,
-				pamhd::mhd::Pressure,
-				pamhd::mhd::Magnetic_Field
-			>(temp, adiabatic_index, vacuum_permeability);
-		}
-
-
-
-
-		/*
-		Save simulation to disk
-		*/
-
-		Cell_T::set_transfer_all(
-			false,
-			pamhd::mhd::MHD_State_Conservative()
-		);
-
-		if (
-			(save_mhd_n >= 0 and simulation_time == 0)
-			or (save_mhd_n > 0 and simulation_time >= next_mhd_save)
-		) {
-			next_mhd_save += save_mhd_n;
-
-			if (verbose and rank == 0) {
-				cout << "Saving MHD at time " << simulation_time << endl;
-			}
-
-			pamhd::mhd::save<
-				Grid_T,
-				Cell_T,
-				pamhd::mhd::MHD_State_Conservative
-			>(grid, simulation_time);
-		}
-
-		if (simulation_time >= simulation_duration) {
-			break;
 		}
 
 
@@ -563,7 +463,7 @@ int main(int argc, char* argv[])
 		double
 			time_step_factor = 0.5,
 			// don't step over the final simulation time
-			until_end = simulation_duration - simulation_time,
+			until_end = end_time - simulation_time,
 			local_time_step = std::min(time_step_factor * max_dt, until_end),
 			time_step = -1;
 
@@ -587,6 +487,16 @@ int main(int argc, char* argv[])
 		/*
 		Solve
 		*/
+
+		pamhd::mhd::zero_fluxes<
+			Grid_T,
+			Cell_T,
+			pamhd::mhd::MHD_Flux_Conservative,
+			pamhd::mhd::Mass_Density,
+			pamhd::mhd::Momentum_Density,
+			pamhd::mhd::Total_Energy_Density,
+			pamhd::mhd::Magnetic_Field
+		>(grid, cells);
 
 		max_dt = std::numeric_limits<double>::max();
 
@@ -613,7 +523,7 @@ int main(int argc, char* argv[])
 				pamhd::mhd::Total_Energy_Density,
 				pamhd::mhd::Magnetic_Field
 			>(
-				"hll_athena",
+				mhd_solver,
 				grid,
 				inner_cells,
 				time_step,
@@ -635,7 +545,7 @@ int main(int argc, char* argv[])
 				pamhd::mhd::Total_Energy_Density,
 				pamhd::mhd::Magnetic_Field
 			>(
-				"hll_athena",
+				mhd_solver,
 				grid,
 				outer_cells,
 				time_step,
@@ -644,47 +554,52 @@ int main(int argc, char* argv[])
 			)
 		);
 
-		pamhd::mhd::apply_solution<
+		pamhd::mhd::apply_fluxes<
 			Grid_T,
 			Cell_T,
 			pamhd::mhd::MHD_State_Conservative,
-			pamhd::mhd::MHD_Flux_Conservative,
-			pamhd::mhd::Mass_Density,
-			pamhd::mhd::Momentum_Density,
-			pamhd::mhd::Total_Energy_Density,
-			pamhd::mhd::Magnetic_Field
+			pamhd::mhd::MHD_Flux_Conservative
 		>(grid, inner_cells);
 
 		grid.wait_remote_neighbor_copy_update_sends();
 
-		pamhd::mhd::apply_solution<
+		pamhd::mhd::apply_fluxes<
 			Grid_T,
 			Cell_T,
 			pamhd::mhd::MHD_State_Conservative,
-			pamhd::mhd::MHD_Flux_Conservative,
-			pamhd::mhd::Mass_Density,
-			pamhd::mhd::Momentum_Density,
-			pamhd::mhd::Total_Energy_Density,
-			pamhd::mhd::Magnetic_Field
+			pamhd::mhd::MHD_Flux_Conservative
 		>(grid, outer_cells);
 
 		simulation_time += time_step;
-	}
 
-	Cell_T::set_transfer_all(
-		false,
-		pamhd::mhd::MHD_State_Conservative()
-	);
+		/*
+		Save simulation to disk
+		*/
 
-	if (save_mhd_n >= 0) {
-		if (verbose and rank == 0) {
-			cout << "Saving MHD at time " << simulation_time << endl;
+		Cell_T::set_transfer_all(
+			false,
+			pamhd::mhd::MHD_State_Conservative()
+		);
+
+		if (
+			(save_mhd_n >= 0 and (simulation_time == 0 or simulation_time >= end_time))
+			or (save_mhd_n > 0 and simulation_time >= next_mhd_save)
+		) {
+			if (next_mhd_save <= simulation_time) {
+				next_mhd_save += save_mhd_n;
+			}
+
+			if (verbose and rank == 0) {
+				cout << "Saving MHD at time " << simulation_time << endl;
+			}
+
+			pamhd::mhd::Save::save<
+				Grid_T,
+				Cell_T,
+				pamhd::mhd::MHD_State_Conservative,
+				pamhd::mhd::MHD_Flux_Conservative
+			>(grid, simulation_time, save_fluxes);
 		}
-		pamhd::mhd::save<
-			Grid_T,
-			Cell_T,
-			pamhd::mhd::MHD_State_Conservative
-		>(grid, simulation_time);
 	}
 
 	if (verbose and rank == 0) {
