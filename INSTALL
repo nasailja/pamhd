@@ -17,6 +17,34 @@ C++ Prettyprint: https://github.com/louisdx/cxx-prettyprint
 
 An implementation of MPI (e.g. http://open-mpi.org/ version >= 1.6)
 
+muParserX:
+https://doc-0s-58-docs.googleusercontent.com/docs/securesc/ha0ro937gcuc7l7deffksulhg5h7mbp1/pnqul19bm76kp9h9qute55ndpo9mb6bc/1404828000000/10606444718388524723/*/0BzuB-ydOOoduSmtUbHU1TWVFV1E?h=16653014193614665626&e=download
+or
+https://drive.google.com/folderview?id=0BzuB-ydOOoduZ0NWUXBJbHNjZTQ&usp=sharing
+or
+https://code.google.com/p/muparserx/
+Apply the following patch to include all required source files in the library:
+--- Makefile.old	2014-07-08 10:27:27.000000000 -0400
++++ Makefile	2014-07-08 10:28:08.000000000 -0400
+@@ -2,7 +2,7 @@
+ # debug version
+ #CFLAGS  = -Wall -ggdb  
+ # release version:
+-CFLAGS	=	-O3 -Wall -ffast-math -fomit-frame-pointer 
++CFLAGS	=	-std=c++11 -O3 -Wall -ffast-math -fomit-frame-pointer 
+ 
+ PATH_BIN = ./bin
+ 
+@@ -10,7 +10,7 @@
+ # muParser library sources
+ PATH_LIB = parser
+ PATH_OBJ = obj
+-LIB_SRC = mpError.cpp mpRPN.cpp mpICallback.cpp mpIValReader.cpp mpParserBase.cpp mpTokenReader.cpp\
++LIB_SRC = mpError.cpp mpRPN.cpp mpICallback.cpp mpIValReader.cpp mpParserBase.cpp mpTokenReader.cpp mpParserMessageProvider.cpp\
+           mpVariable.cpp mpIOprt.cpp mpIValue.cpp mpParser.cpp mpValReader.cpp mpFuncStr.cpp\
+ 		  mpFuncCommon.cpp mpOprtPostfixCommon.cpp mpFuncNonCmplx.cpp mpFuncCmplx.cpp mpIToken.cpp mpOprtCmplx.cpp \
+ 		  mpOprtNonCmplx.cpp mpOprtBinCommon.cpp mpOprtBinAssign.cpp mpOprtMatrix.cpp\
+
 
 In order to compile and test PAMHD change the variable
 ENVIRONMENT_MAKEFILE in the top level Makefile to point

@@ -18,3 +18,7 @@ BOOST_LIBS = \
   -lboost_program_options-mt
 
 PRETTYPRINT_CPPFLAGS = -I $(HOME)/include
+
+MUPARSERX_CPPFLAGS = -I $(HOME)/include
+MUPARSERX_LDFLAGS = -L $(HOME)/lib
+MUPARSERX_LIBS = -lmuparserx

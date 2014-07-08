@@ -1,0 +1,39 @@
+TESTS_MUPARSERX_EXECUTABLES = \
+  tests/muparserx/compile.exe \
+  tests/muparserx/test1.exe
+
+TESTS_MUPARSERX_TESTS = \
+  tests/muparserx/test1.tst
+
+tests/muparserx_executables: $(TESTS_MUPARSERX_EXECUTABLES)
+
+tests/muparserx_tests: $(TESTS_MUPARSERX_TESTS)
+
+tests/muparserx_clean:
+	@echo "CLEAN tests/muparserx" && rm -f \
+	  $(TESTS_MUPARSERX_EXECUTABLES) \
+	  $(TESTS_MUPARSERX_TESTS)
+
+EXECUTABLES += tests/muparserx_executables
+TESTS += tests/muparserx_tests
+CLEAN += tests/muparserx_clean
+
+tests/muparserx/compile.exe: tests/muparserx/compile.cpp
+	@echo "CXX "$< && $(CXX) \
+	  $(CPPFLAGS) \
+	  $(CXXFLAGS) \
+	  $(LDFLAGS) \
+	  $(MUPARSERX_CPPFLAGS) \
+	  $(MUPARSERX_LDFLAGS) \
+	  $(MUPARSERX_LIBS) \
+	  $< -o $@
+
+tests/muparserx/test1.exe: tests/muparserx/test1.cpp
+	@echo "CXX "$< && $(CXX) \
+	  $(CPPFLAGS) \
+	  $(CXXFLAGS) \
+	  $(LDFLAGS) \
+	  $(MUPARSERX_CPPFLAGS) \
+	  $(MUPARSERX_LDFLAGS) \
+	  $(MUPARSERX_LIBS) \
+	  $< -o $@
