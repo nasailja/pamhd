@@ -136,8 +136,8 @@ struct MHD_Flux_Conservative {
 
 using Cell = gensimcell::Cell<
 	MHD_State_Conservative,
-	MPI_Rank,
 	Cell_Type,
+	MPI_Rank,
 	MHD_Flux_Conservative
 >;
 
