@@ -59,22 +59,8 @@ using namespace std;
 
 int main(int argc, char* argv[])
 {
-	using Cell_T = gensimcell::Cell<
-		pamhd::mhd::MHD_State_Conservative,
-		pamhd::mhd::MPI_Rank,
-		pamhd::mhd::Cell_Type,
-		pamhd::mhd::MHD_Flux_Conservative
-	>;
+	using Cell_T = pamhd::mhd::Cell;
 	using Grid_T = dccrg::Dccrg<Cell_T, dccrg::Cartesian_Geometry>;
-
-	// always transfer all variables of MHD state
-	pamhd::mhd::MHD_State_Conservative::data_type::set_transfer_all(
-		true,
-		pamhd::mhd::Mass_Density(),
-		pamhd::mhd::Momentum_Density(),
-		pamhd::mhd::Total_Energy_Density(),
-		pamhd::mhd::Magnetic_Field()
-	);
 
 	/*
 	Initialize MPI

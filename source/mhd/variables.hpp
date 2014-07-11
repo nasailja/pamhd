@@ -110,6 +110,7 @@ struct Cell_Type {
 
 //! Set of conservative MHD variables
 using MHD_Conservative = gensimcell::Cell<
+	gensimcell::Always_Transfer,
 	Mass_Density,
 	Momentum_Density,
 	Total_Energy_Density,
@@ -118,6 +119,7 @@ using MHD_Conservative = gensimcell::Cell<
 
 //! Set of primitive MHD variables
 using MHD_Primitive = gensimcell::Cell<
+	gensimcell::Never_Transfer,
 	Mass_Density,
 	Velocity,
 	Pressure,
@@ -135,6 +137,7 @@ struct MHD_Flux_Conservative {
 };
 
 using Cell = gensimcell::Cell<
+	gensimcell::Optional_Transfer,
 	MHD_State_Conservative,
 	Cell_Type,
 	MPI_Rank,

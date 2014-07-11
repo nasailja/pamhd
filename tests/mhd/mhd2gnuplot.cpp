@@ -728,23 +728,6 @@ int main(int argc, char* argv[])
 		vacuum_permeability = 4e-7 * M_PI;
 
 
-	// must be identical to code which wrote results
-	MHD_State_Conservative::data_type::set_transfer_all(
-		true,
-		Mass_Density(),
-		Momentum_Density(),
-		Total_Energy_Density(),
-		Magnetic_Field()
-	);
-	MHD_Flux_Conservative::data_type::set_transfer_all(
-		true,
-		Mass_Density(),
-		Momentum_Density(),
-		Total_Energy_Density(),
-		Magnetic_Field()
-	);
-
-
 	if (MPI_Init(&argc, &argv) != MPI_SUCCESS) {
 		cerr << "Coudln't initialize MPI." << endl;
 		abort();

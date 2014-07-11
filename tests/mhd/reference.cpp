@@ -53,6 +53,7 @@ constexpr double
 constexpr size_t grid_length = 1000 + 2;
 
 using Cell_T = gensimcell::Cell<
+	gensimcell::Never_Transfer,
 	pamhd::mhd::MHD_State_Conservative,
 	pamhd::mhd::MHD_Flux_Conservative
 >;
