@@ -59,6 +59,8 @@ public:
 	/*!
 	Saves the MHD solution into a file with name derived from simulation time.
 
+	file_name_prefix is added to the beginning of the file name.
+
 	MHD_T and subsequent arguments refer to the MHD solution to save.
 
 	The transfer of all first level variables must be switched
@@ -76,6 +78,7 @@ public:
 		class MHD_T,
 		class MHD_Flux_T
 	> static bool save(
+		const std::string& file_name_prefix,
 		Grid_T& grid,
 		const double simulation_time,
 		const bool save_fluxes
@@ -110,7 +113,7 @@ public:
 			<< simulation_time;
 
 		const bool ret_val = grid.save_grid_data(
-			"mhd_" + time_string.str() + "_s.dc",
+			file_name_prefix + "mhd_" + time_string.str() + "_s.dc",
 			0,
 			header
 		);

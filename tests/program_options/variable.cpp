@@ -1,5 +1,5 @@
 /*
-PAMHD test for parsing gensimcell variable using boost::program_options.
+PAMHD test for parsing one variable with muparserx via boost::program_options.
 
 Copyright 2014 Ilja Honkonen
 All rights reserved.
@@ -31,62 +31,173 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 
-#include "boost/program_options.hpp"
+#include "array"
 #include "cstdlib"
 #include "iostream"
 #include "string"
+#include "type_traits"
+
+#include "boost/program_options.hpp"
+#include "mpParser.h"
 
 struct Mass_Density {
 	using data_type = double;
 	static const std::string get_name() { return {"mass density"}; }
 	static const std::string get_option_name() { return {"mass-density"}; }
 	static const std::string get_option_help() { return {"Mass density in kg / m^3"}; }
+	static const std::string get_expression_variable() { return {"rho"}; }
 };
 
+struct Momentum_Density {
+	using data_type = std::array<double, 3>;
+	static const std::string get_name() { return {"momentum density"}; }
+	static const std::string get_option_name() { return {"momentum-density"}; }
+	static const std::string get_option_help() { return {"Momentum density in kg / m^2 / s"}; }
+	static const std::string get_expression_variable() { return {"mom"}; }
+};
+
+template<class T> struct is_std_array_double : std::false_type {};
+template<size_t N> struct is_std_array_double<
+	std::array<double, N>
+> : std::true_type
+{};
 
 template<class Variable> class Prog_Opts_Test
 {
+private:
+
+	//! Used if variable is of type double
+	template<
+		class Out_T
+	> typename std::enable_if<
+		std::is_same<Out_T, double>::value,
+		Out_T
+	>::type get_parsed_value(const std::array<double, 3>& position)
+	{
+		this->value = mup::Value(3, 0);
+		for (size_t i = 0; i < 3; i++) {
+			this->value.At(int(i)) = position[i];
+		}
+		try {
+			return this->parser.Eval().GetFloat();
+		} catch(mup::ParserError &error) {
+			std::cerr <<  __FILE__ << "(" << __LINE__<< ") "
+				<< "Could not evaluate expression "
+				<< this->parser.GetExpr() << ": " << error.GetMsg()
+				<< std::endl;
+			abort();
+		}
+	}
+
+	//! Used if variable is of type std::array<double, 3>
+	template<
+		class Out_T
+	> typename std::enable_if<
+		is_std_array_double<Out_T>::value,
+		Out_T
+	>::type get_parsed_value(
+		const std::array<double, 3>& position
+	) {
+		constexpr size_t N = std::tuple_size<Out_T>::value;
+
+		this->value = mup::Value(N, 0);
+		for (size_t i = 0; i < N; i++) {
+			this->value.At(int(i)) = position[i];
+		}
+
+		const auto& evaluated
+			= [this](){
+				try {
+					return parser.Eval().GetArray();
+				} catch(mup::ParserError &error) {
+					std::cerr <<  __FILE__ << "(" << __LINE__<< ") "
+						<< "Could not evaluate expression "
+						<< this->parser.GetExpr() << ": " << error.GetMsg()
+						<< std::endl;
+					abort();
+				}
+			}();
+
+		if (evaluated.GetRows() != 1) {
+			std::cerr <<  __FILE__ << "(" << __LINE__<< ") "
+				<< "Invalid number of rows in expression " << parser.GetExpr()
+				<< ": " << evaluated.GetRows() << ", should be 1"
+				<< std::endl;
+			abort();
+		}
+		if (evaluated.GetCols() != N) {
+			std::cerr <<  __FILE__ << "(" << __LINE__<< ") "
+				<< "Invalid number of columns in expression " << parser.GetExpr()
+				<< ": " << evaluated.GetCols() << ", should be " << N
+				<< std::endl;
+			abort();
+		}
+
+		std::array<double, N> ret_val;
+		for (size_t i = 0; i < N; i++) {
+			ret_val[i] = evaluated.At(int(i)).GetFloat();
+		}
+
+		return ret_val;
+	}
+
+
 public:
-	Prog_Opts_Test(const typename Variable::data_type& given_value) :
-		value(given_value)
-	{}
+
+	Prog_Opts_Test(): variable(&value) {}
+
+	void set_expression(
+		const Variable&,
+		const std::string given_expression
+	) {
+		this->expression = given_expression;
+	}
+
 
 	void add_options(boost::program_options::options_description& options)
 	{
+		this->parser.DefineVar(Variable::get_expression_variable(), this->variable);
 		options.add_options()
-			(("test." + Variable::get_option_name()).c_str(), 
+			(Variable::get_expression_variable().c_str(),
 				boost::program_options::value<
-					typename Variable::data_type
-				>(&this->value),
+					std::string
+				>(&this->expression),
 				Variable::get_option_help().c_str());
 	}
 
-	typename Variable::data_type& operator[](const Variable&)
-	{
-		return this->value;
+	typename Variable::data_type get_data(
+		const Variable&,
+		const std::array<double, 3>& position
+	) {
+		this->parser.SetExpr(this->expression);
+		return this->get_parsed_value<typename Variable::data_type>(position);
 	}
 
-	const typename Variable::data_type& operator[](const Variable&) const
-	{
-		return this->value;
-	}
 
 
 private:
-	// stores (default) value for Variable
-	typename Variable::data_type value{};
+
+	std::string expression;
+	mup::ParserX parser;
+	mup::Value value;
+	mup::Variable variable;
 };
 
 
 int main(int argc, char* argv[])
 {
-	Prog_Opts_Test<Mass_Density> prog_opts_test(3);
+	Prog_Opts_Test<Mass_Density> rho_opts_test;
+	rho_opts_test.set_expression(Mass_Density(), "1+1+1");
+
+	Prog_Opts_Test<Momentum_Density> mom_opts_test;
+	mom_opts_test.set_expression(Momentum_Density(), "{1, 3^2 - 7, 3}");
 
 	boost::program_options::options_description options(
 		"Usage: program_name [options], where options are:"
 	);
 	options.add_options()("help", "Print options and their descriptions");
-	prog_opts_test.add_options(options);
+	rho_opts_test.add_options(options);
+	mom_opts_test.add_options(options);
 
 	boost::program_options::variables_map option_variables;
 	boost::program_options::store(
@@ -100,11 +211,22 @@ int main(int argc, char* argv[])
 		return EXIT_SUCCESS;
 	}
 
-	if (prog_opts_test[Mass_Density()] != 3) {
+	if (rho_opts_test.get_data(Mass_Density(), {0, 0, 0}) != 3) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
 			<< "Incorrect value for mass density: "
-			<< prog_opts_test[Mass_Density()]
+			<< rho_opts_test.get_data(Mass_Density(), {0, 0, 0})
+			<< ", should be 3."
 			<< std::endl;
+		abort();
+	}
+
+	if (mom_opts_test.get_data(Momentum_Density(), {0, 0, 0})[1] != 2) {
+		std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
+			<< "Incorrect value for momentum density: "
+			<< mom_opts_test.get_data(Momentum_Density(), {0, 0, 0})[1]
+			<< ", should be 2."
+			<< std::endl;
+		abort();
 	}
 
 	return EXIT_SUCCESS;

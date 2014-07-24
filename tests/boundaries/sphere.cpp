@@ -1,5 +1,5 @@
 /*
-PAMHD test for parsing Eigen types using boost::program_options.
+Sphere geometry test of PAMHD.
 
 Copyright 2014 Ilja Honkonen
 All rights reserved.
@@ -30,116 +30,80 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-
-#include "boost/algorithm/string/classification.hpp"
-#include "boost/algorithm/string/constants.hpp"
-#include "boost/algorithm/string/split.hpp"
-#include "boost/lexical_cast.hpp"
-#include "boost/program_options.hpp"
-#include "cmath"
+#include "array"
 #include "cstdlib"
-#include "Eigen/Core"
 #include "iostream"
 #include "string"
-#include "fstream"
-#include "iomanip"
-#include "iostream"
-#include "sstream"
-#include "string"
 
-using namespace std;
+#include "boost/program_options.hpp"
+#ifdef HAVE_EIGEN
+#include "Eigen/Core" // must be included before sphere.hpp
+#endif
 
-namespace Eigen {
-	template <
-		class Scalar,
-		int Rows,
-		int Cols,
-		int Options,
-		int MaxRows,
-		int MaxCols
-	> void validate(
-		boost::any& value,
-		const std::vector<std::string>& all_parsed,
-		Eigen::Matrix<
-			Scalar,
-			Rows,
-			Cols,
-			Options,
-			MaxRows,
-			MaxCols
-		>*,
-		long
-	) {
-		boost::program_options::validators::check_first_occurrence(value);
+#include "boundaries/sphere.hpp"
 
-		const std::string& parsed
-			= boost::program_options::validators::get_single_string(all_parsed);
 
-		std::vector<std::string> components;
-		components = boost::algorithm::split(
-			components,
-			parsed,
-			boost::algorithm::is_any_of(" \t,;"),
-			boost::algorithm::token_compress_on
-		);
-
-		if (components.size() != 3) {
-			std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
-				<< "Eigen::Vector3d option must have 3 values "
-				<< "separated by e.g. a , or a space but given option ("
-				<< parsed << ") has " << components.size()
-				<< std::endl;
-			abort();
-		}
-
-		const Eigen::Vector3d final(
-			boost::lexical_cast<double>(components[0]),
-			boost::lexical_cast<double>(components[1]),
-			boost::lexical_cast<double>(components[2])
-		);
-
-		value = final;
-	}
-}
+using namespace pamhd::boundaries;
 
 int main(int argc, char* argv[])
 {
-	Eigen::Vector3d test(-1, -2, -3);
+	#ifdef HAVE_EIGEN
+	Sphere<Eigen::Vector3d, double> sphere;
+	#else
+	Sphere<std::array<double, 3>, double> sphere;
+	#endif
+
+	if (not sphere.set_geometry({1, 2, 3}, 1)) {
+		std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
+			<< "Couldn't set geometry."
+			<< std::endl;
+		abort();
+	}
+
 	boost::program_options::options_description options(
 		"Usage: program_name [options], where options are:"
 	);
-	options.add_options()(
-		"test",
-		boost::program_options::value<Eigen::Vector3d>(&test)
-			->default_value(Eigen::Vector3d(1, 2, 3)),
-		"test"
-	);
+	options.add_options()
+		("help", "Print options and their descriptions");
+	sphere.add_options("", options);
 
 	boost::program_options::variables_map option_variables;
 	boost::program_options::store(
-		boost::program_options::parse_command_line(argc, argv, options),
+		boost::program_options::parse_command_line<char>(
+			argc,
+			argv,
+			options
+		),
 		option_variables
 	);
 	boost::program_options::notify(option_variables);
 
-	if (test[0] == -1) {
+	if (option_variables.count("help") > 0) {
+		std::cout << options << std::endl;
+		return EXIT_SUCCESS;
+	}
+
+	if (sphere.overlaps({0, 0, 0}, {1, 1, 1})) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
-			<< "First component of test vector was not initialized."
+			<< "Cell overlaps sphere."
 			<< std::endl;
 		abort();
 	}
-	if (test[1] == -2) {
+
+	if (sphere.overlaps({-1, -2, -3}, {-0.1, 0.9, 1.9})) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
-			<< "First component of test vector was not initialized."
+			<< "Cell overlaps sphere."
 			<< std::endl;
 		abort();
 	}
-	if (test[2] == -3) {
+
+	if (not sphere.overlaps({0, 0, 0}, {0.5, 1.5, 2.5})) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
-			<< "First component of test vector was not initialized."
+			<< "Cell does not overlap sphere."
 			<< std::endl;
 		abort();
 	}
+
 
 	return EXIT_SUCCESS;
 }

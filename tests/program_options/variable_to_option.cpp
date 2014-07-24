@@ -1,5 +1,5 @@
 /*
-Tests simulation variables (Eigen Vectors) to boost::program_options translator.
+Tests simulation variable to boost::program_options translator.
 
 Copyright 2014 Ilja Honkonen
 All rights reserved.
@@ -31,19 +31,59 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 
-#include "boost/program_options.hpp"
 #include "cstdlib"
-#include "Eigen/Core" // must be included before variables_to_options.hpp
 #include "iostream"
 #include "string"
 
-#include "boundaries/variables_to_options.hpp"
+#include "boost/program_options.hpp"
+#ifdef HAVE_EIGEN
+#include "Eigen/Core" // must be included before variable_to_option.hpp
+#endif
+
+#include "boundaries/variable_to_option.hpp"
 
 using namespace pamhd::boundaries;
 
+// Game of life variable
+struct Is_Alive {
+	using data_type = bool;
+	static const std::string get_name()
+	{
+		return {"is alive"};
+	}
+	static const std::string get_option_name()
+	{
+		return {"is-alive"};
+	}
+	static const std::string get_option_help()
+	{
+		return {"Whether cell is alive (1, true, etc.) or not (false)"};
+	}
+};
+
 // MHD variables
+struct Mass_Density {
+	using data_type = double;
+	static const std::string get_name()
+	{
+		return {"mass density"};
+	}
+	static const std::string get_option_name()
+	{
+		return {"mass-density"};
+	}
+	static const std::string get_option_help()
+	{
+		return {"Mass density (kg / m^3)"};
+	}
+};
+
 struct Momentum_Density {
+	#ifdef HAVE_EIGEN
 	using data_type = Eigen::Vector3d;
+	#else
+	using data_type = std::array<double, 3>;
+	#endif
 	static const std::string get_name()
 	{
 		return {"momentum density"};
@@ -54,41 +94,27 @@ struct Momentum_Density {
 	}
 	static const std::string get_option_help()
 	{
-		return {"Momentum density (kg / s / m^2)"};
-	}
-};
-
-struct Magnetic_Field {
-	using data_type = Eigen::Vector3d;
-	static const std::string get_name()
-	{
-		return {"magnetic field"};
-	}
-	static const std::string get_option_name()
-	{
-		return {"magnetic-field"};
-	}
-	static const std::string get_option_help()
-	{
-		return {"Magnetic field (T)"};
+		return {"Momentum density (J / m^3)"};
 	}
 };
 
 
 int main(int argc, char* argv[])
 {
-	Variables_To_Options<Momentum_Density, Magnetic_Field> mhd_var_opts;
+	Variable_To_Option<Is_Alive> gol_var_opts;
+	Variable_To_Option<Mass_Density, Momentum_Density> mhd_var_opts;
+
 	// set default values before adding options to boost
-	mhd_var_opts[Momentum_Density()].push_back({3, 4, 5});
-	mhd_var_opts[Momentum_Density()].push_back({6, 7, 8});
-	mhd_var_opts[Magnetic_Field()].push_back({-3, -4, -5});
-	mhd_var_opts[Magnetic_Field()].push_back({-6, -7, -8});
+	gol_var_opts.set_expression(Is_Alive(), "true");
+	mhd_var_opts.set_expression(Mass_Density(), "r[0] + r[1] + r[2] + t");
+	mhd_var_opts.set_expression(Momentum_Density(), "{r[0], r[1], r[2]}");
 
 	boost::program_options::options_description options(
 		"Usage: program_name [options], where options are:"
 	);
 	options.add_options()("help", "Print options and their descriptions");
-	mhd_var_opts.add_options(options, "mhd.");
+	gol_var_opts.add_options("gol.", options);
+	mhd_var_opts.add_options("mhd.", options);
 
 	boost::program_options::variables_map option_variables;
 	boost::program_options::store(
@@ -98,41 +124,29 @@ int main(int argc, char* argv[])
 	boost::program_options::notify(option_variables);
 
 	if (option_variables.count("help") > 0) {
-		/* TODO: remove newlines from eigen types
-		Eigen::IOFormat format(
-			Eigen::StreamPrecision,
-			0,
-			", ",
-			", ",
-			"[",
-			"]"
-		);*/
 		std::cout << options << std::endl;
 		return EXIT_SUCCESS;
 	}
 
-	if (mhd_var_opts[Momentum_Density()].size() != 2) {
-		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
-		abort();
-	}
-	if (mhd_var_opts[Momentum_Density()][0][0] != 3) {
-		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
-		abort();
-	}
-	if (mhd_var_opts[Momentum_Density()][1][0] != 6) {
+	if (gol_var_opts.get_data(Is_Alive(), {1, 2, 3}, 4) != true) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
 		abort();
 	}
 
-	if (mhd_var_opts[Magnetic_Field()].size() != 2) {
+	if (mhd_var_opts.get_data(Mass_Density(), {1, 2, 3}, 4) != 1+2+3+4) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
 		abort();
 	}
-	if (mhd_var_opts[Magnetic_Field()][0][0] != -3) {
+
+	if (mhd_var_opts.get_data(Momentum_Density(), {1, 2, 3}, 4)[0] != 1) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
 		abort();
 	}
-	if (mhd_var_opts[Magnetic_Field()][1][0] != -6) {
+	if (mhd_var_opts.get_data(Momentum_Density(), {1, 2, 3}, 4)[1] != 2) {
+		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
+		abort();
+	}
+	if (mhd_var_opts.get_data(Momentum_Density(), {1, 2, 3}, 4)[2] != 3) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
 		abort();
 	}

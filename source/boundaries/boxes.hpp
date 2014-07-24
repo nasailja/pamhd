@@ -1,5 +1,5 @@
 /*
-Box geometry class of PAMHD.
+Box geometry class of PAMHD supporting multiple boxes.
 
 Copyright 2014 Ilja Honkonen
 All rights reserved.
@@ -31,8 +31,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 
-#ifndef PAMHD_BOUNDARIES_BOX_HPP
-#define PAMHD_BOUNDARIES_BOX_HPP
+#ifndef PAMHD_BOUNDARIES_BOXES_HPP
+#define PAMHD_BOUNDARIES_BOXES_HPP
 
 
 #include "cstdlib"
@@ -52,17 +52,24 @@ namespace boundaries {
 /*!
 Vector_T is assumed to be std::array or similar.
 */
-template<class Vector_T> class Box
+template<class Vector_T> class Boxes
 {
 public:
 
-	//! Class can read only one instance using boost::program_options
-	static constexpr bool scalar = true;
+	//! Class can read more than one instance using boost::program_options
+	static constexpr bool scalar = false;
 
 
 	size_t get_number_of_instances() const
 	{
-		return 1;
+		return this->starts.size();
+	}
+
+
+	void set_number_of_instances(const size_t new_size)
+	{
+		this->starts.resize(new_size);
+		this->ends.resize(new_size);
 	}
 
 
@@ -71,9 +78,14 @@ public:
 	this box, false otherwise.
 	*/
 	bool overlaps(
+		const size_t index,
 		const Vector_T& cell_start,
 		const Vector_T& cell_end
 	) {
+		if (not this->check_index(index)) {
+			abort();
+		}
+
 		for (size_t i = 0; i < size_t(cell_start.size()); i++) {
 			if (cell_start[i] > cell_end[i]) {
 				std::cerr <<  __FILE__ << "(" << __LINE__<< ") "
@@ -88,8 +100,8 @@ public:
 		bool overlaps = true;
 		for (size_t i = 0; i < cell_start.size(); i++) {
 			if (
-				cell_start[i] >= this->end[i]
-				or cell_end[i] <= this->start[i]
+				cell_start[i] >= this->ends[index][i]
+				or cell_end[i] <= this->starts[index][i]
 			) {
 				overlaps = false;
 				break;
@@ -106,46 +118,89 @@ public:
 	) {
 		options.add_options()
 			((option_name_prefix + "start").c_str(),
-				boost::program_options::value<Vector_T>(&this->start)
-					->default_value(this->start),
+				boost::program_options::value<
+					std::vector<Vector_T>
+				>(&this->starts)
+					->composing()
+					->default_value(this->starts),
 				"Start coordinate of box")
 			((option_name_prefix + "end").c_str(),
-				boost::program_options::value<Vector_T>(&this->end)
-					->default_value(this->end),
+				boost::program_options::value<
+					std::vector<Vector_T>
+				>(&this->ends)
+					->composing()
+					->default_value(this->ends),
 				"End coordinate of box");
 	}
 
+
 	bool set_geometry(
+		const size_t index,
 		const Vector_T& given_start,
 		const Vector_T& given_end
 	) {
+		if (not this->check_index(index)) {
+			abort();
+		}
+
 		for (size_t i = 0; i < size_t(given_start.size()); i++) {
 			if (given_end[i] <= given_start[i]) {
 				return false;
 			}
 		}
 
-		this->start = given_start;
-		this->end = given_end;
+		this->starts[index] = given_start;
+		this->ends[index] = given_end;
 		return true;
 	}
 
-	const Vector_T& get_start() const
+
+	const Vector_T& get_start(const size_t index) const
 	{
-		return this->start;
+		if (not this->check_index(index)) {
+			abort();
+		}
+
+		return this->starts[index];
 	}
 
-	const Vector_T& get_end() const
+	const Vector_T& get_end(const size_t index) const
 	{
-		return this->end;
+		if (not this->check_index(index)) {
+			abort();
+		}
+
+		return this->ends[index];
 	}
 
 
 private:
 
-	Vector_T start, end;
+	std::vector<Vector_T> starts, ends;
+
+
+	bool check_index(const size_t index)
+	{
+		if (this->starts.size() != this->ends.size()) {
+			std::cerr <<  __FILE__ << "(" << __LINE__<< ") "
+				<< "Number of start and end coordinates for boxes differ: "
+				<< this->starts.size() << ", " << this->ends.size()
+				<< std::endl;
+			return false;
+		}
+
+		if (index >= this->starts.size()) {
+			std::cerr <<  __FILE__ << "(" << __LINE__<< ") "
+				<< "Invalid index: " << index
+				<< ", should be less than " << this->starts.size()
+				<< std::endl;
+			return false;
+		}
+
+		return true;
+	}
 };
 
 }} // namespaces
 
-#endif // ifndef PAMHD_BOUNDARIES_BOX_HPP
+#endif // ifndef PAMHD_BOUNDARIES_BOXES_HPP

@@ -1,5 +1,5 @@
 /*
-An experiment on how a generic boundary class could be implemented.
+Tests PAMHD boundaries with one variable as data.
 
 Copyright 2014 Ilja Honkonen
 All rights reserved.
@@ -35,268 +35,107 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "iostream"
 #include "string"
 
-#include "boost/algorithm/string/classification.hpp"
-#include "boost/algorithm/string/constants.hpp"
-#include "boost/algorithm/string/split.hpp"
-#include "boost/lexical_cast.hpp"
 #include "boost/program_options.hpp"
-#include "prettyprint.hpp"
+#ifdef HAVE_EIGEN
+#include "Eigen/Core" // must be included before box.hpp
+#endif
 
-#include "boundaries/variables_to_options.hpp"
+#include "boundaries/boundary.hpp"
+
 
 using namespace pamhd::boundaries;
 
-// Boundary variable
-struct Is_Alive {
-	/*
-	Avoid returning temporary references for
-	boundary data by not using bool.
 
-	Boundary data is stored in vector, which
-	has a special version for vector<bool>
-	that cannot return real references to its
-	data.
-	*/
-	using data_type = int;
+struct Mass_Density {
+	using data_type = double;
 
 	static const std::string get_name()
 	{
-		return {"is alive"};
+		return {"mass density"};
 	}
 	static const std::string get_option_name()
 	{
-		return {"is-alive"};
+		return {"mass-density"};
 	}
 	static const std::string get_option_help()
 	{
-		return {"Whether cell is alive (> 0) or not (<= 0)"};
+		return {"Mass density (kg / m^3)"};
 	}
 };
 
 
-// Variables used by geometry part of boundary class
-template <class Vector_T> struct Start {
-	using data_type = Vector_T;
-	static const std::string get_option_name()
-	{
-		return {"start"};
-	}
-	static const std::string get_option_help()
-	{
-		return {"Starting coordinate of boundary"};
-	}
-};
+using Box_Boundary = Boundary<
+	Box<
+		#ifdef HAVE_EIGEN
+		Eigen::Vector3d
+		#else
+		std::array<double, 3>
+		#endif
+	>,
+	int,
+	Mass_Density
+>;
 
-template <class Vector_T> struct End {
-	using data_type = Vector_T;
-	static const std::string get_option_name()
-	{
-		return {"end"};
-	}
-	static const std::string get_option_help()
-	{
-		return {"Ending coordinate of boundary"};
-	}
-};
-
-
-template<
-	class Cell_T,
-	class Vector_T,
-	class Variable
-> class Test_Boundary
-{
-public:
-
-	// type of the start coordinate of boundary geometry
-	using Start_T = Start<Vector_T>;
-	// type of the end coordinate of boundary geometry
-	using End_T = End<Vector_T>;
-
-	void add_boundary(
-		const Vector_T& geometry_start,
-		const Vector_T& geometry_end,
-		const typename Variable::data_type& boundary_data
-	) {
-		this->boundaries[Start_T()].push_back(geometry_start);
-		this->boundaries[End_T()].push_back(geometry_end);
-		this->boundaries[Variable()].push_back(boundary_data);
-	}
+using Sphere_Boundary = Boundary<
+	Sphere<
+		#ifdef HAVE_EIGEN
+		Eigen::Vector3d,
+		#else
+		std::array<double, 3>,
+		#endif
+		double
+	>,
+	int,
+	Mass_Density
+>;
 
 
-	const std::vector<Start_T>& get_geometry_start() const
-	{
-		return this->boundaries[Start_T()];
-	}
-
-	const std::vector<End_T>& get_geometry_end() const
-	{
-		return this->boundaries[End_T()];
-	}
-
-	const std::vector<Variable>& operator[](const Variable&) const
-	{
-		return this->boundaries[Variable()];
-	}
-
-
-	void add_options(
-		boost::program_options::options_description& options,
-		const std::string& option_name_prefix
-	) {
-		this->boundaries.add_options(options, option_name_prefix);
-	}
-
-	/*!
-	Checks that options were given correctly by the user.
-
-	Returns true in case they were, false otherwise.
-	*/
-	bool check_options() const
-	{
-		if (
-			this->boundaries[Start_T()].size() != this->boundaries[End_T()].size()
-			or this->boundaries[End_T()].size() != this->boundaries[Variable()].size()
-		) {
-			std::cout << "Number of parameters for test boundaries not equal."
-				<< std::endl;
-			return false;
-		}
-
-		for (size_t
-			bdy_i = 0;
-			bdy_i < this->boundaries[Start_T()].size();
-			bdy_i++
-		) {
-			const auto
-				&bdy_start = this->boundaries[Start_T()][bdy_i],
-				&bdy_end = this->boundaries[End_T()][bdy_i];
-
-			for (size_t coord_i = 0; coord_i < bdy_start.size(); coord_i++) {
-				if (bdy_start[coord_i] >= bdy_end[coord_i]) {
-					std::cerr <<  __FILE__ << "(" << __LINE__<< ") "
-						<< "Starting coordinate of boundary at index " << coord_i
-						<< " is not smaller than ending coordinate: "
-						<< bdy_start[coord_i] << " >= " << bdy_end[coord_i]
-						<< std::endl;
-					return false;
-				}
-			}
-		}
-
-		return true;
-	}
-
-	/*!
-	Adds cell to all boundaries of this type.
-
-	Returns number of boundaries cell was included in.
-	*/
-	size_t add(
-		const Cell_T& cell,
-		const Vector_T& cell_start,
-		const Vector_T& cell_end
-	) {
-		for (size_t i = 0; i < cell_start.size(); i++) {
-			if (cell_start[i] > cell_end[i]) {
-				std::cerr <<  __FILE__ << "(" << __LINE__<< ") "
-					<< "Starting coordinate at index " << i
-					<< " is larger than ending coordinate: "
-					<< cell_start[i] << " > " << cell_end[i]
-					<< std::endl;
-				abort();
-			}
-		}
-
-		if (not this->check_options()) {
-			std::cerr <<  __FILE__ << "(" << __LINE__<< ") "
-				<< "Inconsistent boudary parameters."
-				<< std::endl;
-			abort();
-		}
-
-		this->boundary_cells.resize(this->boundaries[Start_T()].size());
-
-		size_t ret_val = 0;
-
-		for (size_t
-			bdy_i = 0;
-			bdy_i < this->boundaries[Start_T()].size();
-			bdy_i++
-		) {
-			const auto
-				&bdy_start = this->boundaries[Start_T()][bdy_i],
-				&bdy_end = this->boundaries[End_T()][bdy_i];
-
-			bool overlaps = true;
-			for (size_t coord_i = 0; coord_i < cell_start.size(); coord_i++) {
-				if (
-					cell_start[coord_i] > bdy_end[coord_i]
-					or cell_end[coord_i] < bdy_start[coord_i]
-				) {
-					overlaps = false;
-					break;
-				}
-			}
-
-			if (overlaps) {
-				this->boundary_cells[bdy_i].push_back(cell);
-				ret_val++;
-			}
-		}
-
-		return ret_val;
-	}
-
-	size_t get_number_of_boundaries() const
-	{
-		return this->boundaries[Start_T()].size();
-	}
-
-	const std::vector<Cell_T>& get_boundary_cells(
-		const size_t boundary_index
-	) const {
-		return this->boundary_cells[boundary_index];
-	}
-
-	const typename Variable::data_type& get_boundary_data(
-		const Variable&,
-		const size_t boundary_index
-	) const {
-		return this->boundaries[Variable()][boundary_index];
-	}
-
-
-private:
-	Variables_To_Options<
-		Start_T,
-		End_T,
-		Variable
-	> boundaries;
-
-	/*
-	boundary_cells[i] == cells (partially)
-	overlapping boundaries[Start_T/End_T][i]
-	*/
-	std::vector<std::vector<Cell_T>> boundary_cells;
-};
+#ifdef HAVE_EIGEN
+#define MAKE_VEC(x, y, z) Eigen::Vector3d(x, y, z)
+#else
+#define MAKE_VEC(x, y, z) std::array<double, 3>{x, y, z}
+#endif
 
 
 int main(int argc, char* argv[])
 {
-	Test_Boundary<int, std::array<double, 3>, Is_Alive> boundaries;
-	// set one default boundary
-	boundaries.add_boundary({{0, 0, 0}}, {{1, 1, 1}}, 1);
+	Box_Boundary box;
+	Sphere_Boundary sphere;
+
+	// set defaults
+	box.geometry.set_geometry({-1, -2, -3}, {1, 2, 3});
+	box.boundary_data.set_expression(
+		Mass_Density(),
+		"r[0] + r[1] + r[2] + t"
+	);
+
+	sphere.geometry.set_geometry({1, 2, 3}, 1);
+	sphere.boundary_data.set_expression(
+		Mass_Density(),
+		"r[0] + r[1] + r[2] + t + 1"
+	);
+
 
 	boost::program_options::options_description options(
 		"Usage: program_name [options], where options are:"
 	);
-	options.add_options()("help", "Print options and their descriptions");
-	boundaries.add_options(options, "test.");
+
+	options.add_options()
+		("help", "Print options and their descriptions");
+	box.add_options("box.", options);
+	sphere.add_options("sphere.", options);
+
+	boost::program_options::options_description boundary_options(
+		"Options for initial and boundary conditions"
+	);
 
 	boost::program_options::variables_map option_variables;
 	boost::program_options::store(
-		boost::program_options::parse_command_line(argc, argv, options),
+		boost::program_options::parse_command_line(
+			argc,
+			argv,
+			options
+		),
 		option_variables
 	);
 	boost::program_options::notify(option_variables);
@@ -306,38 +145,97 @@ int main(int argc, char* argv[])
 		return EXIT_SUCCESS;
 	}
 
-	if (boundaries.get_number_of_boundaries() != 1) {
+	/*
+	Test box boundary
+	*/
+	if (not box.add_cell(-2, MAKE_VEC(0, 0, 0), MAKE_VEC(0.5, 1.5, 2.5))) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
-			<< "Invalid number of test boundaries."
+			<< "Cell not added to box."
+			<< std::endl;
+		return EXIT_FAILURE;
+	}
+	if (box.add_cell(-1, MAKE_VEC(-2, -3, -4), MAKE_VEC(-1.1, -2.1, -3.1))) {
+		std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
+			<< "Cell added to box."
+			<< std::endl;
+		return EXIT_FAILURE;
+	}
+	if (not box.add_cell(0, MAKE_VEC(0, 0, 0), MAKE_VEC(1.5, 2.5, 3.5))) {
+		std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
+			<< "Cell not added to box."
 			<< std::endl;
 		return EXIT_FAILURE;
 	}
 
-	if (boundaries.add(-1, {{0.1, 0.2, 0.3}}, {{0.6, 0.5, 0.4}}) != 1) {
+	if (box.get_cells().size() != 2) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
-			<< "Cell added to invalid number of boundaries."
+			<< "Invalid number of cells in box."
+			<< std::endl;
+		return EXIT_FAILURE;
+	}
+	if (box.get_cells()[0] != -2) {
+		std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
+			<< "Invalid first cell in box."
+			<< std::endl;
+		return EXIT_FAILURE;
+	}
+	if (box.get_cells()[1] != 0) {
+		std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
+			<< "Invalid second cell in box."
 			<< std::endl;
 		return EXIT_FAILURE;
 	}
 
-	if (boundaries.get_boundary_cells(0).size() != 1) {
+	double result = box.boundary_data.get_data(Mass_Density(), {1, 2, 3}, 4);
+	if (result != 10) {
+		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << result << std::endl;
+		return EXIT_FAILURE;
+	}
+
+	/*
+	Test sphere boundary
+	*/
+	if (not sphere.add_cell(2, MAKE_VEC(0, 0, 0), MAKE_VEC(0.5, 1.5, 2.5))) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
-			<< "Invalid number of cells in boundary 0."
+			<< "Cell not added to sphere."
+			<< std::endl;
+		return EXIT_FAILURE;
+	}
+	if (sphere.add_cell(1, MAKE_VEC(-2, -3, -4), MAKE_VEC(-1.1, -2.1, -3.1))) {
+		std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
+			<< "Cell added to sphere."
+			<< std::endl;
+		return EXIT_FAILURE;
+	}
+	if (not sphere.add_cell(0, MAKE_VEC(0, 0, 0), MAKE_VEC(1.5, 2.5, 3.5))) {
+		std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
+			<< "Cell not added to sphere."
 			<< std::endl;
 		return EXIT_FAILURE;
 	}
 
-	if (boundaries.get_boundary_cells(0)[0] != -1) {
+	if (sphere.get_cells().size() != 2) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
-			<< "Invalid first cell in boundary 0."
+			<< "Invalid number of cells in sphere."
+			<< std::endl;
+		return EXIT_FAILURE;
+	}
+	if (sphere.get_cells()[0] != 2) {
+		std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
+			<< "Invalid first cell in sphere."
+			<< std::endl;
+		return EXIT_FAILURE;
+	}
+	if (sphere.get_cells()[1] != 0) {
+		std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
+			<< "Invalid second cell in sphere."
 			<< std::endl;
 		return EXIT_FAILURE;
 	}
 
-	if (boundaries.get_boundary_data(Is_Alive(), 0) != 1) {
-		std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
-			<< "Invalid boundary data in boundary 0."
-			<< std::endl;
+	result = sphere.boundary_data.get_data(Mass_Density(), {1, 2, 3}, 4);
+	if (result != 11) {
+		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
 		return EXIT_FAILURE;
 	}
 

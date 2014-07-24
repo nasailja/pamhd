@@ -1,5 +1,5 @@
 /*
-Tests simulation variables to boost::program_options translator.
+Tests vector version of simulation variable to boost::program_options translator.
 
 Copyright 2014 Ilja Honkonen
 All rights reserved.
@@ -31,12 +31,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 
-#include "boost/program_options.hpp"
 #include "cstdlib"
 #include "iostream"
 #include "string"
 
-#include "boundaries/variables_to_options.hpp"
+#include "boost/program_options.hpp"
+#ifdef HAVE_EIGEN
+#include "Eigen/Core" // must be included before variable_to_option.hpp
+#endif
+
+#include "boundaries/variable_to_option_vector.hpp"
 
 using namespace pamhd::boundaries;
 
@@ -74,52 +78,49 @@ struct Mass_Density {
 	}
 };
 
-struct Energy_Density {
-	using data_type = double;
+struct Momentum_Density {
+	#ifdef HAVE_EIGEN
+	using data_type = Eigen::Vector3d;
+	#else
+	using data_type = std::array<double, 3>;
+	#endif
 	static const std::string get_name()
 	{
-		return {"energy density"};
+		return {"momentum density"};
 	}
 	static const std::string get_option_name()
 	{
-		return {"energy-density"};
+		return {"momentum-density"};
 	}
 	static const std::string get_option_help()
 	{
-		return {"Energy density (J / m^3)"};
+		return {"Momentum density (J / m^3)"};
 	}
 };
 
 
 int main(int argc, char* argv[])
 {
-	Variables_To_Options<Is_Alive> gol_var_opts;
-	Variables_To_Options<Mass_Density, Energy_Density> mhd_var_opts;
-
-	static_assert(
-		Variables_To_Options<Is_Alive>::number_of_variables == 1,
-		"Incorrect number of variables reported"
-	);
-	static_assert(
-		Variables_To_Options<Mass_Density, Energy_Density>::number_of_variables == 2,
-		"Incorrect number of variables reported"
-	);
+	Variable_To_Option_Vector<Is_Alive> gol_var_opts;
+	Variable_To_Option_Vector<Mass_Density, Momentum_Density> mhd_var_opts;
 
 	// set default values before adding options to boost
-	gol_var_opts[Is_Alive()].push_back(true);
-	gol_var_opts[Is_Alive()].push_back(false);
-	gol_var_opts[Is_Alive()].push_back(true);
-	mhd_var_opts[Mass_Density()].push_back(3);
-	mhd_var_opts[Mass_Density()].push_back(4);
-	mhd_var_opts[Energy_Density()].push_back(-3);
-	mhd_var_opts[Energy_Density()].push_back(-4);
+	gol_var_opts.set_number_of_expressions(2);
+	gol_var_opts.set_expression(Is_Alive(), 0, "true");
+	gol_var_opts.set_expression(Is_Alive(), 1, "false");
+
+	mhd_var_opts.set_number_of_expressions(2);
+	mhd_var_opts.set_expression(Mass_Density(), 0, "r[0] + r[1] + r[2] + t");
+	mhd_var_opts.set_expression(Mass_Density(), 1, "r[0] + r[1] + r[2] + t + 1");
+	mhd_var_opts.set_expression(Momentum_Density(), 0, "{r[0], r[1], r[2]}");
+	mhd_var_opts.set_expression(Momentum_Density(), 1, "{r[0] + t, r[1] + t, r[2] + t}");
 
 	boost::program_options::options_description options(
 		"Usage: program_name [options], where options are:"
 	);
 	options.add_options()("help", "Print options and their descriptions");
-	gol_var_opts.add_options(options, "gol.");
-	mhd_var_opts.add_options(options, "mhd.");
+	gol_var_opts.add_options("gol.", options);
+	mhd_var_opts.add_options("mhd.", options);
 
 	boost::program_options::variables_map option_variables;
 	boost::program_options::store(
@@ -133,45 +134,46 @@ int main(int argc, char* argv[])
 		return EXIT_SUCCESS;
 	}
 
-	if (gol_var_opts[Is_Alive()].size() != 3) {
+	if (gol_var_opts.get_data(Is_Alive(), 0, {1, 2, 3}, 4) != true) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
 		abort();
 	}
-	if (gol_var_opts[Is_Alive()][0] != true) {
-		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
-		abort();
-	}
-	if (gol_var_opts[Is_Alive()][1] != false) {
-		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
-		abort();
-	}
-	if (gol_var_opts[Is_Alive()][2] != true) {
+	if (gol_var_opts.get_data(Is_Alive(), 1, {1, 2, 3}, 4) != false) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
 		abort();
 	}
 
-	if (mhd_var_opts[Mass_Density()].size() != 2) {
+	if (mhd_var_opts.get_data(Mass_Density(), 0, {1, 2, 3}, 4) != 1+2+3+4) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
 		abort();
 	}
-	if (mhd_var_opts[Mass_Density()][0] != 3) {
-		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
-		abort();
-	}
-	if (mhd_var_opts[Mass_Density()][1] != 4) {
+	if (mhd_var_opts.get_data(Mass_Density(), 1, {1, 2, 3}, 4) != 1+2+3+4+1) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
 		abort();
 	}
 
-	if (mhd_var_opts[Energy_Density()].size() != 2) {
+	if (mhd_var_opts.get_data(Momentum_Density(), 0, {1, 2, 3}, 4)[0] != 1) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
 		abort();
 	}
-	if (mhd_var_opts[Energy_Density()][0] != -3) {
+	if (mhd_var_opts.get_data(Momentum_Density(), 0, {1, 2, 3}, 4)[1] != 2) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
 		abort();
 	}
-	if (mhd_var_opts[Energy_Density()][1] != -4) {
+	if (mhd_var_opts.get_data(Momentum_Density(), 0, {1, 2, 3}, 4)[2] != 3) {
+		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
+		abort();
+	}
+
+	if (mhd_var_opts.get_data(Momentum_Density(), 1, {1, 2, 3}, 4)[0] != 5) {
+		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
+		abort();
+	}
+	if (mhd_var_opts.get_data(Momentum_Density(), 1, {1, 2, 3}, 4)[1] != 6) {
+		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
+		abort();
+	}
+	if (mhd_var_opts.get_data(Momentum_Density(), 1, {1, 2, 3}, 4)[2] != 7) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
 		abort();
 	}

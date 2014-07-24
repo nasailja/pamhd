@@ -1,6 +1,7 @@
 all:
 	@make tests/mhd_executables tests/mhd_tests -C ../..
 
+.PHONY: results
 r: results
 results:
 	@make tests/mhd_clean_results -C ../..

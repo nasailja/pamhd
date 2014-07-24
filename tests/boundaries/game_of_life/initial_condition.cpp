@@ -47,7 +47,7 @@ using namespace pamhd::boundaries;
 
 
 struct Is_Alive {
-	using data_type = int;
+	using data_type = bool;
 
 	static const std::string get_name()
 	{
@@ -59,7 +59,7 @@ struct Is_Alive {
 	}
 	static const std::string get_option_help()
 	{
-		return {"Whether a cell is alive (> 0) or not (<= 0)"};
+		return {"Whether a cell is alive (true) or not (false)"};
 	}
 };
 
@@ -82,7 +82,8 @@ struct Live_Neighbors {
 
 
 struct Cell {
-	int is_alive = 0, live_neighbors = 0;
+	bool is_alive = false;
+	int live_neighbors = 0;
 };
 
 
@@ -94,7 +95,7 @@ using Grid = array<array<Cell, width>, height>;
 Grid grid;
 
 
-array<double, 2> get_cell_start(
+array<double, 3> get_cell_start(
 	const Grid& grid,
 	const array<size_t, 2>& cell
 ) {
@@ -110,12 +111,13 @@ array<double, 2> get_cell_start(
 
 	return {
 		-1.0 + cell[0] * 2.0 / grid[cell[1]].size(),
-		1.0 - (1 + cell[1]) * 2.0 / grid.size()
+		1.0 - (1 + cell[1]) * 2.0 / grid.size(),
+		-1
 	};
 }
 
 
-array<double, 2> get_cell_end(
+array<double, 3> get_cell_end(
 	const Grid& grid,
 	const array<size_t, 2>& cell
 ) {
@@ -131,7 +133,8 @@ array<double, 2> get_cell_end(
 
 	return {
 		-1.0 + (1 + cell[0]) * 2.0 / grid[cell[1]].size(),
-		1.0 - cell[1] * 2.0 / grid.size()
+		1.0 - cell[1] * 2.0 / grid.size(),
+		1
 	};
 }
 
@@ -169,17 +172,93 @@ size_t get_number_of_live_cells(const Grid& grid)
 	return live_cells;
 }
 
+#define MAKE_VEC(x, y, z) std::array<double, 3>{x, y, z}
 
 int main(int argc, char* argv[])
 {
-	std::string initial_condition_file_name;
+	Initial_Condition<
+		std::array<size_t, 2>,
+		double,
+		std::array<double, 3>,
+		Is_Alive
+	> initial_condition;
+
+	// set defaults
+	initial_condition.default_data.set_expression(
+		Is_Alive(),
+		"false"
+	);
+
+	boost::optional<size_t> result;
+
+	result = initial_condition.add_box(
+		MAKE_VEC(-0.5, 0.5, -1),
+		MAKE_VEC(-0.25, 0.75, 1)
+	);
+	if (not result) {
+		std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
+			<< "Couldn't add boundary box."
+			<< std::endl;
+		abort();
+	}
+
+	result = initial_condition.add_box(
+		MAKE_VEC(-0.25, 0.25, -1),
+		MAKE_VEC(0, 0.5, 1)
+	);
+	if (not result) {
+		std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
+			<< "Couldn't add boundary box."
+			<< std::endl;
+		abort();
+	}
+
+	result = initial_condition.add_box(
+		MAKE_VEC(-0.25, 0, -1),
+		MAKE_VEC(0, 0.25, 1)
+	);
+	if (not result) {
+		std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
+			<< "Couldn't add boundary box."
+			<< std::endl;
+		abort();
+	}
+
+	result = initial_condition.add_box(
+		MAKE_VEC(-0.5, 0, -1),
+		MAKE_VEC(-0.25, 0.25, 1)
+	);
+	if (not result) {
+		std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
+			<< "Couldn't add boundary box."
+			<< std::endl;
+		abort();
+	}
+
+	result = initial_condition.add_box(
+		MAKE_VEC(-0.75, 0, -1),
+		MAKE_VEC(-0.5, 0.25, 1)
+	);
+	if (not result) {
+		std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
+			<< "Couldn't add boundary box."
+			<< std::endl;
+		abort();
+	}
+
+	for (size_t i = 0; i < initial_condition.get_number_of_boundaries(); i++) {
+		initial_condition.set_expression(Is_Alive(), i, "true");
+	}
+
+
+	std::string initial_condition_file_name("");
 
 	boost::program_options::options_description
 		options(
-			"Usage: program_name [options], where options are:"
+			"Usage: program_name [options], where options are"
 		),
 		initial_condition_options(
-			"Options for initial condition"
+			"Options for initial condition (must be read from file)"
 		);
 
 	options.add_options()
@@ -187,22 +266,9 @@ int main(int argc, char* argv[])
 		("initial-help", "Print help for options of initial condition")
 		("initial-file",
 			boost::program_options::value<std::string>(&initial_condition_file_name)
-				->default_value("tests/boundaries/game_of_life/gol.cfg"),
+				->default_value(initial_condition_file_name),
 			"Read initial condition from file arg (do not read if empty string)");
-
-	Initial_Condition<
-		std::array<size_t, 2>,
-		std::array<double, 2>,
-		Is_Alive
-	> initial_condition;
-
-	// by default all cell are dead
-	initial_condition.add_default_data(
-		Is_Alive{},
-		Is_Alive::data_type{0}
-	);
-
-	initial_condition.add_options(initial_condition_options, "initial.");
+	initial_condition.add_initialization_options("", options);
 
 	boost::program_options::variables_map option_variables;
 	boost::program_options::store(
@@ -219,6 +285,9 @@ int main(int argc, char* argv[])
 		std::cout << options << std::endl;
 		return EXIT_SUCCESS;
 	}
+
+	initial_condition.add_options("", initial_condition_options);
+
 	if (option_variables.count("initial-help") > 0) {
 		std::cout << initial_condition_options << std::endl;
 		return EXIT_SUCCESS;
@@ -239,7 +308,7 @@ int main(int argc, char* argv[])
 	for (size_t row_i = 0; row_i < grid.size(); row_i++)
 	for (size_t cell_i = 0; cell_i < grid[row_i].size(); cell_i++) {
 		grid[row_i][cell_i].is_alive
-			= initial_condition.get_default_data(Is_Alive())[0];
+			= initial_condition.default_data.get_data(Is_Alive(), {0, 0, 0}, 0);
 	}
 
 	// classify cells into regions given as initial condition
@@ -263,21 +332,25 @@ int main(int argc, char* argv[])
 		}
 	}
 
-	// go through all regions and set their cells' data to given value
+	// go through all boundaries and set their cells' data to given value
 	for (size_t
 		bdy_i = 0;
 		bdy_i < initial_condition.get_number_of_boundaries();
 		bdy_i++
 	) {
-		const auto& boundary_cells = initial_condition.get_boundary_cells(bdy_i);
+		const auto& boundary_cells = initial_condition.get_cells(bdy_i);
 
-		for (const auto cell: boundary_cells) {
+		for (const auto& cell: boundary_cells) {
 			const size_t
 				row_i = cell[1],
 				cell_i = cell[0];
 
-			grid[row_i][cell_i].is_alive
-				= initial_condition.get_boundary_data(Is_Alive(), bdy_i);
+			grid[row_i][cell_i].is_alive = initial_condition.get_data(
+				Is_Alive(),
+				bdy_i,
+				{0, 0, 0},
+				0
+			);
 		}
 	}
 

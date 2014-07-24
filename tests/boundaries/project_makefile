@@ -1,24 +1,42 @@
 TESTS_BOUNDARIES_EXECUTABLES = \
-  tests/boundaries/variables_to_options.exe \
-  tests/boundaries/one_variable_boundary.exe \
-  tests/boundaries/many_variable_boundary.exe \
+  tests/boundaries/sphere.exe \
+  tests/boundaries/sphere_eigen.exe \
   tests/boundaries/box.exe \
+  tests/boundaries/box_eigen.exe \
+  tests/boundaries/one_variable_boundary.exe \
+  tests/boundaries/one_variable_boundary_eigen.exe \
+  tests/boundaries/many_variable_boundary.exe \
+  tests/boundaries/many_variable_boundary_eigen.exe \
   tests/boundaries/initial_condition.exe \
-  tests/boundaries/game_of_life/serial.exe \
-  tests/boundaries/time_dependent_boundary_experiment.exe \
-  tests/boundaries/time_dependent_boundary.exe \
-  tests/boundaries/game_of_life/time_dependent.exe
+  tests/boundaries/initial_condition_eigen.exe \
+  tests/boundaries/game_of_life/initial_condition.exe \
+  tests/boundaries/boundary_td_box.exe \
+  tests/boundaries/boundary_td_box_eigen.exe \
+  tests/boundaries/boundary_td_sphere.exe \
+  tests/boundaries/boundary_td_sphere_eigen.exe \
+  tests/boundaries/game_of_life/time_dependent.exe \
+  tests/boundaries/value_boundaries.exe \
+  tests/boundaries/value_boundaries_eigen.exe
 
 TESTS_BOUNDARIES_TESTS = \
-  tests/boundaries/variables_to_options.tst \
-  tests/boundaries/one_variable_boundary.tst \
-  tests/boundaries/many_variable_boundary.tst \
+  tests/boundaries/sphere.tst \
+  tests/boundaries/sphere_eigen.tst \
   tests/boundaries/box.tst \
+  tests/boundaries/box_eigen.tst \
+  tests/boundaries/one_variable_boundary.tst \
+  tests/boundaries/one_variable_boundary_eigen.tst \
+  tests/boundaries/many_variable_boundary.tst \
+  tests/boundaries/many_variable_boundary_eigen.tst \
   tests/boundaries/initial_condition.tst \
-  tests/boundaries/game_of_life/serial.tst \
-  tests/boundaries/time_dependent_boundary_experiment.tst \
-  tests/boundaries/time_dependent_boundary.tst \
-  tests/boundaries/game_of_life/time_dependent.tst
+  tests/boundaries/initial_condition_eigen.tst \
+  tests/boundaries/game_of_life/initial_condition.tst \
+  tests/boundaries/boundary_td_box.tst \
+  tests/boundaries/boundary_td_box_eigen.tst \
+  tests/boundaries/boundary_td_sphere.tst \
+  tests/boundaries/boundary_td_sphere_eigen.tst \
+  tests/boundaries/game_of_life/time_dependent.tst \
+  tests/boundaries/value_boundaries.tst \
+  tests/boundaries/value_boundaries_eigen.tst
 
 tests/boundaries_executables: $(TESTS_BOUNDARIES_EXECUTABLES)
 
@@ -33,10 +51,20 @@ EXECUTABLES += tests/boundaries_executables
 TESTS += tests/boundaries_tests
 CLEAN += tests/boundaries_clean
 
-TEST_BOUNDARIES_DEPS = \
-  source/boundaries/variables_to_options.hpp
+TESTS_BOUNDARIES_DEPS = \
+  Makefile \
+  $(ENVIRONMENT_MAKEFILE) \
+  tests/boundaries/project_makefile \
+  source/boundaries/box.hpp \
+  source/boundaries/boxes.hpp \
+  source/boundaries/initial_condition.hpp \
+  source/boundaries/sphere.hpp \
+  source/boundaries/spheres.hpp \
+  source/boundaries/value_boundaries.hpp \
+  source/boundaries/variable_to_option.hpp \
+  source/boundaries/variable_to_option_vector.hpp
 
-TEST_BOUNDARIES_COMPILE_COMMAND = \
+TESTS_BOUNDARIES_COMPILE_COMMAND = \
   $(CXX) \
   $(CPPFLAGS) \
   $(CXXFLAGS) \
@@ -47,56 +75,108 @@ TEST_BOUNDARIES_COMPILE_COMMAND = \
   $(PRETTYPRINT_CPPFLAGS) \
   $< -o $@
 
-tests/boundaries/variables_to_options.exe: \
-  tests/boundaries/variables_to_options.cpp \
-  $(TEST_BOUNDARIES_DEPS)
-	@echo "CXX "$< && $(TEST_BOUNDARIES_COMPILE_COMMAND)
+TESTS_BOUNDARIES_COMPILE_COMMAND_EIGEN = \
+  $(TESTS_BOUNDARIES_COMPILE_COMMAND) \
+  $(EIGEN_CPPFLAGS) \
+  -DHAVE_EIGEN
 
-tests/boundaries/one_variable_boundary.exe: \
-  tests/boundaries/one_variable_boundary.cpp \
-  $(TEST_BOUNDARIES_DEPS)
-	@echo "CXX "$< && $(TEST_BOUNDARIES_COMPILE_COMMAND)
+TESTS_BOUNDARIES_COMPILE_COMMAND_PARSED = \
+  $(TESTS_BOUNDARIES_COMPILE_COMMAND) \
+  $(MUPARSERX_CPPFLAGS) \
+  $(MUPARSERX_LDFLAGS) \
+  $(MUPARSERX_LIBS)
 
-tests/boundaries/many_variable_boundary.exe: \
-  tests/boundaries/many_variable_boundary.cpp \
-  $(TEST_BOUNDARIES_DEPS)
-	@echo "CXX "$< && $(TEST_BOUNDARIES_COMPILE_COMMAND)
+TESTS_BOUNDARIES_COMPILE_COMMAND_PARSED_EIGEN = \
+  $(TESTS_BOUNDARIES_COMPILE_COMMAND_PARSED) \
+  $(EIGEN_CPPFLAGS) \
+  -DHAVE_EIGEN
+
+tests/boundaries/sphere.exe: \
+  tests/boundaries/sphere.cpp \
+  $(TESTS_BOUNDARIES_DEPS)
+	@echo "CXX "$< && $(TESTS_BOUNDARIES_COMPILE_COMMAND)
+
+tests/boundaries/sphere_eigen.exe: \
+  tests/boundaries/sphere.cpp \
+  $(TESTS_BOUNDARIES_DEPS)
+	@echo "CXX "$< && $(TESTS_BOUNDARIES_COMPILE_COMMAND_EIGEN)
 
 tests/boundaries/box.exe: \
   tests/boundaries/box.cpp \
-  source/boundaries/box.hpp \
-  $(TEST_BOUNDARIES_DEPS)
-	@echo "CXX "$< && $(TEST_BOUNDARIES_COMPILE_COMMAND)
+  $(TESTS_BOUNDARIES_DEPS)
+	@echo "CXX "$< && $(TESTS_BOUNDARIES_COMPILE_COMMAND)
+
+tests/boundaries/box_eigen.exe: \
+  tests/boundaries/box.cpp \
+  $(TESTS_BOUNDARIES_DEPS)
+	@echo "CXX "$< && $(TESTS_BOUNDARIES_COMPILE_COMMAND_EIGEN)
+
+tests/boundaries/one_variable_boundary.exe: \
+  tests/boundaries/one_variable_boundary.cpp \
+  $(TESTS_BOUNDARIES_DEPS)
+	@echo "CXX "$< && $(TESTS_BOUNDARIES_COMPILE_COMMAND_PARSED)
+
+tests/boundaries/one_variable_boundary_eigen.exe: \
+  tests/boundaries/one_variable_boundary.cpp \
+  $(TESTS_BOUNDARIES_DEPS)
+	@echo "CXX "$< && $(TESTS_BOUNDARIES_COMPILE_COMMAND_PARSED_EIGEN)
+
+tests/boundaries/many_variable_boundary.exe: \
+  tests/boundaries/many_variable_boundary.cpp \
+  $(TESTS_BOUNDARIES_DEPS)
+	@echo "CXX "$< && $(TESTS_BOUNDARIES_COMPILE_COMMAND_PARSED)
+
+tests/boundaries/many_variable_boundary_eigen.exe: \
+  tests/boundaries/many_variable_boundary.cpp \
+  $(TESTS_BOUNDARIES_DEPS)
+	@echo "CXX "$< && $(TESTS_BOUNDARIES_COMPILE_COMMAND_PARSED_EIGEN)
 
 tests/boundaries/initial_condition.exe: \
   tests/boundaries/initial_condition.cpp \
-  source/boundaries/initial_condition.hpp \
-  source/boundaries/box.hpp \
-  $(TEST_BOUNDARIES_DEPS)
-	@echo "CXX "$< && $(TEST_BOUNDARIES_COMPILE_COMMAND)
+  $(TESTS_BOUNDARIES_DEPS)
+	@echo "CXX "$< && $(TESTS_BOUNDARIES_COMPILE_COMMAND_PARSED)
 
-tests/boundaries/game_of_life/serial.exe: \
-  tests/boundaries/game_of_life/serial.cpp \
-  source/boundaries/initial_condition.hpp \
-  source/boundaries/box.hpp \
-  $(TEST_BOUNDARIES_DEPS)
-	@echo "CXX "$< && $(TEST_BOUNDARIES_COMPILE_COMMAND)
+tests/boundaries/initial_condition_eigen.exe: \
+  tests/boundaries/initial_condition.cpp \
+  $(TESTS_BOUNDARIES_DEPS)
+	@echo "CXX "$< && $(TESTS_BOUNDARIES_COMPILE_COMMAND_PARSED_EIGEN)
 
-tests/boundaries/time_dependent_boundary_experiment.exe: \
-  tests/boundaries/time_dependent_boundary_experiment.cpp \
-  $(TEST_BOUNDARIES_DEPS)
-	@echo "CXX "$< && $(TEST_BOUNDARIES_COMPILE_COMMAND)
+tests/boundaries/game_of_life/initial_condition.exe: \
+  tests/boundaries/game_of_life/initial_condition.cpp \
+  $(TESTS_BOUNDARIES_DEPS)
+	@echo "CXX "$< && $(TESTS_BOUNDARIES_COMPILE_COMMAND_PARSED)
 
-tests/boundaries/time_dependent_boundary.exe: \
-  tests/boundaries/time_dependent_boundary.cpp \
-  source/boundaries/time_dependent_boundary.hpp \
-  source/boundaries/box.hpp \
-  $(TEST_BOUNDARIES_DEPS)
-	@echo "CXX "$< && $(TEST_BOUNDARIES_COMPILE_COMMAND)
+tests/boundaries/boundary_td_box.exe: \
+  tests/boundaries/boundary_td_box.cpp \
+  $(TESTS_BOUNDARIES_DEPS)
+	@echo "CXX "$< && $(TESTS_BOUNDARIES_COMPILE_COMMAND_PARSED)
+
+tests/boundaries/boundary_td_box_eigen.exe: \
+  tests/boundaries/boundary_td_box.cpp \
+  $(TESTS_BOUNDARIES_DEPS)
+	@echo "CXX "$< && $(TESTS_BOUNDARIES_COMPILE_COMMAND_PARSED_EIGEN)
+
+tests/boundaries/boundary_td_sphere.exe: \
+  tests/boundaries/boundary_td_sphere.cpp \
+  $(TESTS_BOUNDARIES_DEPS)
+	@echo "CXX "$< && $(TESTS_BOUNDARIES_COMPILE_COMMAND_PARSED)
+
+tests/boundaries/boundary_td_sphere_eigen.exe: \
+  tests/boundaries/boundary_td_sphere.cpp \
+  $(TESTS_BOUNDARIES_DEPS)
+	@echo "CXX "$< && $(TESTS_BOUNDARIES_COMPILE_COMMAND_PARSED_EIGEN)
 
 tests/boundaries/game_of_life/time_dependent.exe: \
   tests/boundaries/game_of_life/time_dependent.cpp \
-  source/boundaries/time_dependent_boundary.hpp \
-  source/boundaries/box.hpp \
-  $(TEST_BOUNDARIES_DEPS)
-	@echo "CXX "$< && $(TEST_BOUNDARIES_COMPILE_COMMAND)
+  $(TESTS_BOUNDARIES_DEPS)
+	@echo "CXX "$< && $(TESTS_BOUNDARIES_COMPILE_COMMAND_PARSED)
+
+tests/boundaries/value_boundaries.exe: \
+  tests/boundaries/value_boundaries.cpp \
+  $(TESTS_BOUNDARIES_DEPS)
+	@echo "CXX "$< && $(TESTS_BOUNDARIES_COMPILE_COMMAND_PARSED)
+
+tests/boundaries/value_boundaries_eigen.exe: \
+  tests/boundaries/value_boundaries.cpp \
+  $(TESTS_BOUNDARIES_DEPS)
+	@echo "CXX "$< && $(TESTS_BOUNDARIES_COMPILE_COMMAND_PARSED_EIGEN)

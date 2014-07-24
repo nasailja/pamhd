@@ -1,0 +1,13 @@
+Running MHD tests of PAMHD
+
+Run test.exe by giving it both a general configuration file
+and corresponding boundary configuration file from config_files
+directory as command line arguments. The output will be written
+to a directory specified in general configuration file. Use
+mhd2gnuplot to plot results using gnuplot. For example:
+
+./test.exe \
+    --config-file config_files/shock_tube1_x_general.cfg \
+    --boundary-file config_files/shock_tube1_x_boundaries.cfg
+
+./mhd2gnuplot.exe results/shock_tube1_x/*.dc

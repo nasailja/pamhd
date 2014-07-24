@@ -1,5 +1,5 @@
 /*
-Class for setting the initial condition of a simulation.
+PAMHD collection of time-dependent boundaries setting variables from external file.
 
 Copyright 2014 Ilja Honkonen
 All rights reserved.
@@ -30,54 +30,65 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef PAMHD_BOUNDARIES_INITIAL_CONDITION_HPP
-#define PAMHD_BOUNDARIES_INITIAL_CONDITION_HPP
 
+#ifndef PAMHD_BOUNDARIES_VALUE_BOUNDARY_HPP
+#define PAMHD_BOUNDARIES_VALUE_BOUNDARY_HPP
+
+
+#include "cstdlib"
+#include "iostream"
 #include "string"
 #include "utility"
 
-#include "boost/lexical_cast.hpp"
 #include "boost/optional.hpp"
+#include "boost/program_options.hpp"
+#include "prettyprint.hpp"
 
-#include "boundaries/boundary.hpp"
+#include "boundaries/boundary_time_dependent.hpp"
+#include "boundaries/boxes.hpp"
+#include "boundaries/spheres.hpp"
 
 
 namespace pamhd {
 namespace boundaries {
 
 
-/*!
-Collection of boundaries creatable from arguments given on command line.
-*/
 template<
 	class Cell_T,
+	class Time_T,
 	class Scalar_T,
 	class Vector_T,
 	class... Variables
-> class Initial_Condition
+> class Value_Boundaries
 {
 public:
 
-	/*!
-	Must not be called after add_options().
-	*/
-	void set_number_of_boxes(const size_t given_nr_of_boxes)
-	{
-		this->number_of_boxes = given_nr_of_boxes;
-		this->boxes.resize(this->number_of_boxes);
-	}
+	std::vector<
+		Boundary_Time_Dependent<
+			Boxes<Vector_T>,
+			Cell_T,
+			Time_T,
+			Variables...
+		>
+	> boxes;
+
+	std::vector<
+		Boundary_Time_Dependent<
+			Spheres<Vector_T, Scalar_T>,
+			Cell_T,
+			Time_T,
+			Variables...
+		>
+	> spheres;
+
+
 
 	/*!
-	Must not be called after add_options().
-	*/
-	void set_number_of_spheres(const size_t given_nr_of_spheres)
-	{
-		this->number_of_spheres = given_nr_of_spheres;
-		this->spheres.resize(this->number_of_spheres);
-	}
+	Adds options for setting the number of boundaries.
 
+	Use to query the number of boundaries to create whose options
+	can then be added with add_options().
 
-	/*!
 	Must not be called after add_options().
 	*/
 	void add_initialization_options(
@@ -88,11 +99,11 @@ public:
 			((option_name_prefix + "nr-boxes").c_str(),
 				boost::program_options::value<size_t>(&this->number_of_boxes)
 					->default_value(this->number_of_boxes),
-				"Number of boxes in initial condition")
+				"Number of boxes in value boundary condition")
 			((option_name_prefix + "nr-spheres").c_str(),
 				boost::program_options::value<size_t>(&this->number_of_spheres)
 					->default_value(this->number_of_spheres),
-				"Number of spheres in initial condition");
+				"Number of spheres in value boundary condition");
 	}
 
 
@@ -104,8 +115,6 @@ public:
 		const std::string& option_name_prefix,
 		boost::program_options::options_description& options
 	) {
-		this->default_data.add_options(option_name_prefix + "default.", options);
-
 		this->boxes.resize(this->number_of_boxes);
 		this->spheres.resize(this->number_of_spheres);
 
@@ -141,9 +150,13 @@ public:
 	geometry_parameters is given to the overlaps function of each geometry
 	object, see their documentation for the required parameters.
 
-	Returns number of boundaries to which given cell was added.
+	Returns number of boundaries at given time to which given cell was added.
+
+	Use clear_cells() to remove cells from all boundaries, for example, if
+	(some) boundaries have moved and previous classifications aren't correct.
 	*/
 	template<class... Geometry_Parameters> size_t add_cell(
+		const Time_T& time,
 		const Cell_T& cell,
 		Geometry_Parameters&&... geometry_parameters
 	) {
@@ -152,6 +165,7 @@ public:
 		for (auto& box: this->boxes) {
 			if (
 				box.add_cell(
+					time,
 					cell,
 					std::forward<Geometry_Parameters>(geometry_parameters)...
 				)
@@ -163,6 +177,7 @@ public:
 		for (auto& sphere: this->spheres) {
 			if (
 				sphere.add_cell(
+					time,
 					cell,
 					std::forward<Geometry_Parameters>(geometry_parameters)...
 				)
@@ -220,15 +235,22 @@ public:
 	}
 
 
+	void clear_boundaries()
+	{
+		this->boxes.clear();
+		this->spheres.clear();
+	}
+
+
 	//! Returns data of given variable in given boundary at given time & position
 	template<class Variable> typename Variable::data_type get_data(
 		const Variable& variable,
 		size_t boundary_index,
 		const std::array<double, 3>& given_position,
-		const double given_time
+		const Time_T& given_time
 	) {
 		if (boundary_index < this->boxes.size()) {
-			return this->boxes[boundary_index].boundary_data.get_data(
+			return this->boxes[boundary_index].get_data(
 				variable,
 				given_position,
 				given_time
@@ -237,7 +259,7 @@ public:
 		boundary_index -= this->boxes.size();
 
 		if (boundary_index < this->spheres.size()) {
-			return this->spheres[boundary_index].boundary_data.get_data(
+			return this->spheres[boundary_index].get_data(
 				variable,
 				given_position,
 				given_time
@@ -245,43 +267,8 @@ public:
 		}
 
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ") "
-			<< "Too large boundary index given: " << boundary_index
-			<< ", should be at most: "
-			<< this->boxes.size() + this->spheres.size() - 1
-			<< std::endl;
-		abort();
-	}
-
-
-	//! Sets expression for given variable in given boundary
-	template<
-		class Variable
-	> void set_expression(
-		const Variable& variable,
-		size_t boundary_index,
-		const std::string& given_expression
-	) {
-		if (boundary_index < this->boxes.size()) {
-			this->boxes[boundary_index].boundary_data.set_expression(
-				variable,
-				given_expression
-			);
-
-			return;
-		}
-		boundary_index -= this->boxes.size();
-
-		if (boundary_index < this->spheres.size()) {
-			this->spheres[boundary_index].boundary_data.set_expression(
-				variable,
-				given_expression
-			);
-
-			return;
-		}
-
-		std::cerr <<  __FILE__ << "(" << __LINE__<< ") "
-			<< "Too large boundary index given: " << boundary_index
+			<< "Too large boundary index given: "
+			<< this->boxes.size() + boundary_index
 			<< ", should be at most: "
 			<< this->boxes.size() + this->spheres.size() - 1
 			<< std::endl;
@@ -290,24 +277,17 @@ public:
 
 
 	/*!
-	geometry_parameters is given to the set_geometry function of new box,
-	see its documentation for the required parameters.
-
 	Invalidates previous boundary ids.
 	Returns boundary index of added boundary if successfull.
 
-	Use set_boundary_expression() to set data of variables of added boundary.
+	See functions in boundary_time_dependent.hpp on how to set
+	geometry and variable data of added boundary.
 	*/
-	template<class... Geometry_Parameters> boost::optional<size_t> add_box(
-		Geometry_Parameters&&... geometry_parameters
-	) {
-		Boundary<Box<Vector_T>, Cell_T, Variables...> new_box;
-
-		new_box.geometry.set_geometry(
-			std::forward<Geometry_Parameters>(geometry_parameters)...
+	boost::optional<size_t> add_box()
+	{
+		this->boxes.push_back(
+			Boundary_Time_Dependent<Boxes<Vector_T>, Cell_T, Time_T, Variables...>()
 		);
-
-		this->boxes.push_back(new_box);
 		this->number_of_boxes = this->boxes.size();
 
 		return boost::optional<size_t>(this->number_of_boxes - 1);
@@ -317,16 +297,11 @@ public:
 	/*!
 	Same as add_box() but adds a sphere boundary.
 	*/
-	template<class... Geometry_Parameters> boost::optional<size_t> add_sphere(
-		Geometry_Parameters&&... geometry_parameters
-	) {
-		Boundary<Sphere<Vector_T, Scalar_T>, Cell_T, Variables...> new_sphere;
-
-		new_sphere.geometry.set_geometry(
-			std::forward<Geometry_Parameters>(geometry_parameters)...
+	boost::optional<size_t> add_sphere()
+	{
+		this->spheres.push_back(
+			Boundary_Time_Dependent<Spheres<Vector_T, Scalar_T>, Cell_T, Time_T, Variables...>()
 		);
-
-		this->spheres.push_back(new_sphere);
 		this->number_of_spheres = this->spheres.size();
 
 		return boost::optional<size_t>(
@@ -336,37 +311,13 @@ public:
 
 
 
-	/*!
-	Default initial data of a cell unless it belongs to a boundary.
-	*/
-	Variable_To_Option<Variables...> default_data;
-
-
-
 private:
 
 	size_t
 		number_of_boxes = 0,
 		number_of_spheres = 0;
-
-
-	std::vector<
-		Boundary<
-			Box<Vector_T>,
-			Cell_T,
-			Variables...
-		>
-	> boxes;
-
-	std::vector<
-		Boundary<
-			Sphere<Vector_T, Scalar_T>,
-			Cell_T,
-			Variables...
-		>
-	> spheres;
 };
 
 }} // namespaces
 
-#endif // ifndef PAMHD_BOUNDARIES_INITIAL_CONDITION_HPP
+#endif // ifndef PAMHD_BOUNDARIES_VALUE_BOUNDARY_HPP

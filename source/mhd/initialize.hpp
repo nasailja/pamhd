@@ -72,7 +72,8 @@ template <
 > void initialize(
 	Grid_T& grid,
 	Init_Cond_T& init_cond,
-	std::vector<uint64_t> cells,
+	std::vector<uint64_t>& cells,
+	const double time,
 	const double adiabatic_index,
 	const double vacuum_permeability,
 	const double proton_mass
@@ -90,12 +91,16 @@ template <
 	const Pressure P{};
 	const Number_Density N{};
 
-	// zero fluxes, set default state, classify cells
 	for (const auto cell_id: cells) {
+		const auto
+			cell_start = grid.geometry.get_min(cell_id),
+			cell_end = grid.geometry.get_max(cell_id),
+			cell_center = grid.geometry.get_center(cell_id);
+
 		init_cond.add_cell(
 			cell_id,
-			grid.geometry.get_min(cell_id),
-			grid.geometry.get_max(cell_id)
+			cell_start,
+			cell_end
 		);
 
 		auto* cell_data = grid[cell_id];
@@ -106,6 +111,7 @@ template <
 			abort();
 		}
 
+		// zero fluxes
 		auto& flux = (*cell_data)[MHD_Flux_T()];
 		flux[Rho]  =
 		flux[E]    =
@@ -116,11 +122,12 @@ template <
 		flux[B][1] =
 		flux[B][2] = 0;
 
+		// set default state
 		MHD_Primitive temp;
-		temp[Rho] = init_cond.get_default_data(N)[0] * proton_mass;
-		temp[V] = init_cond.get_default_data(V)[0];
-		temp[P] = init_cond.get_default_data(P)[0];
-		temp[B] = init_cond.get_default_data(B)[0];
+		temp[Rho] = init_cond.default_data.get_data(N, cell_center, time) * proton_mass;
+		temp[V] = init_cond.default_data.get_data(V, cell_center, time);
+		temp[P] = init_cond.default_data.get_data(P, cell_center, time);
+		temp[B] = init_cond.default_data.get_data(B, cell_center, time);
 
 		auto& state = (*cell_data)[MHD_T()];
 		state = get_conservative<
@@ -135,11 +142,13 @@ template <
 		>(temp, adiabatic_index, vacuum_permeability);
 	}
 
-	// set initial condition
+	// set non-default initial conditions
 	for (size_t bdy_i = 0; bdy_i < init_cond.get_number_of_boundaries(); bdy_i++) {
-		const auto& boundary_cells = init_cond.get_boundary_cells(bdy_i);
+		const auto& boundary_cells = init_cond.get_cells(bdy_i);
 
-		for (const auto cell_id: boundary_cells) {
+		for (const auto& cell_id: boundary_cells) {
+			const auto cell_center = grid.geometry.get_center(cell_id);
+
 			auto* cell_data = grid[cell_id];
 			if (cell_data == NULL) {
 				std::cerr <<  __FILE__ << "(" << __LINE__ << ") No data for cell: "
@@ -148,29 +157,29 @@ template <
 				abort();
 			}
 
-		auto& state = (*cell_data)[MHD_T()];
+			auto& state = (*cell_data)[MHD_T()];
 
-		pamhd::mhd::MHD_Primitive temp;
-		temp[Rho] = init_cond.get_boundary_data(N, bdy_i) * proton_mass;
-		temp[V] = init_cond.get_boundary_data(V, bdy_i);
-		temp[P] = init_cond.get_boundary_data(P, bdy_i);
-		temp[B] = init_cond.get_boundary_data(B, bdy_i);
+			pamhd::mhd::MHD_Primitive temp;
+			temp[Rho] = init_cond.get_data(N, bdy_i, cell_center, time) * proton_mass;
+			temp[V] = init_cond.get_data(V, bdy_i, cell_center, time);
+			temp[P] = init_cond.get_data(P, bdy_i, cell_center, time);
+			temp[B] = init_cond.get_data(B, bdy_i, cell_center, time);
 
-		state[Rho] = temp[Rho];
-		state[M] = temp[V] * state[Rho];
-		state[B] = temp[B];
-		state[E]
-			= get_total_energy_density<
-				MHD_Primitive,
-				Mass_Density_T,
-				Velocity,
-				Pressure,
-				Magnetic_Field_T
-			>(
-				temp,
-				adiabatic_index,
-				vacuum_permeability
-			);
+			state[Rho] = temp[Rho];
+			state[M] = temp[V] * state[Rho];
+			state[B] = temp[B];
+			state[E]
+				= get_total_energy_density<
+					MHD_Primitive,
+					Mass_Density_T,
+					Velocity,
+					Pressure,
+					Magnetic_Field_T
+				>(
+					temp,
+					adiabatic_index,
+					vacuum_permeability
+				);
 		}
 	}
 }

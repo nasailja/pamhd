@@ -40,7 +40,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "boost/lexical_cast.hpp"
 #include "boost/program_options.hpp"
 
-#include "boundaries/time_dependent_boundary.hpp"
+#include "boundaries/boundary_time_dependent.hpp"
+#include "boundaries/boxes.hpp"
 
 
 using namespace std;
@@ -48,7 +49,7 @@ using namespace pamhd::boundaries;
 
 
 struct Is_Alive {
-	using data_type = int;
+	using data_type = bool;
 
 	static const std::string get_name()
 	{
@@ -60,7 +61,7 @@ struct Is_Alive {
 	}
 	static const std::string get_option_help()
 	{
-		return {"Whether a cell is alive (> 0) or not (<= 0)"};
+		return {"Whether a cell is alive (true) or not (false)"};
 	}
 };
 
@@ -83,7 +84,8 @@ struct Live_Neighbors {
 
 
 struct Cell {
-	int is_alive = 0, live_neighbors = 0;
+	bool is_alive = false;
+	int live_neighbors = 0;
 };
 
 
@@ -95,7 +97,7 @@ using Grid = array<array<Cell, width>, height>;
 Grid grid;
 
 
-array<double, 2> get_cell_start(
+array<double, 3> get_cell_start(
 	const Grid& grid,
 	const array<size_t, 2>& cell
 ) {
@@ -104,6 +106,7 @@ array<double, 2> get_cell_start(
 		or cell[0] >= grid[cell[1]].size()
 	) {
 		return {
+			std::numeric_limits<double>::quiet_NaN(),
 			std::numeric_limits<double>::quiet_NaN(),
 			std::numeric_limits<double>::quiet_NaN()
 		};
@@ -111,12 +114,13 @@ array<double, 2> get_cell_start(
 
 	return {
 		-1.0 + cell[0] * 2.0 / grid[cell[1]].size(),
-		1.0 - (1 + cell[1]) * 2.0 / grid.size()
+		1.0 - (1 + cell[1]) * 2.0 / grid.size(),
+		-1
 	};
 }
 
 
-array<double, 2> get_cell_end(
+array<double, 3> get_cell_end(
 	const Grid& grid,
 	const array<size_t, 2>& cell
 ) {
@@ -126,13 +130,15 @@ array<double, 2> get_cell_end(
 	) {
 		return {
 			std::numeric_limits<double>::quiet_NaN(),
+			std::numeric_limits<double>::quiet_NaN(),
 			std::numeric_limits<double>::quiet_NaN()
 		};
 	}
 
 	return {
 		-1.0 + (1 + cell[0]) * 2.0 / grid[cell[1]].size(),
-		1.0 - cell[1] * 2.0 / grid.size()
+		1.0 - cell[1] * 2.0 / grid.size(),
+		1
 	};
 }
 
@@ -170,14 +176,81 @@ size_t get_number_of_live_cells(const Grid& grid)
 	return live_cells;
 }
 
+#define MAKE_VEC(x, y, z) std::array<double, 3>{x, y, z}
 
 int main(int argc, char* argv[])
 {
-	std::string boundary_file_name;
+	Boundary_Time_Dependent<
+		Boxes<
+			#ifdef HAVE_EIGEN
+			Eigen::Vector3d
+			#else
+			std::array<double, 3>
+			#endif
+		>,
+		std::array<size_t, 2>,
+		int,
+		Is_Alive
+	> bdy1, bdy2, bdy3;
+
+	// set default values
+	bdy1.set_number_of_instances(5);
+	bdy1.set_time_stamp(0, 0);
+	bdy1.set_time_stamp(1, 1);
+	bdy1.set_time_stamp(2, 2);
+	bdy1.set_time_stamp(3, 15);
+	bdy1.set_time_stamp(4, 16);
+	bdy1.geometries.set_geometry(0, MAKE_VEC(-0.5, 0.5, -1), MAKE_VEC(-0.25, 0.75, 1));
+	bdy1.geometries.set_geometry(1, MAKE_VEC(-0.5, 0.5, -1), MAKE_VEC(-0.25, 0.75, 1));
+	bdy1.geometries.set_geometry(2, MAKE_VEC(-0.5, 0.5, -1), MAKE_VEC(-0.25, 0.75, 1));
+	bdy1.geometries.set_geometry(3, MAKE_VEC(-0.5, 0.5, -1), MAKE_VEC(-0.25, 0.75, 1));
+	bdy1.geometries.set_geometry(4, MAKE_VEC(-0.5, 0.5, -1), MAKE_VEC(-0.25, 0.75, 1));
+	bdy1.boundary_data.set_expression(Is_Alive(), 0, "false");
+	bdy1.boundary_data.set_expression(Is_Alive(), 1, "true");
+	bdy1.boundary_data.set_expression(Is_Alive(), 2, "false");
+	bdy1.boundary_data.set_expression(Is_Alive(), 3, "false");
+	bdy1.boundary_data.set_expression(Is_Alive(), 4, "true");
+
+	bdy2.set_number_of_instances(5);
+	bdy2.set_time_stamp(0, 0);
+	bdy2.set_time_stamp(1, 1);
+	bdy2.set_time_stamp(2, 2);
+	bdy2.set_time_stamp(3, 15);
+	bdy2.set_time_stamp(4, 16);
+	bdy2.geometries.set_geometry(0, MAKE_VEC(-0.25, 0.25, -1), MAKE_VEC(0, 0.5, 1));
+	bdy2.geometries.set_geometry(1, MAKE_VEC(-0.25, 0.25, -1), MAKE_VEC(0, 0.5, 1));
+	bdy2.geometries.set_geometry(2, MAKE_VEC(-0.25, 0.25, -1), MAKE_VEC(0, 0.5, 1));
+	bdy2.geometries.set_geometry(3, MAKE_VEC(-0.25, 0.25, -1), MAKE_VEC(0, 0.5, 1));
+	bdy2.geometries.set_geometry(4, MAKE_VEC(-0.25, 0.25, -1), MAKE_VEC(0, 0.5, 1));
+	bdy2.boundary_data.set_expression(Is_Alive(), 0, "false");
+	bdy2.boundary_data.set_expression(Is_Alive(), 1, "true");
+	bdy2.boundary_data.set_expression(Is_Alive(), 2, "false");
+	bdy2.boundary_data.set_expression(Is_Alive(), 3, "false");
+	bdy2.boundary_data.set_expression(Is_Alive(), 4, "true");
+
+	bdy3.set_number_of_instances(5);
+	bdy3.set_time_stamp(0, 0);
+	bdy3.set_time_stamp(1, 1);
+	bdy3.set_time_stamp(2, 2);
+	bdy3.set_time_stamp(3, 15);
+	bdy3.set_time_stamp(4, 16);
+	bdy3.geometries.set_geometry(0, MAKE_VEC(-0.75, 0, -1), MAKE_VEC(0, 0.25, 1));
+	bdy3.geometries.set_geometry(1, MAKE_VEC(-0.75, 0, -1), MAKE_VEC(0, 0.25, 1));
+	bdy3.geometries.set_geometry(2, MAKE_VEC(-0.75, 0, -1), MAKE_VEC(0, 0.25, 1));
+	bdy3.geometries.set_geometry(3, MAKE_VEC(-0.75, 0, -1), MAKE_VEC(0, 0.25, 1));
+	bdy3.geometries.set_geometry(4, MAKE_VEC(-0.75, 0, -1), MAKE_VEC(0, 0.25, 1));
+	bdy3.boundary_data.set_expression(Is_Alive(), 0, "false");
+	bdy3.boundary_data.set_expression(Is_Alive(), 1, "true");
+	bdy3.boundary_data.set_expression(Is_Alive(), 2, "false");
+	bdy3.boundary_data.set_expression(Is_Alive(), 3, "false");
+	bdy3.boundary_data.set_expression(Is_Alive(), 4, "true");
+
+
+	std::string boundary_file_name("");
 
 	boost::program_options::options_description
 		options(
-			"Usage: program_name [options], where options are:"
+			"Usage: program_name [options], where options are"
 		),
 		boundary_options(
 			"Options for time-dependent boundary condition"
@@ -188,21 +261,8 @@ int main(int argc, char* argv[])
 		("boundary-help", "Print help for options of boundary condition")
 		("boundary-file",
 			boost::program_options::value<std::string>(&boundary_file_name)
-				->default_value("tests/boundaries/game_of_life/gol_boundary.cfg"),
-			"Read time-dependent \"boundary\" conditions from file arg");
-
-
-	// create gliders from 3 time-dependent boundaries
-	Time_Dependent_Boundary<
-		std::array<size_t, 2>,
-		std::array<double, 2>,
-		size_t,
-		Is_Alive
-	> bdy1, bdy2, bdy3;
-	bdy1.add_options(boundary_options, "bdy1.");
-	bdy2.add_options(boundary_options, "bdy2.");
-	bdy3.add_options(boundary_options, "bdy3.");
-
+				->default_value(boundary_file_name),
+			"Read time-dependent boundary conditions from file arg");
 
 	boost::program_options::variables_map option_variables;
 	boost::program_options::store(
@@ -219,19 +279,26 @@ int main(int argc, char* argv[])
 		std::cout << options << std::endl;
 		return EXIT_SUCCESS;
 	}
+
+	bdy1.add_options("bdy1.", boundary_options);
+	bdy2.add_options("bdy2.", boundary_options);
+	bdy3.add_options("bdy3.", boundary_options);
+
 	if (option_variables.count("boundary-help") > 0) {
 		std::cout << boundary_options << std::endl;
 		return EXIT_SUCCESS;
 	}
 
-	boost::program_options::store(
-		boost::program_options::parse_config_file<char>(
-			boundary_file_name.c_str(),
-			boundary_options
-		),
-		option_variables
-	);
-	boost::program_options::notify(option_variables);
+	if (boundary_file_name != "") {
+		boost::program_options::store(
+			boost::program_options::parse_config_file<char>(
+				boundary_file_name.c_str(),
+				boundary_options
+			),
+			option_variables
+		);
+		boost::program_options::notify(option_variables);
+	}
 
 	// set default initial state
 	for (size_t row_i = 0; row_i < grid.size(); row_i++) {
@@ -245,47 +312,52 @@ int main(int argc, char* argv[])
 
 		// classify and set time-dependent boundary values twice during the game
 		if (turn == 0 or turn == 1 or turn == 16) {
+
+			bdy1.clear_cells();
+			bdy2.clear_cells();
+			bdy3.clear_cells();
+
 			for (size_t row_i = 0; row_i < grid.size(); row_i++) {
 			for (size_t cell_i = 0; cell_i < grid[row_i].size(); cell_i++) {
 
 				const std::array<size_t, 2> cell{row_i, cell_i};
 
 				bdy1.add_cell(
+					turn,
 					cell,
 					get_cell_start(grid, cell),
-					get_cell_end(grid, cell),
-					turn
+					get_cell_end(grid, cell)
 				);
 				bdy2.add_cell(
+					turn,
 					cell,
 					get_cell_start(grid, cell),
-					get_cell_end(grid, cell),
-					turn
+					get_cell_end(grid, cell)
 				);
 				bdy3.add_cell(
+					turn,
 					cell,
 					get_cell_start(grid, cell),
-					get_cell_end(grid, cell),
-					turn
+					get_cell_end(grid, cell)
 				);
 			}}
 
-			for (const auto cell: bdy1.get_boundary_cells(turn)) {
+			for (const auto& cell: bdy1.get_cells()) {
 				const size_t row_i = cell[1], cell_i = cell[0];
 				grid[row_i][cell_i].is_alive
-					= bdy1.get_boundary_data(Is_Alive(), turn);
+					= bdy1.get_data(Is_Alive(), {0, 0, 0}, turn);
 			}
 
-			for (const auto cell: bdy2.get_boundary_cells(turn)) {
+			for (const auto& cell: bdy2.get_cells()) {
 				const size_t row_i = cell[1], cell_i = cell[0];
 				grid[row_i][cell_i].is_alive
-					= bdy2.get_boundary_data(Is_Alive(), turn);
+					= bdy2.get_data(Is_Alive(), {0, 0, 0}, turn);
 			}
 
-			for (const auto cell: bdy3.get_boundary_cells(turn)) {
+			for (const auto& cell: bdy3.get_cells()) {
 				const size_t row_i = cell[1], cell_i = cell[0];
 				grid[row_i][cell_i].is_alive
-					= bdy3.get_boundary_data(Is_Alive(), turn);
+					= bdy3.get_data(Is_Alive(), {0, 0, 0}, turn);
 			}
 		}
 

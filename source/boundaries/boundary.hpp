@@ -1,5 +1,5 @@
 /*
-Box geometry test of PAMHD.
+Class representing one boundary of PAMHD.
 
 Copyright 2014 Ilja Honkonen
 All rights reserved.
@@ -30,80 +30,90 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "array"
+
+#ifndef PAMHD_BOUNDARIES_BOUNDARY_HPP
+#define PAMHD_BOUNDARIES_BOUNDARY_HPP
+
+
 #include "cstdlib"
 #include "iostream"
 #include "string"
+#include "utility"
 
 #include "boost/program_options.hpp"
-#ifdef HAVE_EIGEN
-#include "Eigen/Core" // must be included before box.hpp
-#endif
+#include "prettyprint.hpp"
 
 #include "boundaries/box.hpp"
+#include "boundaries/sphere.hpp"
+#include "boundaries/variable_to_option.hpp"
 
 
-using namespace pamhd::boundaries;
+namespace pamhd {
+namespace boundaries {
 
-int main(int argc, char* argv[])
+
+template<
+	class Geometry_T,
+	class Cell_T,
+	class... Variables
+> class Boundary
 {
-	#ifdef HAVE_EIGEN
-	Box<Eigen::Vector3d> box;
-	#else
-	Box<std::array<double, 3>> box;
-	#endif
+public:
 
-	if (not box.set_geometry({-1, -2, -3}, {1, 2, 3})) {
-		std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
-			<< "Couldn't set geometry."
-			<< std::endl;
-		abort();
-	}
+	// TODO: default constructor
 
-	boost::program_options::options_description options(
-		"Usage: program_name [options], where options are:"
-	);
-	options.add_options()
-		("help", "Print options and their descriptions");
-	box.add_options("", options);
+	Geometry_T geometry;
 
-	boost::program_options::variables_map option_variables;
-	boost::program_options::store(
-		boost::program_options::parse_command_line<char>(
-			argc,
-			argv,
-			options
-		),
-		option_variables
-	);
-	boost::program_options::notify(option_variables);
+	Variable_To_Option<Variables...> boundary_data;
 
-	if (option_variables.count("help") > 0) {
-		std::cout << options << std::endl;
-		return EXIT_SUCCESS;
-	}
 
-	if (box.overlaps({-2, -3, -4}, {-1.1, -2.1, -3.1})) {
-		std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
-			<< "Cell overlaps box."
-			<< std::endl;
-		abort();
-	}
-
-	if (box.overlaps({1.1, 2.1, 3.1}, {2, 3, 4})) {
-		std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
-			<< "Cell overlaps box."
-			<< std::endl;
-		abort();
-	}
-
-	if (not box.overlaps({0, 1, 2}, {5, 5, 5})) {
-		std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
-			<< "Cell does not overlap box."
-			<< std::endl;
-		abort();
+	void add_options(
+		const std::string& option_name_prefix,
+		boost::program_options::options_description& options
+	) {
+		this->geometry.add_options(option_name_prefix, options);
+		this->boundary_data.add_options(option_name_prefix, options);
 	}
 
 
-	return EXIT_SUCCESS;
-}
+	/*!
+	geometry_parameters is given to the overlaps function of Geometry_T.
+
+	Returns true if given cell was added to cell list of this boundary,
+	false otherwise.
+	*/
+	template<class... Geometry_Parameters> bool add_cell(
+		const Cell_T& cell,
+		Geometry_Parameters&&... geometry_parameters
+	) {
+		if (
+			this->geometry.overlaps(
+				std::forward<Geometry_Parameters>(geometry_parameters)...
+			)
+		) {
+			this->cells.push_back(cell);
+			return true;
+		}
+
+		return false;
+	}
+
+	void clear_cells()
+	{
+		this->cells.clear();
+	}
+
+	const std::vector<Cell_T>& get_cells() const
+	{
+		return this->cells;
+	}
+
+
+private:
+	// cells overlapping Geometry_T
+	std::vector<Cell_T> cells;
+};
+
+}} // namespaces
+
+#endif // ifndef PAMHD_BOUNDARIES_BOUNDARY_HPP

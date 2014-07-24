@@ -1,5 +1,5 @@
 /*
-Box geometry class of PAMHD.
+Sphere geometry class of PAMHD.
 
 Copyright 2014 Ilja Honkonen
 All rights reserved.
@@ -31,8 +31,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 
-#ifndef PAMHD_BOUNDARIES_BOX_HPP
-#define PAMHD_BOUNDARIES_BOX_HPP
+#ifndef PAMHD_BOUNDARIES_SPHERE_HPP
+#define PAMHD_BOUNDARIES_SPHERE_HPP
 
 
 #include "cstdlib"
@@ -48,11 +48,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace pamhd {
 namespace boundaries {
 
-
 /*!
 Vector_T is assumed to be std::array or similar.
 */
-template<class Vector_T> class Box
+template<class Vector_T, class Scalar_T> class Sphere
 {
 public:
 
@@ -68,7 +67,7 @@ public:
 
 	/*!
 	Returns true if cell spanning given volume overlaps
-	this box, false otherwise.
+	this sphere, false otherwise.
 	*/
 	bool overlaps(
 		const Vector_T& cell_start,
@@ -85,18 +84,17 @@ public:
 			}
 		}
 
-		bool overlaps = true;
-		for (size_t i = 0; i < cell_start.size(); i++) {
-			if (
-				cell_start[i] >= this->end[i]
-				or cell_end[i] <= this->start[i]
-			) {
-				overlaps = false;
-				break;
+		// https://stackoverflow.com/questions/4578967
+		Scalar_T distance2 = 0;
+		for (size_t i = 0; i < size_t(cell_start.size()); i++) {
+			if (this->center[i] < cell_start[i]) {
+				distance2 += std::pow(this->center[i] - cell_start[i], 2);
+			} else if (this->center[i] > cell_end[i]) {
+				distance2 += std::pow(this->center[i] - cell_end[i], 2);
 			}
 		}
 
-		return overlaps;
+		return distance2 < std::pow(this->radius, 2);
 	}
 
 
@@ -105,47 +103,49 @@ public:
 		boost::program_options::options_description& options
 	) {
 		options.add_options()
-			((option_name_prefix + "start").c_str(),
-				boost::program_options::value<Vector_T>(&this->start)
-					->default_value(this->start),
-				"Start coordinate of box")
-			((option_name_prefix + "end").c_str(),
-				boost::program_options::value<Vector_T>(&this->end)
-					->default_value(this->end),
-				"End coordinate of box");
+			((option_name_prefix + "center").c_str(),
+				boost::program_options::value<
+					Vector_T
+				>(&this->center)->default_value(this->center),
+				"Center of the sphere")
+			((option_name_prefix + "radius").c_str(),
+				boost::program_options::value<
+					Scalar_T
+				>(&this->radius)->default_value(this->radius),
+				"Radius of the sphere");
 	}
 
+
 	bool set_geometry(
-		const Vector_T& given_start,
-		const Vector_T& given_end
+		const Vector_T& given_center,
+		const Scalar_T& given_radius
 	) {
-		for (size_t i = 0; i < size_t(given_start.size()); i++) {
-			if (given_end[i] <= given_start[i]) {
-				return false;
-			}
+		if (given_radius <= 0) {
+			return false;
 		}
 
-		this->start = given_start;
-		this->end = given_end;
+		this->center = given_center;
+		this->radius = given_radius;
 		return true;
 	}
 
-	const Vector_T& get_start() const
+	const Vector_T& get_center() const
 	{
-		return this->start;
+		return this->center;
 	}
 
-	const Vector_T& get_end() const
+	const Scalar_T& get_radius() const
 	{
-		return this->end;
+		return this->radius;
 	}
 
 
 private:
 
-	Vector_T start, end;
+	Vector_T center;
+	Scalar_T radius;
 };
 
 }} // namespaces
 
-#endif // ifndef PAMHD_BOUNDARIES_BOX_HPP
+#endif // ifndef PAMHD_BOUNDARIES_SPHERE_HPP

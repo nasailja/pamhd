@@ -65,6 +65,7 @@ template <class Given_Time_T> struct Time {
 \param Variables Time-dependent variables to store
 */
 template<
+	class Geometry_T,
 	class Cell_T,
 	class Vector_T,
 	class Time_T,

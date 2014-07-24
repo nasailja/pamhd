@@ -24,6 +24,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "boost/program_options.hpp"
 #include "cmath"
 #include "cstdlib"
+#include "exception"
 #include "iostream"
 #include "string"
 #include "fstream"
@@ -45,13 +46,14 @@ to get MPI support for Eigen types in generic cell
 #include "Eigen/Core"
 #include "gensimcell.hpp"
 
+#include "grid_options.hpp"
 #include "mhd/common.hpp"
 #include "mhd/initialize.hpp"
 #include "mhd/save.hpp"
 #include "mhd/solve.hpp"
 #include "mhd/variables.hpp"
 #include "boundaries/initial_condition.hpp"
-#include "boundaries/time_dependent_boundary.hpp"
+#include "boundaries/value_boundaries.hpp"
 
 
 using namespace std;
@@ -95,6 +97,7 @@ int main(int argc, char* argv[])
 	using Init_Cond_T
 		= pamhd::boundaries::Initial_Condition<
 			uint64_t,
+			double,
 			std::array<double, 3>,
 			pamhd::mhd::Number_Density,
 			pamhd::mhd::Velocity,
@@ -104,17 +107,19 @@ int main(int argc, char* argv[])
 	Init_Cond_T initial_condition;
 
 	using Boundary_T
-		= pamhd::boundaries::Time_Dependent_Boundary<
+		= pamhd::boundaries::Value_Boundaries<
 			uint64_t,
-			std::array<double, 3>,
 			double,
+			double,
+			std::array<double, 3>,
 			pamhd::mhd::Number_Density,
 			pamhd::mhd::Velocity,
 			pamhd::mhd::Pressure,
 			pamhd::mhd::Magnetic_Field
 		>;
-	std::array<Boundary_T, 6> boundaries; // order: -x, +x, -y, +y, -z, +z
+	Boundary_T boundaries;
 
+	pamhd::grid::Options grid_options;
 
 	/*
 	Program options
@@ -130,31 +135,28 @@ int main(int argc, char* argv[])
 		proton_mass = 1.672621777e-27;
 	std::string
 		mhd_solver("hll_athena"),
-		config_file_name("");
-
-	std::array<uint64_t, 3> number_of_cells{1, 1, 1};
-	std::array<double, 3>
-		simulation_volume{1, 1, 1},
-		simulation_volume_start{0, 0, 0};
-	std::array<bool, 3> is_periodic{false, false, false};
+		config_file_name(""),
+		boundary_file_name(""),
+		lb_name("RCB"),
+		output_directory("");
 
 	boost::program_options::options_description
 		options(
-			"All supported options"
+			"Usage: program_name [options], where options are"
 		),
+		boundary_options(""),
 		// grouped options for printing help
-		basic_options(
-			"Usage: program_name [options], where options are:"
+		initial_condition_help(
+			"Options for initial condition (read from file --boundary-file, "
+			"cannot be same file as --config-file, not read if empty strging)"
 		),
-		initial_condition_options(
-			"Options for initial condition: default plasma state "
-			"and state on the negative side of the tube"
-		),
-		boundary_options(
-			"Options for plasma state at negative and positive ends of shock tube"
+		boundary_condition_help(
+			"Options for boundary condition (read from file --boundary-file, "
+			"cannot be same file as --config-file, not read if empty string)"
 		);
 
-	basic_options.add_options()
+	// handle general options
+	options.add_options()
 		("help", "Print this help message")
 		("verbose", "Print run time information")
 		("initial-help", "Print help for initial condition options")
@@ -162,15 +164,18 @@ int main(int argc, char* argv[])
 		("config-file",
 			boost::program_options::value<std::string>(&config_file_name)
 				->default_value(config_file_name),
-			"Read options from file arg (added to command line, not read if name empty)")
-		("cells",
-			boost::program_options::value<std::array<uint64_t, 3>>(&number_of_cells)
-				->default_value(number_of_cells),
-			"Number of grid cells, including any boundary cells")
-		("periodic",
-			boost::program_options::value<std::array<bool, 3>>(&is_periodic)
-				->default_value(is_periodic),
-			"Whether grid is periodic (1 == yes, 0 == no")
+			"Read general options from  file arg (added to command line, "
+			"not read if empty string)")
+		("boundary-file",
+			boost::program_options::value<std::string>(&boundary_file_name)
+				->default_value(boundary_file_name),
+			"Read initial and boundary conditions from file arg "
+			"(cannot be same as --config-file, not read if empty string)")
+		("output-directory",
+			boost::program_options::value<std::string>(&output_directory)
+				->default_value(output_directory),
+			"Output simulation results into directory arg (relative to "
+			"current working directory")
 		("time-start",
 			boost::program_options::value<double>(&start_time)
 				->default_value(start_time),
@@ -179,14 +184,12 @@ int main(int argc, char* argv[])
 			boost::program_options::value<double>(&end_time)
 				->default_value(end_time),
 			"Length of simulation (s)")
-		("volume-start",
-			boost::program_options::value<std::array<double, 3>>(&simulation_volume_start)
-				->default_value(simulation_volume_start),
-			"Start coordinate of simulated volume, including any boundaries (m)")
-		("volume-length",
-			boost::program_options::value<std::array<double, 3>>(&simulation_volume)
-				->default_value(simulation_volume),
-			"Length of simulated volume, including any boundaries (m)")
+		("load-balancer",
+			boost::program_options::value<std::string>(&lb_name)
+				->default_value(lb_name),
+			"Load balancing algorithm to use (for example RANDOM, "
+			"RCB, HSFC, HYPERGRAPH; for a list of available algorithms see "
+			"http://www.cs.sandia.gov/zoltan/ug_html/ug_alg.html)")
 		("solver-mhd",
 			boost::program_options::value<std::string>(&mhd_solver)
 				->default_value(mhd_solver),
@@ -198,50 +201,27 @@ int main(int argc, char* argv[])
 			"initial and final states, -1 doesn't save")
 		("save-mhd-fluxes", "Save fluxes of MHD variables");
 
-	options.add(basic_options);
-	initial_condition.add_options(options, "initial.");
-	boundaries[0].add_options(options, "x-neg.");
-	boundaries[1].add_options(options, "x-pos.");
-	boundaries[2].add_options(options, "y-neg.");
-	boundaries[3].add_options(options, "y-pos.");
-	boundaries[4].add_options(options, "z-neg.");
-	boundaries[5].add_options(options, "z-pos.");
-
-	// group options for printing help
-	initial_condition.add_options(initial_condition_options, "initial.");
-	boundaries[0].add_options(boundary_options, "x-neg.");
-	boundaries[1].add_options(boundary_options, "x-pos.");
-	boundaries[2].add_options(boundary_options, "y-neg.");
-	boundaries[3].add_options(boundary_options, "y-pos.");
-	boundaries[4].add_options(boundary_options, "z-neg.");
-	boundaries[5].add_options(boundary_options, "z-pos.");
+	grid_options.add_options("grid.", options);
+	initial_condition.add_initialization_options("initial.", options);
+	boundaries.add_initialization_options("boundary.", options);
 
 	boost::program_options::variables_map option_variables;
-	boost::program_options::store(
-		boost::program_options::parse_command_line(argc, argv, options),
-		option_variables
-	);
+	try {
+		boost::program_options::store(
+			boost::program_options::parse_command_line(argc, argv, options),
+			option_variables
+		);
+	} catch (std::exception& e) {
+		std::cerr <<  __FILE__ << "(" << __LINE__ << "): "
+			<< "Couldn't parse command line options: " << e.what()
+			<< std::endl;
+		abort();
+	}
 	boost::program_options::notify(option_variables);
 
 	if (option_variables.count("help") > 0) {
 		if (rank == 0) {
-			cout << basic_options << endl;
-		}
-		MPI_Finalize();
-		return EXIT_SUCCESS;
-	}
-
-	if (option_variables.count("initial-help") > 0) {
-		if (rank == 0) {
-			cout << initial_condition_options << endl;
-		}
-		MPI_Finalize();
-		return EXIT_SUCCESS;
-	}
-
-	if (option_variables.count("boundary-help") > 0) {
-		if (rank == 0) {
-			cout << boundary_options << endl;
+			cout << options << endl;
 		}
 		MPI_Finalize();
 		return EXIT_SUCCESS;
@@ -256,14 +236,43 @@ int main(int argc, char* argv[])
 	}
 
 	if (config_file_name != "") {
-		boost::program_options::store(
-			boost::program_options::parse_config_file<char>(
-				config_file_name.c_str(),
-				options
-			),
-			option_variables
-		);
+		try {
+			boost::program_options::store(
+				boost::program_options::parse_config_file<char>(
+					config_file_name.c_str(),
+					options
+				),
+				option_variables
+			);
+		} catch (std::exception& e) {
+			std::cerr <<  __FILE__ << "(" << __LINE__ << "): "
+				<< "Couldn't parse general options from file "
+				<< config_file_name << ": " << e.what()
+				<< std::endl;
+			abort();
+		}
 		boost::program_options::notify(option_variables);
+	}
+
+	initial_condition.add_options("initial.", boundary_options);
+	initial_condition.add_options("initial.", initial_condition_help);
+	boundaries.add_options("boundary.", boundary_options);
+	boundaries.add_options("boundary.", boundary_condition_help);
+
+	if (option_variables.count("initial-help") > 0) {
+		if (rank == 0) {
+			cout << initial_condition_help << endl;
+		}
+		MPI_Finalize();
+		return EXIT_SUCCESS;
+	}
+
+	if (option_variables.count("boundary-help") > 0) {
+		if (rank == 0) {
+			cout << boundary_condition_help << endl;
+		}
+		MPI_Finalize();
+		return EXIT_SUCCESS;
 	}
 
 	if (option_variables.count("verbose") > 0) {
@@ -274,12 +283,48 @@ int main(int argc, char* argv[])
 		save_fluxes = true;
 	}
 
-	// update derived grid parameters based on given options
-	std::array<double, 3> cell_volume{
-		simulation_volume[0] / number_of_cells[0],
-		simulation_volume[1] / number_of_cells[1],
-		simulation_volume[2] / number_of_cells[2]
+	if (boundary_file_name != "") {
+		try {
+			boost::program_options::store(
+				boost::program_options::parse_config_file<char>(
+					boundary_file_name.c_str(),
+					boundary_options
+				),
+				option_variables
+			);
+		} catch (std::exception& e) {
+			std::cerr <<  __FILE__ << "(" << __LINE__ << "): "
+				<< "Couldn't parse boundary options from file "
+				<< boundary_file_name << ": " << e.what()
+				<< std::endl;
+			abort();
+		}
+		boost::program_options::notify(option_variables);
+	}
+
+
+	/*
+	Set/update derived grid parameters based on given options
+	*/
+
+	// muparserx doesn't support uint64_t so convert from int
+	const auto nr_cells_tmp
+		= grid_options.data.get_data(pamhd::grid::Number_Of_Cells());
+
+	const std::array<uint64_t, 3> number_of_cells{
+		uint64_t(nr_cells_tmp[0]),
+		uint64_t(nr_cells_tmp[1]),
+		uint64_t(nr_cells_tmp[2])
 	};
+
+	const std::array<double, 3>
+		simulation_volume
+			= grid_options.data.get_data(pamhd::grid::Volume()),
+		cell_volume{
+			simulation_volume[0] / number_of_cells[0],
+			simulation_volume[1] / number_of_cells[1],
+			simulation_volume[2] / number_of_cells[2]
+		};
 
 
 	/*
@@ -289,13 +334,16 @@ int main(int argc, char* argv[])
 	Grid_T grid;
 
 	const unsigned int neighborhood_size = 1;
+	const auto periodic = grid_options.data.get_data(pamhd::grid::Periodic());
 	if (not grid.initialize(
 		number_of_cells,
 		comm,
-		"RANDOM",
+		lb_name.c_str(),
 		neighborhood_size,
 		0,
-		false, false, false
+		periodic[0],
+		periodic[1],
+		periodic[2]
 	)) {
 		std::cerr << __FILE__ << ":" << __LINE__
 			<< ": Couldn't initialize grid."
@@ -305,7 +353,7 @@ int main(int argc, char* argv[])
 
 	// set grid geometry
 	dccrg::Cartesian_Geometry::Parameters geom_params;
-	geom_params.start = simulation_volume_start;
+	geom_params.start = grid_options.data.get_data(pamhd::grid::Start());
 	geom_params.level_0_cell_length = cell_volume;
 
 	if (not grid.set_geometry(geom_params)) {
@@ -319,14 +367,20 @@ int main(int argc, char* argv[])
 
 
 	/*
-	Initialize MHD
+	Simulate
 	*/
+
+	double
+		max_dt = 0,
+		simulation_time = start_time,
+		next_mhd_save = save_mhd_n;
 
 	std::vector<uint64_t>
 		cells = grid.get_cells(),
 		inner_cells = grid.get_local_cells_not_on_process_boundary(),
 		outer_cells = grid.get_local_cells_on_process_boundary();
 
+	// initialize MHD
 	if (verbose and rank == 0) {
 		cout << "Initializing MHD... " << endl;
 	}
@@ -343,6 +397,7 @@ int main(int argc, char* argv[])
 		grid,
 		initial_condition,
 		cells,
+		0,
 		adiabatic_index,
 		vacuum_permeability,
 		proton_mass
@@ -351,14 +406,6 @@ int main(int argc, char* argv[])
 		cout << "Done initializing MHD" << endl;
 	}
 
-	/*
-	Simulate
-	*/
-
-	double
-		max_dt = 0,
-		simulation_time = start_time,
-		next_mhd_save = save_mhd_n;
 	while (simulation_time < end_time) {
 
 		Cell_T::set_transfer_all(
@@ -375,42 +422,41 @@ int main(int argc, char* argv[])
 		Apply boundaries
 		*/
 
-		// remove classifications from previous steps
-		for (size_t i = 0; i < boundaries.size(); i++) {
-			boundaries[i].clear_cells();
-		}
+		boundaries.clear_cells();
 
+		// classify cells
 		for (const auto cell_id: cells) {
 			const auto
-				cell_min = grid.geometry.get_min(cell_id),
-				cell_max = grid.geometry.get_max(cell_id);
+				cell_start = grid.geometry.get_min(cell_id),
+				cell_end = grid.geometry.get_max(cell_id);
 
-			for (size_t i = 0; i < boundaries.size(); i++) {
-				if (not boundaries[i].exists()) {
-					continue;
-				}
+			boost::optional<size_t> result = boundaries.add_cell(
+				simulation_time,
+				cell_id,
+				cell_start,
+				cell_end
+			);
 
-				boundaries[i].add_cell(
-					cell_id,
-					cell_min,
-					cell_max,
-					simulation_time
-				);
+			if (not result) {
+				std::cerr <<  __FILE__ << "(" << __LINE__ << "): "
+					"Couldn't add cell " << cell_id << " to boundaries."
+					<< std::endl;
+				abort();
 			}
 		}
 
+		// set boundary data
 		const pamhd::mhd::Mass_Density Rho{};
 		const pamhd::mhd::Number_Density N{};
 		const pamhd::mhd::Velocity V{};
 		const pamhd::mhd::Pressure P{};
 		const pamhd::mhd::Magnetic_Field B{};
 
-		for (size_t i = 0; i < boundaries.size(); i++) {
-			if (not boundaries[i].exists()) {
-				continue;
-			}
+		for (size_t bdy_id = 0; bdy_id < boundaries.get_number_of_boundaries(); bdy_id++) {
 
-			for (const auto cell_id: boundaries[i].get_boundary_cells(simulation_time)) {
+			for (const auto& cell_id: boundaries.get_cells(bdy_id)) {
+				const auto cell_center = grid.geometry.get_center(cell_id);
+
 				auto* cell_data = grid[cell_id];
 				if (cell_data == NULL) {
 					std::cerr <<  __FILE__ << "(" << __LINE__ << "): "
@@ -421,11 +467,11 @@ int main(int argc, char* argv[])
 
 				pamhd::mhd::MHD_Primitive temp;
 				temp[Rho]
-					= boundaries[i].get_boundary_data(N, simulation_time)
+					= boundaries.get_data(N, bdy_id, cell_center, simulation_time)
 					* proton_mass;
-				temp[V] = boundaries[i].get_boundary_data(V, simulation_time);
-				temp[P] = boundaries[i].get_boundary_data(P, simulation_time);
-				temp[B] = boundaries[i].get_boundary_data(B, simulation_time);
+				temp[V] = boundaries.get_data(V, bdy_id, cell_center, simulation_time);
+				temp[P] = boundaries.get_data(P, bdy_id, cell_center, simulation_time);
+				temp[B] = boundaries.get_data(B, bdy_id, cell_center, simulation_time);
 
 				auto& state = (*cell_data)[pamhd::mhd::MHD_State_Conservative()];
 				state = pamhd::mhd::get_conservative<
@@ -558,6 +604,7 @@ int main(int argc, char* argv[])
 
 		simulation_time += time_step;
 
+
 		/*
 		Save simulation to disk
 		*/
@@ -584,7 +631,7 @@ int main(int argc, char* argv[])
 				Cell_T,
 				pamhd::mhd::MHD_State_Conservative,
 				pamhd::mhd::MHD_Flux_Conservative
-			>(grid, simulation_time, save_fluxes);
+			>(output_directory, grid, simulation_time, save_fluxes);
 		}
 	}
 

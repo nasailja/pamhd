@@ -1,13 +1,18 @@
 TESTS_PROGRAM_OPTIONS_EXECUTABLES = \
-  tests/program_options/eigen.exe \
   tests/program_options/variable.exe \
   tests/program_options/variables.exe \
-  tests/program_options/eigen_variables_to_options.exe
+  tests/program_options/variable_to_option.exe \
+  tests/program_options/variable_to_option_eigen.exe \
+  tests/program_options/variable_to_option_vector.exe \
+  tests/program_options/variable_to_option_vector_eigen.exe
 
 TESTS_PROGRAM_OPTIONS_TESTS = \
-  tests/program_options/eigen.tst \
   tests/program_options/variable.tst \
-  tests/program_options/eigen_variables_to_options.tst
+  tests/program_options/variables.tst \
+  tests/program_options/variable_to_option.tst \
+  tests/program_options/variable_to_option_eigen.tst \
+  tests/program_options/variable_to_option_vector.tst \
+  tests/program_options/variable_to_option_vector_eigen.tst
 
 tests/program_options_executables: $(TESTS_PROGRAM_OPTIONS_EXECUTABLES)
 
@@ -22,47 +27,47 @@ EXECUTABLES += tests/program_options_executables
 TESTS += tests/program_options_tests
 CLEAN += tests/program_options_clean
 
-tests/program_options/eigen.exe: tests/program_options/eigen.cpp
-	@echo "CXX "$< && $(CXX) \
-	  $(CPPFLAGS) \
-	  $(CXXFLAGS) \
-	  $(LDFLAGS) \
-	  $(EIGEN_CPPFLAGS) \
-	  $(BOOST_CPPFLAGS) \
-	  $(BOOST_LDFLAGS) \
-	  $(BOOST_LIBS) \
-	  $< -o $@
 
-tests/program_options/variable.exe: tests/program_options/variable.cpp
-	@echo "CXX "$< && $(CXX) \
-	  $(CPPFLAGS) \
-	  $(CXXFLAGS) \
-	  $(LDFLAGS) \
-	  $(BOOST_CPPFLAGS) \
-	  $(BOOST_LDFLAGS) \
-	  $(BOOST_LIBS) \
-	  $< -o $@
+TEST_PROGRAM_OPTIONS_COMMON_DEPS = tests/program_options/project_makefile
+
+TEST_PROGRAM_OPTIONS_COMPILE_COMMAND = \
+  $(CXX) \
+  $(CPPFLAGS) \
+  $(CXXFLAGS) \
+  $(LDFLAGS) \
+  $(EIGEN_CPPFLAGS) \
+  $(BOOST_CPPFLAGS) \
+  $(BOOST_LDFLAGS) \
+  $(BOOST_LIBS) \
+  $(MUPARSERX_CPPFLAGS) \
+  $(MUPARSERX_LDFLAGS) \
+  $(MUPARSERX_LIBS) \
+  $< -o $@
+
+tests/program_options/variable.exe: \
+  tests/program_options/variable.cpp \
+  $(TEST_PROGRAM_OPTIONS_COMMON_DEPS)
+	@echo "CXX "$< && $(TEST_PROGRAM_OPTIONS_COMPILE_COMMAND)
 
 tests/program_options/variables.exe: tests/program_options/variables.cpp
-	@echo "CXX "$< && $(CXX) \
-	  $(CPPFLAGS) \
-	  $(CXXFLAGS) \
-	  $(LDFLAGS) \
-	  $(BOOST_CPPFLAGS) \
-	  $(BOOST_LDFLAGS) \
-	  $(BOOST_LIBS) \
-	  $< -o $@
+	@echo "CXX "$< && $(TEST_PROGRAM_OPTIONS_COMPILE_COMMAND)
 
-tests/program_options/eigen_variables_to_options.exe: \
-  tests/program_options/eigen_variables_to_options.cpp \
-  source/boundaries/variables_to_options.hpp
-	@echo "CXX "$< && $(CXX) \
-	  $(CPPFLAGS) \
-	  $(CXXFLAGS) \
-	  $(LDFLAGS) \
-	  $(BOOST_CPPFLAGS) \
-	  $(BOOST_LDFLAGS) \
-	  $(BOOST_LIBS) \
-	  $(EIGEN_CPPFLAGS) \
-	  $(PRETTYPRINT_CPPFLAGS) \
-	  $< -o $@
+tests/program_options/variable_to_option.exe: \
+  tests/program_options/variable_to_option.cpp \
+  source/boundaries/variable_to_option.hpp
+	@echo "CXX "$< && $(TEST_PROGRAM_OPTIONS_COMPILE_COMMAND)
+
+tests/program_options/variable_to_option_eigen.exe: \
+  tests/program_options/variable_to_option.cpp \
+  source/boundaries/variable_to_option.hpp
+	@echo "CXX "$< && $(TEST_PROGRAM_OPTIONS_COMPILE_COMMAND) -DHAVE_EIGEN
+
+tests/program_options/variable_to_option_vector.exe: \
+  tests/program_options/variable_to_option_vector.cpp \
+  source/boundaries/variable_to_option_vector.hpp
+	@echo "CXX "$< && $(TEST_PROGRAM_OPTIONS_COMPILE_COMMAND)
+
+tests/program_options/variable_to_option_vector_eigen.exe: \
+  tests/program_options/variable_to_option_vector.cpp \
+  source/boundaries/variable_to_option_vector.hpp
+	@echo "CXX "$< && $(TEST_PROGRAM_OPTIONS_COMPILE_COMMAND) -DHAVE_EIGEN
