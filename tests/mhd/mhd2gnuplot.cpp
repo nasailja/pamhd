@@ -524,19 +524,14 @@ int plot_2d(
 	const bool /*have_fluxes*/
 ) {
 	const auto& grid_length = geometry.length;
-	const string
-		gnuplot_file_name(output_file_name_prefix + ".dat"),
-		rho_plot_file_name(output_file_name_prefix + "_rho.png"),
-		P_plot_file_name(output_file_name_prefix + "_P.png"),
-		B_plot_file_name(output_file_name_prefix + "_B.png"),
-		v_plot_file_name(output_file_name_prefix + "_V.png");
+	const string gnuplot_file_name(output_file_name_prefix + ".dat");
 
 	ofstream gnuplot_file(gnuplot_file_name);
 
 	// mass density
 	gnuplot_file
 		<< "set term png enhanced\nset output '"
-		<< rho_plot_file_name
+		<< output_file_name_prefix + "_rho.png"
 		<< "'\nset ylabel 'Dimension 2'\n"
 		   "set xlabel 'Dimension 1'\n"
 		   "set format cb '%.2e'\n"
@@ -556,7 +551,7 @@ int plot_2d(
 	// pressure
 	gnuplot_file
 		<< "set output '"
-		<< P_plot_file_name
+		<< output_file_name_prefix + "_P.png"
 		<< "'\nplot '-' matrix with image title 'Pressure (Pa)'\n";
 
 	for (size_t i = 0; i < cells.size(); i++) {
@@ -581,7 +576,7 @@ int plot_2d(
 	// vx
 	gnuplot_file
 		<< "set output '"
-		<< "x_" + v_plot_file_name
+		<< output_file_name_prefix + "_vx.png"
 		<< "'\nplot '-' matrix with image title 'V_1 (m / s)'\n";
 
 	for (size_t i = 0; i < cells.size(); i++) {
@@ -600,7 +595,7 @@ int plot_2d(
 	// vy
 	gnuplot_file
 		<< "set output '"
-		<< "y_" + v_plot_file_name
+		<< output_file_name_prefix + "_vy.png"
 		<< "'\nplot '-' matrix with image title 'V_y (m / s)'\n";
 
 	for (size_t i = 0; i < cells.size(); i++) {
@@ -619,7 +614,7 @@ int plot_2d(
 	// vz
 	gnuplot_file
 		<< "set output '"
-		<< "z_" + v_plot_file_name
+		<< output_file_name_prefix + "_vz.png"
 		<< "'\nplot '-' matrix with image title 'V_z (m / s)'\n";
 
 	for (size_t i = 0; i < cells.size(); i++) {
@@ -673,7 +668,7 @@ int plot_2d(
 	// velocity
 	gnuplot_file
 		<< "set output '"
-		<< v_plot_file_name
+		<< output_file_name_prefix + "_V.png"
 		<< "'\nset ylabel 'Y'\n"
 		   "set xlabel 'X'\n"
 		   "set title 'Velocity'\n"
@@ -697,7 +692,7 @@ int plot_2d(
 	// magnetic field
 	gnuplot_file
 		<< "set output '"
-		<< B_plot_file_name
+		<< output_file_name_prefix + "_B.png"
 		<< "'\nset title 'Magnetic field'\n"
 		   "plot '-' u 1:2:3:4 w vectors t ''\n";
 
