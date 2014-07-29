@@ -26,7 +26,8 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "limits"
 
 #include "gensimcell.hpp"
-#include "common.hpp"
+
+#include "mhd/common.hpp"
 
 namespace pamhd {
 namespace mhd {
@@ -49,8 +50,8 @@ template <
 	class Total_Energy_Density_T,
 	class Magnetic_Field_T
 > std::pair<MHD_T, double> get_flux_hll(
-	const MHD_T& state_neg,
-	const MHD_T& state_pos,
+	MHD_T state_neg,
+	MHD_T state_pos,
 	const double area,
 	const double dt,
 	const double adiabatic_index,
@@ -66,8 +67,12 @@ template <
 		velocity_neg(state_neg[Mom] / state_neg[Rho]),
 		velocity_pos(state_pos[Mom] / state_pos[Rho]);
 
+	// div B = 0 requres identical Bx between states
+	state_neg[Mag][0] =
+	state_pos[Mag][0] = (state_neg[Mag][0] + state_pos[Mag][0]) / 2;
+
 	const auto
-		pressure_neg
+		pressure_thermal_neg
 			= get_pressure<
 				MHD_T,
 				Mass_Density_T,
@@ -76,7 +81,7 @@ template <
 				Magnetic_Field_T
 			>(state_neg, adiabatic_index, vacuum_permeability),
 
-		pressure_pos
+		pressure_thermal_pos
 			= get_pressure<
 				MHD_T,
 				Mass_Density_T,
@@ -84,6 +89,12 @@ template <
 				Total_Energy_Density_T,
 				Magnetic_Field_T
 			>(state_pos, adiabatic_index, vacuum_permeability),
+
+		pressure_magnetic_neg
+			= state_neg[Mag].squaredNorm() / (2 * vacuum_permeability),
+
+		pressure_magnetic_pos
+			= state_pos[Mag].squaredNorm() / (2 * vacuum_permeability),
 
 		max_signal_neg
 			= get_fast_magnetosonic_speed<
@@ -125,16 +136,16 @@ template <
 		= state_pos[Mom]
 		* (velocity_pos[0] - bp);
 
-	flux_neg[Mom][0] += pressure_neg;
+	flux_neg[Mom][0] += pressure_thermal_neg;
 
-	flux_pos[Mom][0] += pressure_pos;
+	flux_pos[Mom][0] += pressure_thermal_pos;
 
 	flux_neg[Nrj]
-		= velocity_neg[0] * (pressure_neg + state_neg[Nrj])
+		= velocity_neg[0] * (pressure_thermal_neg + state_neg[Nrj])
 		- bm * state_neg[Nrj];
 
 	flux_pos[Nrj]
-		= velocity_pos[0] * (pressure_pos + state_pos[Nrj])
+		= velocity_pos[0] * (pressure_thermal_pos + state_pos[Nrj])
 		- bp * state_pos[Nrj];
 
 	const auto&
@@ -145,22 +156,22 @@ template <
 		-= 0.5
 		* (B_neg[0]*B_neg[0] - B_neg[1]*B_neg[1] - B_neg[2]*B_neg[2])
 		/ vacuum_permeability;
-	flux_neg[Mom][1] -= B_neg[0]*B_neg[1] / vacuum_permeability;
-	flux_neg[Mom][2] -= B_neg[0]*B_neg[2] / vacuum_permeability;
+	flux_neg[Mom][1] -= B_neg[0] * B_neg[1] / vacuum_permeability;
+	flux_neg[Mom][2] -= B_neg[0] * B_neg[2] / vacuum_permeability;
 
 	flux_pos[Mom][0]
 		-= 0.5
 		* (B_pos[0]*B_pos[0] - B_pos[1]*B_pos[1] - B_pos[2]*B_pos[2])
 		/ vacuum_permeability;
-	flux_pos[Mom][1] -= B_pos[0]*B_pos[1] / vacuum_permeability;
-	flux_pos[Mom][2] -= B_pos[0]*B_pos[2] / vacuum_permeability;
+	flux_pos[Mom][1] -= B_pos[0] * B_pos[1] / vacuum_permeability;
+	flux_pos[Mom][2] -= B_pos[0] * B_pos[2] / vacuum_permeability;
 
 	flux_neg[Nrj]
-		+= pressure_neg * velocity_neg[0]
+		+= pressure_magnetic_neg * velocity_neg[0]
 		- B_neg[0] * velocity_neg.dot(B_neg) / vacuum_permeability;
 
 	flux_pos[Nrj]
-		+= pressure_pos * velocity_pos[0]
+		+= pressure_magnetic_pos * velocity_pos[0]
 		- B_pos[0] * velocity_pos.dot(B_pos) / vacuum_permeability;
 
 	flux_neg[Mag] = B_neg * (velocity_neg[0] - bm) - B_neg[0] * velocity_neg;
