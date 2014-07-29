@@ -66,15 +66,92 @@ template <
 		rho = state[Mass_Density_T()],
 		nrj = state[Total_Energy_Density_T()],
 		kinetic_energy = [&](){
-			if (rho == 0) {
-				return 0.0;
-			} else {
+			if (rho > 0) {
 				return 0.5 * mom.squaredNorm() / rho;
+			} else {
+				return 0.0;
 			}
 		}(),
-		magnetic_energy = 0.5 * B.squaredNorm() / vacuum_permeability;
+		magnetic_energy = 0.5 * B.squaredNorm() / vacuum_permeability,
+		pressure = (nrj - kinetic_energy - magnetic_energy) * (adiabatic_index - 1);
 
-	return (nrj - kinetic_energy - magnetic_energy) * (adiabatic_index - 1);
+	if (pressure < 0) {
+		std::cerr <<  __FILE__ << "(" << __LINE__ << ") "
+			<< "Would return negative pressure: " << pressure
+			<< ", total energy: " << nrj
+			<< ", kinetic+magnetic energy: " << kinetic_energy + magnetic_energy
+			<< " (" << kinetic_energy << "+" << magnetic_energy << ")"
+			<< std::endl;
+		abort();
+	}
+
+	return pressure;
+}
+
+
+/*!
+Returns flux from given state into positive x direction.
+*/
+template <
+	class MHD_T,
+	class Mass_Density_T,
+	class Momentum_Density_T,
+	class Total_Energy_Density_T,
+	class Magnetic_Field_T
+> MHD_T get_flux(
+	const MHD_T& state,
+	const double adiabatic_index,
+	const double vacuum_permeability
+) {
+	// shorthand notation for variables
+	const Mass_Density_T Mas{};
+	const Momentum_Density_T Mom{};
+	const Total_Energy_Density_T Nrj{};
+	const Magnetic_Field_T Mag{};
+
+	const auto velocity = [&](){
+		auto temp_velocity = state[Mom];
+
+		if (state[Mas] > 0) {
+			temp_velocity /= state[Mas];
+		} else {
+			// cap velocity at speed of light
+			temp_velocity.normalize();
+			temp_velocity *= 299792458;
+		}
+
+		return temp_velocity;
+	}();
+
+	const auto
+		inv_permeability = 1.0 / vacuum_permeability,
+		pressure_magnetic = inv_permeability * state[Mag].squaredNorm() / 2,
+		pressure_thermal
+			= get_pressure<
+				MHD_T,
+				Mass_Density_T,
+				Momentum_Density_T,
+				Total_Energy_Density_T,
+				Magnetic_Field_T
+			>(state, adiabatic_index, vacuum_permeability);
+
+	MHD_T flux;
+
+	flux[Mas] = state[Mom][0];
+
+	flux[Mom]
+		= state[Mas] * velocity[0] * velocity
+		- state[Mag][0] * state[Mag] * inv_permeability;
+	flux[Mom][0] += pressure_thermal + pressure_magnetic;
+
+	flux[Nrj]
+		= velocity[0] * (state[Nrj] + pressure_thermal + pressure_magnetic)
+		- state[Mag][0] * velocity.dot(state[Mag]) * inv_permeability;
+
+	flux[Mag] = velocity[0] * state[Mag] - state[Mag][0] * velocity;
+	flux[Mag][0] = 0;
+
+	return flux;
 }
 
 
@@ -134,7 +211,7 @@ template <
 			>(state, adiabatic_index, vacuum_permeability),
 		rho = state[Mass_Density_T()];
 
-	if (rho == 0) {
+	if (rho == 0 or pressure < 0) {
 		return 299792458;
 	}
 

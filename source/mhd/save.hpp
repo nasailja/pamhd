@@ -45,15 +45,17 @@ class Save
 {
 public:
 
-	static std::string get_header_template()
+	static std::string get_header_string_template()
 	{
 		return {"fluxes = "};
 	}
 
-	static size_t get_header_size()
+	static size_t get_header_string_size()
 	{
-		return get_header_template().size() + 2;
+		return get_header_string_template().size() + 2;
 	}
+
+	static constexpr size_t nr_header_doubles = 3;
 
 
 	/*!
@@ -81,29 +83,68 @@ public:
 		const std::string& file_name_prefix,
 		Grid_T& grid,
 		const double simulation_time,
+		const double adiabatic_index,
+		const double proton_mass,
+		const double vacuum_permeability,
 		const bool save_fluxes
 	) {
-		Cell_T::set_transfer_all(true, MHD_T());
-
-		std::string header_data(get_header_template());
+		std::string header_string(get_header_string_template());
 		if (save_fluxes) {
-			header_data += "y\n";
+			header_string += "y\n";
 			Cell_T::set_transfer_all(true, MHD_Flux_T());
 		} else {
-			header_data += "n\n";
+			header_string += "n\n";
 		}
-		if (header_data.size() != get_header_size()) {
+		if (header_string.size() != get_header_string_size()) {
 			std::cerr << __FILE__ << ":" << __LINE__
-				<< ": Invalid size for header: " << header_data.size()
-				<< ", should be " << get_header_size()
+				<< ": Invalid size for header: " << header_string.size()
+				<< ", should be " << get_header_string_size()
 				<< std::endl;
 			return false;
 		}
 
+		// write physical constants
+		const std::array<double, nr_header_doubles> header_doubles{
+			adiabatic_index,
+			proton_mass,
+			vacuum_permeability
+		};
+
+
+		std::array<int, 2> counts{
+			int(header_string.size()),
+			nr_header_doubles
+		};
+		std::array<MPI_Aint, 2> displacements{
+			0,
+			reinterpret_cast<char*>(const_cast<double*>(header_doubles.data()))
+				- static_cast<const char*>(header_string.data())
+		};
+		std::array<MPI_Datatype, 2> datatypes{
+			MPI_BYTE,
+			MPI_DOUBLE
+		};
+
+		MPI_Datatype header_datatype;
+		if (
+			MPI_Type_create_struct(
+				2,
+				counts.data(),
+				displacements.data(),
+				datatypes.data(),
+				&header_datatype
+			) != MPI_SUCCESS
+		) {
+			std::cerr << __FILE__ << ":" << __LINE__
+				<< " Couldn't create header datatype"
+				<< std::endl;
+			abort();
+		}
+
 		std::tuple<void*, int, MPI_Datatype> header{
-			(void*) header_data.data(),
-			get_header_size(),
-			MPI_BYTE
+			(void*) header_string.data(),
+			1,
+			header_datatype
 		};
 
 		std::ostringstream time_string;
@@ -112,12 +153,15 @@ public:
 			<< std::setprecision(3)
 			<< simulation_time;
 
+		Cell_T::set_transfer_all(true, MHD_T());
+		if (save_fluxes) {
+			Cell_T::set_transfer_all(true, MHD_Flux_T());
+		}
 		const bool ret_val = grid.save_grid_data(
 			file_name_prefix + "mhd_" + time_string.str() + "_s.dc",
 			0,
 			header
 		);
-
 		if (save_fluxes) {
 			Cell_T::set_transfer_all(false, MHD_Flux_T());
 		}

@@ -12,6 +12,8 @@ tests/mhd_tests: $(TESTS_MHD_TESTS)
 
 tests/mhd_clean_results:
 	@echo "CLEAN RESULTS tests/mhd" && rm -f \
+	  tests/mhd/*.dat \
+	  tests/mhd/*.png \
 	  tests/mhd/results/*/*.dat \
 	  tests/mhd/results/*/*.png \
 	  tests/mhd/results/*/*.dc
@@ -31,10 +33,12 @@ MHD_COMMON_HEADERS = \
   source/boundaries/initial_condition.hpp \
   source/boundaries/value_boundaries.hpp \
   source/mhd/common.hpp \
-  source/mhd/variables.hpp \
+  source/mhd/initialize.hpp \
   source/mhd/save.hpp \
   source/mhd/solve.hpp \
-  source/mhd/hll_athena.hpp
+  source/mhd/variables.hpp \
+  source/mhd/hll_athena.hpp \
+  source/mhd/hlld_athena.hpp
 
 tests/mhd/reference.exe: tests/mhd/reference.cpp $(MHD_COMMON_HEADERS)
 	@echo "CXX "$< && $(CXX) \

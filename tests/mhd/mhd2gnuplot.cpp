@@ -30,6 +30,7 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+#include "array"
 #include "boost/lexical_cast.hpp"
 #include "boost/optional.hpp"
 #include "cstdint"
@@ -62,7 +63,12 @@ Fills out grid info and simulation data.
 On success returns whether fluxes were saved into given file,
 on failure returns an uninitialized value.
 */
-boost::optional<bool> read_data(
+boost::optional<
+	std::tuple<
+		bool,
+		std::array<double, 3>
+	>
+> read_data(
 	dccrg::Mapping& mapping,
 	dccrg::Grid_Topology& topology,
 	dccrg::Cartesian_Geometry& geometry,
@@ -83,35 +89,48 @@ boost::optional<bool> read_data(
 		cerr << "Process " << mpi_rank
 			<< " couldn't open file " << file_name
 			<< endl;
-		return boost::optional<bool>();
+		return boost::optional<std::tuple<bool, std::array<double, 3>>>();
 	}
 
 	MPI_Offset offset = 0;
 
 	// check whether fluxes were saved
-	std::string header_data(Save::get_header_template() + "x\n");
+	std::string header_data(Save::get_header_string_template() + "x\n");
 	MPI_File_read_at(
 		file,
 		offset,
 		const_cast<void*>(static_cast<const void*>(header_data.data())),
-		Save::get_header_size(),
+		Save::get_header_string_size(),
 		MPI_BYTE,
 		MPI_STATUS_IGNORE
 	);
-	offset += Save::get_header_size();
+	offset += Save::get_header_string_size();
 
 	bool have_fluxes;
-	if (header_data == Save::get_header_template() + "y\n")  {
+	if (header_data == Save::get_header_string_template() + "y\n")  {
 		have_fluxes = true;
-	} else if (header_data == Save::get_header_template() + "n\n") {
+	} else if (header_data == Save::get_header_string_template() + "n\n") {
 		have_fluxes = false;
 	} else {
 		cerr << "Process " << mpi_rank
 			<< " Invalid header in file " << file_name
 			<< ": " << header_data
 			<< endl;
-		return boost::optional<bool>();
+		return boost::optional<std::tuple<bool, std::array<double, 3>>>();
 	}
+
+	// read physical constants
+	std::array<double, Save::nr_header_doubles> phys_consts;
+	MPI_File_read_at(
+		file,
+		offset,
+		phys_consts.data(),
+		Save::nr_header_doubles,
+		MPI_DOUBLE,
+		MPI_STATUS_IGNORE
+	);
+	offset += Save::nr_header_doubles * sizeof(double);
+
 
 	Cell::set_transfer_all(true, MHD_State_Conservative());
 	if (have_fluxes) {
@@ -125,7 +144,7 @@ boost::optional<bool> read_data(
 		cerr << "Process " << mpi_rank
 			<< " couldn't set cell id mapping from file " << file_name
 			<< endl;
-		return boost::optional<bool>();
+		return boost::optional<std::tuple<bool, std::array<double, 3>>>();
 	}
 
 	offset
@@ -137,7 +156,7 @@ boost::optional<bool> read_data(
 		cerr << "Process " << mpi_rank
 			<< " couldn't read geometry from file " << file_name
 			<< endl;
-		return boost::optional<bool>();
+		return boost::optional<std::tuple<bool, std::array<double, 3>>>();
 	}
 	offset += geometry.data_size();
 
@@ -155,7 +174,12 @@ boost::optional<bool> read_data(
 
 	if (total_cells == 0) {
 		MPI_File_close(&file);
-		return boost::optional<bool>(have_fluxes);
+		return boost::optional<std::tuple<bool, std::array<double, 3>>>(
+			std::make_tuple(
+				have_fluxes,
+				phys_consts
+			)
+		);
 	}
 
 	// read cell ids and data offsets
@@ -224,7 +248,12 @@ boost::optional<bool> read_data(
 
 	MPI_File_close(&file);
 
-	return boost::optional<bool>(have_fluxes);
+	return boost::optional<std::tuple<bool, std::array<double, 3>>>(
+		std::make_tuple(
+			have_fluxes,
+			phys_consts
+		)
+	);
 }
 
 
@@ -718,11 +747,6 @@ int plot_2d(
 
 int main(int argc, char* argv[])
 {
-	constexpr double
-		adiabatic_index = 5.0 / 3.0,
-		vacuum_permeability = 4e-7 * M_PI;
-
-
 	if (MPI_Init(&argc, &argv) != MPI_SUCCESS) {
 		cerr << "Coudln't initialize MPI." << endl;
 		abort();
@@ -748,16 +772,20 @@ int main(int argc, char* argv[])
 		dccrg::Cartesian_Geometry geometry(mapping.length, mapping, topology);
 		unordered_map<uint64_t, Cell> simulation_data;
 
-		boost::optional<bool> fluxes
-			= read_data(
-				mapping,
-				topology,
-				geometry,
-				simulation_data,
-				argv_string,
-				rank
-			);
-		if (not fluxes) {
+		boost::optional<
+			std::tuple<
+				bool,
+				std::array<double, 3>
+			>
+		> header = read_data(
+			mapping,
+			topology,
+			geometry,
+			simulation_data,
+			argv_string,
+			rank
+		);
+		if (not header) {
 			std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
 				<< "Couldn't read simulation data from file " << argv_string
 				<< std::endl;
@@ -798,9 +826,9 @@ int main(int argc, char* argv[])
 				simulation_data,
 				cells,
 				argv_string.substr(0, argv_string.size() - 3),
-				adiabatic_index,
-				vacuum_permeability,
-				*fluxes
+				std::get<1>(*header)[0],
+				std::get<1>(*header)[2],
+				std::get<0>(*header)
 			);
 			break;
 		case 2:
@@ -809,9 +837,9 @@ int main(int argc, char* argv[])
 				simulation_data,
 				cells,
 				argv_string.substr(0, argv_string.size() - 3),
-				adiabatic_index,
-				vacuum_permeability,
-				*fluxes
+				std::get<1>(*header)[0],
+				std::get<1>(*header)[2],
+				std::get<0>(*header)
 			);
 			break;
 		default:

@@ -34,6 +34,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define PAMHD_MHD_INITIALIZE_HPP
 
 #include "cmath"
+#include "iostream"
 #include "limits"
 
 #include "gensimcell.hpp"
@@ -76,7 +77,8 @@ template <
 	const double time,
 	const double adiabatic_index,
 	const double vacuum_permeability,
-	const double proton_mass
+	const double proton_mass,
+	const bool verbose
 ) {
 	static_assert(
 		std::is_same<typename MHD_T::data_type, typename MHD_Flux_T::data_type>::value,
@@ -91,6 +93,10 @@ template <
 	const Pressure P{};
 	const Number_Density N{};
 
+	if (verbose and grid.get_rank() == 0) {
+		std::cout << "Setting default MHD state... ";
+		std::cout.flush();
+	}
 	for (const auto cell_id: cells) {
 		const auto
 			cell_start = grid.geometry.get_min(cell_id),
@@ -143,6 +149,10 @@ template <
 	}
 
 	// set non-default initial conditions
+	if (verbose and grid.get_rank() == 0) {
+		std::cout << "done\nSetting non-default initial MHD state... ";
+		std::cout.flush();
+	}
 	for (size_t bdy_i = 0; bdy_i < init_cond.get_number_of_boundaries(); bdy_i++) {
 		const auto& boundary_cells = init_cond.get_cells(bdy_i);
 
@@ -181,6 +191,9 @@ template <
 					vacuum_permeability
 				);
 		}
+	}
+	if (verbose and grid.get_rank() == 0) {
+		std::cout << "done" << std::endl;
 	}
 }
 

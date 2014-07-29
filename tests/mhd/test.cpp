@@ -106,7 +106,7 @@ int main(int argc, char* argv[])
 		>;
 	Init_Cond_T initial_condition;
 
-	using Boundary_T
+	using Value_Boundary_T
 		= pamhd::boundaries::Value_Boundaries<
 			uint64_t,
 			double,
@@ -117,7 +117,7 @@ int main(int argc, char* argv[])
 			pamhd::mhd::Pressure,
 			pamhd::mhd::Magnetic_Field
 		>;
-	Boundary_T boundaries;
+	Value_Boundary_T value_boundaries;
 
 	pamhd::grid::Options grid_options;
 
@@ -134,7 +134,7 @@ int main(int argc, char* argv[])
 		vacuum_permeability = 4e-7 * M_PI,
 		proton_mass = 1.672621777e-27;
 	std::string
-		mhd_solver("hll_athena"),
+		mhd_solver("hlld_athena"),
 		config_file_name(""),
 		boundary_file_name(""),
 		lb_name("RCB"),
@@ -184,6 +184,18 @@ int main(int argc, char* argv[])
 			boost::program_options::value<double>(&end_time)
 				->default_value(end_time),
 			"Length of simulation (s)")
+		("vacuum-permeability",
+			boost::program_options::value<double>(&vacuum_permeability)
+				->default_value(vacuum_permeability),
+			"https://en.wikipedia.org/wiki/Vacuum_permeability in V*s/(A*m)")
+		("adiabatic-index",
+			boost::program_options::value<double>(&adiabatic_index)
+				->default_value(adiabatic_index),
+			"https://en.wikipedia.org/wiki/Heat_capacity_ratio")
+		("proton-mass",
+			boost::program_options::value<double>(&proton_mass)
+				->default_value(proton_mass),
+			"Mass of a proton in kg")
 		("load-balancer",
 			boost::program_options::value<std::string>(&lb_name)
 				->default_value(lb_name),
@@ -203,7 +215,7 @@ int main(int argc, char* argv[])
 
 	grid_options.add_options("grid.", options);
 	initial_condition.add_initialization_options("initial.", options);
-	boundaries.add_initialization_options("boundary.", options);
+	value_boundaries.add_initialization_options("value-boundaries.", options);
 
 	boost::program_options::variables_map option_variables;
 	try {
@@ -256,8 +268,8 @@ int main(int argc, char* argv[])
 
 	initial_condition.add_options("initial.", boundary_options);
 	initial_condition.add_options("initial.", initial_condition_help);
-	boundaries.add_options("boundary.", boundary_options);
-	boundaries.add_options("boundary.", boundary_condition_help);
+	value_boundaries.add_options("value-boundaries.", boundary_options);
+	value_boundaries.add_options("value-boundaries.", boundary_condition_help);
 
 	if (option_variables.count("initial-help") > 0) {
 		if (rank == 0) {
@@ -400,7 +412,8 @@ int main(int argc, char* argv[])
 		0,
 		adiabatic_index,
 		vacuum_permeability,
-		proton_mass
+		proton_mass,
+		verbose
 	);
 	if (verbose and rank == 0) {
 		cout << "Done initializing MHD" << endl;
@@ -417,76 +430,6 @@ int main(int argc, char* argv[])
 		cells = grid.get_cells();
 		inner_cells = grid.get_local_cells_not_on_process_boundary();
 		outer_cells = grid.get_local_cells_on_process_boundary();*/
-
-		/*
-		Apply boundaries
-		*/
-
-		boundaries.clear_cells();
-
-		// classify cells
-		for (const auto cell_id: cells) {
-			const auto
-				cell_start = grid.geometry.get_min(cell_id),
-				cell_end = grid.geometry.get_max(cell_id);
-
-			boost::optional<size_t> result = boundaries.add_cell(
-				simulation_time,
-				cell_id,
-				cell_start,
-				cell_end
-			);
-
-			if (not result) {
-				std::cerr <<  __FILE__ << "(" << __LINE__ << "): "
-					"Couldn't add cell " << cell_id << " to boundaries."
-					<< std::endl;
-				abort();
-			}
-		}
-
-		// set boundary data
-		const pamhd::mhd::Mass_Density Rho{};
-		const pamhd::mhd::Number_Density N{};
-		const pamhd::mhd::Velocity V{};
-		const pamhd::mhd::Pressure P{};
-		const pamhd::mhd::Magnetic_Field B{};
-
-		for (size_t bdy_id = 0; bdy_id < boundaries.get_number_of_boundaries(); bdy_id++) {
-
-			for (const auto& cell_id: boundaries.get_cells(bdy_id)) {
-				const auto cell_center = grid.geometry.get_center(cell_id);
-
-				auto* cell_data = grid[cell_id];
-				if (cell_data == NULL) {
-					std::cerr <<  __FILE__ << "(" << __LINE__ << "): "
-						"No data for cell: " << cell_id
-						<< std::endl;
-					abort();
-				}
-
-				pamhd::mhd::MHD_Primitive temp;
-				temp[Rho]
-					= boundaries.get_data(N, bdy_id, cell_center, simulation_time)
-					* proton_mass;
-				temp[V] = boundaries.get_data(V, bdy_id, cell_center, simulation_time);
-				temp[P] = boundaries.get_data(P, bdy_id, cell_center, simulation_time);
-				temp[B] = boundaries.get_data(B, bdy_id, cell_center, simulation_time);
-
-				auto& state = (*cell_data)[pamhd::mhd::MHD_State_Conservative()];
-				state = pamhd::mhd::get_conservative<
-					pamhd::mhd::MHD_Conservative,
-					pamhd::mhd::MHD_Primitive,
-					pamhd::mhd::Momentum_Density,
-					pamhd::mhd::Total_Energy_Density,
-					pamhd::mhd::Mass_Density,
-					pamhd::mhd::Velocity,
-					pamhd::mhd::Pressure,
-					pamhd::mhd::Magnetic_Field
-				>(temp, adiabatic_index, vacuum_permeability);
-			}
-		}
-
 
 		/*
 		Get maximum allowed time step
@@ -606,6 +549,76 @@ int main(int argc, char* argv[])
 
 
 		/*
+		Apply value_boundaries
+		*/
+
+		value_boundaries.clear_cells();
+
+		// classify cells
+		for (const auto cell_id: cells) {
+			const auto
+				cell_start = grid.geometry.get_min(cell_id),
+				cell_end = grid.geometry.get_max(cell_id);
+
+			boost::optional<size_t> result = value_boundaries.add_cell(
+				simulation_time,
+				cell_id,
+				cell_start,
+				cell_end
+			);
+
+			if (not result) {
+				std::cerr <<  __FILE__ << "(" << __LINE__ << "): "
+					"Couldn't add cell " << cell_id << " to value_boundaries."
+					<< std::endl;
+				abort();
+			}
+		}
+
+		// set boundary data
+		const pamhd::mhd::Mass_Density Rho{};
+		const pamhd::mhd::Number_Density N{};
+		const pamhd::mhd::Velocity V{};
+		const pamhd::mhd::Pressure P{};
+		const pamhd::mhd::Magnetic_Field B{};
+
+		for (size_t bdy_id = 0; bdy_id < value_boundaries.get_number_of_boundaries(); bdy_id++) {
+
+			for (const auto& cell_id: value_boundaries.get_cells(bdy_id)) {
+				const auto cell_center = grid.geometry.get_center(cell_id);
+
+				auto* cell_data = grid[cell_id];
+				if (cell_data == NULL) {
+					std::cerr <<  __FILE__ << "(" << __LINE__ << "): "
+						"No data for cell: " << cell_id
+						<< std::endl;
+					abort();
+				}
+
+				pamhd::mhd::MHD_Primitive temp;
+				temp[Rho]
+					= value_boundaries.get_data(N, bdy_id, cell_center, simulation_time)
+					* proton_mass;
+				temp[V] = value_boundaries.get_data(V, bdy_id, cell_center, simulation_time);
+				temp[P] = value_boundaries.get_data(P, bdy_id, cell_center, simulation_time);
+				temp[B] = value_boundaries.get_data(B, bdy_id, cell_center, simulation_time);
+
+				auto& state = (*cell_data)[pamhd::mhd::MHD_State_Conservative()];
+				state = pamhd::mhd::get_conservative<
+					pamhd::mhd::MHD_Conservative,
+					pamhd::mhd::MHD_Primitive,
+					pamhd::mhd::Momentum_Density,
+					pamhd::mhd::Total_Energy_Density,
+					pamhd::mhd::Mass_Density,
+					pamhd::mhd::Velocity,
+					pamhd::mhd::Pressure,
+					pamhd::mhd::Magnetic_Field
+				>(temp, adiabatic_index, vacuum_permeability);
+			}
+		}
+
+
+		/*
 		Save simulation to disk
 		*/
 
@@ -626,12 +639,27 @@ int main(int argc, char* argv[])
 				cout << "Saving MHD at time " << simulation_time << endl;
 			}
 
-			pamhd::mhd::Save::save<
-				Grid_T,
-				Cell_T,
-				pamhd::mhd::MHD_State_Conservative,
-				pamhd::mhd::MHD_Flux_Conservative
-			>(output_directory, grid, simulation_time, save_fluxes);
+			if (
+				not pamhd::mhd::Save::save<
+					Grid_T,
+					Cell_T,
+					pamhd::mhd::MHD_State_Conservative,
+					pamhd::mhd::MHD_Flux_Conservative
+				>(
+					output_directory,
+					grid,
+					simulation_time,
+					adiabatic_index,
+					proton_mass,
+					vacuum_permeability,
+					save_fluxes
+				)
+			) {
+				std::cerr <<  __FILE__ << "(" << __LINE__ << "): "
+					"Couldn't save mhd result."
+					<< std::endl;
+				abort();
+			}
 		}
 	}
 

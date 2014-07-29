@@ -28,6 +28,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "gensimcell.hpp"
 
 #include "mhd/hll_athena.hpp"
+#include "mhd/hlld_athena.hpp"
 
 namespace pamhd {
 namespace mhd {
@@ -200,6 +201,24 @@ template <
 					flux,
 					max_vel
 				) = pamhd::mhd::athena::get_flux_hll<
+					typename MHD_T::data_type,
+					Mass_Density_T,
+					Momentum_Density_T,
+					Total_Energy_Density_T,
+					Magnetic_Field_T
+				>(
+					state_neg,
+					state_pos,
+					shared_area,
+					dt,
+					adiabatic_index,
+					vacuum_permeability
+				);
+			} else if (solver == "hlld_athena") {
+				std::tie(
+					flux,
+					max_vel
+				) = pamhd::mhd::athena::get_flux_hlld<
 					typename MHD_T::data_type,
 					Mass_Density_T,
 					Momentum_Density_T,

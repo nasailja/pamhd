@@ -35,10 +35,11 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "type_traits"
 
 #include "gensimcell.hpp"
-#include "mhd/common.hpp"
-#include "mhd/hll_athena.hpp"
-#include "mhd/variables.hpp"
 
+#include "mhd/hll_athena.hpp"
+#include "mhd/hll_isis.hpp"
+#include "mhd/hlld_athena.hpp"
+#include "mhd/variables.hpp"
 
 using namespace std;
 
@@ -262,6 +263,26 @@ template <
 				flux,
 				max_vel
 			) = pamhd::mhd::athena::get_flux_hll<
+				typename MHD_T::data_type,
+				Mass_Density_T,
+				Momentum_Density_T,
+				Total_Energy_Density_T,
+				Magnetic_Field_T
+			>(
+				cell[MHD_T()],
+				neighbor[MHD_T()],
+				face_area,
+				dt,
+				adiabatic_index,
+				vacuum_permeability
+			);
+
+		} else if (solver == "hlld_athena") {
+
+			std::tie(
+				flux,
+				max_vel
+			) = pamhd::mhd::athena::get_flux_hlld<
 				typename MHD_T::data_type,
 				Mass_Density_T,
 				Momentum_Density_T,
@@ -708,15 +729,16 @@ template <
 int main(int argc, char* argv[])
 {
 	bool save = false, plot = false, no_verify = false, verbose = false;
-	std::string solver;
+	std::string solver("hlld_athena");
 	boost::program_options::options_description options(
 		"Usage: program_name [options], where options are:"
 	);
 	options.add_options()
 		("help", "Print this help message")
 		("solver",
-			boost::program_options::value<std::string>(&solver)->default_value("hll_athena"),
-			"Solver to use, available: hll_athena")
+			boost::program_options::value<std::string>(&solver)
+				->default_value(solver),
+			"Solver to use, available: hll_athena, hlld_athena")
 		("save", "Save end result to ascii file")
 		("plot", "Plot results using gnuplot")
 		("no-verify", "Do not verify against reference results")
@@ -809,7 +831,7 @@ int main(int argc, char* argv[])
 				pamhd::mhd::Total_Energy_Density,
 				pamhd::mhd::Magnetic_Field
 			>(
-				"hll_athena",
+				solver,
 				grid,
 				time_step,
 				adiabatic_index,
@@ -847,7 +869,7 @@ int main(int argc, char* argv[])
 			pamhd::mhd::Momentum_Density,
 			pamhd::mhd::Total_Energy_Density,
 			pamhd::mhd::Magnetic_Field
-		>("hll_athena", grid);
+		>(solver, grid);
 	}
 
 	if (not no_verify) {
