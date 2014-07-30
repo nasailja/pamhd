@@ -72,20 +72,9 @@ template <
 				return 0.0;
 			}
 		}(),
-		magnetic_energy = 0.5 * B.squaredNorm() / vacuum_permeability,
-		pressure = (nrj - kinetic_energy - magnetic_energy) * (adiabatic_index - 1);
+		magnetic_energy = 0.5 * B.squaredNorm() / vacuum_permeability;
 
-	if (pressure < 0) {
-		std::cerr <<  __FILE__ << "(" << __LINE__ << ") "
-			<< "Would return negative pressure: " << pressure
-			<< ", total energy: " << nrj
-			<< ", kinetic+magnetic energy: " << kinetic_energy + magnetic_energy
-			<< " (" << kinetic_energy << "+" << magnetic_energy << ")"
-			<< std::endl;
-		abort();
-	}
-
-	return pressure;
+	return (nrj - kinetic_energy - magnetic_energy) * (adiabatic_index - 1);
 }
 
 
