@@ -37,7 +37,10 @@ namespace athena {
 
 
 /*!
-Returns the flux between states.
+Returns the flux between states and maximum signal speed from interface.
+
+Returns negative signal speed in case of failure, for example,
+if encounters negative pressure, etc.
 
 Takahiro Miyoshi, Kanya Kusano (M&K):
 A multi-state HLL approximate Riemann solver for ideal MHD,
@@ -169,9 +172,9 @@ template <
 
 	// return upwind flux if flow is supermagnetosonic
 	if (max_signal_neg >= 0.0) {
-		return std::make_pair(flux_neg, max_signal_pos);
+		return std::make_pair(flux_neg * area * dt, max_signal_pos);
 	} else if (max_signal_pos <= 0.0) {
-		return std::make_pair(flux_pos, max_signal_neg);
+		return std::make_pair(flux_pos * area * dt, max_signal_neg);
 	}
 
 	const auto
@@ -248,6 +251,10 @@ template <
 			+ state_neg[Mas]
 				* signal_flow_diff_neg
 				* (signal_middle - flow_v_neg[0]);
+
+	if (pressure_neg < 0 or pressure_pos < 0) {
+		return std::make_pair(MHD_T(), -1);
+	}
 
 	MHD_T state_s_neg;
 	const auto tmp_neg
