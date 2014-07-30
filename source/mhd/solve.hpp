@@ -238,6 +238,25 @@ template <
 					<< std::endl;
 				abort();
 			}
+			if (max_vel < 0) {
+				std::cerr <<  __FILE__ << "(" << __LINE__ << ") "
+					<< "Solution failed between cells " << cell_id
+					<< " and " << neighbor_id
+					<< " at " << grid.geometry.get_center(cell_id)
+					<< " and " << grid.geometry.get_center(neighbor_id)
+					<< " with states (mass, momentum, total energy, magnetic field: "
+					<< (*cell_data)[MHD_T()][Mass_Density_T()] << ", "
+					<< (*cell_data)[MHD_T()][Momentum_Density_T()] << ", "
+					<< (*cell_data)[MHD_T()][Total_Energy_Density_T()] << ", "
+					<< (*cell_data)[MHD_T()][Magnetic_Field_T()] << " and "
+					<< (*neighbor_data)[MHD_T()][Mass_Density_T()] << ", "
+					<< (*neighbor_data)[MHD_T()][Momentum_Density_T()] << ", "
+					<< (*neighbor_data)[MHD_T()][Total_Energy_Density_T()] << ", "
+					<< (*neighbor_data)[MHD_T()][Magnetic_Field_T()]
+					<< std::endl;
+				abort();
+			}
+
 			max_dt = std::min(max_dt, cell_length[neighbor_dim] / max_vel);
 
 			// rotate flux back
