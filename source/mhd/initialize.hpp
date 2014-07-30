@@ -167,29 +167,23 @@ template <
 				abort();
 			}
 
-			auto& state = (*cell_data)[MHD_T()];
-
 			pamhd::mhd::MHD_Primitive temp;
 			temp[Rho] = init_cond.get_data(N, bdy_i, cell_center, time) * proton_mass;
 			temp[V] = init_cond.get_data(V, bdy_i, cell_center, time);
 			temp[P] = init_cond.get_data(P, bdy_i, cell_center, time);
 			temp[B] = init_cond.get_data(B, bdy_i, cell_center, time);
 
-			state[Rho] = temp[Rho];
-			state[M] = temp[V] * state[Rho];
-			state[B] = temp[B];
-			state[E]
-				= get_total_energy_density<
-					MHD_Primitive,
-					Mass_Density_T,
-					Velocity,
-					Pressure,
-					Magnetic_Field_T
-				>(
-					temp,
-					adiabatic_index,
-					vacuum_permeability
-				);
+			auto& state = (*cell_data)[MHD_T()];
+			state = get_conservative<
+				typename MHD_T::data_type,
+				MHD_Primitive,
+				Momentum_Density_T,
+				Total_Energy_Density_T,
+				Mass_Density_T,
+				Velocity,
+				Pressure,
+				Magnetic_Field_T
+			>(temp, adiabatic_index, vacuum_permeability);
 		}
 	}
 	if (verbose and grid.get_rank() == 0) {
