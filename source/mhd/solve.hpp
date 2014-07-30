@@ -244,7 +244,7 @@ template <
 					<< " and " << neighbor_id
 					<< " at " << grid.geometry.get_center(cell_id)
 					<< " and " << grid.geometry.get_center(neighbor_id)
-					<< " with states (mass, momentum, total energy, magnetic field: "
+					<< " with states (mass, momentum, total energy, magnetic field): "
 					<< (*cell_data)[MHD_T()][Mass_Density_T()] << ", "
 					<< (*cell_data)[MHD_T()][Momentum_Density_T()] << ", "
 					<< (*cell_data)[MHD_T()][Total_Energy_Density_T()] << ", "
