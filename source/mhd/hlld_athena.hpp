@@ -325,20 +325,21 @@ template <
 	state_s_pos[Mom][0] = density_s_pos * signal_middle;
 	state_s_pos[Mag][0] = state_pos[Mag][0];
 
-	const auto
-		flow_v_s_neg = state_s_neg[Mom] / density_s_neg,
-		flow_v_s_pos = state_s_pos[Mom] / density_s_pos;
 	const auto v_dot_b_s_pos = state_s_pos[Mom].dot(state_s_pos[Mag]) / density_s_pos;
 
 	// eqn 48
 	state_s_pos[Nrj]
 		= (
 			signal_flow_diff_pos * state_pos[Nrj]
-			- (pressure_pos + pressure_neg) * flow_v_pos[0]
+			- (pressure_pos + nrj_magnetic_pos) * flow_v_pos[0]
 			+ ptst * signal_middle
 			+ state_pos[Mag][0] * inv_permeability
 				* (flow_v_pos.dot(state_pos[Mag]) - v_dot_b_s_pos)
 		) / signal_max_middle_diff_pos;
+
+	const auto
+		flow_v_s_neg = state_s_neg[Mom] / density_s_neg,
+		flow_v_s_pos = state_s_pos[Mom] / density_s_pos;
 
 	MHD_T state_s2_neg, state_s2_pos;
 	if (interface_Bx2 / 2 < epsilon * ptst) {
