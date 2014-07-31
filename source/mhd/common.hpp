@@ -176,6 +176,8 @@ template <
 /*!
 Returns speed of sound wave in given MHD state.
 
+Returns a non-negative value.
+
 \see get_pressure() for help with the template arguments.
 */
 template <
@@ -200,7 +202,7 @@ template <
 			>(state, adiabatic_index, vacuum_permeability),
 		rho = state[Mass_Density_T()];
 
-	if (rho == 0 or pressure < 0) {
+	if (rho <= 0 or pressure < 0) {
 		return 299792458;
 	}
 
@@ -210,6 +212,8 @@ template <
 
 /*!
 Returns speed of Alfvn wave in given MHD state.
+
+Returns a non-negative value.
 
 \see get_pressure() for help with the template arguments.
 */
@@ -225,7 +229,7 @@ template <
 		rho = state[Mass_Density_T()],
 		B_mag = state[Magnetic_Field_T()].norm();
 
-	if (rho == 0) {
+	if (rho <= 0) {
 		return 299792458;
 	}
 
@@ -235,6 +239,8 @@ template <
 
 /*!
 Returns speed of fast magnetosonic wave in x dimension of given MHD state.
+
+Returns a non-negative value.
 
 \see get_pressure() for help with the template arguments.
 */
