@@ -35,6 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define PAMHD_BOUNDARIES_SPHERE_HPP
 
 
+#include "cmath"
 #include "cstdlib"
 #include "iostream"
 #include "string"
