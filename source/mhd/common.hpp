@@ -360,6 +360,13 @@ template <
 }
 
 
+/*!
+Rotates components of given vector for get_flux_* functions.
+
+Positive direction rotates vector for get_flux_* (assume
+two states have identical y and z coordinates), negative
+rotates it back.
+*/
 template<class Vector_T> Vector_T get_rotated_vector(
 	const Vector_T& v,
 	const int direction
