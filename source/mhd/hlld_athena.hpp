@@ -172,9 +172,9 @@ template <
 
 	// return upwind flux if flow is supermagnetosonic
 	if (max_signal_neg >= 0.0) {
-		return std::make_pair(flux_neg * area * dt, max_signal_pos);
+		return std::make_pair(flux_neg * area * dt, std::fabs(max_signal_pos));
 	} else if (max_signal_pos <= 0.0) {
-		return std::make_pair(flux_pos * area * dt, max_signal_neg);
+		return std::make_pair(flux_pos * area * dt, std::fabs(max_signal_neg));
 	}
 
 	const auto
