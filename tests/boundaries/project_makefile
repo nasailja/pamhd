@@ -9,7 +9,9 @@ TESTS_BOUNDARIES_EXECUTABLES = \
   tests/boundaries/many_variable_boundary_eigen.exe \
   tests/boundaries/initial_condition.exe \
   tests/boundaries/initial_condition_eigen.exe \
+  tests/boundaries/copy_boundary.exe \
   tests/boundaries/game_of_life/initial_condition.exe \
+  tests/boundaries/game_of_life/copy_boundary.exe \
   tests/boundaries/boundary_td_box.exe \
   tests/boundaries/boundary_td_box_eigen.exe \
   tests/boundaries/boundary_td_sphere.exe \
@@ -29,7 +31,9 @@ TESTS_BOUNDARIES_TESTS = \
   tests/boundaries/many_variable_boundary_eigen.tst \
   tests/boundaries/initial_condition.tst \
   tests/boundaries/initial_condition_eigen.tst \
+  tests/boundaries/copy_boundary.tst \
   tests/boundaries/game_of_life/initial_condition.tst \
+  tests/boundaries/game_of_life/copy_boundary.tst \
   tests/boundaries/boundary_td_box.tst \
   tests/boundaries/boundary_td_box_eigen.tst \
   tests/boundaries/boundary_td_sphere.tst \
@@ -58,6 +62,7 @@ TESTS_BOUNDARIES_DEPS = \
   source/boundaries/box.hpp \
   source/boundaries/boxes.hpp \
   source/boundaries/initial_condition.hpp \
+  source/boundaries/copy_boundary.hpp \
   source/boundaries/sphere.hpp \
   source/boundaries/spheres.hpp \
   source/boundaries/value_boundaries.hpp \
@@ -141,8 +146,18 @@ tests/boundaries/initial_condition_eigen.exe: \
   $(TESTS_BOUNDARIES_DEPS)
 	@echo "CXX "$< && $(TESTS_BOUNDARIES_COMPILE_COMMAND_PARSED_EIGEN)
 
+tests/boundaries/copy_boundary.exe: \
+  tests/boundaries/copy_boundary.cpp \
+  $(TESTS_BOUNDARIES_DEPS)
+	@echo "CXX "$< && $(TESTS_BOUNDARIES_COMPILE_COMMAND_PARSED)
+
 tests/boundaries/game_of_life/initial_condition.exe: \
   tests/boundaries/game_of_life/initial_condition.cpp \
+  $(TESTS_BOUNDARIES_DEPS)
+	@echo "CXX "$< && $(TESTS_BOUNDARIES_COMPILE_COMMAND_PARSED)
+
+tests/boundaries/game_of_life/copy_boundary.exe: \
+  tests/boundaries/game_of_life/copy_boundary.cpp \
   $(TESTS_BOUNDARIES_DEPS)
 	@echo "CXX "$< && $(TESTS_BOUNDARIES_COMPILE_COMMAND_PARSED)
 
