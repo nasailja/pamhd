@@ -563,6 +563,7 @@ int plot_2d(
 		<< output_file_name_prefix + "_rho.png"
 		<< "'\nset ylabel 'Dimension 2'\n"
 		   "set xlabel 'Dimension 1'\n"
+		   "set pal gray\n"
 		   "set format cb '%.2e'\n"
 		   "plot '-' matrix with image title 'Mass density (kg / m^3)'\n";
 
