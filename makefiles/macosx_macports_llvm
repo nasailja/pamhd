@@ -1,6 +1,6 @@
 CXXFLAGS += -Wno-missing-braces
 CXX = clang++-mp-3.5
-MPICXX = /opt/local/openmpi-1.8.1/clang-3.5/bin/mpirun
+MPICXX = /opt/local/openmpi-1.8.1/clang-3.5/bin/mpicxx
 
 DCCRG_CPPFLAGS = -I $(HOME)/include -I /opt/local/zoltan-3.8/clang-3.5/include
 DCCRG_LDFLAGS = -L /opt/local/zoltan-3.8/clang-3.5/lib
