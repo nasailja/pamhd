@@ -31,6 +31,7 @@ CLEAN += tests/mhd_clean
 MHD_COMMON_HEADERS = \
   source/boundaries/common.hpp \
   source/boundaries/initial_condition.hpp \
+  source/boundaries/copy_boundary.hpp \
   source/boundaries/value_boundaries.hpp \
   source/mhd/common.hpp \
   source/mhd/initialize.hpp \

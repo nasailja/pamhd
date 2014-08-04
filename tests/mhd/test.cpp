@@ -52,6 +52,7 @@ to get MPI support for Eigen types in generic cell
 #include "mhd/save.hpp"
 #include "mhd/solve.hpp"
 #include "mhd/variables.hpp"
+#include "boundaries/copy_boundary.hpp"
 #include "boundaries/initial_condition.hpp"
 #include "boundaries/value_boundaries.hpp"
 
@@ -119,7 +120,19 @@ int main(int argc, char* argv[])
 		>;
 	Value_Boundary_T value_boundaries;
 
+	using Copy_Boundary_T
+		= pamhd::boundaries::Copy_Boundary<
+			uint64_t,
+			double,
+			std::array<double, 3>
+		>;
+	Copy_Boundary_T copy_boundary;
+
 	pamhd::grid::Options grid_options;
+	grid_options.data.set_expression(pamhd::grid::Number_Of_Cells(), "{1, 1, 1}");
+	grid_options.data.set_expression(pamhd::grid::Volume(), "{1, 1, 1}");
+	grid_options.data.set_expression(pamhd::grid::Start(), "{0, 0, 0}");
+	grid_options.data.set_expression(pamhd::grid::Periodic(), "{false, false, false}");
 
 	/*
 	Program options
@@ -147,11 +160,18 @@ int main(int argc, char* argv[])
 		boundary_options(""),
 		// grouped options for printing help
 		initial_condition_help(
-			"Options for initial condition (read from file --boundary-file, "
-			"cannot be same file as --config-file, not read if empty strging)"
+			"Options for initial condition which sets cell data to values "
+			"given in --boundary-file at start of simulation (cannot be same "
+			"file as --config-file, not read if empty strging)"
 		),
 		boundary_condition_help(
-			"Options for boundary condition (read from file --boundary-file, "
+			"Options for value boundary conditions which set cell data "
+			"to values given in --boundary-file (cannot be same file as "
+			"--config-file, not read if empty string)"
+		),
+		copy_boundary_help(
+			"Options for copy boundaries which set cell data to average value "
+			"of neighboring non-boundary cells (read from file --boundary-file, "
 			"cannot be same file as --config-file, not read if empty string)"
 		);
 
@@ -160,7 +180,8 @@ int main(int argc, char* argv[])
 		("help", "Print this help message")
 		("verbose", "Print run time information")
 		("initial-help", "Print help for initial condition options")
-		("boundary-help", "Print help for boundary condition options")
+		("value-boundary-help", "Print help for value boundary condition options")
+		("copy-boundary-help", "Print help for copy boundary condition options")
 		("config-file",
 			boost::program_options::value<std::string>(&config_file_name)
 				->default_value(config_file_name),
@@ -216,6 +237,7 @@ int main(int argc, char* argv[])
 	grid_options.add_options("grid.", options);
 	initial_condition.add_initialization_options("initial.", options);
 	value_boundaries.add_initialization_options("value-boundaries.", options);
+	copy_boundary.add_initialization_options("copy-boundaries.", options);
 
 	boost::program_options::variables_map option_variables;
 	try {
@@ -224,9 +246,11 @@ int main(int argc, char* argv[])
 			option_variables
 		);
 	} catch (std::exception& e) {
-		std::cerr <<  __FILE__ << "(" << __LINE__ << "): "
-			<< "Couldn't parse command line options: " << e.what()
-			<< std::endl;
+		if (rank == 0) {
+			std::cerr <<  __FILE__ << "(" << __LINE__ << "): "
+				<< "Couldn't parse command line options: " << e.what()
+				<< std::endl;
+		}
 		abort();
 	}
 	boost::program_options::notify(option_variables);
@@ -257,10 +281,12 @@ int main(int argc, char* argv[])
 				option_variables
 			);
 		} catch (std::exception& e) {
-			std::cerr <<  __FILE__ << "(" << __LINE__ << "): "
-				<< "Couldn't parse general options from file "
-				<< config_file_name << ": " << e.what()
-				<< std::endl;
+			if (rank == 0) {
+				std::cerr <<  __FILE__ << "(" << __LINE__ << "): "
+					<< "Couldn't parse general options from file "
+					<< config_file_name << ": " << e.what()
+					<< std::endl;
+			}
 			abort();
 		}
 		boost::program_options::notify(option_variables);
@@ -270,6 +296,8 @@ int main(int argc, char* argv[])
 	initial_condition.add_options("initial.", initial_condition_help);
 	value_boundaries.add_options("value-boundaries.", boundary_options);
 	value_boundaries.add_options("value-boundaries.", boundary_condition_help);
+	copy_boundary.add_options("copy-boundaries.", boundary_options);
+	copy_boundary.add_options("copy-boundaries.", copy_boundary_help);
 
 	if (option_variables.count("initial-help") > 0) {
 		if (rank == 0) {
@@ -279,9 +307,17 @@ int main(int argc, char* argv[])
 		return EXIT_SUCCESS;
 	}
 
-	if (option_variables.count("boundary-help") > 0) {
+	if (option_variables.count("value-boundary-help") > 0) {
 		if (rank == 0) {
 			cout << boundary_condition_help << endl;
+		}
+		MPI_Finalize();
+		return EXIT_SUCCESS;
+	}
+
+	if (option_variables.count("copy-boundary-help") > 0) {
+		if (rank == 0) {
+			cout << copy_boundary_help << endl;
 		}
 		MPI_Finalize();
 		return EXIT_SUCCESS;
@@ -305,10 +341,12 @@ int main(int argc, char* argv[])
 				option_variables
 			);
 		} catch (std::exception& e) {
-			std::cerr <<  __FILE__ << "(" << __LINE__ << "): "
-				<< "Couldn't parse boundary options from file "
-				<< boundary_file_name << ": " << e.what()
-				<< std::endl;
+			if (rank == 0) {
+				std::cerr <<  __FILE__ << "(" << __LINE__ << "): "
+					<< "Couldn't parse boundary options from file "
+					<< boundary_file_name << ": " << e.what()
+					<< std::endl;
+			}
 			abort();
 		}
 		boost::program_options::notify(option_variables);
@@ -323,20 +361,20 @@ int main(int argc, char* argv[])
 	const auto nr_cells_tmp
 		= grid_options.data.get_data(pamhd::grid::Number_Of_Cells());
 
-	const std::array<uint64_t, 3> number_of_cells{
+	const std::array<uint64_t, 3> number_of_cells{{
 		uint64_t(nr_cells_tmp[0]),
 		uint64_t(nr_cells_tmp[1]),
 		uint64_t(nr_cells_tmp[2])
-	};
+	}};
 
 	const std::array<double, 3>
 		simulation_volume
 			= grid_options.data.get_data(pamhd::grid::Volume()),
-		cell_volume{
+		cell_volume{{
 			simulation_volume[0] / number_of_cells[0],
 			simulation_volume[1] / number_of_cells[1],
 			simulation_volume[2] / number_of_cells[2]
-		};
+		}};
 
 
 	/*
@@ -345,7 +383,7 @@ int main(int argc, char* argv[])
 
 	Grid_T grid;
 
-	const unsigned int neighborhood_size = 1;
+	const unsigned int neighborhood_size = 0;
 	const auto periodic = grid_options.data.get_data(pamhd::grid::Periodic());
 	if (not grid.initialize(
 		number_of_cells,
@@ -421,9 +459,12 @@ int main(int argc, char* argv[])
 
 	while (simulation_time < end_time) {
 
+		// transfer everything but fluxes when moving cells
 		Cell_T::set_transfer_all(
 			true,
-			pamhd::mhd::MHD_State_Conservative()
+			pamhd::mhd::MHD_State_Conservative(),
+			pamhd::mhd::Cell_Type(),
+			pamhd::mhd::MPI_Rank()
 		);
 		/*grid.balance_load();
 
@@ -463,16 +504,6 @@ int main(int argc, char* argv[])
 		Solve
 		*/
 
-		pamhd::mhd::zero_fluxes<
-			Grid_T,
-			Cell_T,
-			pamhd::mhd::MHD_Flux_Conservative,
-			pamhd::mhd::Mass_Density,
-			pamhd::mhd::Momentum_Density,
-			pamhd::mhd::Total_Energy_Density,
-			pamhd::mhd::Magnetic_Field
-		>(grid, cells);
-
 		max_dt = std::numeric_limits<double>::max();
 
 		if (verbose and rank == 0) {
@@ -482,10 +513,21 @@ int main(int argc, char* argv[])
 
 		Cell_T::set_transfer_all(
 			true,
-			pamhd::mhd::MHD_State_Conservative()
+			pamhd::mhd::MHD_State_Conservative(),
+			pamhd::mhd::Cell_Type()
 		);
 
 		grid.start_remote_neighbor_copy_updates();
+
+		pamhd::mhd::zero_fluxes<
+			Grid_T,
+			Cell_T,
+			pamhd::mhd::MHD_Flux_Conservative,
+			pamhd::mhd::Mass_Density,
+			pamhd::mhd::Momentum_Density,
+			pamhd::mhd::Total_Energy_Density,
+			pamhd::mhd::Magnetic_Field
+		>(grid, cells);
 
 		max_dt = std::min(
 			max_dt,
@@ -549,7 +591,7 @@ int main(int argc, char* argv[])
 
 
 		/*
-		Apply value_boundaries
+		Apply value boundaries
 		*/
 
 		value_boundaries.clear_cells();
@@ -573,6 +615,20 @@ int main(int argc, char* argv[])
 					<< std::endl;
 				abort();
 			}
+
+			auto* const cell_data = grid[cell_id];
+			if (cell_data == NULL) {
+				std::cerr <<  __FILE__ << "(" << __LINE__ << "): "
+					"No data for cell: " << cell_id
+					<< std::endl;
+				abort();
+			}
+
+			if (*result > 0) {
+				(*cell_data)[pamhd::mhd::Cell_Type()] = 1;
+			} else {
+				(*cell_data)[pamhd::mhd::Cell_Type()] = 0;
+			}
 		}
 
 		// set boundary data
@@ -587,7 +643,7 @@ int main(int argc, char* argv[])
 			for (const auto& cell_id: value_boundaries.get_cells(bdy_id)) {
 				const auto cell_center = grid.geometry.get_center(cell_id);
 
-				auto* cell_data = grid[cell_id];
+				auto* const cell_data = grid[cell_id];
 				if (cell_data == NULL) {
 					std::cerr <<  __FILE__ << "(" << __LINE__ << "): "
 						"No data for cell: " << cell_id
@@ -619,12 +675,155 @@ int main(int argc, char* argv[])
 
 
 		/*
+		Apply copy boundaries
+		*/
+
+		// copy up-to-date data
+		Cell_T::set_transfer_all(
+			true,
+			pamhd::mhd::MHD_State_Conservative(),
+			pamhd::mhd::Cell_Type()
+		);
+
+		copy_boundary.clear_cells();
+
+		// don't copy from other boundary cells
+		for (size_t bdy_id = 0; bdy_id < value_boundaries.get_number_of_boundaries(); bdy_id++) {
+			for (const auto& cell_id: value_boundaries.get_cells(bdy_id)) {
+				copy_boundary.add_as_other_boundary(cell_id);
+			}
+		}
+
+		// classify cells
+		for (const auto cell_id: cells) {
+			const auto
+				cell_start = grid.geometry.get_min(cell_id),
+				cell_end = grid.geometry.get_max(cell_id);
+
+			auto* const cell_data = grid[cell_id];
+			if (cell_data == NULL) {
+				std::cerr <<  __FILE__ << "(" << __LINE__ << "): "
+					"No data for cell: " << cell_id
+					<< std::endl;
+				abort();
+			}
+
+			if (copy_boundary.add_cell(cell_id, cell_start, cell_end) > 0) {
+				(*cell_data)[pamhd::mhd::Cell_Type()] = 2;
+			}
+		}
+
+		grid.update_copies_of_remote_neighbors();
+
+		// set copy boundary cells' neighbors
+		for (const auto& cell: copy_boundary.get_cells()) {
+			const auto* const neighbors_of = grid.get_neighbors_of(cell);
+			if (neighbors_of == NULL) {
+				std::cerr <<  __FILE__ << "(" << __LINE__ << "): "
+					"No neighbors for cell: " << cell
+					<< std::endl;
+				abort();
+			}
+
+			std::vector<uint64_t> final_neighbors;
+			for (const auto& neighbor: *neighbors_of) {
+				if (neighbor == dccrg::error_cell) {
+					continue;
+				}
+
+				const auto* const neighbor_data = grid[neighbor];
+				if (neighbor_data == NULL) {
+					std::cerr <<  __FILE__ << "(" << __LINE__ << "): "
+						<< "No data for "
+						<< (grid.is_local(neighbor) ? "local" : "remote")
+						<< " neighbor: " << neighbor
+						<< " of cell " << cell
+						<< std::endl;
+					abort();
+				}
+
+				if ((*neighbor_data)[pamhd::mhd::Cell_Type()] == 0) {
+					final_neighbors.push_back(neighbor);
+				}
+			}
+
+			if (copy_boundary.set_neighbors_of(cell, final_neighbors) > 1) {
+				std::cerr <<  __FILE__ << "(" << __LINE__ << "): "
+					<< "> 1 non-boundary cell assigned as source for cell " << cell
+					<< ": " << copy_boundary.get_source_cells(cell)
+					<< std::endl;
+				abort();
+			}
+		}
+
+		/*
+		Remove copy cells without normal neighbors from cell lists
+		so their flux isn't applied
+		*/
+		std::unordered_set<uint64_t>
+			temp_inner(inner_cells.cbegin(), inner_cells.cend()),
+			temp_outer(outer_cells.cbegin(), outer_cells.cend());
+
+		for (const auto& cell: copy_boundary.get_cells()) {
+			const auto& source = copy_boundary.get_source_cells(cell);
+			if (source.size() > 1) {
+				std::cerr <<  __FILE__ << "(" << __LINE__ << "): "
+					<< "Cell " << cell << " has more than one source cell."
+					<< std::endl;
+				abort();
+			}
+
+			if (source.size() > 0) {
+				continue;
+			}
+
+			temp_inner.erase(cell);
+			temp_outer.erase(cell);
+		}
+		inner_cells.clear();
+		outer_cells.clear();
+		inner_cells.insert(inner_cells.end(), temp_inner.cbegin(), temp_inner.cend());
+		outer_cells.insert(outer_cells.end(), temp_outer.cbegin(), temp_outer.cend());
+		temp_inner.clear();
+		temp_outer.clear();
+
+		// copy data to copy boundary cells
+		for (const auto& cell: copy_boundary.get_cells()) {
+			const auto& source = copy_boundary.get_source_cells(cell);
+			if (source.size() > 1) {
+				std::cerr <<  __FILE__ << "(" << __LINE__ << "): "
+					<< "Cell " << cell << " has more than one source cell."
+					<< std::endl;
+				abort();
+			}
+
+			if (source.size() == 0) {
+				continue;
+			}
+
+			auto* const target_data = grid[cell];
+			const auto* const source_data = grid[source[0]];
+
+			if (source_data == NULL or target_data == NULL) {
+				std::cerr <<  __FILE__ << "(" << __LINE__ << "): "
+					<< "No data for source or target cell."
+					<< std::endl;
+				abort();
+			}
+
+			(*target_data)[pamhd::mhd::MHD_State_Conservative()]
+				= (*source_data)[pamhd::mhd::MHD_State_Conservative()];
+		}
+
+
+		/*
 		Save simulation to disk
 		*/
 
 		Cell_T::set_transfer_all(
 			false,
-			pamhd::mhd::MHD_State_Conservative()
+			pamhd::mhd::MHD_State_Conservative(),
+			pamhd::mhd::Cell_Type()
 		);
 
 		if (

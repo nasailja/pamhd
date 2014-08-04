@@ -136,12 +136,19 @@ public:
 	object, see their documentation for the required parameters.
 
 	Returns number of boundaries to which given cell was added.
+
+	Does nothing and returns 0 if given a cell previously given to
+	add_as_other_boundary().
 	*/
 	template<class... Geometry_Parameters> size_t add_cell(
 		const Cell_T& cell,
 		Geometry_Parameters&&... geometry_parameters
 	) {
 		size_t ret_val = 0;
+
+		if (this->other_boundary_cells.count(cell) > 0) {
+			return ret_val;
+		}
 
 		for (auto& box: this->boxes) {
 			if (
@@ -210,7 +217,8 @@ public:
 
 		for (const auto& neighbor_of: neighbors_of) {
 			if (
-				this->sources.count(neighbor_of) == 0
+				neighbor_of != cell
+				and this->sources.count(neighbor_of) == 0
 				and this->other_boundary_cells.count(neighbor_of) == 0
 			) {
 				this->sources.at(cell).push_back(neighbor_of);
@@ -249,21 +257,14 @@ public:
 	}
 
 
-	void clear_temporary_data()
-	{
-		this->cells.clear();
-		this->other_boundary_cells.clear();
-	}
-
-
 	void clear_cells()
 	{
-		this->clear_temporary_data();
+		this->other_boundary_cells.clear();
 		this->sources.clear();
 	}
 
 
-	void clear_boundaries()
+	void clear_geometries()
 	{
 		this->boxes.clear();
 		this->spheres.clear();
