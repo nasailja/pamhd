@@ -71,7 +71,7 @@ template <
 
 	for (const auto& cell_id: cells) {
 
-		auto* cell_data = grid[cell_id];
+		auto* const cell_data = grid[cell_id];
 		if (cell_data == NULL) {
 			std::cerr <<  __FILE__ << "(" << __LINE__ << "): "
 				<< " No data for cell " << cell_id
@@ -83,17 +83,17 @@ template <
 		const std::array<double, 3>
 			cell_length = grid.geometry.get_length(cell_id),
 			// area of cell perpendicular to each dimension
-			cell_area = {
+			cell_area{{
 				cell_length[1] * cell_length[2],
 				cell_length[0] * cell_length[2],
 				cell_length[0] * cell_length[1]
-			};
+			}};
 
 		const auto face_neighbors = grid.get_face_neighbors_of(cell_id);
 		for (const auto& item: face_neighbors) {
 			const uint64_t neighbor_id = item.first;
 
-			auto* neighbor_data = grid[neighbor_id];
+			auto* const neighbor_data = grid[neighbor_id];
 			if (neighbor_data == NULL) {
 				std::cerr <<  __FILE__ << "(" << __LINE__ << "): "
 					<< " No data for neighbor " << neighbor_id
@@ -128,11 +128,11 @@ template <
 
 			const std::array<double, 3>
 				neighbor_length = grid.geometry.get_length(neighbor_id),
-				neighbor_area = {
+				neighbor_area{{
 					neighbor_length[1] * neighbor_length[2],
 					neighbor_length[0] * neighbor_length[2],
 					neighbor_length[0] * neighbor_length[1]
-				};
+				}};
 
 			const double shared_area
 				= std::min(cell_area[neighbor_dim], neighbor_area[neighbor_dim]);
@@ -320,7 +320,7 @@ template <
 	);
 
 	for (const auto& cell_id: cells) {
-		auto* cell_data = grid[cell_id];
+		auto* const cell_data = grid[cell_id];
 		if (cell_data == NULL) {
 			std::cerr <<  __FILE__ << "(" << __LINE__ << "): "
 				<< " No data for cell " << cell_id
@@ -353,7 +353,7 @@ template <
 	const std::vector<uint64_t>& cells
 ) {
 	for (const auto& cell_id: cells) {
-		auto* cell_data = grid[cell_id];
+		auto* const cell_data = grid[cell_id];
 		if (cell_data == NULL) {
 			std::cerr <<  __FILE__ << "(" << __LINE__ << "): "
 				<< " No data for cell " << cell_id
