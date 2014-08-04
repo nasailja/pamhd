@@ -1,0 +1,29 @@
+TESTS_POISSON_EXECUTABLES = \
+  tests/poisson/test.exe
+
+TESTS_POISSON_TESTS = \
+  tests/poisson/test.tst
+
+tests/poisson_executables: $(TESTS_POISSON_EXECUTABLES)
+
+tests/poisson_tests: $(TESTS_POISSON_TESTS)
+
+tests/poisson_clean:
+	@echo "CLEAN tests/poisson" && rm -f \
+	  $(TESTS_POISSON_EXECUTABLES) \
+	  $(TESTS_POISSON_TESTS)
+
+EXECUTABLES += tests/poisson_executables
+TESTS += tests/poisson_tests
+CLEAN += tests/poisson_clean
+
+tests/poisson/test.exe: \
+  tests/poisson/test.cpp \
+  source/poisson/solver.hpp
+	@echo "CXX "$< && $(CXX) \
+	  $(CPPFLAGS) \
+	  $(CXXFLAGS) \
+	  $(LDFLAGS) \
+	  $(EIGEN_CPPFLAGS) \
+	  $(PRETTYPRINT_CPPFLAGS) \
+	  $< -o $@
