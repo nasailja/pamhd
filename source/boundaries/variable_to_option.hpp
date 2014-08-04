@@ -104,7 +104,7 @@ public:
 	typename Current_Variable::data_type get_data(
 		const Current_Variable& variable
 	) {
-		return this->get_data(variable, {0, 0, 0}, 0);
+		return this->get_data(variable, {{0, 0, 0}}, 0);
 	}
 
 
@@ -581,7 +581,7 @@ public:
 	typename Last_Variable::data_type get_data(
 		const Last_Variable& variable
 	) {
-		return this->get_data(variable, {0, 0, 0}, 0);
+		return this->get_data(variable, {{0, 0, 0}}, 0);
 	}
 
 
