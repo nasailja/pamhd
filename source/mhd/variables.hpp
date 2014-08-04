@@ -105,7 +105,9 @@ struct Cell_Type {
 	using data_type = int;
 	static const std::string get_name() { return {"cell type"}; }
 	static const std::string get_option_name() { return {"cell-type"}; }
-	static const std::string get_option_help() { return {"Owner (MPI process) of cell"}; }
+	static const std::string get_option_help() {
+		return {"Cell type (0: normal, < 0: do-not-solve, > 0: boundary)"};
+	}
 };
 
 //! Set of conservative MHD variables
