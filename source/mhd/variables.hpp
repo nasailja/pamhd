@@ -131,11 +131,21 @@ using MHD_Primitive = gensimcell::Cell<
 //! Represents current state of MHD in simulation cell
 struct MHD_State_Conservative {
 	using data_type = MHD_Conservative;
+	static const std::string get_name() { return {"conservative MHD variables"}; }
+	static const std::string get_option_name() { return {"MHD-conservative"}; }
+	static const std::string get_option_help() {
+		return {"Conservative MHD variables"};
+	}
 };
 
 //! Represents change of MHD in simulation cell for next step
 struct MHD_Flux_Conservative {
 	using data_type = MHD_Conservative;
+	static const std::string get_name() { return {"conservative MHD flux variables"}; }
+	static const std::string get_option_name() { return {"MHD-flux-conservative"}; }
+	static const std::string get_option_help() {
+		return {"Conservative MHD flux variables"};
+	}
 };
 
 using Cell = gensimcell::Cell<
