@@ -563,6 +563,7 @@ int plot_2d(
 		<< output_file_name_prefix + "_rho.png"
 		<< "'\nset ylabel 'Dimension 2'\n"
 		   "set xlabel 'Dimension 1'\n"
+		   //"set logscale cb\n"
 		   "set pal gray\n"
 		   "set format cb '%.2e'\n"
 		   "plot '-' matrix with image title 'Mass density (kg / m^3)'\n";
@@ -605,6 +606,7 @@ int plot_2d(
 
 	// vx
 	gnuplot_file
+		//<< "unset logscale cb\n"
 		<< "set output '"
 		<< output_file_name_prefix + "_vx.png"
 		<< "'\nplot '-' matrix with image title 'V_1 (m / s)'\n";
