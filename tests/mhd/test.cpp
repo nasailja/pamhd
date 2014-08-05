@@ -459,18 +459,19 @@ int main(int argc, char* argv[])
 
 	while (simulation_time < end_time) {
 
-		// transfer everything but fluxes when moving cells
-		Cell_T::set_transfer_all(
-			true,
-			pamhd::mhd::MHD_State_Conservative(),
-			pamhd::mhd::Cell_Type(),
-			pamhd::mhd::MPI_Rank()
-		);
-		/*grid.balance_load();
+		// shorthand notation for referring to variables
+		const pamhd::mhd::MHD_State_Conservative MHD{};
+		const pamhd::mhd::Cell_Type Cell_Type{};
+
+		/*
+		Cell_T::set_transfer_all(true, MHD, Cell_Type);
+		grid.balance_load();
+		Cell_T::set_transfer_all(false, MHD, Cell_Type);
 
 		cells = grid.get_cells();
 		inner_cells = grid.get_local_cells_not_on_process_boundary();
-		outer_cells = grid.get_local_cells_on_process_boundary();*/
+		outer_cells = grid.get_local_cells_on_process_boundary();
+		*/
 
 		/*
 		Get maximum allowed time step
@@ -511,12 +512,7 @@ int main(int argc, char* argv[])
 				<< " s with time step " << time_step << " s" << endl;
 		}
 
-		Cell_T::set_transfer_all(
-			true,
-			pamhd::mhd::MHD_State_Conservative(),
-			pamhd::mhd::Cell_Type()
-		);
-
+		Cell_T::set_transfer_all(true, MHD, Cell_Type);
 		grid.start_remote_neighbor_copy_updates();
 
 		pamhd::mhd::zero_fluxes<
@@ -579,6 +575,7 @@ int main(int argc, char* argv[])
 		>(grid, inner_cells);
 
 		grid.wait_remote_neighbor_copy_update_sends();
+		Cell_T::set_transfer_all(false, MHD, Cell_Type);
 
 		pamhd::mhd::apply_fluxes<
 			Grid_T,
@@ -678,13 +675,6 @@ int main(int argc, char* argv[])
 		Apply copy boundaries
 		*/
 
-		// copy up-to-date data
-		Cell_T::set_transfer_all(
-			true,
-			pamhd::mhd::MHD_State_Conservative(),
-			pamhd::mhd::Cell_Type()
-		);
-
 		copy_boundary.clear_cells();
 
 		// don't copy from other boundary cells
@@ -713,7 +703,10 @@ int main(int argc, char* argv[])
 			}
 		}
 
+		// copy up-to-date data
+		Cell_T::set_transfer_all(true, MHD, Cell_Type);
 		grid.update_copies_of_remote_neighbors();
+		Cell_T::set_transfer_all(false, MHD, Cell_Type);
 
 		// set copy boundary cells' neighbors
 		for (const auto& cell: copy_boundary.get_cells()) {
@@ -819,12 +812,6 @@ int main(int argc, char* argv[])
 		/*
 		Save simulation to disk
 		*/
-
-		Cell_T::set_transfer_all(
-			false,
-			pamhd::mhd::MHD_State_Conservative(),
-			pamhd::mhd::Cell_Type()
-		);
 
 		if (
 			(save_mhd_n >= 0 and (simulation_time == 0 or simulation_time >= end_time))

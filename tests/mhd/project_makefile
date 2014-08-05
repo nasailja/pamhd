@@ -80,4 +80,7 @@ tests/mhd/test.exe: tests/mhd/test.cpp $(MHD_COMMON_HEADERS)
 	  $(MUPARSERX_LDFLAGS) \
 	  $(MUPARSERX_LIBS) \
 	  $(PRETTYPRINT_CPPFLAGS) \
+	  $(ZOLTAN_CPPFLAGS) \
+	  $(ZOLTAN_LDFLAGS) \
+	  $(ZOLTAN_LIBS) \
 	  $< -o $@

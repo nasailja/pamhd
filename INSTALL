@@ -1,53 +1,47 @@
-A compiler with support for C++11 or at least variadic
-template parameters is required.
+A compiler with support for C++11 is required,
+for example GCC >= 4.7.
+
+To compile and test PAMHD change the variable
+ENVIRONMENT_MAKEFILE in Makefile in this directory
+to point to the correct environment-specific makefile
+or create your own. Then run make from the top level
+directory, tests will be executed automatically.
 
 
-Required software:
+Installing dependencies
 
-Boost (>= 1.54): http://boost.org/
+Start from your home directory:
+cd
 
-dccrg (latest version from c++11 branch): https://gitorious.org/dccrg/dccrg
-dccrg has requirements of its own, see: https://gitorious.org/dccrg/pages/Install
+Download required software:
+git clone git://gitorious.org/dccrg/dccrg.git --branch c++11
+git clone https://github.com/nasailja/gensimcell.git
+git clone https://github.com/louisdx/cxx-prettyprint.git
+wget http://www.open-mpi.org/software/ompi/v1.8/downloads/openmpi-1.8.1.tar.bz2
+wget http://bitbucket.org/eigen/eigen/get/3.2.2.tar.bz2
+wget "https://doc-0o-58-docs.googleusercontent.com/docs/securesc/ha0ro937gcuc7l7deffksulhg5h7mbp1/eu9dujp4cu4mumar7uh3jrif0lltqh6g/1407261600000/10606444718388524723/*/0BzuB-ydOOoduNkU4STZxeWJLLTA?h=16653014193614665626&e=download" -O muparserx_v3_0_3.zip
 
-Eigen version 3: http://eigen.tuxfamily.org/
+Install Open-MPI:
+tar xf openmpi-1.8.1.tar.bz2
+cd openmpi-1.8.1
+CC=gcc-mp-4.8 CXX=g++-mp-4.8 FC=gfortran-mp-4.8 ./configure --prefix=$HOME
+make
+make install
+cd ..
+rm -rf openmpi-1.8.1
 
-Generic simulation cell: https://github.com/nasailja/gensimcell
+Install Eigen:
+tar xf 3.2.2.tar.bz2
+mv eigen-eigen-1306d75b4a21/Eigen $HOME/include
+rm -rf eigen-eigen-1306d75b4a21/
 
-C++ Prettyprint: https://github.com/louisdx/cxx-prettyprint
-
-An implementation of MPI (e.g. http://open-mpi.org/ version >= 1.6)
-
-muParserX:
-https://doc-0s-58-docs.googleusercontent.com/docs/securesc/ha0ro937gcuc7l7deffksulhg5h7mbp1/pnqul19bm76kp9h9qute55ndpo9mb6bc/1404828000000/10606444718388524723/*/0BzuB-ydOOoduSmtUbHU1TWVFV1E?h=16653014193614665626&e=download
-or
-https://drive.google.com/folderview?id=0BzuB-ydOOoduZ0NWUXBJbHNjZTQ&usp=sharing
-or
-https://code.google.com/p/muparserx/
-Apply the following patch to include all required source files in the library:
---- Makefile.old	2014-07-08 10:27:27.000000000 -0400
-+++ Makefile	2014-07-08 10:28:08.000000000 -0400
-@@ -2,7 +2,7 @@
- # debug version
- #CFLAGS  = -Wall -ggdb  
- # release version:
--CFLAGS	=	-O3 -Wall -ffast-math -fomit-frame-pointer 
-+CFLAGS	=	-std=c++11 -O3 -Wall -ffast-math -fomit-frame-pointer 
- 
- PATH_BIN = ./bin
- 
-@@ -10,7 +10,7 @@
- # muParser library sources
- PATH_LIB = parser
- PATH_OBJ = obj
--LIB_SRC = mpError.cpp mpRPN.cpp mpICallback.cpp mpIValReader.cpp mpParserBase.cpp mpTokenReader.cpp\
-+LIB_SRC = mpError.cpp mpRPN.cpp mpICallback.cpp mpIValReader.cpp mpParserBase.cpp mpTokenReader.cpp mpParserMessageProvider.cpp\
-           mpVariable.cpp mpIOprt.cpp mpIValue.cpp mpParser.cpp mpValReader.cpp mpFuncStr.cpp\
- 		  mpFuncCommon.cpp mpOprtPostfixCommon.cpp mpFuncNonCmplx.cpp mpFuncCmplx.cpp mpIToken.cpp mpOprtCmplx.cpp \
- 		  mpOprtNonCmplx.cpp mpOprtBinCommon.cpp mpOprtBinAssign.cpp mpOprtMatrix.cpp\
+Install muparserx:
+unzip muparserx_v3_0_3.zip
+make -C muparserx_v3_0_3 CC=g++-mp-4.8
+mv muparserx_v3_0_3/bin/libmuparserx.a $HOME/lib
+cp muparserx_v3_0_3/parser/*.h $HOME/include
+rm -rf muparserx_v3_0_3
 
 
-In order to compile and test PAMHD change the variable
-ENVIRONMENT_MAKEFILE in the top level Makefile to point
-to the correct environment-specific makefile or create
-your own. Then run make from the top level directory,
-tests will be executed automatically.
+Installation of boost and zoltan is detailed at:
+https://gitorious.org/dccrg/pages/Install
