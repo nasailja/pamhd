@@ -38,6 +38,16 @@ $RUN ./test.exe \
     --config-file config_files/shock_tube1_-z_general.cfg \
     --boundary-file config_files/shock_tube1_-z_boundaries.cfg
 
+echo kelvin-helmholtz_reference
+$RUN ./test.exe \
+    --config-file config_files/kelvin-helmholtz_reference_general.cfg \
+    --boundary-file config_files/kelvin-helmholtz_reference_boundaries.cfg
+
+echo bow_shock_reference
+$RUN ./test.exe \
+    --config-file config_files/bow_shock_reference_general.cfg \
+    --boundary-file config_files/bow_shock_reference_boundaries.cfg
+
 
 echo
 echo Plotting results with gnuplot
@@ -59,3 +69,9 @@ $RUN ./mhd2gnuplot.exe results/shock_tube1_z/*dc
 
 echo shock_tube1_-z
 $RUN ./mhd2gnuplot.exe results/shock_tube1_-z/*dc
+
+echo kelvin-helmholtz_reference
+$RUN ./mhd2gnuplot.exe results/kelvin-helmholtz_reference/*dc
+
+echo bow_shock_reference
+$RUN ./mhd2gnuplot.exe results/bow_shock_reference/*dc
