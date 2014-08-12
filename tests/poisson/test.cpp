@@ -1,5 +1,5 @@
 /*
-
+Tests serial 2d Poisson solver of PAMHD.
 
 Copyright 2014 Ilja Honkonen
 All rights reserved.
@@ -37,44 +37,51 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "poisson/solver.hpp"
 
+
+template <class Scalar_T> std::vector<Scalar_T> get_analytic_solution(
+	const Scalar_T grid_length_x,
+	const Scalar_T grid_length_y,
+	const size_t grid_size_x,
+	const size_t grid_size_y
+) {
+	std::vector<Scalar_T> solution(grid_size_x * grid_size_y, 0);
+
+	for (size_t y_i = 0; y_i < grid_size_y; y_i++) {
+		const Scalar_T y = grid_length_y * (y_i + 0.5) / grid_size_y;
+
+		for (size_t x_i = 0; x_i < grid_size_x; x_i++) {
+			const Scalar_T x = grid_length_x * (x_i + 0.5) / grid_size_x;
+
+			const size_t cell_index = x_i + y_i * grid_size_x;
+			solution[cell_index] = std::sin(x) * std::cos(y);
+		}
+	}
+
+	return solution;
+}
+
+
 template <class Scalar_T> std::vector<Scalar_T> get_rhs(
+	const Scalar_T grid_length_x,
+	const Scalar_T grid_length_y,
 	const size_t grid_size_x,
 	const size_t grid_size_y
 ) {
 	std::vector<Scalar_T> rhs(grid_size_x * grid_size_y, 0);
 
 	for (size_t y_i = 0; y_i < grid_size_y; y_i++) {
-		for (size_t x_i = 0; x_i < grid_size_x; x_i++) {
-			const size_t cell_index = x_i + y_i * grid_size_x;
+		const Scalar_T y = grid_length_y * (y_i + 0.5) / grid_size_y;
 
+		for (size_t x_i = 0; x_i < grid_size_x; x_i++) {
+			const Scalar_T x = grid_length_x * (x_i + 0.5) / grid_size_x;
+
+			const size_t cell_index = x_i + y_i * grid_size_x;
 			rhs[cell_index]
-				= std::sin(2 * M_PI * (x_i + 0.5) / grid_size_x)
-				* std::cos(4 * M_PI * (y_i + 0.5) / grid_size_y);
+				= -2 * sin(x) * cos(y);
 		}
 	}
 
 	return rhs;
-}
-
-
-template <class Scalar_T> std::vector<Scalar_T> get_analytic_solution(
-	const size_t grid_size_x,
-	const size_t grid_size_y
-) {
-	std::vector<double> solution(grid_size_x * grid_size_y, 0);
-
-	for (size_t y_i = 0; y_i < grid_size_y; y_i++) {
-		for (size_t x_i = 0; x_i < grid_size_x; x_i++) {
-			const size_t cell_index = x_i + y_i * grid_size_x;
-
-			solution[cell_index]
-				= (std::sin(2 * M_PI * (x_i + 0.5) / grid_size_x)
-					* std::cos(4 * M_PI * (y_i + 0.5) / grid_size_y))
-				/ (-20 * M_PI * M_PI);
-		}
-	}
-
-	return solution;
 }
 
 
@@ -92,6 +99,43 @@ template <class Scalar_T> void print_grid(
 		std::cout << "\n";
 	}
 	std::cout << std::endl;
+}
+
+
+template <class Scalar_T> std::vector<Scalar_T> normalize_solution(
+	const Scalar_T grid_length_x,
+	const Scalar_T grid_length_y,
+	const size_t grid_size_x,
+	const size_t grid_size_y,
+	const std::vector<Scalar_T>& solution
+) {
+	Scalar_T avg_analytic = 0;
+	for (
+		const auto i:
+		get_analytic_solution(
+			grid_length_x,
+			grid_length_y,
+			grid_size_x,
+			grid_size_y
+		)
+	) {
+		avg_analytic += i;
+	}
+	avg_analytic /= solution.size();
+
+	Scalar_T avg_solution = 0;
+	for (const auto i: solution) {
+		avg_solution += i;
+	}
+	avg_solution /= solution.size();
+
+	std::vector<Scalar_T> ret_val;
+	ret_val.reserve(solution.size());
+	for (const auto i: solution) {
+		ret_val.push_back(i - avg_solution + avg_analytic);
+	}
+
+	return ret_val;
 }
 
 
@@ -130,58 +174,92 @@ int main()
 {
 	using scalar_type = double;
 
-	constexpr size_t
-		grid_size_x = 10,
-		grid_size_y = 10,
-		n = grid_size_x * grid_size_y;
+	constexpr double
+		grid_length_x = 4 * M_PI,
+		grid_length_y = 2 * M_PI;
 
-	const auto rhs = get_rhs<scalar_type>(grid_size_x, grid_size_y);
+	constexpr size_t
+		grid_size_x = 32,
+		grid_size_y = 16;
+
+	const auto rhs
+		= get_rhs<scalar_type>(
+			grid_length_x,
+			grid_length_y,
+			grid_size_x,
+			grid_size_y
+		);
 
 	scalar_type* solution_tmp
 		= pamhd::poisson::solve(
 			grid_size_x,
 			grid_size_y,
-			1.0 / grid_size_x,
-			1.0 / grid_size_y,
+			grid_length_x / grid_size_x,
+			grid_length_y / grid_size_y,
 			rhs.data()
 		);
 	if (solution_tmp == NULL) {
 		std::cerr << "Solution failed." << std::endl;
 		return EXIT_FAILURE;
 	}
-	std::vector<scalar_type> solution(n, 0);
-	for (size_t i = 0; i < n; i++) {
+	std::vector<scalar_type> solution(grid_size_x * grid_size_y, 0);
+	for (size_t i = 0; i < solution.size(); i++) {
 		solution[i] = *(solution_tmp + i);
 	}
 	free(solution_tmp);
 
-	// offset solution to average == 0
-	scalar_type avg = 0;
-	for (const auto i: solution) {
-		avg += i;
-	}
-	avg /= n;
-	for (auto i: solution) {
-		i -= avg;
-	}
+	solution = normalize_solution(
+			grid_length_x,
+			grid_length_y,
+			grid_size_x,
+			grid_size_y,
+			solution
+	);
 
-	/*print_grid(grid_size_x, grid_size_y, rhs);
+	/*std::cout << "Rhs:\n";
+	print_grid(grid_size_x, grid_size_y, rhs);
 	std::cout << "Solution:\n";
-	print_grid(grid_size_x, grid_size_y, solution);*/
+	print_grid(grid_size_x, grid_size_y, solution);
 
-	const auto analytic = get_analytic_solution<scalar_type>(grid_size_x, grid_size_y);
-	/*std::cout << "Analytic:\n";
-	print_grid(
-		grid_size_x,
-		grid_size_y,
-		analytic
-	);*/
+	std::cout << "Analytic:\n";*/
+	const auto analytic
+		= get_analytic_solution(
+			grid_length_x,
+			grid_length_y,
+			grid_size_x,
+			grid_size_y
+		);
+	//print_grid(grid_size_x, grid_size_y, analytic);
 
-	std::cout << "Norms:\n"
-		<< "  1: " << get_diff_lp_norm(solution, analytic, scalar_type(1)) << "\n"
-		<< "  2: " << get_diff_lp_norm(solution, analytic, scalar_type(2)) << "\n"
-		<< "Inf: " << get_diff_lp_norm(solution, analytic, scalar_type(0)) << "\n"
-		<< std::endl;
+	const double
+		diff_l1_norm = get_diff_lp_norm(solution, analytic, scalar_type(1)),
+		diff_l2_norm = get_diff_lp_norm(solution, analytic, scalar_type(2)),
+		diff_linf_norm = get_diff_lp_norm(solution, analytic, scalar_type(0));
+
+	/*std::cout << "Norms:\n"
+		<< "  1: " << diff_l1_norm << "\n"
+		<< "  2: " << diff_l2_norm << "\n"
+		<< "Inf: " << diff_linf_norm << "\n"
+		<< std::endl;*/
+
+	if (diff_l1_norm > 2.8) {
+		std::cerr <<  __FILE__ << "(" << __LINE__ << "): "
+			<< "L1 norm too large: " << diff_l1_norm
+			<< std::endl;
+		abort();
+	}
+	if (diff_l2_norm > 0.15) {
+		std::cerr <<  __FILE__ << "(" << __LINE__ << "): "
+			<< "L2 norm too large: " << diff_l2_norm
+			<< std::endl;
+		abort();
+	}
+	if (diff_linf_norm > 0.013) {
+		std::cerr <<  __FILE__ << "(" << __LINE__ << "): "
+			<< "Infinite L norm too large: " << diff_linf_norm
+			<< std::endl;
+		abort();
+	}
 
 	return EXIT_SUCCESS;
 }
