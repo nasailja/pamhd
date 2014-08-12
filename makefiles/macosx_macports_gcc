@@ -1,6 +1,6 @@
 # The version of open-mpi currently available from macports (1.7.5)
 # doesn't work, install either 1.6.5 or 1.8.1 into $HOME using GCC 4.8
-
+CXXFLAGS += -Wno-missing-braces -Wno-unused-local-typedefs
 CXX = g++-mp-4.8
 MPICXX = $(HOME)/bin/mpicxx
 

@@ -5,7 +5,7 @@ ENVIRONMENT_MAKEFILE = makefiles/macosx_macports_gcc
 #
 # The lines below are not intended to be modified by users
 #
-CXXFLAGS = -std=c++11 -W -Wall -Wextra -pedantic -O3 -Wno-unused-local-typedefs
+CXXFLAGS = -std=c++11 -W -Wall -Wextra -pedantic -O3
 CPPFLAGS = -I source
 include $(ENVIRONMENT_MAKEFILE)
 
