@@ -110,6 +110,13 @@ struct Cell_Type {
 	}
 };
 
+struct Magnetic_Field_Divergence {
+	using data_type = double;
+	static const std::string get_name() { return {"magnetic field divergence"}; }
+	static const std::string get_option_name() { return {"magnetic-field-divergence"}; }
+	static const std::string get_option_help() { return {"Divergence of plasma magnetic field (T/m)"}; }
+};
+
 //! Set of conservative MHD variables
 using MHD_Conservative = gensimcell::Cell<
 	gensimcell::Always_Transfer,
@@ -153,6 +160,7 @@ using Cell = gensimcell::Cell<
 	MHD_State_Conservative,
 	Cell_Type,
 	MPI_Rank,
+	Magnetic_Field_Divergence,
 	MHD_Flux_Conservative
 >;
 
