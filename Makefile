@@ -26,6 +26,7 @@ include \
   tests/mhd/project_makefile \
   tests/program_options/project_makefile \
   tests/boundaries/project_makefile \
+  tests/divergence/project_makefile \
   tests/poisson/project_makefile
 
 

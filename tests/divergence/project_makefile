@@ -1,0 +1,52 @@
+TESTS_DIVERGENCE_EXECUTABLES = \
+  tests/divergence/get1d.exe \
+  tests/divergence/get2d.exe \
+  tests/divergence/get3d.exe
+
+TESTS_DIVERGENCE_TESTS = \
+  tests/divergence/get1d.tst \
+  tests/divergence/get2d.tst \
+  tests/divergence/get3d.tst
+
+tests/divergence_executables: $(TESTS_DIVERGENCE_EXECUTABLES)
+
+tests/divergence_tests: $(TESTS_DIVERGENCE_TESTS)
+
+tests/divergence_clean:
+	@echo "CLEAN tests/divergence" && rm -f \
+	  $(TESTS_DIVERGENCE_EXECUTABLES) \
+	  $(TESTS_DIVERGENCE_TESTS)
+
+EXECUTABLES += tests/divergence_executables
+TESTS += tests/divergence_tests
+CLEAN += tests/divergence_clean
+
+MPICXX_TESTS_DIVERGENCE_GET = \
+  $(MPICXX) \
+  $(CPPFLAGS) \
+  $(CXXFLAGS) \
+  $(LDFLAGS) \
+  $(DCCRG_CPPFLAGS) \
+  $(DCCRG_LDFLAGS) \
+  $(DCCRG_LIBS) \
+  $(GENSIMCELL_CPPFLAGS) \
+  $(PRETTYPRINT_CPPFLAGS) \
+  $(ZOLTAN_CPPFLAGS) \
+  $(ZOLTAN_LDFLAGS) \
+  $(ZOLTAN_LIBS) \
+  $< -o $@
+
+tests/divergence/get1d.exe: \
+  tests/divergence/get1d.cpp \
+  source/divergence/remove.hpp
+	@echo "MPICXX "$< && $(MPICXX_TESTS_DIVERGENCE_GET)
+
+tests/divergence/get2d.exe: \
+  tests/divergence/get2d.cpp \
+  source/divergence/remove.hpp
+	@echo "MPICXX "$< && $(MPICXX_TESTS_DIVERGENCE_GET)
+
+tests/divergence/get3d.exe: \
+  tests/divergence/get3d.cpp \
+  source/divergence/remove.hpp
+	@echo "MPICXX "$< && $(MPICXX_TESTS_DIVERGENCE_GET)
