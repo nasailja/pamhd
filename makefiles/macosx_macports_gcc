@@ -8,6 +8,8 @@ DCCRG_CPPFLAGS = -I $(HOME)/dccrg
 
 EIGEN_CPPFLAGS = -I $(HOME)/include
 
+EIGENLAB_CPPFLAGS = -I $(HOME)/libraries/EigenLab
+
 GENSIMCELL_CPPFLAGS = -I $(HOME)/gensimcell/source
 
 BOOST_CPPFLAGS = -I $(HOME)/include

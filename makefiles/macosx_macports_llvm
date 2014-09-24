@@ -8,6 +8,8 @@ DCCRG_LIBS = -lzoltan
 
 EIGEN_CPPFLAGS = -I /opt/local/include/eigen3
 
+EIGENLAB_CPPFLAGS = -I $(HOME)/libraries/EigenLab
+
 GENSIMCELL_CPPFLAGS = -I $(HOME)/include
 
 BOOST_CPPFLAGS = -I /opt/local/boost-1.55.0/clang-3.5/include

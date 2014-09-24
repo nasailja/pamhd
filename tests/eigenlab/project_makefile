@@ -1,0 +1,37 @@
+TESTS_EIGENLAB_EXECUTABLES = \
+  tests/eigenlab/compile.exe \
+  tests/eigenlab/test1.exe
+
+TESTS_EIGENLAB_TESTS = \
+  tests/eigenlab/test1.tst
+
+tests/eigenlab_executables: $(TESTS_EIGENLAB_EXECUTABLES)
+
+tests/eigenlab_tests: $(TESTS_EIGENLAB_TESTS)
+
+tests/eigenlab_clean:
+	@echo "CLEAN tests/eigenlab" && rm -f \
+	  $(TESTS_EIGENLAB_EXECUTABLES) \
+	  $(TESTS_EIGENLAB_TESTS)
+
+EXECUTABLES += tests/eigenlab_executables
+TESTS += tests/eigenlab_tests
+CLEAN += tests/eigenlab_clean
+
+tests/eigenlab/compile.exe: tests/eigenlab/compile.cpp
+	@echo "CXX "$< && $(CXX) \
+	  $(CPPFLAGS) \
+	  $(CXXFLAGS) \
+	  $(LDFLAGS) \
+	  $(EIGEN_CPPFLAGS) \
+	  $(EIGENLAB_CPPFLAGS) \
+	  $< -o $@
+
+tests/eigenlab/test1.exe: tests/eigenlab/test1.cpp
+	@echo "CXX "$< && $(CXX) \
+	  $(CPPFLAGS) \
+	  $(CXXFLAGS) \
+	  $(LDFLAGS) \
+	  $(EIGEN_CPPFLAGS) \
+	  $(EIGENLAB_CPPFLAGS) \
+	  $< -o $@
