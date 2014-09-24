@@ -1,6 +1,6 @@
 # to compile and test pick one makefile from makefiles directory
 # or write a new one for your environment
-ENVIRONMENT_MAKEFILE = makefiles/macosx_macports_gcc
+ENVIRONMENT_MAKEFILE = makefiles/homedir
 
 #
 # The lines below are not intended to be modified by users
