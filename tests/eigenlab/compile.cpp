@@ -51,5 +51,16 @@ int main()
 	parser.var("v2").setShared(variable2);
 	parser.eval("v1 = sqrt(v2(0)*v2(0) + v2(1)*v2(1) + v2(2)*v2(2))");
 
+	EigenLab::ParserXi parser2;
+	Eigen::MatrixXi variable3(1, 1);
+	variable3 << 0;
+	parser2.var("v3").setShared(variable3);
+	parser2.eval("v3 = v3 + 1");
+
+	Eigen::MatrixXi variable4(3, 1);
+	variable4 << 1, 2, 3;
+	parser2.var("v4").setShared(variable4);
+	parser2.eval("v3 = sqrt(v3(0)*v3(0) + v3(1)*v3(1) + v3(2)*v3(2))");
+
 	return 0;
 }
