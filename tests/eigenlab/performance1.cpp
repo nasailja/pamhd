@@ -66,7 +66,7 @@ int main()
 	const auto time_end = high_resolution_clock::now();
 
 	const auto total = duration_cast<duration<double>>(time_end - time_start).count();
-	if (total > 0.01) {
+	if (total > 8) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ") "
 			<< "EigenLab performance test took too long (s): " << total
 			<< endl;
