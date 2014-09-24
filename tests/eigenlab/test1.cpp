@@ -67,9 +67,9 @@ int main()
 	parser.var("v2").setShared(variable2);
 
 	const std::vector<std::array<double, 3>> test_vectors{
-		{1, 3, 5},
-		{7, 11, 13},
-		{-7, -11, -13}
+		{{1, 3, 5}},
+		{{7, 11, 13}},
+		{{-7, -11, -13}}
 	};
 
 	for (const auto test_vector: test_vectors) {
