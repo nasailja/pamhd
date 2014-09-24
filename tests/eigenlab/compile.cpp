@@ -60,7 +60,7 @@ int main()
 	Eigen::MatrixXi variable4(3, 1);
 	variable4 << 1, 2, 3;
 	parser2.var("v4").setShared(variable4);
-	parser2.eval("v3 = sqrt(v3(0)*v3(0) + v3(1)*v3(1) + v3(2)*v3(2))");
+	parser2.eval("v3 = sqrt(v4(0)*v4(0) + v4(1)*v4(1) + v4(2)*v4(2))");
 
 	return 0;
 }
