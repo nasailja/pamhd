@@ -1,5 +1,5 @@
 # Makefile for the case where all prerequisites are installed
-# into your home directory as instructed by
+# into your home directory according to the instructions at
 # https://github.com/nasailja/pamhd/wiki/Install
 CXX = c++
 MPICXX = $(HOME)/bin/mpic++
