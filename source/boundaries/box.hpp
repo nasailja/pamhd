@@ -86,7 +86,7 @@ public:
 		}
 
 		bool overlaps = true;
-		for (size_t i = 0; i < cell_start.size(); i++) {
+		for (size_t i = 0; i < size_t(cell_start.size()); i++) {
 			if (
 				cell_start[i] >= this->end[i]
 				or cell_end[i] <= this->start[i]

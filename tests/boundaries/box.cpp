@@ -43,6 +43,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "boundaries/box.hpp"
 
 
+#ifdef HAVE_EIGEN
+#define MAKE_BOX(a, b, c, d, e, f) {a, b, c}, {d, e, f}
+#else
+#define MAKE_BOX(a, b, c, d, e, f) {{a, b, c}}, {{d, e, f}}
+#endif
+
+
 using namespace pamhd::boundaries;
 
 int main(int argc, char* argv[])
@@ -53,7 +60,7 @@ int main(int argc, char* argv[])
 	Box<std::array<double, 3>> box;
 	#endif
 
-	if (not box.set_geometry({-1, -2, -3}, {1, 2, 3})) {
+	if (not box.set_geometry(MAKE_BOX(-1, -2, -3, 1, 2, 3))) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
 			<< "Couldn't set geometry."
 			<< std::endl;
@@ -83,21 +90,21 @@ int main(int argc, char* argv[])
 		return EXIT_SUCCESS;
 	}
 
-	if (box.overlaps({-2, -3, -4}, {-1.1, -2.1, -3.1})) {
+	if (box.overlaps(MAKE_BOX(-2, -3, -4, -1.1, -2.1, -3.1))) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
 			<< "Cell overlaps box."
 			<< std::endl;
 		abort();
 	}
 
-	if (box.overlaps({1.1, 2.1, 3.1}, {2, 3, 4})) {
+	if (box.overlaps(MAKE_BOX(1.1, 2.1, 3.1, 2, 3, 4))) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
 			<< "Cell overlaps box."
 			<< std::endl;
 		abort();
 	}
 
-	if (not box.overlaps({0, 1, 2}, {5, 5, 5})) {
+	if (not box.overlaps(MAKE_BOX(0, 1, 2, 5, 5, 5))) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
 			<< "Cell does not overlap box."
 			<< std::endl;

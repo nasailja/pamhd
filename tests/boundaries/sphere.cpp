@@ -43,6 +43,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "boundaries/sphere.hpp"
 
 
+#ifdef HAVE_EIGEN
+#define MAKE_VECTOR(a, b, c) {a, b, c}
+#define MAKE_BOX(a, b, c, d, e, f) {a, b, c}, {d, e, f}
+#else
+#define MAKE_VECTOR(a, b, c) {{a, b, c}}
+#define MAKE_BOX(a, b, c, d, e, f) {{a, b, c}}, {{d, e, f}}
+#endif
+
+
 using namespace pamhd::boundaries;
 
 int main(int argc, char* argv[])
@@ -53,7 +62,7 @@ int main(int argc, char* argv[])
 	Sphere<std::array<double, 3>, double> sphere;
 	#endif
 
-	if (not sphere.set_geometry({1, 2, 3}, 1)) {
+	if (not sphere.set_geometry(MAKE_VECTOR(1, 2, 3), 1)) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
 			<< "Couldn't set geometry."
 			<< std::endl;
@@ -83,21 +92,21 @@ int main(int argc, char* argv[])
 		return EXIT_SUCCESS;
 	}
 
-	if (sphere.overlaps({0, 0, 0}, {1, 1, 1})) {
+	if (sphere.overlaps(MAKE_BOX(0, 0, 0, 1, 1, 1))) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
 			<< "Cell overlaps sphere."
 			<< std::endl;
 		abort();
 	}
 
-	if (sphere.overlaps({-1, -2, -3}, {-0.1, 0.9, 1.9})) {
+	if (sphere.overlaps(MAKE_BOX(-1, -2, -3, -0.1, 0.9, 1.9))) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
 			<< "Cell overlaps sphere."
 			<< std::endl;
 		abort();
 	}
 
-	if (not sphere.overlaps({0, 0, 0}, {0.5, 1.5, 2.5})) {
+	if (not sphere.overlaps(MAKE_BOX(0, 0, 0, 0.5, 1.5, 2.5))) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
 			<< "Cell does not overlap sphere."
 			<< std::endl;
