@@ -42,6 +42,7 @@ TEST_PROGRAM_OPTIONS_COMPILE_COMMAND = \
   $(MUPARSERX_CPPFLAGS) \
   $(MUPARSERX_LDFLAGS) \
   $(MUPARSERX_LIBS) \
+  $(PRETTYPRINT_CPPFLAGS) \
   $< -o $@
 
 tests/program_options/variable.exe: \
