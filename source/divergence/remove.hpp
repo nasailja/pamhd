@@ -1,5 +1,5 @@
 /*
-Removes divergence of vector field.
+Functions for working with divergence of vector field.
 
 Copyright 2014 Ilja Honkonen
 All rights reserved.
@@ -68,6 +68,13 @@ template <
 ) {
 	double local_divergence = 0, global_divergence = 0;
 	for (const auto& cell: cells) {
+		if (grid.get_refinement_level(cell) != 0) {
+			std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
+				<< "Adaptive mesh refinement not supported"
+				<< std::endl;
+			abort();
+		}
+
 		const auto cell_length = grid.geometry.get_length(cell);
 
 		const auto face_neighbors_of = grid.get_face_neighbors_of(cell);
@@ -121,7 +128,7 @@ template <
 		for (auto dim = 0; dim < 3; dim++) {
 			// zero contribution to gradient from dims with missing neighbors
 			if (nr_neighbors[dim] == 2) {
-				div	+= vec[dim] * (neigh_pos_dist[dim] - neigh_neg_dist[dim]);
+				div += vec[dim] * (neigh_pos_dist[dim] - neigh_neg_dist[dim]);
 			}
 		}
 
@@ -164,6 +171,175 @@ template <
 	MPI_Comm_free(&comm);
 
 	return global_divergence;
+}
+
+
+/*!
+Calculates gradient of scalar variable in given cells.
+
+See get_divergence() for more info.
+*/
+template <
+	class Grid_T,
+	template<class... Nested_Vars_To_Sca> class Sca_Container,
+	class... Nested_Vars_To_Sca,
+	template<class... Nested_Vars_To_Grad> class Grad_Container,
+	class... Nested_Vars_To_Grad
+> void get_gradient(
+	const std::vector<uint64_t>& cells,
+	Grid_T& grid,
+	const Sca_Container<Nested_Vars_To_Sca...>&,
+	const Grad_Container<Nested_Vars_To_Grad...>&
+) {
+	for (const auto& cell: cells) {
+		if (grid.get_refinement_level(cell) != 0) {
+			std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
+				<< "Adaptive mesh refinement not supported"
+				<< std::endl;
+			abort();
+		}
+
+		const auto cell_length = grid.geometry.get_length(cell);
+
+		const auto face_neighbors_of = grid.get_face_neighbors_of(cell);
+
+		// get distance between neighbors in same dimension
+		std::array<double, 3>
+			// distance from current cell on neg and pos side (> 0)
+			neigh_neg_dist{0, 0, 0},
+			neigh_pos_dist{0, 0, 0};
+
+		// number of neighbors in each dimension
+		std::array<size_t, 3> nr_neighbors{0, 0, 0};
+
+		for (const auto& item: face_neighbors_of) {
+			const auto neighbor = item.first;
+			const auto direction = item.second;
+			if (direction == 0 or std::abs(direction) > 3) {
+				std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
+				abort();
+			}
+			const size_t dim = std::abs(direction) - 1;
+
+			nr_neighbors[dim]++;
+
+			const auto neighbor_length
+				= grid.geometry.get_length(neighbor);
+
+			const double distance
+				= (cell_length[dim] + neighbor_length[dim]) / 2.0;
+
+			if (direction < 0) {
+				neigh_neg_dist[dim] = distance;
+			} else {
+				neigh_pos_dist[dim] = distance;
+			}
+		}
+
+		// calculate gradient
+		auto* const cell_data = grid[cell];
+		if (cell_data == NULL) {
+			std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
+				<< "No data for simulation cell " << cell
+				<< std::endl;
+			abort();
+		}
+
+		const auto& scalar = gensimcell::get(*cell_data, Nested_Vars_To_Sca()...);
+		auto& gradient = gensimcell::get(*cell_data, Nested_Vars_To_Grad()...);
+
+		gradient[0] =
+		gradient[1] =
+		gradient[2] = 0;
+		for (auto dim = 0; dim < 3; dim++) {
+			// gradient is zero in dimensions with missing neighbor(s)
+			if (nr_neighbors[dim] == 2) {
+				gradient[dim] += scalar * (neigh_pos_dist[dim] - neigh_neg_dist[dim]);
+			}
+		}
+
+		for (const auto& item: face_neighbors_of) {
+			const auto neighbor = item.first;
+			const auto direction = item.second;
+			const size_t dim = std::abs(direction) - 1;
+
+			if (nr_neighbors[dim] != 2) {
+				continue;
+			}
+
+			const auto* const neighbor_data = grid[neighbor];
+			if (neighbor_data == NULL) {
+				std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
+					<< "No data for neighbor " << neighbor
+					<< " of cell " << cell
+					<< std::endl;
+				abort();
+			}
+			const auto& neigh_scalar
+				= gensimcell::get(*neighbor_data, Nested_Vars_To_Sca()...);
+
+			double multiplier = 0;
+			if (direction < 0) {
+				multiplier = -neigh_pos_dist[dim] / neigh_neg_dist[dim];
+			} else {
+				multiplier = neigh_neg_dist[dim] / neigh_pos_dist[dim];
+			}
+			multiplier /= (neigh_pos_dist[dim] + neigh_neg_dist[dim]);
+
+			gradient[dim] += multiplier * neigh_scalar;
+		}
+	}
+}
+
+
+/*!
+Removes divergence of Vector_T from given cells.
+
+Vector variable must have been updated between processes
+before calling this function.
+
+Assumes Grid_T API is compatible with dccrg.
+*/
+template <
+	class Grid_T,
+	template<class... Nested_Vars_To_Vec> class Vec_Container,
+	class... Nested_Vars_To_Vec,
+	template<class... Nested_Vars_To_Div> class Div_Container,
+	class... Nested_Vars_To_Div
+> void remove(
+	const std::vector<uint64_t>& cells,
+	Grid_T& simulation_grid,
+	const Vec_Container<Nested_Vars_To_Vec...>&,
+	const Div_Container<Nested_Vars_To_Div...>&
+) {
+	// prepare solution grid and source term
+	/*dccrg::Dccrg<Poisson_Cell, Geometry_T> poisson_grid(simulation_grid);
+
+	for (const auto& cell: cells) {
+		auto* const poisson_data = poisson_grid[cell];
+		if (poisson_data == NULL) {
+			std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
+				<< "No data for poisson cell " << cell
+				<< std::endl;
+			abort();
+		}
+
+		const auto* const simulation_data = simulation_grid[cell];
+		if (simulation_data == NULL) {
+			std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
+				<< "No data for simulation cell " << cell
+				<< std::endl;
+			abort();
+		}
+
+		poisson_data->solution = 0;
+		poisson_data->rhs = (*simulation_data)[Divergence_T()];
+	}
+
+	Poisson_Solver solver;
+	solver.solve(cells, poisson_grid);*/
+
+	// remove divergence with ...
 }
 
 
