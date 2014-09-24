@@ -1,9 +1,11 @@
 TESTS_MUPARSERX_EXECUTABLES = \
   tests/muparserx/compile.exe \
-  tests/muparserx/test1.exe
+  tests/muparserx/test1.exe \
+  tests/muparserx/performance1.exe
 
 TESTS_MUPARSERX_TESTS = \
-  tests/muparserx/test1.tst
+  tests/muparserx/test1.tst \
+  tests/muparserx/performance1.tst
 
 tests/muparserx_executables: $(TESTS_MUPARSERX_EXECUTABLES)
 
@@ -29,6 +31,16 @@ tests/muparserx/compile.exe: tests/muparserx/compile.cpp
 	  $< -o $@
 
 tests/muparserx/test1.exe: tests/muparserx/test1.cpp
+	@echo "CXX "$< && $(CXX) \
+	  $(CPPFLAGS) \
+	  $(CXXFLAGS) \
+	  $(LDFLAGS) \
+	  $(MUPARSERX_CPPFLAGS) \
+	  $(MUPARSERX_LDFLAGS) \
+	  $(MUPARSERX_LIBS) \
+	  $< -o $@
+
+tests/muparserx/performance1.exe: tests/muparserx/performance1.cpp
 	@echo "CXX "$< && $(CXX) \
 	  $(CPPFLAGS) \
 	  $(CXXFLAGS) \

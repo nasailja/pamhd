@@ -1,9 +1,11 @@
 TESTS_EIGENLAB_EXECUTABLES = \
   tests/eigenlab/compile.exe \
-  tests/eigenlab/test1.exe
+  tests/eigenlab/test1.exe \
+  tests/eigenlab/performance1.exe
 
 TESTS_EIGENLAB_TESTS = \
-  tests/eigenlab/test1.tst
+  tests/eigenlab/test1.tst \
+  tests/eigenlab/performance1.tst
 
 tests/eigenlab_executables: $(TESTS_EIGENLAB_EXECUTABLES)
 
@@ -28,6 +30,15 @@ tests/eigenlab/compile.exe: tests/eigenlab/compile.cpp
 	  $< -o $@
 
 tests/eigenlab/test1.exe: tests/eigenlab/test1.cpp
+	@echo "CXX "$< && $(CXX) \
+	  $(CPPFLAGS) \
+	  $(CXXFLAGS) \
+	  $(LDFLAGS) \
+	  $(EIGEN_CPPFLAGS) \
+	  $(EIGENLAB_CPPFLAGS) \
+	  $< -o $@
+
+tests/eigenlab/performance1.exe: tests/eigenlab/performance1.cpp
 	@echo "CXX "$< && $(CXX) \
 	  $(CPPFLAGS) \
 	  $(CXXFLAGS) \
