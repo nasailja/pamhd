@@ -134,46 +134,46 @@ int main(int argc, char* argv[])
 		return EXIT_SUCCESS;
 	}
 
-	if (gol_var_opts.get_data(Is_Alive(), 0, {1, 2, 3}, 4) != true) {
+	if (gol_var_opts.get_data(Is_Alive(), 0, {{1, 2, 3}}, 4) != true) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
 		abort();
 	}
-	if (gol_var_opts.get_data(Is_Alive(), 1, {1, 2, 3}, 4) != false) {
-		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
-		abort();
-	}
-
-	if (mhd_var_opts.get_data(Mass_Density(), 0, {1, 2, 3}, 4) != 1+2+3+4) {
-		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
-		abort();
-	}
-	if (mhd_var_opts.get_data(Mass_Density(), 1, {1, 2, 3}, 4) != 1+2+3+4+1) {
+	if (gol_var_opts.get_data(Is_Alive(), 1, {{1, 2, 3}}, 4) != false) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
 		abort();
 	}
 
-	if (mhd_var_opts.get_data(Momentum_Density(), 0, {1, 2, 3}, 4)[0] != 1) {
+	if (mhd_var_opts.get_data(Mass_Density(), 0, {{1, 2, 3}}, 4) != 1+2+3+4) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
 		abort();
 	}
-	if (mhd_var_opts.get_data(Momentum_Density(), 0, {1, 2, 3}, 4)[1] != 2) {
-		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
-		abort();
-	}
-	if (mhd_var_opts.get_data(Momentum_Density(), 0, {1, 2, 3}, 4)[2] != 3) {
+	if (mhd_var_opts.get_data(Mass_Density(), 1, {{1, 2, 3}}, 4) != 1+2+3+4+1) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
 		abort();
 	}
 
-	if (mhd_var_opts.get_data(Momentum_Density(), 1, {1, 2, 3}, 4)[0] != 5) {
+	if (mhd_var_opts.get_data(Momentum_Density(), 0, {{1, 2, 3}}, 4)[0] != 1) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
 		abort();
 	}
-	if (mhd_var_opts.get_data(Momentum_Density(), 1, {1, 2, 3}, 4)[1] != 6) {
+	if (mhd_var_opts.get_data(Momentum_Density(), 0, {{1, 2, 3}}, 4)[1] != 2) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
 		abort();
 	}
-	if (mhd_var_opts.get_data(Momentum_Density(), 1, {1, 2, 3}, 4)[2] != 7) {
+	if (mhd_var_opts.get_data(Momentum_Density(), 0, {{1, 2, 3}}, 4)[2] != 3) {
+		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
+		abort();
+	}
+
+	if (mhd_var_opts.get_data(Momentum_Density(), 1, {{1, 2, 3}}, 4)[0] != 5) {
+		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
+		abort();
+	}
+	if (mhd_var_opts.get_data(Momentum_Density(), 1, {{1, 2, 3}}, 4)[1] != 6) {
+		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
+		abort();
+	}
+	if (mhd_var_opts.get_data(Momentum_Density(), 1, {{1, 2, 3}}, 4)[2] != 7) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
 		abort();
 	}

@@ -89,11 +89,12 @@ using Sphere_Boundary = Boundary<
 	Mass_Density
 >;
 
-
 #ifdef HAVE_EIGEN
 #define MAKE_VEC(x, y, z) Eigen::Vector3d(x, y, z)
+#define MAKE_BOX(a, b, c, d, e, f) MAKE_VEC(a, b, c), MAKE_VEC(d, e, f)
 #else
-#define MAKE_VEC(x, y, z) std::array<double, 3>{x, y, z}
+#define MAKE_VEC(x, y, z) std::array<double, 3>{{x, y, z}}
+#define MAKE_BOX(a, b, c, d, e, f) MAKE_VEC(a, b, c), MAKE_VEC(d, e, f)
 #endif
 
 
@@ -103,13 +104,13 @@ int main(int argc, char* argv[])
 	Sphere_Boundary sphere;
 
 	// set defaults
-	box.geometry.set_geometry({-1, -2, -3}, {1, 2, 3});
+	box.geometry.set_geometry(MAKE_BOX(-1, -2, -3, 1, 2, 3));
 	box.boundary_data.set_expression(
 		Mass_Density(),
 		"r[0] + r[1] + r[2] + t"
 	);
 
-	sphere.geometry.set_geometry({1, 2, 3}, 1);
+	sphere.geometry.set_geometry(MAKE_VEC(1, 2, 3), 1);
 	sphere.boundary_data.set_expression(
 		Mass_Density(),
 		"r[0] + r[1] + r[2] + t + 1"
@@ -148,19 +149,19 @@ int main(int argc, char* argv[])
 	/*
 	Test box boundary
 	*/
-	if (not box.add_cell(-2, MAKE_VEC(0, 0, 0), MAKE_VEC(0.5, 1.5, 2.5))) {
+	if (not box.add_cell(-2, MAKE_BOX(0, 0, 0, 0.5, 1.5, 2.5))) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
 			<< "Cell not added to box."
 			<< std::endl;
 		return EXIT_FAILURE;
 	}
-	if (box.add_cell(-1, MAKE_VEC(-2, -3, -4), MAKE_VEC(-1.1, -2.1, -3.1))) {
+	if (box.add_cell(-1, MAKE_BOX(-2, -3, -4, -1.1, -2.1, -3.1))) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
 			<< "Cell added to box."
 			<< std::endl;
 		return EXIT_FAILURE;
 	}
-	if (not box.add_cell(0, MAKE_VEC(0, 0, 0), MAKE_VEC(1.5, 2.5, 3.5))) {
+	if (not box.add_cell(0, MAKE_BOX(0, 0, 0, 1.5, 2.5, 3.5))) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
 			<< "Cell not added to box."
 			<< std::endl;
@@ -186,7 +187,7 @@ int main(int argc, char* argv[])
 		return EXIT_FAILURE;
 	}
 
-	double result = box.boundary_data.get_data(Mass_Density(), {1, 2, 3}, 4);
+	double result = box.boundary_data.get_data(Mass_Density(), {{1, 2, 3}}, 4);
 	if (result != 10) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << result << std::endl;
 		return EXIT_FAILURE;
@@ -195,19 +196,19 @@ int main(int argc, char* argv[])
 	/*
 	Test sphere boundary
 	*/
-	if (not sphere.add_cell(2, MAKE_VEC(0, 0, 0), MAKE_VEC(0.5, 1.5, 2.5))) {
+	if (not sphere.add_cell(2, MAKE_BOX(0, 0, 0, 0.5, 1.5, 2.5))) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
 			<< "Cell not added to sphere."
 			<< std::endl;
 		return EXIT_FAILURE;
 	}
-	if (sphere.add_cell(1, MAKE_VEC(-2, -3, -4), MAKE_VEC(-1.1, -2.1, -3.1))) {
+	if (sphere.add_cell(1, MAKE_BOX(-2, -3, -4, -1.1, -2.1, -3.1))) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
 			<< "Cell added to sphere."
 			<< std::endl;
 		return EXIT_FAILURE;
 	}
-	if (not sphere.add_cell(0, MAKE_VEC(0, 0, 0), MAKE_VEC(1.5, 2.5, 3.5))) {
+	if (not sphere.add_cell(0, MAKE_BOX(0, 0, 0, 1.5, 2.5, 3.5))) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
 			<< "Cell not added to sphere."
 			<< std::endl;
@@ -233,7 +234,7 @@ int main(int argc, char* argv[])
 		return EXIT_FAILURE;
 	}
 
-	result = sphere.boundary_data.get_data(Mass_Density(), {1, 2, 3}, 4);
+	result = sphere.boundary_data.get_data(Mass_Density(), {{1, 2, 3}}, 4);
 	if (result != 11) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
 		return EXIT_FAILURE;

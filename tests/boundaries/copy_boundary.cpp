@@ -43,7 +43,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 using namespace pamhd::boundaries;
 
-#define MAKE_VEC(x, y, z) std::array<double, 3>{x, y, z}
+#define MAKE_VEC(x, y, z) std::array<double, 3>{{x, y, z}}
+#define MAKE_BOX(a, b, c, d, e, f) MAKE_VEC(a, b, c), MAKE_VEC(d, e, f)
 
 int main(int argc, char* argv[])
 {
@@ -56,7 +57,7 @@ int main(int argc, char* argv[])
 	//! Set default values
 	boost::optional<size_t> result;
 
-	result = boundary.add_box(MAKE_VEC(0, 0, 0), MAKE_VEC(1, 1, 1));
+	result = boundary.add_box(MAKE_BOX(0, 0, 0, 1, 1, 1));
 	if (not result or *result != 0) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
 			<< "Invalid boundary id for added box: " << *result
@@ -125,19 +126,19 @@ int main(int argc, char* argv[])
 		boost::program_options::notify(option_variables);
 	}
 
-	if (boundary.add_cell(-1, MAKE_VEC(0.1, 0.1, 0.1), MAKE_VEC(0.9, 0.9, 0.9)) != 2) {
+	if (boundary.add_cell(-1, MAKE_BOX(0.1, 0.1, 0.1, 0.9, 0.9, 0.9)) != 2) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
 		abort();
 	}
-	if (boundary.add_cell(-2, MAKE_VEC(1.1, 1.1, 1.1), MAKE_VEC(1.9, 1.9, 1.9)) != 1) {
+	if (boundary.add_cell(-2, MAKE_BOX(1.1, 1.1, 1.1, 1.9, 1.9, 1.9)) != 1) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
 		abort();
 	}
-	if (boundary.add_cell(-3, MAKE_VEC(4, 4, 4), MAKE_VEC(5, 5, 5)) != 0) {
+	if (boundary.add_cell(-3, MAKE_BOX(4, 4, 4, 5, 5, 5)) != 0) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
 		abort();
 	}
-	if (boundary.add_cell(-4, MAKE_VEC(5, 5, 5), MAKE_VEC(6, 6, 6)) != 0) {
+	if (boundary.add_cell(-4, MAKE_BOX(5, 5, 5, 6, 6, 6)) != 0) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
 		abort();
 	}
@@ -145,7 +146,7 @@ int main(int argc, char* argv[])
 	boundary.add_as_other_boundary(-5);
 	boundary.add_as_other_boundary(-6);
 
-	if (boundary.add_cell(-7, MAKE_VEC(0, 0, 0), MAKE_VEC(1, 1, 1)) != 2) {
+	if (boundary.add_cell(-7, MAKE_BOX(0, 0, 0, 1, 1, 1)) != 2) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
 		abort();
 	}

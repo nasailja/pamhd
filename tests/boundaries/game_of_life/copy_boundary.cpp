@@ -68,14 +68,14 @@ array<double, 3> get_cell_start(
 		cell[1] >= grid.size()
 		or cell[0] >= grid[cell[1]].size()
 	) {
-		return {
+		return {{
 			std::numeric_limits<double>::quiet_NaN(),
 			std::numeric_limits<double>::quiet_NaN(),
 			std::numeric_limits<double>::quiet_NaN()
-		};
+		}};
 	}
 
-	return {double(cell[1]), double(cell[0]), 0};
+	return {{double(cell[1]), double(cell[0]), 0}};
 }
 
 
@@ -87,14 +87,14 @@ array<double, 3> get_cell_end(
 		cell[1] >= grid.size()
 		or cell[0] >= grid[cell[1]].size()
 	) {
-		return {
+		return {{
 			std::numeric_limits<double>::quiet_NaN(),
 			std::numeric_limits<double>::quiet_NaN(),
 			std::numeric_limits<double>::quiet_NaN()
-		};
+		}};
 	}
 
-	return {double(cell[1] + 1), double(cell[0] + 1), 1};
+	return {{double(cell[1] + 1), double(cell[0] + 1), 1}};
 }
 
 
@@ -151,7 +151,8 @@ size_t get_number_of_live_cells(const Grid& grid)
 	return live_cells;
 }
 
-#define MAKE_VEC(x, y, z) std::array<double, 3>{x, y, z}
+#define MAKE_VEC(x, y, z) std::array<double, 3>{{x, y, z}}
+#define MAKE_BOX(a, b, c, d, e, f) MAKE_VEC(a, b, c), MAKE_VEC(d, e, f)
 
 
 /*
@@ -216,7 +217,7 @@ int main(int argc, char* argv[])
 	boost::optional<size_t> result;
 
 	// lower half of block
-	result = boundary.add_box(MAKE_VEC(1.1, 2.1, 0), MAKE_VEC(2.9, 2.9, 1));
+	result = boundary.add_box(MAKE_BOX(1.1, 2.1, 0, 2.9, 2.9, 1));
 	if (not result or *result != 0) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
 			<< "Invalid boundary id for added box: " << *result
@@ -225,14 +226,14 @@ int main(int argc, char* argv[])
 	}
 
 	// lower and right part of blinker
-	result = boundary.add_box(MAKE_VEC(8.1, 3.1, 0), MAKE_VEC(8.9, 3.9, 1));
+	result = boundary.add_box(MAKE_BOX(8.1, 3.1, 0, 8.9, 3.9, 1));
 	if (not result or *result != 1) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
 			<< "Invalid boundary id for added box: " << *result
 			<< std::endl;
 		abort();
 	}
-	result = boundary.add_box(MAKE_VEC(9.1, 2.1, 0), MAKE_VEC(9.9, 2.9, 1));
+	result = boundary.add_box(MAKE_BOX(9.1, 2.1, 0, 9.9, 2.9, 1));
 	if (not result or *result != 2) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
 			<< "Invalid boundary id for added box: " << *result
@@ -241,7 +242,7 @@ int main(int argc, char* argv[])
 	}
 
 	// lower half of beacon
-	result = boundary.add_box(MAKE_VEC(3.1, 8.1, 0), MAKE_VEC(4.9, 9.9, 1));
+	result = boundary.add_box(MAKE_BOX(3.1, 8.1, 0, 4.9, 9.9, 1));
 	if (not result or *result != 3) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
 			<< "Invalid boundary id for added box: " << *result
@@ -304,7 +305,7 @@ int main(int argc, char* argv[])
 	}
 
 	// cells in lower half of block
-	cell = {2, 1};
+	cell = {{2, 1}};
 	if (
 		boundary.add_cell(
 			cell,
@@ -315,7 +316,7 @@ int main(int argc, char* argv[])
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
 		abort();
 	}
-	cell = {2, 2};
+	cell = {{2, 2}};
 	if (
 		boundary.add_cell(
 			cell,
@@ -328,7 +329,7 @@ int main(int argc, char* argv[])
 	}
 
 	// copy cells of blinker
-	cell = {3, 8};
+	cell = {{3, 8}};
 	if (
 		boundary.add_cell(
 			cell,
@@ -339,7 +340,7 @@ int main(int argc, char* argv[])
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
 		abort();
 	}
-	cell = {2, 9};
+	cell = {{2, 9}};
 	if (
 		boundary.add_cell(
 			cell,
@@ -352,7 +353,7 @@ int main(int argc, char* argv[])
 	}
 
 	// beacon
-	cell = {8, 3};
+	cell = {{8, 3}};
 	if (
 		boundary.add_cell(
 			cell,
@@ -363,7 +364,7 @@ int main(int argc, char* argv[])
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
 		abort();
 	}
-	cell = {8, 4};
+	cell = {{8, 4}};
 	if (
 		boundary.add_cell(
 			cell,
@@ -374,7 +375,7 @@ int main(int argc, char* argv[])
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
 		abort();
 	}
-	cell = {9, 3};
+	cell = {{9, 3}};
 	if (
 		boundary.add_cell(
 			cell,
@@ -385,7 +386,7 @@ int main(int argc, char* argv[])
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
 		abort();
 	}
-	cell = {9, 4};
+	cell = {{9, 4}};
 	if (
 		boundary.add_cell(
 			cell,
@@ -403,54 +404,54 @@ int main(int argc, char* argv[])
 	*/
 
 	// block
-	cell = {2, 1};
-	neighbors_of = {{1, 1}};
+	cell = {{2, 1}};
+	neighbors_of = {{{1, 1}}};
 	if (boundary.set_neighbors_of(cell, neighbors_of) != 1) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
 		abort();
 	}
-	cell = {2, 2};
-	neighbors_of = {{1, 2}};
+	cell = {{2, 2}};
+	neighbors_of = {{{1, 2}}};
 	if (boundary.set_neighbors_of(cell, neighbors_of) != 1) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
 		abort();
 	}
 
 	// blinker
-	cell = {3, 8};
-	neighbors_of = {{1, 8}};
+	cell = {{3, 8}};
+	neighbors_of = {{{1, 8}}};
 	if (boundary.set_neighbors_of(cell, neighbors_of) != 1) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
 		abort();
 	}
-	cell = {2, 9};
-	neighbors_of = {{2, 7}};
+	cell = {{2, 9}};
+	neighbors_of = {{{2, 7}}};
 	if (boundary.set_neighbors_of(cell, neighbors_of) != 1) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
 		abort();
 	}
 
 	// bacon
-	cell = {8, 3};
-	neighbors_of = {{7, 2}};
+	cell = {{8, 3}};
+	neighbors_of = {{{7, 2}}};
 	if (boundary.set_neighbors_of(cell, neighbors_of) != 1) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
 		abort();
 	}
-	cell = {8, 4};
-	neighbors_of = {{6, 2}};
+	cell = {{8, 4}};
+	neighbors_of = {{{6, 2}}};
 	if (boundary.set_neighbors_of(cell, neighbors_of) != 1) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
 		abort();
 	}
-	cell = {9, 3};
-	neighbors_of = {{7, 1}};
+	cell = {{9, 3}};
+	neighbors_of = {{{7, 1}}};
 	if (boundary.set_neighbors_of(cell, neighbors_of) != 1) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
 		abort();
 	}
-	cell = {9, 4};
-	neighbors_of = {{6, 1}};
+	cell = {{9, 4}};
+	neighbors_of = {{{6, 1}}};
 	if (boundary.set_neighbors_of(cell, neighbors_of) != 1) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
 		abort();

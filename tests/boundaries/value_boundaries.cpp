@@ -90,8 +90,10 @@ struct Momentum_Density {
 
 #ifdef HAVE_EIGEN
 #define MAKE_VEC(x, y, z) Eigen::Vector3d(x, y, z)
+#define MAKE_BOX(a, b, c, d, e, f) MAKE_VEC(a, b, c), MAKE_VEC(d, e, f)
 #else
-#define MAKE_VEC(x, y, z) std::array<double, 3>{x, y, z}
+#define MAKE_VEC(x, y, z) std::array<double, 3>{{x, y, z}}
+#define MAKE_BOX(a, b, c, d, e, f) MAKE_VEC(a, b, c), MAKE_VEC(d, e, f)
 #endif
 
 
@@ -131,8 +133,8 @@ int main(int argc, char* argv[])
 	boundaries.boxes[0].set_number_of_instances(2);
 	boundaries.boxes[0].set_time_stamp(0, 0.5);
 	boundaries.boxes[0].set_time_stamp(1, 1.5);
-	boundaries.boxes[0].geometries.set_geometry(0, MAKE_VEC(0, 0, 0), MAKE_VEC(1, 1, 1));
-	boundaries.boxes[0].geometries.set_geometry(1, MAKE_VEC(1, 1, 1), MAKE_VEC(2, 2, 2));
+	boundaries.boxes[0].geometries.set_geometry(0, MAKE_BOX(0, 0, 0, 1, 1, 1));
+	boundaries.boxes[0].geometries.set_geometry(1, MAKE_BOX(1, 1, 1, 2, 2, 2));
 	boundaries.boxes[0].boundary_data.set_expression(
 		Mass_Density(),
 		0,
@@ -225,27 +227,27 @@ int main(int argc, char* argv[])
 
 
 	// test cell classification logic
-	if (boundaries.add_cell(0, -1, MAKE_VEC(0, 0, 0), MAKE_VEC(1, 1, 1)) != 1) {
+	if (boundaries.add_cell(0, -1, MAKE_BOX(0, 0, 0, 1, 1, 1)) != 1) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
 		abort();
 	}
-	if (boundaries.add_cell(0, -2, MAKE_VEC(1, 1, 1), MAKE_VEC(2, 2, 2)) != 0) {
+	if (boundaries.add_cell(0, -2, MAKE_BOX(1, 1, 1, 2, 2, 2)) != 0) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
 		abort();
 	}
-	if (boundaries.add_cell(1, -3, MAKE_VEC(0, 0, 0), MAKE_VEC(1, 1, 1)) != 1) {
+	if (boundaries.add_cell(1, -3, MAKE_BOX(0, 0, 0, 1, 1, 1)) != 1) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
 		abort();
 	}
-	if (boundaries.add_cell(1, -4, MAKE_VEC(1, 1, 1), MAKE_VEC(2, 2, 2)) != 0) {
+	if (boundaries.add_cell(1, -4, MAKE_BOX(1, 1, 1, 2, 2, 2)) != 0) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
 		abort();
 	}
-	if (boundaries.add_cell(2, -5, MAKE_VEC(0, 0, 0), MAKE_VEC(1, 1, 1)) != 0) {
+	if (boundaries.add_cell(2, -5, MAKE_BOX(0, 0, 0, 1, 1, 1)) != 0) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
 		abort();
 	}
-	if (boundaries.add_cell(2, -6, MAKE_VEC(1, 1, 1), MAKE_VEC(2, 2, 2)) != 2) {
+	if (boundaries.add_cell(2, -6, MAKE_BOX(1, 1, 1, 2, 2, 2)) != 2) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
 		abort();
 	}
@@ -259,36 +261,36 @@ int main(int argc, char* argv[])
 	}
 
 	// expression logic
-	if (boundaries.get_data(Mass_Density(), 0, {1, 2, 3}, 0) != 6) {
+	if (boundaries.get_data(Mass_Density(), 0, {{1, 2, 3}}, 0) != 6) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
 		abort();
 	}
-	if (boundaries.get_data(Mass_Density(), 0, {1, 2, 3}, 1) != 7) {
+	if (boundaries.get_data(Mass_Density(), 0, {{1, 2, 3}}, 1) != 7) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
 		abort();
 	}
-	if (boundaries.get_data(Mass_Density(), 0, {1, 2, 3}, 2) != 9) {
+	if (boundaries.get_data(Mass_Density(), 0, {{1, 2, 3}}, 2) != 9) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
 		abort();
 	}
-	if (boundaries.get_data(Mass_Density(), 0, {1, 2, 3}, 3) != 10) {
+	if (boundaries.get_data(Mass_Density(), 0, {{1, 2, 3}}, 3) != 10) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
 		abort();
 	}
 
-	if (boundaries.get_data(Mass_Density(), 1, {1, 2, 3}, 0) != 7) {
+	if (boundaries.get_data(Mass_Density(), 1, {{1, 2, 3}}, 0) != 7) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
 		abort();
 	}
-	if (boundaries.get_data(Mass_Density(), 1, {1, 2, 3}, 1) != 8) {
+	if (boundaries.get_data(Mass_Density(), 1, {{1, 2, 3}}, 1) != 8) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
 		abort();
 	}
-	if (boundaries.get_data(Mass_Density(), 1, {1, 2, 3}, 2) != 10) {
+	if (boundaries.get_data(Mass_Density(), 1, {{1, 2, 3}}, 2) != 10) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
 		abort();
 	}
-	if (boundaries.get_data(Mass_Density(), 1, {1, 2, 3}, 3) != 11) {
+	if (boundaries.get_data(Mass_Density(), 1, {{1, 2, 3}}, 3) != 11) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
 		abort();
 	}

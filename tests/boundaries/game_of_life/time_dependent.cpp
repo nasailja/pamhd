@@ -105,18 +105,18 @@ array<double, 3> get_cell_start(
 		cell[1] >= grid.size()
 		or cell[0] >= grid[cell[1]].size()
 	) {
-		return {
+		return {{
 			std::numeric_limits<double>::quiet_NaN(),
 			std::numeric_limits<double>::quiet_NaN(),
 			std::numeric_limits<double>::quiet_NaN()
-		};
+		}};
 	}
 
-	return {
+	return {{
 		-1.0 + cell[0] * 2.0 / grid[cell[1]].size(),
 		1.0 - (1 + cell[1]) * 2.0 / grid.size(),
 		-1
-	};
+	}};
 }
 
 
@@ -128,18 +128,18 @@ array<double, 3> get_cell_end(
 		cell[1] >= grid.size()
 		or cell[0] >= grid[cell[1]].size()
 	) {
-		return {
+		return {{
 			std::numeric_limits<double>::quiet_NaN(),
 			std::numeric_limits<double>::quiet_NaN(),
 			std::numeric_limits<double>::quiet_NaN()
-		};
+		}};
 	}
 
-	return {
+	return {{
 		-1.0 + (1 + cell[0]) * 2.0 / grid[cell[1]].size(),
 		1.0 - cell[1] * 2.0 / grid.size(),
 		1
-	};
+	}};
 }
 
 
@@ -176,7 +176,8 @@ size_t get_number_of_live_cells(const Grid& grid)
 	return live_cells;
 }
 
-#define MAKE_VEC(x, y, z) std::array<double, 3>{x, y, z}
+#define MAKE_VEC(x, y, z) std::array<double, 3>{{x, y, z}}
+#define MAKE_BOX(a, b, c, d, e, f) MAKE_VEC(a, b, c), MAKE_VEC(d, e, f)
 
 int main(int argc, char* argv[])
 {
@@ -200,11 +201,11 @@ int main(int argc, char* argv[])
 	bdy1.set_time_stamp(2, 2);
 	bdy1.set_time_stamp(3, 15);
 	bdy1.set_time_stamp(4, 16);
-	bdy1.geometries.set_geometry(0, MAKE_VEC(-0.5, 0.5, -1), MAKE_VEC(-0.25, 0.75, 1));
-	bdy1.geometries.set_geometry(1, MAKE_VEC(-0.5, 0.5, -1), MAKE_VEC(-0.25, 0.75, 1));
-	bdy1.geometries.set_geometry(2, MAKE_VEC(-0.5, 0.5, -1), MAKE_VEC(-0.25, 0.75, 1));
-	bdy1.geometries.set_geometry(3, MAKE_VEC(-0.5, 0.5, -1), MAKE_VEC(-0.25, 0.75, 1));
-	bdy1.geometries.set_geometry(4, MAKE_VEC(-0.5, 0.5, -1), MAKE_VEC(-0.25, 0.75, 1));
+	bdy1.geometries.set_geometry(0, MAKE_BOX(-0.5, 0.5, -1, -0.25, 0.75, 1));
+	bdy1.geometries.set_geometry(1, MAKE_BOX(-0.5, 0.5, -1, -0.25, 0.75, 1));
+	bdy1.geometries.set_geometry(2, MAKE_BOX(-0.5, 0.5, -1, -0.25, 0.75, 1));
+	bdy1.geometries.set_geometry(3, MAKE_BOX(-0.5, 0.5, -1, -0.25, 0.75, 1));
+	bdy1.geometries.set_geometry(4, MAKE_BOX(-0.5, 0.5, -1, -0.25, 0.75, 1));
 	bdy1.boundary_data.set_expression(Is_Alive(), 0, "false");
 	bdy1.boundary_data.set_expression(Is_Alive(), 1, "true");
 	bdy1.boundary_data.set_expression(Is_Alive(), 2, "false");
@@ -217,11 +218,11 @@ int main(int argc, char* argv[])
 	bdy2.set_time_stamp(2, 2);
 	bdy2.set_time_stamp(3, 15);
 	bdy2.set_time_stamp(4, 16);
-	bdy2.geometries.set_geometry(0, MAKE_VEC(-0.25, 0.25, -1), MAKE_VEC(0, 0.5, 1));
-	bdy2.geometries.set_geometry(1, MAKE_VEC(-0.25, 0.25, -1), MAKE_VEC(0, 0.5, 1));
-	bdy2.geometries.set_geometry(2, MAKE_VEC(-0.25, 0.25, -1), MAKE_VEC(0, 0.5, 1));
-	bdy2.geometries.set_geometry(3, MAKE_VEC(-0.25, 0.25, -1), MAKE_VEC(0, 0.5, 1));
-	bdy2.geometries.set_geometry(4, MAKE_VEC(-0.25, 0.25, -1), MAKE_VEC(0, 0.5, 1));
+	bdy2.geometries.set_geometry(0, MAKE_BOX(-0.25, 0.25, -1, 0, 0.5, 1));
+	bdy2.geometries.set_geometry(1, MAKE_BOX(-0.25, 0.25, -1, 0, 0.5, 1));
+	bdy2.geometries.set_geometry(2, MAKE_BOX(-0.25, 0.25, -1, 0, 0.5, 1));
+	bdy2.geometries.set_geometry(3, MAKE_BOX(-0.25, 0.25, -1, 0, 0.5, 1));
+	bdy2.geometries.set_geometry(4, MAKE_BOX(-0.25, 0.25, -1, 0, 0.5, 1));
 	bdy2.boundary_data.set_expression(Is_Alive(), 0, "false");
 	bdy2.boundary_data.set_expression(Is_Alive(), 1, "true");
 	bdy2.boundary_data.set_expression(Is_Alive(), 2, "false");
@@ -234,11 +235,11 @@ int main(int argc, char* argv[])
 	bdy3.set_time_stamp(2, 2);
 	bdy3.set_time_stamp(3, 15);
 	bdy3.set_time_stamp(4, 16);
-	bdy3.geometries.set_geometry(0, MAKE_VEC(-0.75, 0, -1), MAKE_VEC(0, 0.25, 1));
-	bdy3.geometries.set_geometry(1, MAKE_VEC(-0.75, 0, -1), MAKE_VEC(0, 0.25, 1));
-	bdy3.geometries.set_geometry(2, MAKE_VEC(-0.75, 0, -1), MAKE_VEC(0, 0.25, 1));
-	bdy3.geometries.set_geometry(3, MAKE_VEC(-0.75, 0, -1), MAKE_VEC(0, 0.25, 1));
-	bdy3.geometries.set_geometry(4, MAKE_VEC(-0.75, 0, -1), MAKE_VEC(0, 0.25, 1));
+	bdy3.geometries.set_geometry(0, MAKE_BOX(-0.75, 0, -1, 0, 0.25, 1));
+	bdy3.geometries.set_geometry(1, MAKE_BOX(-0.75, 0, -1, 0, 0.25, 1));
+	bdy3.geometries.set_geometry(2, MAKE_BOX(-0.75, 0, -1, 0, 0.25, 1));
+	bdy3.geometries.set_geometry(3, MAKE_BOX(-0.75, 0, -1, 0, 0.25, 1));
+	bdy3.geometries.set_geometry(4, MAKE_BOX(-0.75, 0, -1, 0, 0.25, 1));
 	bdy3.boundary_data.set_expression(Is_Alive(), 0, "false");
 	bdy3.boundary_data.set_expression(Is_Alive(), 1, "true");
 	bdy3.boundary_data.set_expression(Is_Alive(), 2, "false");
@@ -320,7 +321,7 @@ int main(int argc, char* argv[])
 			for (size_t row_i = 0; row_i < grid.size(); row_i++) {
 			for (size_t cell_i = 0; cell_i < grid[row_i].size(); cell_i++) {
 
-				const std::array<size_t, 2> cell{row_i, cell_i};
+				const std::array<size_t, 2> cell{{row_i, cell_i}};
 
 				bdy1.add_cell(
 					turn,
@@ -345,19 +346,19 @@ int main(int argc, char* argv[])
 			for (const auto& cell: bdy1.get_cells()) {
 				const size_t row_i = cell[1], cell_i = cell[0];
 				grid[row_i][cell_i].is_alive
-					= bdy1.get_data(Is_Alive(), {0, 0, 0}, turn);
+					= bdy1.get_data(Is_Alive(), {{0, 0, 0}}, turn);
 			}
 
 			for (const auto& cell: bdy2.get_cells()) {
 				const size_t row_i = cell[1], cell_i = cell[0];
 				grid[row_i][cell_i].is_alive
-					= bdy2.get_data(Is_Alive(), {0, 0, 0}, turn);
+					= bdy2.get_data(Is_Alive(), {{0, 0, 0}}, turn);
 			}
 
 			for (const auto& cell: bdy3.get_cells()) {
 				const size_t row_i = cell[1], cell_i = cell[0];
 				grid[row_i][cell_i].is_alive
-					= bdy3.get_data(Is_Alive(), {0, 0, 0}, turn);
+					= bdy3.get_data(Is_Alive(), {{0, 0, 0}}, turn);
 			}
 		}
 

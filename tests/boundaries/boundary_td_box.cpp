@@ -91,8 +91,10 @@ struct Momentum_Density {
 
 #ifdef HAVE_EIGEN
 #define MAKE_VEC(x, y, z) Eigen::Vector3d(x, y, z)
+#define MAKE_BOX(a, b, c, d, e, f) MAKE_VEC(a, b, c), MAKE_VEC(d, e, f)
 #else
-#define MAKE_VEC(x, y, z) std::array<double, 3>{x, y, z}
+#define MAKE_VEC(x, y, z) std::array<double, 3>{{x, y, z}}
+#define MAKE_BOX(a, b, c, d, e, f) MAKE_VEC(a, b, c), MAKE_VEC(d, e, f)
 #endif
 
 
@@ -115,7 +117,7 @@ int main(int argc, char* argv[])
 	// set default values
 	bdy1.set_number_of_instances(1);
 	bdy1.set_time_stamp(0, 0);
-	bdy1.geometries.set_geometry(0, MAKE_VEC(0, 0, 0), MAKE_VEC(1, 1, 1));
+	bdy1.geometries.set_geometry(0, MAKE_BOX(0, 0, 0, 1, 1, 1));
 	bdy1.boundary_data.set_expression(
 		Mass_Density(),
 		0,
@@ -130,8 +132,8 @@ int main(int argc, char* argv[])
 	bdy2.set_number_of_instances(2);
 	bdy2.set_time_stamp(0, 0);
 	bdy2.set_time_stamp(1, 1);
-	bdy2.geometries.set_geometry(0, MAKE_VEC(0, 0, 0), MAKE_VEC(1, 1, 1));
-	bdy2.geometries.set_geometry(1, MAKE_VEC(1, 1, 1), MAKE_VEC(2, 2, 2));
+	bdy2.geometries.set_geometry(0, MAKE_BOX(0, 0, 0, 1, 1, 1));
+	bdy2.geometries.set_geometry(1, MAKE_BOX(1, 1, 1, 2, 2, 2));
 	bdy2.boundary_data.set_expression(
 		Mass_Density(),
 		0,
@@ -213,15 +215,15 @@ int main(int argc, char* argv[])
 	*/
 
 	// cell classification logic
-	if (not bdy1.add_cell(-1, 0, MAKE_VEC(0, 0, 0), MAKE_VEC(1, 1, 1))) {
+	if (not bdy1.add_cell(-1, 0, MAKE_BOX(0, 0, 0, 1, 1, 1))) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
 		abort();
 	}
-	if (not bdy1.add_cell(0, 1, MAKE_VEC(0, 0, 0), MAKE_VEC(1, 1, 1))) {
+	if (not bdy1.add_cell(0, 1, MAKE_BOX(0, 0, 0, 1, 1, 1))) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
 		abort();
 	}
-	if (not bdy1.add_cell(1, 2, MAKE_VEC(0, 0, 0), MAKE_VEC(1, 1, 1))) {
+	if (not bdy1.add_cell(1, 2, MAKE_BOX(0, 0, 0, 1, 1, 1))) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
 		abort();
 	}
@@ -230,42 +232,42 @@ int main(int argc, char* argv[])
 		abort();
 	}
 
-	if (bdy1.add_cell(-1, 3, MAKE_VEC(-2, -2, -2), MAKE_VEC(-1, -1, -1))) {
+	if (bdy1.add_cell(-1, 3, MAKE_BOX(-2, -2, -2, -1, -1, -1))) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
 		abort();
 	}
-	if (bdy1.add_cell(0, 4, MAKE_VEC(2, 2, 2), MAKE_VEC(3, 3, 3))) {
+	if (bdy1.add_cell(0, 4, MAKE_BOX(2, 2, 2, 3, 3, 3))) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
 		abort();
 	}
-	if (bdy1.add_cell(1, 5, MAKE_VEC(-2, 0, 0), MAKE_VEC(-1, 1, 1))) {
+	if (bdy1.add_cell(1, 5, MAKE_BOX(-2, 0, 0, -1, 1, 1))) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
 		abort();
 	}
 
 	// expression logic
-	if (bdy1.get_data(Mass_Density(), {1, 2, 3}, -1) != 5) {
+	if (bdy1.get_data(Mass_Density(), {{1, 2, 3}}, -1) != 5) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
 		abort();
 	}
-	if (bdy1.get_data(Mass_Density(), {1, 2, 3}, 0) != 6) {
+	if (bdy1.get_data(Mass_Density(), {{1, 2, 3}}, 0) != 6) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
 		abort();
 	}
-	if (bdy1.get_data(Mass_Density(), {1, 2, 3}, 1) != 7) {
+	if (bdy1.get_data(Mass_Density(), {{1, 2, 3}}, 1) != 7) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
 		abort();
 	}
 
-	if (bdy1.get_data(Momentum_Density(), {1, 2, 3}, -1)[0] != 0) {
+	if (bdy1.get_data(Momentum_Density(), {{1, 2, 3}}, -1)[0] != 0) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
 		abort();
 	}
-	if (bdy1.get_data(Momentum_Density(), {1, 2, 3}, 0)[1] != 2) {
+	if (bdy1.get_data(Momentum_Density(), {{1, 2, 3}}, 0)[1] != 2) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
 		abort();
 	}
-	if (bdy1.get_data(Momentum_Density(), {1, 2, 3}, 1)[2] != 4) {
+	if (bdy1.get_data(Momentum_Density(), {{1, 2, 3}}, 1)[2] != 4) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
 		abort();
 	}
@@ -276,19 +278,19 @@ int main(int argc, char* argv[])
 	*/
 
 	// cell classification logic
-	if (not bdy2.add_cell(-1, 0, MAKE_VEC(0, 0, 0), MAKE_VEC(1, 1, 1))) {
+	if (not bdy2.add_cell(-1, 0, MAKE_BOX(0, 0, 0, 1, 1, 1))) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
 		abort();
 	}
-	if (not bdy2.add_cell(0.5, 1, MAKE_VEC(0, 0, 0), MAKE_VEC(1, 1, 1))) {
+	if (not bdy2.add_cell(0.5, 1, MAKE_BOX(0, 0, 0, 1, 1, 1))) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
 		abort();
 	}
-	if (bdy2.add_cell(1.5, 2, MAKE_VEC(0, 0, 0), MAKE_VEC(1, 1, 1))) {
+	if (bdy2.add_cell(1.5, 2, MAKE_BOX(0, 0, 0, 1, 1, 1))) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
 		abort();
 	}
-	if (bdy2.add_cell(2.5, 3, MAKE_VEC(0, 0, 0), MAKE_VEC(1, 1, 1))) {
+	if (bdy2.add_cell(2.5, 3, MAKE_BOX(0, 0, 0, 1, 1, 1))) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
 		abort();
 	}
@@ -298,19 +300,19 @@ int main(int argc, char* argv[])
 	}
 	bdy2.clear_cells();
 
-	if (bdy2.add_cell(-1, 0, MAKE_VEC(1, 1, 1), MAKE_VEC(2, 2, 2))) {
+	if (bdy2.add_cell(-1, 0, MAKE_BOX(1, 1, 1, 2, 2, 2))) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
 		abort();
 	}
-	if (bdy2.add_cell(0.5, 1, MAKE_VEC(1, 1, 1), MAKE_VEC(2, 2, 2))) {
+	if (bdy2.add_cell(0.5, 1, MAKE_BOX(1, 1, 1, 2, 2, 2))) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
 		abort();
 	}
-	if (not bdy2.add_cell(1.5, 2, MAKE_VEC(1, 1, 1), MAKE_VEC(2, 2, 2))) {
+	if (not bdy2.add_cell(1.5, 2, MAKE_BOX(1, 1, 1, 2, 2, 2))) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
 		abort();
 	}
-	if (not bdy2.add_cell(2.5, 3, MAKE_VEC(1, 1, 1), MAKE_VEC(2, 2, 2))) {
+	if (not bdy2.add_cell(2.5, 3, MAKE_BOX(1, 1, 1, 2, 2, 2))) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
 		abort();
 	}
@@ -321,44 +323,44 @@ int main(int argc, char* argv[])
 	bdy2.clear_cells();
 
 	// expression logic
-	if (bdy2.get_data(Mass_Density(), {1, 2, 3}, -1) != 6) {
+	if (bdy2.get_data(Mass_Density(), {{1, 2, 3}}, -1) != 6) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
 		abort();
 	}
-	if (bdy2.get_data(Mass_Density(), {1, 2, 3}, 0) != 7) {
+	if (bdy2.get_data(Mass_Density(), {{1, 2, 3}}, 0) != 7) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
 		abort();
 	}
-	if (bdy2.get_data(Mass_Density(), {1, 2, 3}, 0.5) != 7.5) {
+	if (bdy2.get_data(Mass_Density(), {{1, 2, 3}}, 0.5) != 7.5) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
 		abort();
 	}
-	if (bdy2.get_data(Mass_Density(), {1, 2, 3}, 1.5) != 9.5) {
+	if (bdy2.get_data(Mass_Density(), {{1, 2, 3}}, 1.5) != 9.5) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
 		abort();
 	}
-	if (bdy2.get_data(Mass_Density(), {1, 2, 3}, 3) != 11) {
+	if (bdy2.get_data(Mass_Density(), {{1, 2, 3}}, 3) != 11) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
 		abort();
 	}
 
-	if (bdy2.get_data(Momentum_Density(), {1, 2, 3}, -1)[0] != 1) {
+	if (bdy2.get_data(Momentum_Density(), {{1, 2, 3}}, -1)[0] != 1) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
 		abort();
 	}
-	if (bdy2.get_data(Momentum_Density(), {1, 2, 3}, 0)[1] != 3) {
+	if (bdy2.get_data(Momentum_Density(), {{1, 2, 3}}, 0)[1] != 3) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
 		abort();
 	}
-	if (bdy2.get_data(Momentum_Density(), {1, 2, 3}, 0.5)[2] != 4.5) {
+	if (bdy2.get_data(Momentum_Density(), {{1, 2, 3}}, 0.5)[2] != 4.5) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
 		abort();
 	}
-	if (bdy2.get_data(Momentum_Density(), {1, 2, 3}, 1.5)[2] != 6.5) {
+	if (bdy2.get_data(Momentum_Density(), {{1, 2, 3}}, 1.5)[2] != 6.5) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
 		abort();
 	}
-	if (bdy2.get_data(Momentum_Density(), {1, 2, 3}, 3)[2] != 8) {
+	if (bdy2.get_data(Momentum_Density(), {{1, 2, 3}}, 3)[2] != 8) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
 		abort();
 	}

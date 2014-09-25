@@ -82,11 +82,11 @@ template <
 		// get distance between neighbors in same dimension
 		std::array<double, 3>
 			// distance from current cell on neg and pos side (> 0)
-			neigh_neg_dist{0, 0, 0},
-			neigh_pos_dist{0, 0, 0};
+			neigh_neg_dist{{0, 0, 0}},
+			neigh_pos_dist{{0, 0, 0}};
 
 		// number of neighbors in each dimension
-		std::array<size_t, 3> nr_neighbors{0, 0, 0};
+		std::array<size_t, 3> nr_neighbors{{0, 0, 0}};
 
 		for (const auto& item: face_neighbors_of) {
 			const auto neighbor = item.first;
@@ -206,11 +206,11 @@ template <
 		// get distance between neighbors in same dimension
 		std::array<double, 3>
 			// distance from current cell on neg and pos side (> 0)
-			neigh_neg_dist{0, 0, 0},
-			neigh_pos_dist{0, 0, 0};
+			neigh_neg_dist{{0, 0, 0}},
+			neigh_pos_dist{{0, 0, 0}};
 
 		// number of neighbors in each dimension
-		std::array<size_t, 3> nr_neighbors{0, 0, 0};
+		std::array<size_t, 3> nr_neighbors{{0, 0, 0}};
 
 		for (const auto& item: face_neighbors_of) {
 			const auto neighbor = item.first;

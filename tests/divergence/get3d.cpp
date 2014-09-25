@@ -47,11 +47,11 @@ std::array<double, 3> function(const std::array<double, 3>& r)
 {
 	const double x = r[0], y = r[1], z = r[2];
 
-	return {
+	return {{
 		std::exp(2*x) + 5*x + 6,
 		std::sin(y) * std::cos(y) + 4*y + 5,
 		3*z*z*z - 2*z*z + z - 2
-	};
+	}};
 }
 
 double div_of_function(const std::array<double, 3>& r)

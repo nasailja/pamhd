@@ -103,17 +103,17 @@ array<double, 3> get_cell_start(
 		cell[1] >= grid.size()
 		or cell[0] >= grid[cell[1]].size()
 	) {
-		return {
+		return {{
 			std::numeric_limits<double>::quiet_NaN(),
 			std::numeric_limits<double>::quiet_NaN()
-		};
+		}};
 	}
 
-	return {
+	return {{
 		-1.0 + cell[0] * 2.0 / grid[cell[1]].size(),
 		1.0 - (1 + cell[1]) * 2.0 / grid.size(),
 		-1
-	};
+	}};
 }
 
 
@@ -125,17 +125,17 @@ array<double, 3> get_cell_end(
 		cell[1] >= grid.size()
 		or cell[0] >= grid[cell[1]].size()
 	) {
-		return {
+		return {{
 			std::numeric_limits<double>::quiet_NaN(),
 			std::numeric_limits<double>::quiet_NaN()
-		};
+		}};
 	}
 
-	return {
+	return {{
 		-1.0 + (1 + cell[0]) * 2.0 / grid[cell[1]].size(),
 		1.0 - cell[1] * 2.0 / grid.size(),
 		1
-	};
+	}};
 }
 
 
@@ -172,7 +172,8 @@ size_t get_number_of_live_cells(const Grid& grid)
 	return live_cells;
 }
 
-#define MAKE_VEC(x, y, z) std::array<double, 3>{x, y, z}
+#define MAKE_VEC(x, y, z) std::array<double, 3>{{x, y, z}}
+#define MAKE_BOX(a, b, c, d, e, f) MAKE_VEC(a, b, c), MAKE_VEC(d, e, f)
 
 int main(int argc, char* argv[])
 {
@@ -192,8 +193,7 @@ int main(int argc, char* argv[])
 	boost::optional<size_t> result;
 
 	result = initial_condition.add_box(
-		MAKE_VEC(-0.5, 0.5, -1),
-		MAKE_VEC(-0.25, 0.75, 1)
+		MAKE_BOX(-0.5, 0.5, -1, -0.25, 0.75, 1)
 	);
 	if (not result) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
@@ -203,8 +203,7 @@ int main(int argc, char* argv[])
 	}
 
 	result = initial_condition.add_box(
-		MAKE_VEC(-0.25, 0.25, -1),
-		MAKE_VEC(0, 0.5, 1)
+		MAKE_BOX(-0.25, 0.25, -1, 0, 0.5, 1)
 	);
 	if (not result) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
@@ -214,8 +213,7 @@ int main(int argc, char* argv[])
 	}
 
 	result = initial_condition.add_box(
-		MAKE_VEC(-0.25, 0, -1),
-		MAKE_VEC(0, 0.25, 1)
+		MAKE_BOX(-0.25, 0, -1, 0, 0.25, 1)
 	);
 	if (not result) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
@@ -225,8 +223,7 @@ int main(int argc, char* argv[])
 	}
 
 	result = initial_condition.add_box(
-		MAKE_VEC(-0.5, 0, -1),
-		MAKE_VEC(-0.25, 0.25, 1)
+		MAKE_BOX(-0.5, 0, -1, -0.25, 0.25, 1)
 	);
 	if (not result) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
@@ -236,8 +233,7 @@ int main(int argc, char* argv[])
 	}
 
 	result = initial_condition.add_box(
-		MAKE_VEC(-0.75, 0, -1),
-		MAKE_VEC(-0.5, 0.25, 1)
+		MAKE_BOX(-0.75, 0, -1, -0.5, 0.25, 1)
 	);
 	if (not result) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
@@ -308,14 +304,14 @@ int main(int argc, char* argv[])
 	for (size_t row_i = 0; row_i < grid.size(); row_i++)
 	for (size_t cell_i = 0; cell_i < grid[row_i].size(); cell_i++) {
 		grid[row_i][cell_i].is_alive
-			= initial_condition.default_data.get_data(Is_Alive(), {0, 0, 0}, 0);
+			= initial_condition.default_data.get_data(Is_Alive(), {{0, 0, 0}}, 0);
 	}
 
 	// classify cells into regions given as initial condition
 	for (size_t row_i = 0; row_i < grid.size(); row_i++)
 	for (size_t cell_i = 0; cell_i < grid[row_i].size(); cell_i++) {
 
-		const std::array<size_t, 2> cell{row_i, cell_i};
+		const std::array<size_t, 2> cell{{row_i, cell_i}};
 
 		const size_t result = initial_condition.add_cell(
 			cell,
@@ -348,7 +344,7 @@ int main(int argc, char* argv[])
 			grid[row_i][cell_i].is_alive = initial_condition.get_data(
 				Is_Alive(),
 				bdy_i,
-				{0, 0, 0},
+				{{0, 0, 0}},
 				0
 			);
 		}

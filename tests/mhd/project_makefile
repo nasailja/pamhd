@@ -69,8 +69,6 @@ tests/mhd/test.exe: tests/mhd/test.cpp $(MHD_COMMON_HEADERS)
 	  $(CXXFLAGS) \
 	  $(LDFLAGS) \
 	  $(DCCRG_CPPFLAGS) \
-	  $(DCCRG_LDFLAGS) \
-	  $(DCCRG_LIBS) \
 	  $(EIGEN_CPPFLAGS) \
 	  $(GENSIMCELL_CPPFLAGS) \
 	  $(BOOST_CPPFLAGS) \

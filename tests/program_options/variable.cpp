@@ -211,19 +211,19 @@ int main(int argc, char* argv[])
 		return EXIT_SUCCESS;
 	}
 
-	if (rho_opts_test.get_data(Mass_Density(), {0, 0, 0}) != 3) {
+	if (rho_opts_test.get_data(Mass_Density(), {{0, 0, 0}}) != 3) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
 			<< "Incorrect value for mass density: "
-			<< rho_opts_test.get_data(Mass_Density(), {0, 0, 0})
+			<< rho_opts_test.get_data(Mass_Density(), {{0, 0, 0}})
 			<< ", should be 3."
 			<< std::endl;
 		abort();
 	}
 
-	if (mom_opts_test.get_data(Momentum_Density(), {0, 0, 0})[1] != 2) {
+	if (mom_opts_test.get_data(Momentum_Density(), {{0, 0, 0}})[1] != 2) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
 			<< "Incorrect value for momentum density: "
-			<< mom_opts_test.get_data(Momentum_Density(), {0, 0, 0})[1]
+			<< mom_opts_test.get_data(Momentum_Density(), {{0, 0, 0}})[1]
 			<< ", should be 2."
 			<< std::endl;
 		abort();

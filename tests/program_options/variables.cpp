@@ -359,19 +359,19 @@ int main(int argc, char* argv[])
 		return EXIT_SUCCESS;
 	}
 
-	if (prog_opts_test.get_data(Mass_Density(), {0, 0, 0}) != 3) {
+	if (prog_opts_test.get_data(Mass_Density(), {{0, 0, 0}}) != 3) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
 			<< "Incorrect value for mass density: "
-			<< prog_opts_test.get_data(Mass_Density(), {0, 0, 0})
+			<< prog_opts_test.get_data(Mass_Density(), {{0, 0, 0}})
 			<< ", should be 3."
 			<< std::endl;
 		abort();
 	}
 
-	if (prog_opts_test.get_data(Momentum_Density(), {0, 0, 0})[2] != -3) {
+	if (prog_opts_test.get_data(Momentum_Density(), {{0, 0, 0}})[2] != -3) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
 			<< "Incorrect value for momentum density: "
-			<< prog_opts_test.get_data(Momentum_Density(), {0, 0, 0})[2]
+			<< prog_opts_test.get_data(Momentum_Density(), {{0, 0, 0}})[2]
 			<< ", should be -3."
 			<< std::endl;
 		abort();

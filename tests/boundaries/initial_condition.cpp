@@ -90,8 +90,10 @@ struct Momentum_Density {
 
 #ifdef HAVE_EIGEN
 #define MAKE_VEC(x, y, z) Eigen::Vector3d(x, y, z)
+#define MAKE_BOX(a, b, c, d, e, f) MAKE_VEC(a, b, c), MAKE_VEC(d, e, f)
 #else
-#define MAKE_VEC(x, y, z) std::array<double, 3>{x, y, z}
+#define MAKE_VEC(x, y, z) std::array<double, 3>{{x, y, z}}
+#define MAKE_BOX(a, b, c, d, e, f) MAKE_VEC(a, b, c), MAKE_VEC(d, e, f)
 #endif
 
 
@@ -121,7 +123,7 @@ int main(int argc, char* argv[])
 
 	boost::optional<size_t> result;
 
-	result = initial_condition.add_box(MAKE_VEC(1, 1, 1), MAKE_VEC(3, 3, 3));
+	result = initial_condition.add_box(MAKE_BOX(1, 1, 1, 3, 3, 3));
 	if (not result or *result != 0) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
 			<< "Invalid boundary id for added box: " << *result
@@ -228,11 +230,11 @@ int main(int argc, char* argv[])
 			#endif
 		>
 	> cell_coords{
-		{MAKE_VEC(0.1, 0.1, 0.1), MAKE_VEC(0.2, 0.2, 0.2)},
-		{MAKE_VEC(1.1, 1.1, 1.1), MAKE_VEC(1.2, 1.2, 1.2)},
-		{MAKE_VEC(2.1, 2.1, 2.1), MAKE_VEC(2.2, 2.2, 2.2)},
-		{MAKE_VEC(3.1, 3.1, 3.1), MAKE_VEC(3.2, 3.2, 3.2)},
-		{MAKE_VEC(4.1, 4.1, 4.1), MAKE_VEC(4.2, 4.2, 4.2)}
+		{MAKE_BOX(0.1, 0.1, 0.1, 0.2, 0.2, 0.2)},
+		{MAKE_BOX(1.1, 1.1, 1.1, 1.2, 1.2, 1.2)},
+		{MAKE_BOX(2.1, 2.1, 2.1, 2.2, 2.2, 2.2)},
+		{MAKE_BOX(3.1, 3.1, 3.1, 3.2, 3.2, 3.2)},
+		{MAKE_BOX(4.1, 4.1, 4.1, 4.2, 4.2, 4.2)}
 	};
 
 	if (cells.size() != cell_coords.size()) {

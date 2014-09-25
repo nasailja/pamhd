@@ -104,26 +104,26 @@ public:
 		}
 
 		// write physical constants
-		const std::array<double, nr_header_doubles> header_doubles{
+		const std::array<double, nr_header_doubles> header_doubles{{
 			adiabatic_index,
 			proton_mass,
 			vacuum_permeability
-		};
+		}};
 
 
-		std::array<int, 2> counts{
+		std::array<int, 2> counts{{
 			int(header_string.size()),
 			nr_header_doubles
-		};
-		std::array<MPI_Aint, 2> displacements{
+		}};
+		std::array<MPI_Aint, 2> displacements{{
 			0,
 			reinterpret_cast<char*>(const_cast<double*>(header_doubles.data()))
 				- static_cast<const char*>(header_string.data())
-		};
-		std::array<MPI_Datatype, 2> datatypes{
+		}};
+		std::array<MPI_Datatype, 2> datatypes{{
 			MPI_BYTE,
 			MPI_DOUBLE
-		};
+		}};
 
 		MPI_Datatype header_datatype;
 		if (
