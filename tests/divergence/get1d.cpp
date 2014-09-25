@@ -151,6 +151,7 @@ int main(int argc, char* argv[])
 	const std::array<double, 3> grid_length{{2 * M_PI, 1, 1}};
 
 	double old_norm = std::numeric_limits<double>::max();
+	size_t old_nr_of_cells = 0;
 	for (size_t nr_of_cells = 8; nr_of_cells <= 4096; nr_of_cells *= 2) {
 
 		dccrg::Dccrg<Cell, dccrg::Cartesian_Geometry> grid;
@@ -251,6 +252,25 @@ int main(int argc, char* argv[])
 			abort();
 		}
 
+		if (old_nr_of_cells >= 64) {
+			const double order_of_accuracy
+				= -log(norm / old_norm)
+				/ log(double(nr_of_cells) / old_nr_of_cells);
+
+			if (order_of_accuracy < 1.9) {
+				if (grid.get_rank() == 0) {
+					std::cerr << __FILE__ << ":" << __LINE__
+						<< ": Norm with " << nr_of_cells
+						<< " cells " << norm
+						<< " is larger than with " << nr_of_cells / 2
+						<< " cells " << old_norm
+						<< std::endl;
+				}
+				abort();
+			}
+		}
+
+		old_nr_of_cells = nr_of_cells;
 		old_norm = norm;
 	}
 
