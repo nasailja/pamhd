@@ -32,7 +32,10 @@ include \
 
 
 %.tst: %.exe
-	@echo "RUN "$< && ./$< && echo PASS && touch $@
+	@printf RUN\ $<...\ \  && $(RUN) ./$< && echo PASS && touch $@
+
+%.mtst: %.exe
+	@printf MPIRUN\ $<...\ \  && $(MPIRUN) ./$< && echo PASS && touch $@
 
 
 t: test

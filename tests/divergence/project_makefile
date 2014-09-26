@@ -4,15 +4,17 @@ TESTS_DIVERGENCE_EXECUTABLES = \
   tests/divergence/get3d_div.exe \
   tests/divergence/get1d_grad.exe \
   tests/divergence/get2d_grad.exe \
-  tests/divergence/get3d_grad.exe
+  tests/divergence/get3d_grad.exe \
+  tests/divergence/remove1d.exe
 
 TESTS_DIVERGENCE_TESTS = \
-  tests/divergence/get1d_div.tst \
-  tests/divergence/get2d_div.tst \
-  tests/divergence/get3d_div.tst \
-  tests/divergence/get1d_grad.tst \
-  tests/divergence/get2d_grad.tst \
-  tests/divergence/get3d_grad.tst
+  tests/divergence/get1d_div.mtst \
+  tests/divergence/get2d_div.mtst \
+  tests/divergence/get3d_div.mtst \
+  tests/divergence/get1d_grad.mtst \
+  tests/divergence/get2d_grad.mtst \
+  tests/divergence/get3d_grad.mtst \
+  tests/divergence/remove1d.mtst
 
 tests/divergence_executables: $(TESTS_DIVERGENCE_EXECUTABLES)
 
@@ -27,7 +29,7 @@ EXECUTABLES += tests/divergence_executables
 TESTS += tests/divergence_tests
 CLEAN += tests/divergence_clean
 
-MPICXX_TESTS_DIVERGENCE_GET = \
+MPICXX_TESTS_DIVERGENCE_MPICXX = \
   $(MPICXX) \
   $(CPPFLAGS) \
   $(CXXFLAGS) \
@@ -43,29 +45,34 @@ MPICXX_TESTS_DIVERGENCE_GET = \
 tests/divergence/get1d_div.exe: \
   tests/divergence/get1d_div.cpp \
   source/divergence/remove.hpp
-	@echo "MPICXX "$< && $(MPICXX_TESTS_DIVERGENCE_GET)
+	@echo "MPICXX "$< && $(MPICXX_TESTS_DIVERGENCE_MPICXX)
 
 tests/divergence/get2d_div.exe: \
   tests/divergence/get2d_div.cpp \
   source/divergence/remove.hpp
-	@echo "MPICXX "$< && $(MPICXX_TESTS_DIVERGENCE_GET)
+	@echo "MPICXX "$< && $(MPICXX_TESTS_DIVERGENCE_MPICXX)
 
 tests/divergence/get3d_div.exe: \
   tests/divergence/get3d_div.cpp \
   source/divergence/remove.hpp
-	@echo "MPICXX "$< && $(MPICXX_TESTS_DIVERGENCE_GET)
+	@echo "MPICXX "$< && $(MPICXX_TESTS_DIVERGENCE_MPICXX)
 
 tests/divergence/get1d_grad.exe: \
   tests/divergence/get1d_grad.cpp \
   source/divergence/remove.hpp
-	@echo "MPICXX "$< && $(MPICXX_TESTS_DIVERGENCE_GET)
+	@echo "MPICXX "$< && $(MPICXX_TESTS_DIVERGENCE_MPICXX)
 
 tests/divergence/get2d_grad.exe: \
   tests/divergence/get2d_grad.cpp \
   source/divergence/remove.hpp
-	@echo "MPICXX "$< && $(MPICXX_TESTS_DIVERGENCE_GET)
+	@echo "MPICXX "$< && $(MPICXX_TESTS_DIVERGENCE_MPICXX)
 
 tests/divergence/get3d_grad.exe: \
   tests/divergence/get3d_grad.cpp \
   source/divergence/remove.hpp
-	@echo "MPICXX "$< && $(MPICXX_TESTS_DIVERGENCE_GET)
+	@echo "MPICXX "$< && $(MPICXX_TESTS_DIVERGENCE_MPICXX)
+
+tests/divergence/remove1d.exe: \
+  tests/divergence/remove1d.cpp \
+  source/divergence/remove.hpp
+	@echo "MPICXX "$< && $(MPICXX_TESTS_DIVERGENCE_MPICXX)

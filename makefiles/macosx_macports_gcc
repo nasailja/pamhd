@@ -4,6 +4,9 @@ CXXFLAGS += -Wno-missing-braces -Wno-unused-local-typedefs
 CXX = g++-mp-4.8
 MPICXX = $(HOME)/bin/mpicxx
 
+RUN =
+MPIRUN = mpirun -n 5
+
 DCCRG_CPPFLAGS = -I $(HOME)/dccrg
 
 EIGEN_CPPFLAGS = -I $(HOME)/include
