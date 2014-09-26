@@ -1,12 +1,18 @@
 TESTS_DIVERGENCE_EXECUTABLES = \
-  tests/divergence/get1d.exe \
-  tests/divergence/get2d.exe \
-  tests/divergence/get3d.exe
+  tests/divergence/get1d_div.exe \
+  tests/divergence/get2d_div.exe \
+  tests/divergence/get3d_div.exe \
+  tests/divergence/get1d_grad.exe \
+  tests/divergence/get2d_grad.exe \
+  tests/divergence/get3d_grad.exe
 
 TESTS_DIVERGENCE_TESTS = \
-  tests/divergence/get1d.tst \
-  tests/divergence/get2d.tst \
-  tests/divergence/get3d.tst
+  tests/divergence/get1d_div.tst \
+  tests/divergence/get2d_div.tst \
+  tests/divergence/get3d_div.tst \
+  tests/divergence/get1d_grad.tst \
+  tests/divergence/get2d_grad.tst \
+  tests/divergence/get3d_grad.tst
 
 tests/divergence_executables: $(TESTS_DIVERGENCE_EXECUTABLES)
 
@@ -34,17 +40,32 @@ MPICXX_TESTS_DIVERGENCE_GET = \
   $(ZOLTAN_LIBS) \
   $< -o $@
 
-tests/divergence/get1d.exe: \
-  tests/divergence/get1d.cpp \
+tests/divergence/get1d_div.exe: \
+  tests/divergence/get1d_div.cpp \
   source/divergence/remove.hpp
 	@echo "MPICXX "$< && $(MPICXX_TESTS_DIVERGENCE_GET)
 
-tests/divergence/get2d.exe: \
-  tests/divergence/get2d.cpp \
+tests/divergence/get2d_div.exe: \
+  tests/divergence/get2d_div.cpp \
   source/divergence/remove.hpp
 	@echo "MPICXX "$< && $(MPICXX_TESTS_DIVERGENCE_GET)
 
-tests/divergence/get3d.exe: \
-  tests/divergence/get3d.cpp \
+tests/divergence/get3d_div.exe: \
+  tests/divergence/get3d_div.cpp \
+  source/divergence/remove.hpp
+	@echo "MPICXX "$< && $(MPICXX_TESTS_DIVERGENCE_GET)
+
+tests/divergence/get1d_grad.exe: \
+  tests/divergence/get1d_grad.cpp \
+  source/divergence/remove.hpp
+	@echo "MPICXX "$< && $(MPICXX_TESTS_DIVERGENCE_GET)
+
+tests/divergence/get2d_grad.exe: \
+  tests/divergence/get2d_grad.cpp \
+  source/divergence/remove.hpp
+	@echo "MPICXX "$< && $(MPICXX_TESTS_DIVERGENCE_GET)
+
+tests/divergence/get3d_grad.exe: \
+  tests/divergence/get3d_grad.cpp \
   source/divergence/remove.hpp
 	@echo "MPICXX "$< && $(MPICXX_TESTS_DIVERGENCE_GET)

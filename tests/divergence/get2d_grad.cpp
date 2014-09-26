@@ -1,5 +1,5 @@
 /*
-Tests vector field divergence calculation of PAMHD in 2d.
+Tests scalar field gradient calculation of PAMHD in 2d.
 
 Copyright 2014 Ilja Honkonen
 All rights reserved.
@@ -35,6 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cstdlib"
 #include "iostream"
 #include "limits"
+#include "tuple"
 #include "vector"
 
 #include "dccrg.hpp"
@@ -43,30 +44,30 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "divergence/remove.hpp"
 
 
-// assigned to y component of vector field
 double function(const double x, const double y)
 {
-	return x*x/y;
+	return x * x * x / y / y / y;
 }
 
-double div_of_function(const double x, const double y)
+// gradient in x dimension only
+double grad_of_function(const double x, const double y)
 {
-	return -std::pow(x/y, 2);
+	return 3 * x * x / y / y / y;
 }
 
 
-struct Vector_Field {
-	using data_type = std::array<double, 3>;
+struct Scalar {
+	using data_type = double;
 };
 
-struct Divergence {
-	using data_type = double;
+struct Gradient {
+	using data_type = std::array<double, 3>;
 };
 
 using Cell = gensimcell::Cell<
 	gensimcell::Always_Transfer,
-	Vector_Field,
-	Divergence
+	Scalar,
+	Gradient
 >;
 
 
@@ -91,16 +92,16 @@ template<class Grid_T> double get_diff_lp_norm(
 
 		const auto center = grid.geometry.get_center(cell);
 
-		const auto div_of = div_of_function(center[0], center[1]);
+		const auto grad_of = grad_of_function(center[0], center[1]);
 
 		if (p == 0) {
 			local_norm = std::max(
 				local_norm,
-				std::fabs((*cell_data)[Divergence()] - div_of)
+				std::fabs((*cell_data)[Gradient()][0] - grad_of)
 			);
 		} else {
 			local_norm += std::pow(
-				std::fabs((*cell_data)[Divergence()] - div_of),
+				std::fabs((*cell_data)[Gradient()][0] - grad_of),
 				p
 			);
 		}
@@ -151,7 +152,9 @@ int main(int argc, char* argv[])
 	const unsigned int neighborhood_size = 0;
 	const int max_refinement_level = 0;
 
-	const std::array<double, 3> grid_length{{5, 5, 1}};
+	const std::array<double, 3>
+		grid_length{{5, 5, 1}},
+		grid_start{{1, 1, 0}};
 
 	double old_norm = std::numeric_limits<double>::max();
 	size_t old_nr_of_cells = 0;
@@ -179,15 +182,11 @@ int main(int argc, char* argv[])
 			abort();
 		}
 
-		const std::array<double, 3>
-			cell_length{{
-				grid_length[0] / grid_size[0],
-				grid_length[1] / grid_size[1],
-				grid_length[2] / grid_size[2]
-			}},
-			grid_start{{
-				1, 1, 0
-			}};
+		const std::array<double, 3> cell_length{{
+			grid_length[0] / grid_size[0],
+			grid_length[1] / grid_size[1],
+			grid_length[2] / grid_size[2]
+		}};
 
 		const double cell_volume
 			= cell_length[0] * cell_length[1] * cell_length[2];
@@ -217,10 +216,7 @@ int main(int argc, char* argv[])
 
 			const auto center = grid.geometry.get_center(cell);
 
-			auto& vec = (*cell_data)[Vector_Field()];
-			vec[0] = 0;
-			vec[1] = function(center[0], center[1]);
-			vec[2] = 0;
+			(*cell_data)[Scalar()] = function(center[0], center[1]);
 		}
 		grid.update_copies_of_remote_neighbors();
 
@@ -237,11 +233,11 @@ int main(int argc, char* argv[])
 			}
 		}
 
-		pamhd::divergence::get_divergence(
+		pamhd::divergence::get_gradient(
 			solve_cells,
 			grid,
-			gensimcell::Variables<Vector_Field>(),
-			gensimcell::Variables<Divergence>()
+			std::tuple<Scalar>(),
+			std::tuple<Gradient>()
 		);
 
 		const double
@@ -265,13 +261,12 @@ int main(int argc, char* argv[])
 				= -log(norm / old_norm)
 				/ log(double(nr_of_cells) / old_nr_of_cells);
 
-			if (order_of_accuracy < 1.7) {
+			if (order_of_accuracy < 1.8) {
 				if (grid.get_rank() == 0) {
 					std::cerr << __FILE__ << ":" << __LINE__
-						<< ": Norm with " << nr_of_cells
-						<< " cells " << norm
-						<< " is larger than with " << nr_of_cells / 2
-						<< " cells " << old_norm
+						<< ": Order of accuracy from "
+						<< old_nr_of_cells << " to " << nr_of_cells
+						<< " is too low: " << order_of_accuracy
 						<< std::endl;
 				}
 				abort();

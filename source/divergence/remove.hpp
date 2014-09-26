@@ -29,7 +29,6 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "dccrg.hpp"
 #include "gensimcell.hpp"
 #include "mpi.h"
-#include "prettyprint.hpp"
 #include "tests/poisson/poisson_solve.hpp" // part of dccrg
 
 
@@ -53,6 +52,34 @@ to divergence is 0 from dimensions with at least one
 missing neighbor.
 
 Assumes Grid_T API is compatible with dccrg.
+
+Vec_ and Div_Containers are dummy classes, store the
+Nested_Vars_To_ in e.g. std::tuple.
+
+Example:
+
+struct Vector_Field {
+	using data_type = std::array<double, 3>;
+};
+
+struct Divergence {
+	using data_type = double;
+};
+
+using Cell = gensimcell::Cell<
+	gensimcell::Always_Transfer,
+	Vector_Field,
+	Divergence
+>;
+
+using Grid_T = dccrg::Dccrg<Cell, Cartesian_Geometry>;
+
+pamhd::divergence::get_divergence(
+	std::vector<uint64_t>(),
+	grid,
+	std::tuple<Vector_Field>(),
+	std::tuple<Divergence>()
+);
 */
 template <
 	class Grid_T,

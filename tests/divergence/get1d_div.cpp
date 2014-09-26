@@ -35,6 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cstdlib"
 #include "iostream"
 #include "limits"
+#include "tuple"
 #include "vector"
 
 #include "dccrg.hpp"
@@ -221,6 +222,7 @@ int main(int argc, char* argv[])
 		}
 		grid.update_copies_of_remote_neighbors();
 
+		// exclude one layer of boundary cells
 		std::vector<uint64_t> solve_cells;
 		for (const auto& cell: all_cells) {
 			const auto index = grid.mapping.get_indices(cell);
@@ -232,8 +234,8 @@ int main(int argc, char* argv[])
 		pamhd::divergence::get_divergence(
 			solve_cells,
 			grid,
-			gensimcell::Variables<Vector_Field>(),
-			gensimcell::Variables<Divergence>()
+			std::tuple<Vector_Field>(),
+			std::tuple<Divergence>()
 		);
 
 		const double
@@ -260,10 +262,9 @@ int main(int argc, char* argv[])
 			if (order_of_accuracy < 1.9) {
 				if (grid.get_rank() == 0) {
 					std::cerr << __FILE__ << ":" << __LINE__
-						<< ": Norm with " << nr_of_cells
-						<< " cells " << norm
-						<< " is larger than with " << nr_of_cells / 2
-						<< " cells " << old_norm
+						<< ": Order of accuracy from "
+						<< old_nr_of_cells << " to " << nr_of_cells
+						<< " is too low: " << order_of_accuracy
 						<< std::endl;
 				}
 				abort();
