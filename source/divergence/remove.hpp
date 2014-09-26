@@ -24,6 +24,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 #include "cmath"
 #include "limits"
+#include "tuple"
 #include "vector"
 
 #include "dccrg.hpp"
@@ -320,28 +321,62 @@ template <
 
 
 /*!
-Removes divergence of Vector_T from given cells.
+Removes divergence of a vector variable from given cells.
+
+Solves phi from div(grad(phi)) = div(vector) and assigns
+vector = vector - grad(phi) after which div(vector) == 0.
 
 Vector variable must have been updated between processes
 before calling this function.
 
-Assumes Grid_T API is compatible with dccrg.
+Vec_Container represents the path to the vector variable
+in cells of simulation_grid whose divergence is removed.
+
+Div_Container represents the path to the temporary
+scalar variable in cells of simulation_grid to use
+by this function.
+
+Grad_Container represents the path to the temporary
+vector variable in cells of simulation_grid to use
+by this function.
+
+The transfer of Vec and Div variables must have been
+switched on in cells of simulation grid before
+calling this function.
 */
 template <
-	class Grid_T,
+	class Cell_T,
+	class Geometry_T,
 	template<class... Nested_Vars_To_Vec> class Vec_Container,
 	class... Nested_Vars_To_Vec,
 	template<class... Nested_Vars_To_Div> class Div_Container,
-	class... Nested_Vars_To_Div
+	class... Nested_Vars_To_Div,
+	template<class... Nested_Vars_To_Grad> class Grad_Container,
+	class... Nested_Vars_To_Grad
 > void remove(
 	const std::vector<uint64_t>& cells,
-	Grid_T& simulation_grid,
+	dccrg::Dccrg<Cell_T, Geometry_T>& simulation_grid,
 	const Vec_Container<Nested_Vars_To_Vec...>&,
-	const Div_Container<Nested_Vars_To_Div...>&
+	const Div_Container<Nested_Vars_To_Div...>&,
+	const Grad_Container<Nested_Vars_To_Grad...>&
 ) {
-	// prepare solution grid and source term
-	/*dccrg::Dccrg<Poisson_Cell, Geometry_T> poisson_grid(simulation_grid);
+	/*
+	Prepare solution grid and source term
+	*/
 
+	simulation_grid.update_copies_of_remote_neighbors();
+
+	// rhs for poisson solver = div(vec)
+	get_divergence(
+		cells,
+		simulation_grid,
+		std::tuple<Nested_Vars_To_Vec...>(),
+		std::tuple<Nested_Vars_To_Div...>()
+	);
+
+	dccrg::Dccrg<Poisson_Cell, Geometry_T> poisson_grid(simulation_grid);
+
+	// transfer rhs to poisson grid
 	for (const auto& cell: cells) {
 		auto* const poisson_data = poisson_grid[cell];
 		if (poisson_data == NULL) {
@@ -359,14 +394,65 @@ template <
 			abort();
 		}
 
+
 		poisson_data->solution = 0;
-		poisson_data->rhs = (*simulation_data)[Divergence_T()];
+		poisson_data->rhs = gensimcell::get(*simulation_data, Nested_Vars_To_Div()...);
 	}
 
-	Poisson_Solver solver;
-	solver.solve(cells, poisson_grid);*/
+	// solve phi in div(grad(phi)) = rhs
+	Poisson_Solve solver;
+	solver.solve(cells, poisson_grid);
 
-	// remove divergence with ...
+	/*
+	Remove divergence with B = B - grad(phi)
+	*/
+
+	// store phi in divergence variable
+	for (const auto& cell: cells) {
+		const auto* const poisson_data = poisson_grid[cell];
+		if (poisson_data == NULL) {
+			std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
+				<< "No data for poisson cell " << cell
+				<< std::endl;
+			abort();
+		}
+
+		auto* const simulation_data = simulation_grid[cell];
+		if (simulation_data == NULL) {
+			std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
+				<< "No data for simulation cell " << cell
+				<< std::endl;
+			abort();
+		}
+
+		gensimcell::get(*simulation_data, Nested_Vars_To_Div()...)
+			= poisson_data->solution;
+	}
+
+	simulation_grid.update_copies_of_remote_neighbors();
+
+	get_gradient(
+		cells,
+		simulation_grid,
+		std::tuple<Nested_Vars_To_Div...>(),
+		std::tuple<Nested_Vars_To_Grad...>()
+	);
+
+	for (const auto& cell: cells) {
+		auto* const data = simulation_grid[cell];
+		if (data == NULL) {
+			std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
+				<< "No data for simulation cell " << cell
+				<< std::endl;
+			abort();
+		}
+
+		const auto& grad = gensimcell::get(*data, Nested_Vars_To_Grad()...);
+		auto& vec = gensimcell::get(*data, Nested_Vars_To_Vec()...);
+		for (size_t dim = 0; dim < 3; dim++) {
+			vec[dim] -= grad[dim];
+		}
+	}
 }
 
 
