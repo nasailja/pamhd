@@ -20,32 +20,21 @@ EXECUTABLES += tests/muparserx_executables
 TESTS += tests/muparserx_tests
 CLEAN += tests/muparserx_clean
 
+
+TEST_MUPARSERX_COMPILE_COMMAND = \
+  @echo "CXX "$< && $(CXX) $< -o $@ \
+  $(CPPFLAGS) \
+  $(CXXFLAGS) \
+  $(LDFLAGS) \
+  $(MUPARSERX_CPPFLAGS) \
+  $(MUPARSERX_LDFLAGS) \
+  $(MUPARSERX_LIBS)
+
 tests/muparserx/compile.exe: tests/muparserx/compile.cpp
-	@echo "CXX "$< && $(CXX) \
-	  $(CPPFLAGS) \
-	  $(CXXFLAGS) \
-	  $(LDFLAGS) \
-	  $(MUPARSERX_CPPFLAGS) \
-	  $(MUPARSERX_LDFLAGS) \
-	  $(MUPARSERX_LIBS) \
-	  $< -o $@
+	$(TEST_MUPARSERX_COMPILE_COMMAND)
 
 tests/muparserx/test1.exe: tests/muparserx/test1.cpp
-	@echo "CXX "$< && $(CXX) \
-	  $(CPPFLAGS) \
-	  $(CXXFLAGS) \
-	  $(LDFLAGS) \
-	  $(MUPARSERX_CPPFLAGS) \
-	  $(MUPARSERX_LDFLAGS) \
-	  $(MUPARSERX_LIBS) \
-	  $< -o $@
+	$(TEST_MUPARSERX_COMPILE_COMMAND)
 
 tests/muparserx/performance1.exe: tests/muparserx/performance1.cpp
-	@echo "CXX "$< && $(CXX) \
-	  $(CPPFLAGS) \
-	  $(CXXFLAGS) \
-	  $(LDFLAGS) \
-	  $(MUPARSERX_CPPFLAGS) \
-	  $(MUPARSERX_LDFLAGS) \
-	  $(MUPARSERX_LIBS) \
-	  $< -o $@
+	$(TEST_MUPARSERX_COMPILE_COMMAND)

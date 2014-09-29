@@ -30,7 +30,7 @@ TESTS += tests/divergence_tests
 CLEAN += tests/divergence_clean
 
 MPICXX_TESTS_DIVERGENCE_MPICXX = \
-  $(MPICXX) \
+  $(MPICXX) $< -o $@ \
   $(CPPFLAGS) \
   $(CXXFLAGS) \
   $(LDFLAGS) \
@@ -39,8 +39,7 @@ MPICXX_TESTS_DIVERGENCE_MPICXX = \
   $(PRETTYPRINT_CPPFLAGS) \
   $(ZOLTAN_CPPFLAGS) \
   $(ZOLTAN_LDFLAGS) \
-  $(ZOLTAN_LIBS) \
-  $< -o $@
+  $(ZOLTAN_LIBS)
 
 tests/divergence/get1d_div.exe: \
   tests/divergence/get1d_div.cpp \

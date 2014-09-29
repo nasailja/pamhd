@@ -10,9 +10,8 @@ EXECUTABLES += tests/prettyprint_executables
 CLEAN += tests/prettyprint_clean
 
 tests/prettyprint/compile.exe: tests/prettyprint/compile.cpp
-	@echo "CXX "$< && $(CXX) \
+	@echo "CXX "$< && $(CXX) $< -o $@ \
 	  $(CPPFLAGS) \
 	  $(CXXFLAGS) \
 	  $(LDFLAGS) \
-	  $(PRETTYPRINT_CPPFLAGS) \
-	  $< -o $@
+	  $(PRETTYPRINT_CPPFLAGS)

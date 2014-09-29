@@ -20,10 +20,9 @@ CLEAN += tests/poisson_clean
 tests/poisson/test.exe: \
   tests/poisson/test.cpp \
   source/poisson/solver.hpp
-	@echo "CXX "$< && $(CXX) \
+	@echo "CXX "$< && $(CXX) $< -o $@ \
 	  $(CPPFLAGS) \
 	  $(CXXFLAGS) \
 	  $(LDFLAGS) \
 	  $(EIGEN_CPPFLAGS) \
-	  $(PRETTYPRINT_CPPFLAGS) \
-	  $< -o $@
+	  $(PRETTYPRINT_CPPFLAGS)

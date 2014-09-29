@@ -18,11 +18,10 @@ TESTS += tests/volume_range_tests
 CLEAN += tests/volume_range_clean
 
 tests/volume_range/number_of_samples.exe: tests/volume_range/number_of_samples.cpp source/volume_range.hpp
-	@echo "CXX "$< && $(CXX) \
+	@echo "CXX "$< && $(CXX) $< -o $@ \
 	  $(CPPFLAGS) \
 	  $(CXXFLAGS) \
 	  $(LDFLAGS) \
 	  $(BOOST_CPPFLAGS) \
 	  $(BOOST_LDFLAGS) \
-	  $(BOOST_LIBS) \
-	  $< -o $@
+	  $(BOOST_LIBS)

@@ -28,6 +28,7 @@ TESTS += tests/mhd_tests
 RESULTS += tests/mhd_clean_results
 CLEAN += tests/mhd_clean
 
+
 MHD_COMMON_HEADERS = \
   source/boundaries/common.hpp \
   source/boundaries/initial_condition.hpp \
@@ -41,36 +42,27 @@ MHD_COMMON_HEADERS = \
   source/mhd/hll_athena.hpp \
   source/mhd/hlld_athena.hpp
 
+TEST_MHD_COMPILE_COMMOM = \
+  $< -o $@ \
+  $(CPPFLAGS) \
+  $(CXXFLAGS) \
+  $(LDFLAGS) \
+  $(EIGEN_CPPFLAGS) \
+  $(GENSIMCELL_CPPFLAGS) \
+
 tests/mhd/reference.exe: tests/mhd/reference.cpp $(MHD_COMMON_HEADERS)
-	@echo "CXX "$< && $(CXX) \
-	  $(CPPFLAGS) \
-	  $(CXXFLAGS) \
-	  $(LDFLAGS) \
-	  $(EIGEN_CPPFLAGS) \
-	  $(GENSIMCELL_CPPFLAGS) \
+	@echo "CXX "$< && $(CXX) $(TEST_MHD_COMPILE_COMMOM) \
 	  $(BOOST_CPPFLAGS) \
 	  $(BOOST_LDFLAGS) \
-	  $(BOOST_LIBS) \
-	  $< -o $@
+	  $(BOOST_LIBS)
 
 tests/mhd/mhd2gnuplot.exe: tests/mhd/mhd2gnuplot.cpp source/mhd/variables.hpp
-	@echo "MPICXX "$< && $(MPICXX) \
-	  $(CPPFLAGS) \
-	  $(CXXFLAGS) \
-	  $(LDFLAGS) \
-	  $(DCCRG_CPPFLAGS) \
-	  $(EIGEN_CPPFLAGS) \
-	  $(GENSIMCELL_CPPFLAGS) \
-	  $< -o $@
+	@echo "MPICXX "$< && $(MPICXX) $(TEST_MHD_COMPILE_COMMOM) \
+	  $(DCCRG_CPPFLAGS)
 
 tests/mhd/test.exe: tests/mhd/test.cpp $(MHD_COMMON_HEADERS)
-	@echo "MPICXX "$< && $(MPICXX) \
-	  $(CPPFLAGS) \
-	  $(CXXFLAGS) \
-	  $(LDFLAGS) \
+	@echo "MPICXX "$< && $(MPICXX) $(TEST_MHD_COMPILE_COMMOM) \
 	  $(DCCRG_CPPFLAGS) \
-	  $(EIGEN_CPPFLAGS) \
-	  $(GENSIMCELL_CPPFLAGS) \
 	  $(BOOST_CPPFLAGS) \
 	  $(BOOST_LDFLAGS) \
 	  $(BOOST_LIBS) \
@@ -80,5 +72,4 @@ tests/mhd/test.exe: tests/mhd/test.cpp $(MHD_COMMON_HEADERS)
 	  $(PRETTYPRINT_CPPFLAGS) \
 	  $(ZOLTAN_CPPFLAGS) \
 	  $(ZOLTAN_LDFLAGS) \
-	  $(ZOLTAN_LIBS) \
-	  $< -o $@
+	  $(ZOLTAN_LIBS)

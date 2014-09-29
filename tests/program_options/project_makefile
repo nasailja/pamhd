@@ -31,7 +31,7 @@ CLEAN += tests/program_options_clean
 TEST_PROGRAM_OPTIONS_COMMON_DEPS = tests/program_options/project_makefile
 
 TEST_PROGRAM_OPTIONS_COMPILE_COMMAND = \
-  $(CXX) \
+  @echo "CXX "$< && $(CXX) $< -o $@ \
   $(CPPFLAGS) \
   $(CXXFLAGS) \
   $(LDFLAGS) \
@@ -42,33 +42,32 @@ TEST_PROGRAM_OPTIONS_COMPILE_COMMAND = \
   $(MUPARSERX_CPPFLAGS) \
   $(MUPARSERX_LDFLAGS) \
   $(MUPARSERX_LIBS) \
-  $(PRETTYPRINT_CPPFLAGS) \
-  $< -o $@
+  $(PRETTYPRINT_CPPFLAGS)
 
 tests/program_options/variable.exe: \
   tests/program_options/variable.cpp \
   $(TEST_PROGRAM_OPTIONS_COMMON_DEPS)
-	@echo "CXX "$< && $(TEST_PROGRAM_OPTIONS_COMPILE_COMMAND)
+	$(TEST_PROGRAM_OPTIONS_COMPILE_COMMAND)
 
 tests/program_options/variables.exe: tests/program_options/variables.cpp
-	@echo "CXX "$< && $(TEST_PROGRAM_OPTIONS_COMPILE_COMMAND)
+	$(TEST_PROGRAM_OPTIONS_COMPILE_COMMAND)
 
 tests/program_options/variable_to_option.exe: \
   tests/program_options/variable_to_option.cpp \
   source/boundaries/variable_to_option.hpp
-	@echo "CXX "$< && $(TEST_PROGRAM_OPTIONS_COMPILE_COMMAND)
+	$(TEST_PROGRAM_OPTIONS_COMPILE_COMMAND)
 
 tests/program_options/variable_to_option_eigen.exe: \
   tests/program_options/variable_to_option.cpp \
   source/boundaries/variable_to_option.hpp
-	@echo "CXX "$< && $(TEST_PROGRAM_OPTIONS_COMPILE_COMMAND) -DHAVE_EIGEN
+	$(TEST_PROGRAM_OPTIONS_COMPILE_COMMAND) -DHAVE_EIGEN
 
 tests/program_options/variable_to_option_vector.exe: \
   tests/program_options/variable_to_option_vector.cpp \
   source/boundaries/variable_to_option_vector.hpp
-	@echo "CXX "$< && $(TEST_PROGRAM_OPTIONS_COMPILE_COMMAND)
+	$(TEST_PROGRAM_OPTIONS_COMPILE_COMMAND)
 
 tests/program_options/variable_to_option_vector_eigen.exe: \
   tests/program_options/variable_to_option_vector.cpp \
   source/boundaries/variable_to_option_vector.hpp
-	@echo "CXX "$< && $(TEST_PROGRAM_OPTIONS_COMPILE_COMMAND) -DHAVE_EIGEN
+	$(TEST_PROGRAM_OPTIONS_COMPILE_COMMAND) -DHAVE_EIGEN
