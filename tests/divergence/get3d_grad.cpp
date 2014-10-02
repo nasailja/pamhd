@@ -191,10 +191,6 @@ int main(int argc, char* argv[])
 	const unsigned int neighborhood_size = 0;
 	const int max_refinement_level = 0;
 
-	const std::array<double, 3>
-		grid_length{{5, 5, 1}},
-		grid_start{{1, 1, 0}};
-
 	std::array<double, 3> old_norm{{
 		std::numeric_limits<double>::max(),
 		std::numeric_limits<double>::max(),
@@ -229,11 +225,13 @@ int main(int argc, char* argv[])
 			abort();
 		}
 
-		const std::array<double, 3> cell_length{{
-			grid_length[0] / grid_size[0],
-			grid_length[1] / grid_size[1],
-			grid_length[2] / grid_size[2]
-		}};
+		const std::array<double, 3>
+			cell_length{{
+				double(5) / (grid_size[0] - 2),
+				double(5) / (grid_size[1] - 2),
+				double(1) / (grid_size[2] - 2),
+			}},
+			grid_start{{1, 1, 0}};
 
 		const double cell_volume
 			= cell_length[0] * cell_length[1] * cell_length[2];
@@ -281,7 +279,6 @@ int main(int argc, char* argv[])
 				solve_cells.push_back(cell);
 			}
 		}
-		//std::sort(solve_cells.begin(), solve_cells.end());
 
 		pamhd::divergence::get_gradient(
 			solve_cells,
@@ -307,12 +304,12 @@ int main(int argc, char* argv[])
 				abort();
 			}
 
-			if (old_nr_of_cells >= 32) {
+			if (old_nr_of_cells > 0) {
 				const double order_of_accuracy
 					= -log(norm[dim] / old_norm[dim])
 					/ log(double(nr_of_cells) / old_nr_of_cells);
 
-				if (order_of_accuracy < 1.6) {
+				if (order_of_accuracy < 1.9) {
 					if (grid.get_rank() == 0) {
 						std::cerr << __FILE__ << ":" << __LINE__
 							<< ": Order of accuracy from "

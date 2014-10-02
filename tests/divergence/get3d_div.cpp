@@ -157,8 +157,6 @@ int main(int argc, char* argv[])
 	const unsigned int neighborhood_size = 0;
 	const int max_refinement_level = 0;
 
-	const std::array<double, 3> grid_length{{3, 3.0 / 2.0, 4}};
-
 	double old_norm = std::numeric_limits<double>::max();
 	size_t old_nr_of_cells = 0;
 	for (size_t nr_of_cells = 8; nr_of_cells <= 64; nr_of_cells *= 2) {
@@ -187,14 +185,14 @@ int main(int argc, char* argv[])
 
 		const std::array<double, 3>
 			cell_length{{
-				grid_length[0] / grid_size[0],
-				grid_length[1] / grid_size[1],
-				grid_length[2] / grid_size[2]
+				double(3) / (grid_size[0] - 2),
+				1.5 / (grid_size[1] - 2),
+				double(4) / (grid_size[2] - 2)
 			}},
 			grid_start{{
-				-1 - cell_length[0] / 2,
-				-M_PI / 4 - cell_length[1] / 2,
-				-2 - cell_length[2] / 2
+				-1 - cell_length[0],
+				-M_PI / 4 - cell_length[1],
+				-2 - cell_length[2]
 			}};
 
 		const double cell_volume
@@ -265,12 +263,12 @@ int main(int argc, char* argv[])
 			abort();
 		}
 
-		if (old_nr_of_cells >= 32) {
+		if (old_nr_of_cells > 0) {
 			const double order_of_accuracy
 				= -log(norm / old_norm)
 				/ log(double(nr_of_cells) / old_nr_of_cells);
 
-			if (order_of_accuracy < 1.7) {
+			if (order_of_accuracy < 1.95) {
 				if (grid.get_rank() == 0) {
 					std::cerr << __FILE__ << ":" << __LINE__
 						<< ": Order of accuracy from "
