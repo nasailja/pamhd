@@ -41,7 +41,9 @@ namespace divergence {
 Calculates divergence of vector variable in given cells.
 
 Returns the total divergence i.e. sum of absolute
-divergence in given cells.
+divergence in given cells of all processes divided
+by number of cells on all processes in which divergence
+was calculated.
 
 Uses gensimcell::get() for accessing vector variable from
 which divergence is calculated and scalar variable where
@@ -95,6 +97,7 @@ template <
 	const Div_Container<Nested_Vars_To_Div...>&
 ) {
 	double local_divergence = 0, global_divergence = 0;
+	uint64_t local_calculated_cells = 0, global_calculated_cells = 0;
 	for (const auto& cell: cells) {
 		if (grid.get_refinement_level(cell) != 0) {
 			std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
@@ -140,6 +143,19 @@ template <
 			}
 		}
 
+		bool have_enough_neighbors = false;
+		for (auto dim = 0; dim < 3; dim++) {
+			if (nr_neighbors[dim] == 2) {
+				have_enough_neighbors = true;
+			}
+		}
+
+		// divergence is zero in dimensions with missing neighbor(s)
+		if (not have_enough_neighbors) {
+			continue;
+		}
+		local_calculated_cells++;
+
 		// calculate divergence
 		auto* const cell_data = grid[cell];
 		if (cell_data == NULL) {
@@ -154,7 +170,6 @@ template <
 
 		div = 0;
 		for (auto dim = 0; dim < 3; dim++) {
-			// divergence is zero in dimensions with missing neighbor(s)
 			if (nr_neighbors[dim] == 2) {
 				div += vec[dim] * (neigh_pos_dist[dim] - neigh_neg_dist[dim]);
 			}
@@ -195,10 +210,25 @@ template <
 	}
 
 	MPI_Comm comm = grid.get_communicator();
-	MPI_Allreduce(&local_divergence, &global_divergence, 1, MPI_DOUBLE, MPI_SUM, comm);
+	MPI_Allreduce(
+		&local_divergence,
+		&global_divergence,
+		1,
+		MPI_DOUBLE,
+		MPI_SUM,
+		comm
+	);
+	MPI_Allreduce(
+		&local_calculated_cells,
+		&global_calculated_cells,
+		1,
+		MPI_UINT64_T,
+		MPI_SUM,
+		comm
+	);
 	MPI_Comm_free(&comm);
 
-	return global_divergence;
+	return global_divergence / global_calculated_cells;
 }
 
 
