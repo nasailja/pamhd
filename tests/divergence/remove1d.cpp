@@ -79,7 +79,7 @@ using Cell = gensimcell::Cell<
 
 
 /*!
-Returns maximum norm if p == 0
+Use p == 1 to get maximum norm.
 */
 template<class Grid_T> double get_diff_lp_norm(
 	const std::vector<uint64_t>& cells,
@@ -97,21 +97,14 @@ template<class Grid_T> double get_diff_lp_norm(
 			abort();
 		}
 
-		if (p == 0) {
-			local_norm = std::max(
-				local_norm,
-				std::fabs((*cell_data)[Vector_Field()][0] - div_removed_function())
-			);
-		} else {
-			local_norm += std::pow(
-				std::fabs((*cell_data)[Vector_Field()][0] - div_removed_function()),
-				p
-			);
-		}
+		local_norm += std::pow(
+			std::fabs((*cell_data)[Vector_Field()][0] - div_removed_function()),
+			p
+		);
 	}
 	local_norm *= cell_volume;
 
-	if (p == 0) {
+	if (p == 1) {
 		MPI_Comm comm = grid.get_communicator();
 		MPI_Allreduce(&local_norm, &global_norm, 1, MPI_DOUBLE, MPI_MAX, comm);
 		MPI_Comm_free(&comm);
@@ -155,11 +148,9 @@ int main(int argc, char* argv[])
 	const unsigned int neighborhood_size = 0;
 	const int max_refinement_level = 0;
 
-	const std::array<double, 3> grid_length{{2 * M_PI, 1, 1}};
-
 	double old_norm = std::numeric_limits<double>::max();
 	size_t old_nr_of_cells = 0;
-	for (size_t nr_of_cells = 8; nr_of_cells <= 4096; nr_of_cells *= 2) {
+	for (size_t nr_of_cells = 8; nr_of_cells <= 2048; nr_of_cells *= 2) {
 
 		dccrg::Dccrg<Cell, dccrg::Cartesian_Geometry> grid;
 
@@ -184,14 +175,8 @@ int main(int argc, char* argv[])
 		}
 
 		const std::array<double, 3>
-			cell_length{{
-				grid_length[0] / grid_size[0],
-				grid_length[1] / grid_size[1],
-				grid_length[2] / grid_size[2]
-			}},
-			grid_start{{
-				-cell_length[0] / 2, 0, 0
-			}};
+			cell_length{{2 * M_PI / (grid_size[0] - 2), 1, 1}},
+			grid_start{{-cell_length[0], 0, 0}};
 
 		const double cell_volume
 			= cell_length[0] * cell_length[1] * cell_length[2];
@@ -210,6 +195,10 @@ int main(int argc, char* argv[])
 		grid.balance_load();
 
 		const auto all_cells = grid.get_cells();
+
+		std::vector<uint64_t>
+			solve_cells,
+			boundary_cells;
 		for (const auto& cell: all_cells) {
 			auto* const cell_data = grid[cell];
 			if (cell_data == NULL) {
@@ -219,31 +208,55 @@ int main(int argc, char* argv[])
 				abort();
 			}
 
-			const auto center = grid.geometry.get_center(cell);
+			const auto index = grid.mapping.get_indices(cell);
+			if (index[0] > 0 and index[0] < grid_size[0] - 1) {
+				solve_cells.push_back(cell);
+			} else {
+				boundary_cells.push_back(cell);
+			}
 
+			const auto x = grid.geometry.get_center(cell)[0];
 			auto& vec = (*cell_data)[Vector_Field()];
-			vec[0] = function(center[0]);
+			vec[0] = function(x);
 			vec[1] =
 			vec[2] = 0;
 		}
 		grid.update_copies_of_remote_neighbors();
 
-		// exclude one layer of boundary cells
-		std::vector<uint64_t> solve_cells;
-		for (const auto& cell: all_cells) {
-			const auto index = grid.mapping.get_indices(cell);
-			if (index[0] > 0 and index[0] < grid_size[0] - 1) {
-				solve_cells.push_back(cell);
+		// use copy boundaries
+		const uint64_t
+			neg_bdy_cell = 1,
+			pos_bdy_cell = nr_of_cells + 2;
+		if (grid.is_local(neg_bdy_cell)) {
+			const auto* const neighbor_data = grid[neg_bdy_cell + 1];
+			auto* const cell_data = grid[neg_bdy_cell];
+			if (cell_data == NULL or neighbor_data == NULL) {
+				std::cerr << __FILE__ << ":" << __LINE__ << std::endl;
+				abort();
 			}
+
+			(*cell_data)[Vector_Field()] = (*neighbor_data)[Vector_Field()];
 		}
-		std::sort(solve_cells.begin(), solve_cells.end());
+		if (grid.is_local(pos_bdy_cell)) {
+			const auto* const neighbor_data = grid[pos_bdy_cell - 1];
+			auto* const cell_data = grid[pos_bdy_cell];
+			if (cell_data == NULL or neighbor_data == NULL) {
+				std::cerr << __FILE__ << ":" << __LINE__ << std::endl;
+				abort();
+			}
+
+			(*cell_data)[Vector_Field()] = (*neighbor_data)[Vector_Field()];
+		}
 
 		pamhd::divergence::remove(
 			solve_cells,
+			boundary_cells,
+			{},
 			grid,
 			std::tuple<Vector_Field>(),
 			std::tuple<Divergence>(),
-			std::tuple<Gradient>()
+			std::tuple<Gradient>(),
+			2000, 0, 1e-15, 2, 100, false
 		);
 
 		const double
@@ -260,6 +273,23 @@ int main(int argc, char* argv[])
 					<< std::endl;
 			}
 			abort();
+		}
+
+		if (old_nr_of_cells > 0) {
+			const double order_of_accuracy
+				= -log(norm / old_norm)
+				/ log(double(nr_of_cells) / old_nr_of_cells);
+
+			if (order_of_accuracy < 1.5) {
+				if (grid.get_rank() == 0) {
+					std::cerr << __FILE__ << ":" << __LINE__
+						<< ": Order of accuracy from "
+						<< old_nr_of_cells << " to " << nr_of_cells
+						<< " is too low: " << order_of_accuracy
+						<< std::endl;
+				}
+				abort();
+			}
 		}
 
 		old_nr_of_cells = nr_of_cells;
