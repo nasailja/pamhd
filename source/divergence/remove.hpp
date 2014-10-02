@@ -120,7 +120,7 @@ template <
 			const auto neighbor = item.first;
 			const auto direction = item.second;
 			if (direction == 0 or std::abs(direction) > 3) {
-				std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
+				std::cerr << __FILE__ << "(" << __LINE__<< ")" << std::endl;
 				abort();
 			}
 			const size_t dim = std::abs(direction) - 1;
@@ -154,7 +154,7 @@ template <
 
 		div = 0;
 		for (auto dim = 0; dim < 3; dim++) {
-			// zero contribution to gradient from dims with missing neighbors
+			// divergence is zero in dimensions with missing neighbor(s)
 			if (nr_neighbors[dim] == 2) {
 				div += vec[dim] * (neigh_pos_dist[dim] - neigh_neg_dist[dim]);
 			}
@@ -244,7 +244,7 @@ template <
 			const auto neighbor = item.first;
 			const auto direction = item.second;
 			if (direction == 0 or std::abs(direction) > 3) {
-				std::cerr <<  __FILE__ << "(" << __LINE__<< ")" << std::endl;
+				std::cerr << __FILE__ << "(" << __LINE__<< ")" << std::endl;
 				abort();
 			}
 			const size_t dim = std::abs(direction) - 1;
@@ -343,6 +343,11 @@ by this function.
 The transfer of Vec and Div variables must have been
 switched on in cells of simulation grid before
 calling this function.
+
+The arguments max_iterations to verbosity are given
+directly to the constructor of dccrg Poisson equation
+solver class:
+https://gitorious.org/dccrg/dccrg/source/master:tests/poisson/poisson_solve.hpp
 */
 template <
 	class Cell_T,
@@ -355,29 +360,71 @@ template <
 	class... Nested_Vars_To_Grad
 > void remove(
 	const std::vector<uint64_t>& cells,
+	const std::vector<uint64_t>& boundary_cells,
+	const std::vector<uint64_t>& skip_cells,
 	dccrg::Dccrg<Cell_T, Geometry_T>& simulation_grid,
 	const Vec_Container<Nested_Vars_To_Vec...>&,
 	const Div_Container<Nested_Vars_To_Div...>&,
-	const Grad_Container<Nested_Vars_To_Grad...>&
+	const Grad_Container<Nested_Vars_To_Grad...>&,
+	const unsigned int max_iterations = 1000,
+	const unsigned int min_iterations = 0,
+	const double stop_residual = 1e-15,
+	const double p_of_norm = 2,
+	const double stop_after_residual_increase = 10,
+	const bool verbosity = false
 ) {
+	std::vector<uint64_t> all_given_cells;
+	all_given_cells.reserve(cells.size() + boundary_cells.size());
+
+	all_given_cells.insert(
+		all_given_cells.end(),
+		cells.cbegin(),
+		cells.cend()
+	);
+	all_given_cells.insert(
+		all_given_cells.end(),
+		boundary_cells.cbegin(),
+		boundary_cells.cend()
+	);
+
 	/*
 	Prepare solution grid and source term
 	*/
 
 	simulation_grid.update_copies_of_remote_neighbors();
 
+	for (const auto& cell: all_given_cells) {
+		const auto* const simulation_data = simulation_grid[cell];
+		if (simulation_data == NULL) {
+			std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
+				<< "No data for simulation cell " << cell
+				<< std::endl;
+			abort();
+		}
+	}
+
 	// rhs for poisson solver = div(vec)
 	get_divergence(
-		cells,
+		all_given_cells,
 		simulation_grid,
 		std::tuple<Nested_Vars_To_Vec...>(),
 		std::tuple<Nested_Vars_To_Div...>()
 	);
 
+	for (const auto& cell: all_given_cells) {
+		const auto* const simulation_data = simulation_grid[cell];
+		if (simulation_data == NULL) {
+			std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
+				<< "No data for simulation cell " << cell
+				<< std::endl;
+			abort();
+		}
+	}
+
 	dccrg::Dccrg<Poisson_Cell, Geometry_T> poisson_grid(simulation_grid);
 
 	// transfer rhs to poisson grid
-	for (const auto& cell: cells) {
+	for (const auto& cell: all_given_cells) {
 		auto* const poisson_data = poisson_grid[cell];
 		if (poisson_data == NULL) {
 			std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
@@ -388,23 +435,29 @@ template <
 
 		const auto* const simulation_data = simulation_grid[cell];
 		if (simulation_data == NULL) {
-			std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
+			std::cerr << __FILE__ << "(" << __LINE__<< "): "
 				<< "No data for simulation cell " << cell
 				<< std::endl;
 			abort();
 		}
 
-
 		poisson_data->solution = 0;
 		poisson_data->rhs = gensimcell::get(*simulation_data, Nested_Vars_To_Div()...);
 	}
 
+	Poisson_Solve solver(
+		max_iterations,
+		min_iterations,
+		stop_residual,
+		p_of_norm,
+		stop_after_residual_increase,
+		verbosity
+	);
 	// solve phi in div(grad(phi)) = rhs
-	Poisson_Solve solver;
-	solver.solve(cells, poisson_grid);
+	solver.solve(cells, poisson_grid, skip_cells);
 
 	/*
-	Remove divergence with B = B - grad(phi)
+	Remove divergence with Vec = Vec - grad(phi)
 	*/
 
 	// store phi in divergence variable
