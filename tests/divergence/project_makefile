@@ -6,7 +6,8 @@ TESTS_DIVERGENCE_EXECUTABLES = \
   tests/divergence/get2d_grad.exe \
   tests/divergence/get3d_grad.exe \
   tests/divergence/remove1d.exe \
-  tests/divergence/remove2d.exe
+  tests/divergence/remove2d.exe \
+  tests/divergence/remove3d.exe
 
 TESTS_DIVERGENCE_TESTS = \
   tests/divergence/get1d_div.mtst \
@@ -16,7 +17,8 @@ TESTS_DIVERGENCE_TESTS = \
   tests/divergence/get2d_grad.mtst \
   tests/divergence/get3d_grad.mtst \
   tests/divergence/remove1d.mtst \
-  tests/divergence/remove2d.mtst
+  tests/divergence/remove2d.mtst \
+  tests/divergence/remove3d.mtst
 
 tests/divergence_executables: $(TESTS_DIVERGENCE_EXECUTABLES)
 
@@ -80,5 +82,10 @@ tests/divergence/remove1d.exe: \
 
 tests/divergence/remove2d.exe: \
   tests/divergence/remove2d.cpp \
+  source/divergence/remove.hpp
+	@echo "MPICXX "$< && $(MPICXX_TESTS_DIVERGENCE_MPICXX)
+
+tests/divergence/remove3d.exe: \
+  tests/divergence/remove3d.cpp \
   source/divergence/remove.hpp
 	@echo "MPICXX "$< && $(MPICXX_TESTS_DIVERGENCE_MPICXX)
