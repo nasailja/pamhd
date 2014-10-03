@@ -150,13 +150,6 @@ template <
 			}
 		}
 
-		// divergence is zero in dimensions with missing neighbor(s)
-		if (not have_enough_neighbors) {
-			continue;
-		}
-		local_calculated_cells++;
-
-		// calculate divergence
 		auto* const cell_data = grid[cell];
 		if (cell_data == NULL) {
 			std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
@@ -167,9 +160,16 @@ template <
 
 		const auto& vec = gensimcell::get(*cell_data, Nested_Vars_To_Vec()...);
 		auto& div = gensimcell::get(*cell_data, Nested_Vars_To_Div()...);
-
 		div = 0;
+
+		if (not have_enough_neighbors) {
+			continue;
+		}
+		local_calculated_cells++;
+
+		// calculate divergence
 		for (auto dim = 0; dim < 3; dim++) {
+			// divergence is zero in dimensions with missing neighbor(s)
 			if (nr_neighbors[dim] == 2) {
 				div += vec[dim] * (neigh_pos_dist[dim] - neigh_neg_dist[dim]);
 			}
@@ -294,7 +294,13 @@ template <
 			}
 		}
 
-		// calculate gradient
+		bool have_enough_neighbors = false;
+		for (auto dim = 0; dim < 3; dim++) {
+			if (nr_neighbors[dim] == 2) {
+				have_enough_neighbors = true;
+			}
+		}
+
 		auto* const cell_data = grid[cell];
 		if (cell_data == NULL) {
 			std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
@@ -305,10 +311,15 @@ template <
 
 		const auto& scalar = gensimcell::get(*cell_data, Nested_Vars_To_Sca()...);
 		auto& gradient = gensimcell::get(*cell_data, Nested_Vars_To_Grad()...);
-
 		gradient[0] =
 		gradient[1] =
 		gradient[2] = 0;
+
+		if (not have_enough_neighbors) {
+			continue;
+		}
+
+		// calculate gradient
 		for (auto dim = 0; dim < 3; dim++) {
 			// gradient is zero in dimensions with missing neighbor(s)
 			if (nr_neighbors[dim] == 2) {
@@ -374,7 +385,7 @@ The transfer of Vec and Div variables must have been
 switched on in cells of simulation grid before
 calling this function.
 
-The arguments max_iterations to verbosity are given
+The arguments max_iterations to verbose are given
 directly to the constructor of dccrg Poisson equation
 solver class:
 https://gitorious.org/dccrg/dccrg/source/master:tests/poisson/poisson_solve.hpp
@@ -388,6 +399,7 @@ template <
 	class... Nested_Vars_To_Div,
 	template<class... Nested_Vars_To_Grad> class Grad_Container,
 	class... Nested_Vars_To_Grad
+	// TODO: add possibility to reuse solution from previous call
 > void remove(
 	const std::vector<uint64_t>& cells,
 	const std::vector<uint64_t>& boundary_cells,
@@ -401,18 +413,18 @@ template <
 	const double stop_residual = 1e-15,
 	const double p_of_norm = 2,
 	const double stop_after_residual_increase = 10,
-	const bool verbosity = false
+	const bool verbose = false
 ) {
-	std::vector<uint64_t> all_given_cells;
-	all_given_cells.reserve(cells.size() + boundary_cells.size());
+	std::vector<uint64_t> solve_cells;
+	solve_cells.reserve(cells.size() + boundary_cells.size());
 
-	all_given_cells.insert(
-		all_given_cells.end(),
+	solve_cells.insert(
+		solve_cells.end(),
 		cells.cbegin(),
 		cells.cend()
 	);
-	all_given_cells.insert(
-		all_given_cells.end(),
+	solve_cells.insert(
+		solve_cells.end(),
 		boundary_cells.cbegin(),
 		boundary_cells.cend()
 	);
@@ -423,38 +435,24 @@ template <
 
 	simulation_grid.update_copies_of_remote_neighbors();
 
-	for (const auto& cell: all_given_cells) {
-		const auto* const simulation_data = simulation_grid[cell];
-		if (simulation_data == NULL) {
-			std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
-				<< "No data for simulation cell " << cell
-				<< std::endl;
-			abort();
-		}
-	}
-
 	// rhs for poisson solver = div(vec)
 	get_divergence(
-		all_given_cells,
+		cells,
 		simulation_grid,
 		std::tuple<Nested_Vars_To_Vec...>(),
 		std::tuple<Nested_Vars_To_Div...>()
 	);
-
-	for (const auto& cell: all_given_cells) {
-		const auto* const simulation_data = simulation_grid[cell];
-		if (simulation_data == NULL) {
-			std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
-				<< "No data for simulation cell " << cell
-				<< std::endl;
-			abort();
-		}
+	// zero divergence in boundary cells
+	for (const auto& cell: boundary_cells) {
+		auto* const cell_data = simulation_grid[cell];
+		if (cell_data == NULL) { abort(); }
+		gensimcell::get(*cell_data, Nested_Vars_To_Div()...) = 0;
 	}
 
 	dccrg::Dccrg<Poisson_Cell, Geometry_T> poisson_grid(simulation_grid);
 
 	// transfer rhs to poisson grid
-	for (const auto& cell: all_given_cells) {
+	for (const auto& cell: solve_cells) {
 		auto* const poisson_data = poisson_grid[cell];
 		if (poisson_data == NULL) {
 			std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
@@ -481,7 +479,7 @@ template <
 		stop_residual,
 		p_of_norm,
 		stop_after_residual_increase,
-		verbosity
+		verbose
 	);
 	// solve phi in div(grad(phi)) = rhs
 	solver.solve(cells, poisson_grid, skip_cells);
@@ -490,7 +488,7 @@ template <
 	Remove divergence with Vec = Vec - grad(phi)
 	*/
 
-	// store phi in divergence variable
+	// store phi (solution) in divergence variable
 	for (const auto& cell: cells) {
 		const auto* const poisson_data = poisson_grid[cell];
 		if (poisson_data == NULL) {
@@ -535,6 +533,19 @@ template <
 		for (size_t dim = 0; dim < 3; dim++) {
 			vec[dim] -= grad[dim];
 		}
+	}
+
+	// clean up divergence variable
+	for (const auto& cell: boundary_cells) {
+		auto* const simulation_data = simulation_grid[cell];
+		if (simulation_data == NULL) {
+			std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
+				<< "No data for simulation cell " << cell
+				<< std::endl;
+			abort();
+		}
+
+		gensimcell::get(*simulation_data, Nested_Vars_To_Div()...) = 0;
 	}
 }
 
