@@ -10,6 +10,15 @@ TESTS_DIVERGENCE_EXECUTABLES = \
   tests/divergence/remove3d.exe
 
 TESTS_DIVERGENCE_TESTS = \
+  tests/divergence/get1d_div.tst \
+  tests/divergence/get2d_div.tst \
+  tests/divergence/get3d_div.tst \
+  tests/divergence/get1d_grad.tst \
+  tests/divergence/get2d_grad.tst \
+  tests/divergence/get3d_grad.tst \
+  tests/divergence/remove1d.tst \
+  tests/divergence/remove2d.tst \
+  tests/divergence/remove3d.tst \
   tests/divergence/get1d_div.mtst \
   tests/divergence/get2d_div.mtst \
   tests/divergence/get3d_div.mtst \
