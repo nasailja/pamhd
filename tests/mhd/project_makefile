@@ -11,7 +11,7 @@ tests/mhd_executables: $(TESTS_MHD_EXECUTABLES)
 tests/mhd_tests: $(TESTS_MHD_TESTS)
 
 tests/mhd_clean_results:
-	@echo "CLEAN RESULTS tests/mhd" && rm -f \
+	@printf "CLEAN RESULTS tests/mhd\n" && rm -f \
 	  tests/mhd/*.dat \
 	  tests/mhd/*.png \
 	  tests/mhd/results/*/*.dat \
@@ -19,7 +19,7 @@ tests/mhd_clean_results:
 	  tests/mhd/results/*/*.dc
 
 tests/mhd_clean:
-	@echo "CLEAN tests/mhd" && rm -f \
+	@printf "CLEAN tests/mhd\n" && rm -f \
 	  $(TESTS_MHD_EXECUTABLES) \
 	  $(TESTS_MHD_TESTS)
 
@@ -29,7 +29,16 @@ RESULTS += tests/mhd_clean_results
 CLEAN += tests/mhd_clean
 
 
-MHD_COMMON_HEADERS = \
+TEST_MHD_COMMON_DEPS = \
+  source/mhd/variables.hpp \
+  source/mhd/hll_athena.hpp \
+  source/mhd/hlld_athena.hpp \
+  tests/mhd/project_makefile \
+  $(ENVIRONMENT_MAKEFILE) \
+  Makefile
+
+TEST_MHD_PROGRAM_DEPS = \
+  $(TEST_MHD_COMMON_DEPS) \
   source/boundaries/common.hpp \
   source/boundaries/initial_condition.hpp \
   source/boundaries/copy_boundary.hpp \
@@ -37,10 +46,7 @@ MHD_COMMON_HEADERS = \
   source/mhd/common.hpp \
   source/mhd/initialize.hpp \
   source/mhd/save.hpp \
-  source/mhd/solve.hpp \
-  source/mhd/variables.hpp \
-  source/mhd/hll_athena.hpp \
-  source/mhd/hlld_athena.hpp
+  source/mhd/solve.hpp
 
 TEST_MHD_COMPILE_COMMOM = \
   $< -o $@ \
@@ -50,18 +56,24 @@ TEST_MHD_COMPILE_COMMOM = \
   $(EIGEN_CPPFLAGS) \
   $(GENSIMCELL_CPPFLAGS) \
 
-tests/mhd/reference.exe: tests/mhd/reference.cpp $(MHD_COMMON_HEADERS)
-	@echo "CXX "$< && $(CXX) $(TEST_MHD_COMPILE_COMMOM) \
+tests/mhd/reference.exe: \
+  tests/mhd/reference.cpp \
+  $(TEST_MHD_COMMON_DEPS)
+	@printf "CXX $<\n" && $(CXX) $(TEST_MHD_COMPILE_COMMOM) \
 	  $(BOOST_CPPFLAGS) \
 	  $(BOOST_LDFLAGS) \
 	  $(BOOST_LIBS)
 
-tests/mhd/mhd2gnuplot.exe: tests/mhd/mhd2gnuplot.cpp source/mhd/variables.hpp
-	@echo "MPICXX "$< && $(MPICXX) $(TEST_MHD_COMPILE_COMMOM) \
+tests/mhd/mhd2gnuplot.exe: \
+  tests/mhd/mhd2gnuplot.cpp \
+  $(TEST_MHD_COMMON_DEPS)
+	@printf "MPICXX $<\n" && $(MPICXX) $(TEST_MHD_COMPILE_COMMOM) \
 	  $(DCCRG_CPPFLAGS)
 
-tests/mhd/test.exe: tests/mhd/test.cpp $(MHD_COMMON_HEADERS)
-	@echo "MPICXX "$< && $(MPICXX) $(TEST_MHD_COMPILE_COMMOM) \
+tests/mhd/test.exe: \
+  tests/mhd/test.cpp \
+  $(TEST_MHD_COMMON_DEPS)
+	@printf "MPICXX $<\n" && $(MPICXX) $(TEST_MHD_COMPILE_COMMOM) \
 	  $(DCCRG_CPPFLAGS) \
 	  $(BOOST_CPPFLAGS) \
 	  $(BOOST_LDFLAGS) \

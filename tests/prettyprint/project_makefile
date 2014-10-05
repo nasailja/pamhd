@@ -4,13 +4,17 @@ TESTS_PRETTYPRINT_EXECUTABLES = \
 tests/prettyprint_executables: $(TESTS_PRETTYPRINT_EXECUTABLES)
 
 tests/prettyprint_clean:
-	@echo "CLEAN tests/prettyprint" && rm -f $(TESTS_PRETTYPRINT_EXECUTABLES)
+	@printf "CLEAN tests/prettyprint\n" && rm -f $(TESTS_PRETTYPRINT_EXECUTABLES)
 
 EXECUTABLES += tests/prettyprint_executables
 CLEAN += tests/prettyprint_clean
 
-tests/prettyprint/compile.exe: tests/prettyprint/compile.cpp
-	@echo "CXX "$< && $(CXX) $< -o $@ \
+tests/prettyprint/compile.exe: \
+  tests/prettyprint/compile.cpp \
+  tests/prettyprint/project_makefile \
+  $(ENVIRONMENT_MAKEFILE) \
+  Makefile
+	@printf "CXX $<\n" && $(CXX) $< -o $@ \
 	  $(CPPFLAGS) \
 	  $(CXXFLAGS) \
 	  $(LDFLAGS) \

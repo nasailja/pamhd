@@ -9,7 +9,7 @@ tests/poisson_executables: $(TESTS_POISSON_EXECUTABLES)
 tests/poisson_tests: $(TESTS_POISSON_TESTS)
 
 tests/poisson_clean:
-	@echo "CLEAN tests/poisson" && rm -f \
+	@printf "CLEAN tests/poisson\n" && rm -f \
 	  $(TESTS_POISSON_EXECUTABLES) \
 	  $(TESTS_POISSON_TESTS)
 
@@ -17,10 +17,14 @@ EXECUTABLES += tests/poisson_executables
 TESTS += tests/poisson_tests
 CLEAN += tests/poisson_clean
 
+
 tests/poisson/test.exe: \
   tests/poisson/test.cpp \
-  source/poisson/solver.hpp
-	@echo "CXX "$< && $(CXX) $< -o $@ \
+  source/poisson/solver.hpp \
+  tests/poisson/project_makefile \
+  $(ENVIRONMENT_MAKEFILE) \
+  Makefile
+	@printf "CXX $<\n" && $(CXX) $< -o $@ \
 	  $(CPPFLAGS) \
 	  $(CXXFLAGS) \
 	  $(LDFLAGS) \

@@ -15,9 +15,7 @@ TESTS =
 RESULTS =
 CLEAN =
 
-
-all: test
-
+default: all
 
 include \
   tests/prettyprint/project_makefile \
@@ -31,19 +29,20 @@ include \
   tests/poisson/project_makefile
 
 
-%.tst: %.exe
-	@printf RUN\ $<...\ \  && $(RUN) ./$< && echo PASS && touch $@
-
-%.mtst: %.exe
-	@printf MPIRUN\ $<...\ \  && $(MPIRUN) ./$< && echo PASS && touch $@
-
+all: $(EXECUTABLES)
 
 t: test
-test: $(EXECUTABLES) $(TESTS)
-	@echo && echo "All tests passed."
+test: all $(TESTS)
 
 r: results
 results: $(RESULTS)
 
 c: clean
 clean: results $(CLEAN)
+
+
+%.tst: %.exe
+	@printf RUN\ $<...\ \  && $(RUN) ./$< && printf "PASS\n" && touch $@
+
+%.mtst: %.exe
+	@printf MPIRUN\ $<...\ \  && $(MPIRUN) ./$< && printf "PASS\n" && touch $@

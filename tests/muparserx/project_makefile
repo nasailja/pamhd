@@ -12,7 +12,7 @@ tests/muparserx_executables: $(TESTS_MUPARSERX_EXECUTABLES)
 tests/muparserx_tests: $(TESTS_MUPARSERX_TESTS)
 
 tests/muparserx_clean:
-	@echo "CLEAN tests/muparserx" && rm -f \
+	@printf "CLEAN tests/muparserx\n" && rm -f \
 	  $(TESTS_MUPARSERX_EXECUTABLES) \
 	  $(TESTS_MUPARSERX_TESTS)
 
@@ -21,8 +21,13 @@ TESTS += tests/muparserx_tests
 CLEAN += tests/muparserx_clean
 
 
+TEST_MUPARSERX_COMMON_DEPS = \
+  tests/muparserx/project_makefile \
+  $(ENVIRONMENT_MAKEFILE) \
+  Makefile
+
 TEST_MUPARSERX_COMPILE_COMMAND = \
-  @echo "CXX "$< && $(CXX) $< -o $@ \
+  @printf "CXX $<\n" && $(CXX) $< -o $@ \
   $(CPPFLAGS) \
   $(CXXFLAGS) \
   $(LDFLAGS) \

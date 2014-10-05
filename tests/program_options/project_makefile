@@ -19,7 +19,7 @@ tests/program_options_executables: $(TESTS_PROGRAM_OPTIONS_EXECUTABLES)
 tests/program_options_tests: $(TESTS_PROGRAM_OPTIONS_TESTS)
 
 tests/program_options_clean:
-	@echo "CLEAN tests/program_options" && rm -f \
+	@printf "CLEAN tests/program_options\n" && rm -f \
 	  $(TESTS_PROGRAM_OPTIONS_EXECUTABLES) \
 	  $(TESTS_PROGRAM_OPTIONS_TESTS)
 
@@ -28,10 +28,15 @@ TESTS += tests/program_options_tests
 CLEAN += tests/program_options_clean
 
 
-TEST_PROGRAM_OPTIONS_COMMON_DEPS = tests/program_options/project_makefile
+TEST_PROGRAM_OPTIONS_COMMON_DEPS = \
+  source/boundaries/variable_to_option.hpp \
+  source/boundaries/variable_to_option_vector.hpp \
+  tests/program_options/project_makefile \
+  $(ENVIRONMENT_MAKEFILE) \
+  Makefile
 
 TEST_PROGRAM_OPTIONS_COMPILE_COMMAND = \
-  @echo "CXX "$< && $(CXX) $< -o $@ \
+  @printf "CXX $<\n" && $(CXX) $< -o $@ \
   $(CPPFLAGS) \
   $(CXXFLAGS) \
   $(LDFLAGS) \
@@ -49,25 +54,27 @@ tests/program_options/variable.exe: \
   $(TEST_PROGRAM_OPTIONS_COMMON_DEPS)
 	$(TEST_PROGRAM_OPTIONS_COMPILE_COMMAND)
 
-tests/program_options/variables.exe: tests/program_options/variables.cpp
+tests/program_options/variables.exe: \
+  tests/program_options/variables.cpp \
+  $(TEST_PROGRAM_OPTIONS_COMMON_DEPS)
 	$(TEST_PROGRAM_OPTIONS_COMPILE_COMMAND)
 
 tests/program_options/variable_to_option.exe: \
   tests/program_options/variable_to_option.cpp \
-  source/boundaries/variable_to_option.hpp
+  $(TEST_PROGRAM_OPTIONS_COMMON_DEPS)
 	$(TEST_PROGRAM_OPTIONS_COMPILE_COMMAND)
 
 tests/program_options/variable_to_option_eigen.exe: \
   tests/program_options/variable_to_option.cpp \
-  source/boundaries/variable_to_option.hpp
+  $(TEST_PROGRAM_OPTIONS_COMMON_DEPS)
 	$(TEST_PROGRAM_OPTIONS_COMPILE_COMMAND) -DHAVE_EIGEN
 
 tests/program_options/variable_to_option_vector.exe: \
   tests/program_options/variable_to_option_vector.cpp \
-  source/boundaries/variable_to_option_vector.hpp
+  $(TEST_PROGRAM_OPTIONS_COMMON_DEPS)
 	$(TEST_PROGRAM_OPTIONS_COMPILE_COMMAND)
 
 tests/program_options/variable_to_option_vector_eigen.exe: \
   tests/program_options/variable_to_option_vector.cpp \
-  source/boundaries/variable_to_option_vector.hpp
+  $(TEST_PROGRAM_OPTIONS_COMMON_DEPS)
 	$(TEST_PROGRAM_OPTIONS_COMPILE_COMMAND) -DHAVE_EIGEN
