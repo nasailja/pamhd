@@ -5,6 +5,16 @@ RUN=${1:-}
 
 make
 
+mkdir -p \
+    results/shock_tube1_x \
+    results/shock_tube1_-x \
+    results/shock_tube1_y \
+    results/shock_tube1_-y \
+    results/shock_tube1_z \
+    results/shock_tube1_-z \
+    results/bow_shock_reference \
+    results/kelvin-helmholtz_reference
+
 echo
 echo Running tests...
 

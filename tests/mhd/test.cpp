@@ -46,6 +46,7 @@ to get MPI support for Eigen types in generic cell
 #include "Eigen/Core"
 #include "gensimcell.hpp"
 
+#include "divergence/remove.hpp"
 #include "grid_options.hpp"
 #include "mhd/common.hpp"
 #include "mhd/initialize.hpp"
@@ -58,6 +59,12 @@ to get MPI support for Eigen types in generic cell
 
 
 using namespace std;
+
+/*
+Controls transfer of variables in poisson solver
+which doesn't use generic cell
+*/
+int Poisson_Cell::transfer_switch = Poisson_Cell::INIT;
 
 
 int main(int argc, char* argv[])
@@ -143,6 +150,7 @@ int main(int argc, char* argv[])
 		save_mhd_n = -1,
 		start_time = 0,
 		end_time = 1,
+		remove_div_B_n = 0.1,
 		adiabatic_index = 5.0 / 3.0,    
 		vacuum_permeability = 4e-7 * M_PI,
 		proton_mass = 1.672621777e-27;
@@ -227,6 +235,10 @@ int main(int argc, char* argv[])
 			boost::program_options::value<std::string>(&mhd_solver)
 				->default_value(mhd_solver),
 			"MHD solver to use, one of: hll_athena")
+		("remove-div-B-n",
+			boost::program_options::value<double>(&remove_div_B_n)
+				->default_value(remove_div_B_n),
+			"Remove divergence of magnetic field every arg seconds (<= 0 doesn't remove)")
 		("save-mhd-n",
 			boost::program_options::value<double>(&save_mhd_n)
 				->default_value(save_mhd_n),
@@ -423,12 +435,14 @@ int main(int argc, char* argv[])
 	double
 		max_dt = 0,
 		simulation_time = start_time,
-		next_mhd_save = save_mhd_n;
+		next_mhd_save = save_mhd_n,
+		next_rem_div_B = remove_div_B_n;
 
 	std::vector<uint64_t>
 		cells = grid.get_cells(),
 		inner_cells = grid.get_local_cells_not_on_process_boundary(),
-		outer_cells = grid.get_local_cells_on_process_boundary();
+		outer_cells = grid.get_local_cells_on_process_boundary(),
+		boundary_cells;
 
 	// initialize MHD
 	if (verbose and rank == 0) {
@@ -462,16 +476,6 @@ int main(int argc, char* argv[])
 		// shorthand notation for referring to variables
 		const pamhd::mhd::MHD_State_Conservative MHD{};
 		const pamhd::mhd::Cell_Type Cell_Type{};
-
-		/*
-		Cell_T::set_transfer_all(true, MHD, Cell_Type);
-		grid.balance_load();
-		Cell_T::set_transfer_all(false, MHD, Cell_Type);
-
-		cells = grid.get_cells();
-		inner_cells = grid.get_local_cells_not_on_process_boundary();
-		outer_cells = grid.get_local_cells_on_process_boundary();
-		*/
 
 		/*
 		Get maximum allowed time step
@@ -585,6 +589,100 @@ int main(int argc, char* argv[])
 		>(grid, outer_cells);
 
 		simulation_time += time_step;
+
+
+		/*
+		Remove divergence of magnetic field
+		*/
+
+		if (remove_div_B_n > 0 and simulation_time >= next_rem_div_B) {
+			next_rem_div_B += remove_div_B_n;
+
+			if (verbose and rank == 0) {
+				cout << "Removing divergence of B at time " << simulation_time << endl;
+			}
+
+			// save old value of B in case div removal fails
+			for (const auto& cell: cells) {
+				auto* const cell_data = grid[cell];
+				if (cell_data == nullptr) {
+					std::cerr <<  __FILE__ << "(" << __LINE__ << "): "
+						"No data for cell " << cell
+						<< std::endl;
+					abort();
+				}
+
+				(*cell_data)[pamhd::mhd::Magnetic_Field_Temp()]
+					= (*cell_data)[MHD][pamhd::mhd::Magnetic_Field()];
+			}
+
+			Cell_T::set_transfer_all(true, MHD, pamhd::mhd::Magnetic_Field_Divergence());
+			grid.update_copies_of_remote_neighbors();
+
+			// short hand notation for how to access magnetic field in cell data
+			const auto B_path
+				= std::tuple<
+					pamhd::mhd::MHD_State_Conservative,
+					pamhd::mhd::Magnetic_Field
+				>();
+			// ditto for divergence of magnetic field...
+			const auto div_B_path
+				= std::tuple<pamhd::mhd::Magnetic_Field_Divergence>();
+			// ...and gradient of solution to Poisson's equation
+			const auto grad_scalar_pot_path
+				= std::tuple<pamhd::mhd::Scalar_Potential_Gradient>();
+
+
+			const double div_before
+				= pamhd::divergence::get_divergence(
+					cells,
+					grid,
+					B_path,
+					div_B_path
+				);
+
+			pamhd::divergence::remove(
+				cells,
+				boundary_cells,
+				{},
+				grid,
+				B_path,
+				div_B_path,
+				grad_scalar_pot_path,
+				1000, 0, 1e-2, 2, 10, false
+			);
+			grid.update_copies_of_remote_neighbors();
+
+			const double div_after
+				= pamhd::divergence::get_divergence(
+					cells,
+					grid,
+					B_path,
+					div_B_path
+				);
+
+			// restore old B
+			if (div_after > div_before) {
+				if (verbose and rank == 0) {
+					cout << "Removing divergence of B failed, restoring previous value"
+						<< endl;
+				}
+				for (const auto& cell: cells) {
+					auto* const cell_data = grid[cell];
+					if (cell_data == nullptr) {
+						std::cerr <<  __FILE__ << "(" << __LINE__ << "): "
+							"No data for cell " << cell
+							<< std::endl;
+						abort();
+					}
+
+					(*cell_data)[MHD][pamhd::mhd::Magnetic_Field()]
+						= (*cell_data)[pamhd::mhd::Magnetic_Field_Temp()];
+				}
+			}
+
+			Cell_T::set_transfer_all(false, MHD, pamhd::mhd::Magnetic_Field_Divergence());
+		}
 
 
 		/*

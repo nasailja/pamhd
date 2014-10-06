@@ -73,6 +73,14 @@ struct Magnetic_Field {
 	static const std::string get_option_help() { return {"Plasma magnetic field (T)"}; }
 };
 
+//! stores B before divergence removal in case that fails
+struct Magnetic_Field_Temp {
+	using data_type = Eigen::Vector3d;
+	static const std::string get_name() { return {"temporary magnetic field"}; }
+	static const std::string get_option_name() { return {"temporary-magnetic-field"}; }
+	static const std::string get_option_help() { return {"Temporary value of magnetic field in plasma (T)"}; }
+};
+
 struct Velocity {
 	using data_type = Eigen::Vector3d;
 	static const std::string get_name() { return {"velocity"}; }
@@ -115,6 +123,13 @@ struct Magnetic_Field_Divergence {
 	static const std::string get_name() { return {"magnetic field divergence"}; }
 	static const std::string get_option_name() { return {"magnetic-field-divergence"}; }
 	static const std::string get_option_help() { return {"Divergence of plasma magnetic field (T/m)"}; }
+};
+
+struct Scalar_Potential_Gradient {
+	using data_type = Eigen::Vector3d;
+	static const std::string get_name() { return {"scalar potential gradient"}; }
+	static const std::string get_option_name() { return {"scalar-potential-gradient"}; }
+	static const std::string get_option_help() { return {"Gradient of scalar potential from Poisson's equation"}; }
 };
 
 //! Set of conservative MHD variables
@@ -160,7 +175,9 @@ using Cell = gensimcell::Cell<
 	MHD_State_Conservative,
 	Cell_Type,
 	MPI_Rank,
+	Magnetic_Field_Temp,
 	Magnetic_Field_Divergence,
+	Scalar_Potential_Gradient,
 	MHD_Flux_Conservative
 >;
 
