@@ -38,6 +38,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 #include "mhd/hll_athena.hpp"
 #include "mhd/hlld_athena.hpp"
+#include "mhd/solve.hpp"
 #include "mhd/variables.hpp"
 
 using namespace std;
@@ -209,7 +210,6 @@ template <
 	}
 }
 
-
 /*!
 Advances the MHD solution for one time step of length dt with given solver.
 
@@ -224,7 +224,7 @@ template <
 	class Total_Energy_Density_T,
 	class Magnetic_Field_T
 > double solve_mhd(
-	const std::string& solver,
+	const pamhd::mhd::solver_t<MHD_T, MHD_Flux_T>& solver,
 	Grid_T& grid,
 	const double dt,
 	const double adiabatic_index,
@@ -255,54 +255,17 @@ template <
 
 		double max_vel = -1;
 		typename MHD_Flux_T::data_type flux;
-
-		if (solver == "hll_athena") {
-
-			std::tie(
-				flux,
-				max_vel
-			) = pamhd::mhd::athena::get_flux_hll<
-				typename MHD_T::data_type,
-				Mass_Density_T,
-				Momentum_Density_T,
-				Total_Energy_Density_T,
-				Magnetic_Field_T
-			>(
-				cell[MHD_T()],
-				neighbor[MHD_T()],
-				face_area,
-				dt,
-				adiabatic_index,
-				vacuum_permeability
-			);
-
-		} else if (solver == "hlld_athena") {
-
-			std::tie(
-				flux,
-				max_vel
-			) = pamhd::mhd::athena::get_flux_hlld<
-				typename MHD_T::data_type,
-				Mass_Density_T,
-				Momentum_Density_T,
-				Total_Energy_Density_T,
-				Magnetic_Field_T
-			>(
-				cell[MHD_T()],
-				neighbor[MHD_T()],
-				face_area,
-				dt,
-				adiabatic_index,
-				vacuum_permeability
-			);
-
-		} else {
-
-			std::cerr <<  __FILE__ << "(" << __LINE__ << ") Invalid solver: "
-				<< solver << ", use --help to list available solvers"
-				<< std::endl;
-			abort();
-		}
+		std::tie(
+			flux,
+			max_vel
+		) = solver(
+			cell[MHD_T()],
+			neighbor[MHD_T()],
+			face_area,
+			dt,
+			adiabatic_index,
+			vacuum_permeability
+		);
 
 		max_dt = std::min(max_dt, cell_size / max_vel);
 
@@ -728,15 +691,15 @@ template <
 int main(int argc, char* argv[])
 {
 	bool save = false, plot = false, no_verify = false, verbose = false;
-	std::string solver("hlld_athena");
+	std::string solver_str("hlld_athena");
 	boost::program_options::options_description options(
 		"Usage: program_name [options], where options are:"
 	);
 	options.add_options()
 		("help", "Print this help message")
 		("solver",
-			boost::program_options::value<std::string>(&solver)
-				->default_value(solver),
+			boost::program_options::value<std::string>(&solver_str)
+				->default_value(solver_str),
 			"Solver to use, available: hll_athena, hlld_athena")
 		("save", "Save end result to ascii file")
 		("plot", "Plot results using gnuplot")
@@ -769,6 +732,37 @@ int main(int argc, char* argv[])
 		verbose = true;
 	}
 
+	const auto solver
+		= [&solver_str](){
+
+			if (solver_str == "hll_athena") {
+
+				return pamhd::mhd::athena::get_flux_hll<
+					pamhd::mhd::MHD_State_Conservative::data_type,
+					pamhd::mhd::Mass_Density,
+					pamhd::mhd::Momentum_Density,
+					pamhd::mhd::Total_Energy_Density,
+					pamhd::mhd::Magnetic_Field
+				>;
+
+			} else if (solver_str == "hlld_athena") {
+
+				return pamhd::mhd::athena::get_flux_hlld<
+					pamhd::mhd::MHD_State_Conservative::data_type,
+					pamhd::mhd::Mass_Density,
+					pamhd::mhd::Momentum_Density,
+					pamhd::mhd::Total_Energy_Density,
+					pamhd::mhd::Magnetic_Field
+				>;
+
+			} else {
+
+				std::cerr <<  __FILE__ << "(" << __LINE__ << ") Invalid solver: "
+					<< solver_str << ", use --help to list available solvers"
+					<< std::endl;
+				abort();
+			}
+		}();
 
 	Grid_T grid;
 
@@ -820,6 +814,7 @@ int main(int argc, char* argv[])
 			cout << "Solving MHD at time " << simulation_time
 				<< " s with time step " << time_step << " s" << endl;
 		}
+
 		max_dt = std::min(
 			max_dt,
 			solve_mhd<
@@ -868,11 +863,11 @@ int main(int argc, char* argv[])
 			pamhd::mhd::Momentum_Density,
 			pamhd::mhd::Total_Energy_Density,
 			pamhd::mhd::Magnetic_Field
-		>(solver, grid);
+		>(solver_str, grid);
 	}
 
 	if (not no_verify) {
-		const std::string reference_name("mhd_" + solver + ".ref");
+		const std::string reference_name("mhd_" + solver_str + ".ref");
 
 		if (verbose) {
 			cout << "Verifying result against file " << reference_name << endl;

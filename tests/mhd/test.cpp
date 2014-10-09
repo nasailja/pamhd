@@ -52,6 +52,8 @@ to get MPI support for Eigen types in generic cell
 #include "mhd/initialize.hpp"
 #include "mhd/save.hpp"
 #include "mhd/solve.hpp"
+#include "mhd/hll_athena.hpp"
+#include "mhd/hlld_athena.hpp"
 #include "mhd/variables.hpp"
 #include "boundaries/copy_boundary.hpp"
 #include "boundaries/initial_condition.hpp"
@@ -146,16 +148,21 @@ int main(int argc, char* argv[])
 	*/
 
 	bool verbose = false, save_fluxes = false;
+	size_t
+		poisson_iterations_max = 1000,
+		poisson_iterations_min = 0;
 	double
 		save_mhd_n = -1,
 		start_time = 0,
 		end_time = 1,
 		remove_div_B_n = 0.1,
+		poisson_norm_stop = 1e-5,
+		poisson_norm_increase_max = 10,
 		adiabatic_index = 5.0 / 3.0,    
 		vacuum_permeability = 4e-7 * M_PI,
 		proton_mass = 1.672621777e-27;
 	std::string
-		mhd_solver("hlld_athena"),
+		mhd_solver_str("hlld_athena"),
 		config_file_name(""),
 		boundary_file_name(""),
 		lb_name("RCB"),
@@ -232,8 +239,8 @@ int main(int argc, char* argv[])
 			"RCB, HSFC, HYPERGRAPH; for a list of available algorithms see "
 			"http://www.cs.sandia.gov/zoltan/ug_html/ug_alg.html)")
 		("solver-mhd",
-			boost::program_options::value<std::string>(&mhd_solver)
-				->default_value(mhd_solver),
+			boost::program_options::value<std::string>(&mhd_solver_str)
+				->default_value(mhd_solver_str),
 			"MHD solver to use, one of: hll_athena")
 		("remove-div-B-n",
 			boost::program_options::value<double>(&remove_div_B_n)
@@ -342,6 +349,38 @@ int main(int argc, char* argv[])
 	if (option_variables.count("save-mhd-fluxes") > 0) {
 		save_fluxes = true;
 	}
+
+	const auto mhd_solver
+		= [&mhd_solver_str](){
+			if (mhd_solver_str == "hll_athena") {
+
+				return pamhd::mhd::athena::get_flux_hll<
+					pamhd::mhd::MHD_State_Conservative::data_type,
+					pamhd::mhd::Mass_Density,
+					pamhd::mhd::Momentum_Density,
+					pamhd::mhd::Total_Energy_Density,
+					pamhd::mhd::Magnetic_Field
+				>;
+
+			} else if (mhd_solver_str == "hlld_athena") {
+
+				return pamhd::mhd::athena::get_flux_hlld<
+					pamhd::mhd::MHD_State_Conservative::data_type,
+					pamhd::mhd::Mass_Density,
+					pamhd::mhd::Momentum_Density,
+					pamhd::mhd::Total_Energy_Density,
+					pamhd::mhd::Magnetic_Field
+				>;
+
+			} else {
+
+				std::cerr <<  __FILE__ << "(" << __LINE__ << ") Invalid solver: "
+					<< mhd_solver_str << ", use --help to list available solvers"
+					<< std::endl;
+				abort();
+			}
+		}();
+
 
 	if (boundary_file_name != "") {
 		try {
@@ -599,7 +638,7 @@ int main(int argc, char* argv[])
 			next_rem_div_B += remove_div_B_n;
 
 			if (verbose and rank == 0) {
-				cout << "Removing divergence of B at time " << simulation_time << endl;
+				cout << "Removing divergence of B at time " << simulation_time << "...  ";
 			}
 
 			// save old value of B in case div removal fails
@@ -649,7 +688,12 @@ int main(int argc, char* argv[])
 				B_path,
 				div_B_path,
 				grad_scalar_pot_path,
-				1000, 0, 1e-2, 2, 10, false
+				poisson_iterations_max,
+				poisson_iterations_min,
+				poisson_norm_stop,
+				2,
+				poisson_norm_increase_max,
+				false
 			);
 			grid.update_copies_of_remote_neighbors();
 
@@ -664,7 +708,8 @@ int main(int argc, char* argv[])
 			// restore old B
 			if (div_after > div_before) {
 				if (verbose and rank == 0) {
-					cout << "Removing divergence of B failed, restoring previous value"
+					cout << "failed (" << div_after
+						<< "), restoring previous value (" << div_before << ")."
 						<< endl;
 				}
 				for (const auto& cell: cells) {
@@ -678,6 +723,10 @@ int main(int argc, char* argv[])
 
 					(*cell_data)[MHD][pamhd::mhd::Magnetic_Field()]
 						= (*cell_data)[pamhd::mhd::Magnetic_Field_Temp()];
+				}
+			} else {
+				if (verbose and rank == 0) {
+					cout << div_before << " -> " << div_after << endl;
 				}
 			}
 

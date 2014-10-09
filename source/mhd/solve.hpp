@@ -22,16 +22,51 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #define PAMHD_MHD_SOLVE_HPP
 
 #include "cmath"
+#include "functional"
 #include "limits"
 #include "vector"
 
-#include "gensimcell.hpp"
-
-#include "mhd/hll_athena.hpp"
-#include "mhd/hlld_athena.hpp"
 
 namespace pamhd {
 namespace mhd {
+
+
+/*!
+Function call signatire of all MHD flux functions.
+
+Input:
+    - Conservative MHD variables in two cells that share
+      a face and are neighbors in the x dimension
+    - Area shared between given cells
+    - Length of time step for which to calculate flux
+
+state_neg represents the MHD variables in the cell in the
+negative x direction from the shared face, state_pos in
+the cell in positive x direction from the face.
+
+Output:
+    - Flux of conservative MHD variables over time dt
+      through area shared_area
+    - Absolute value of maximum signal speed from shared face
+
+See for example hll_athena.hpp for an implementation.
+*/
+template <
+	class MHD_T,
+	class MHD_Flux_T
+> using solver_t = std::function<
+	std::pair<
+		typename MHD_Flux_T::data_type,
+		double
+	>(
+		typename MHD_T::data_type /* state_neg */,
+		typename MHD_T::data_type /* state_pos */,
+		const double /* shared_area */,
+		const double /* dt */,
+		const double /* adiabatic_index */,
+		const double /* vacuum_permeability */
+	)
+>;
 
 
 /*!
@@ -49,7 +84,7 @@ template <
 	class Total_Energy_Density_T,
 	class Magnetic_Field_T
 > double solve(
-	const std::string& solver,
+	const solver_t<MHD_T, MHD_Flux_T>& solver,
 	Grid_T& grid,
 	const std::vector<uint64_t>& cells,
 	const double dt,
@@ -196,48 +231,17 @@ template <
 
 			typename MHD_Flux_T::data_type flux;
 			double max_vel;
-			if (solver == "hll_athena") {
-				std::tie(
-					flux,
-					max_vel
-				) = pamhd::mhd::athena::get_flux_hll<
-					typename MHD_T::data_type,
-					Mass_Density_T,
-					Momentum_Density_T,
-					Total_Energy_Density_T,
-					Magnetic_Field_T
-				>(
-					state_neg,
-					state_pos,
-					shared_area,
-					dt,
-					adiabatic_index,
-					vacuum_permeability
-				);
-			} else if (solver == "hlld_athena") {
-				std::tie(
-					flux,
-					max_vel
-				) = pamhd::mhd::athena::get_flux_hlld<
-					typename MHD_T::data_type,
-					Mass_Density_T,
-					Momentum_Density_T,
-					Total_Energy_Density_T,
-					Magnetic_Field_T
-				>(
-					state_neg,
-					state_pos,
-					shared_area,
-					dt,
-					adiabatic_index,
-					vacuum_permeability
-				);
-			} else {
-				std::cerr <<  __FILE__ << "(" << __LINE__ << ") Invalid solver: "
-					<< solver << ", use --help to list available solvers"
-					<< std::endl;
-				abort();
-			}
+			std::tie(
+				flux,
+				max_vel
+			) = solver(
+				state_neg,
+				state_pos,
+				shared_area,
+				dt,
+				adiabatic_index,
+				vacuum_permeability
+			);
 			if (max_vel < 0) {
 				std::cerr <<  __FILE__ << "(" << __LINE__ << ") "
 					<< "Solution failed between cells " << cell_id
@@ -372,6 +376,8 @@ template <
 	}
 }
 
+
 }} // namespaces
+
 
 #endif // ifndef PAMHD_MHD_SOLVE_HPP
