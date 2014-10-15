@@ -663,6 +663,66 @@ int plot_2d(
 	gnuplot_file << "\nend\n";
 
 
+	// Bx
+	gnuplot_file
+		//<< "unset logscale cb\n"
+		<< "set output '"
+		<< output_file_name_prefix + "_Bx.png"
+		<< "'\nplot '-' matrix with image title 'B_1 (T)'\n";
+
+	for (size_t i = 0; i < cells.size(); i++) {
+		const auto& mhd_data
+			= simulation_data.at(cells[i])[MHD_State_Conservative()];
+
+		gnuplot_file
+			<< mhd_data[Magnetic_Field()][0]
+			<< " ";
+		if (i % grid_length.get()[0] == grid_length.get()[0] - 1) {
+			gnuplot_file << "\n";
+		}
+	}
+	gnuplot_file << "\nend\n";
+
+	// By
+	gnuplot_file
+		<< "set output '"
+		<< output_file_name_prefix + "_By.png"
+		<< "'\nplot '-' matrix with image title 'B_2 (T)'\n";
+
+	for (size_t i = 0; i < cells.size(); i++) {
+		const auto& mhd_data
+			= simulation_data.at(cells[i])[MHD_State_Conservative()];
+
+		gnuplot_file
+			<< mhd_data[Magnetic_Field()][1]
+			<< " ";
+		if (i % grid_length.get()[0] == grid_length.get()[0] - 1) {
+			gnuplot_file << "\n";
+		}
+	}
+	gnuplot_file << "\nend\n";
+
+	// Bz
+	gnuplot_file
+		<< "set output '"
+		<< output_file_name_prefix + "_Bz.png"
+		<< "'\nplot '-' matrix with image title 'B_3 (T)'\n";
+
+	for (size_t i = 0; i < cells.size(); i++) {
+		const auto& mhd_data
+			= simulation_data.at(cells[i])[MHD_State_Conservative()];
+
+		gnuplot_file
+			<< mhd_data[Magnetic_Field()][2]
+			<< " ";
+		if (i % grid_length.get()[0] == grid_length.get()[0] - 1) {
+			gnuplot_file << "\n";
+		}
+	}
+	gnuplot_file << "\nend\n";
+
+
+
 	/*
 	Scale vector lengths
 	*/
