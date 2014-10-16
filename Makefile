@@ -34,6 +34,7 @@ all: $(EXECUTABLES)
 t: test
 test: all $(TESTS)
 
+# removes simulation results
 r: results
 results: $(RESULTS)
 
@@ -41,6 +42,7 @@ c: clean
 clean: results $(CLEAN)
 
 
+# Rules to run tests common to all projects
 %.tst: %.exe
 	@printf RUN\ $<...\ \  && $(RUN) ./$< && printf "PASS\n" && touch $@
 
