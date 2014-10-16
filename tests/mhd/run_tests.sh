@@ -13,7 +13,8 @@ mkdir -p \
     results/shock_tube1_z \
     results/shock_tube1_-z \
     results/bow_shock_reference \
-    results/kelvin-helmholtz_reference
+    results/kelvin-helmholtz_reference \
+    results/magnetohydrodynamic/kelvin-helmholtz/reference_2d/roe_athena
 
 echo
 echo Running tests...
@@ -58,6 +59,11 @@ $RUN ./test.exe \
     --config-file config_files/bow_shock_reference_general.cfg \
     --boundary-file config_files/bow_shock_reference_boundaries.cfg
 
+echo mhd kelvin-helmholtz reference 2d roe
+$RUN ./test.exe \
+    --config-file config_files/magnetohydrodynamic/kelvin-helmholtz/reference_2d/general.cfg \
+    --boundary-file config_files/magnetohydrodynamic/kelvin-helmholtz/reference_2d/boundaries.cfg
+
 
 echo
 echo Plotting results with gnuplot
@@ -85,3 +91,6 @@ $RUN ./mhd2gnuplot.exe results/kelvin-helmholtz_reference/*dc
 
 echo bow_shock_reference
 $RUN ./mhd2gnuplot.exe results/bow_shock_reference/*dc
+
+echo mhd kelvin-helmholtz reference 2d roe
+$RUN ./mhd2gnuplot.exe results/magnetohydrodynamic/kelvin-helmholtz/reference_2d/roe_athena/*dc
