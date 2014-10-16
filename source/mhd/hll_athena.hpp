@@ -67,10 +67,6 @@ template <
 		velocity_neg(state_neg[Mom] / state_neg[Rho]),
 		velocity_pos(state_pos[Mom] / state_pos[Rho]);
 
-	// div B = 0 requres identical Bx between states
-	state_neg[Mag][0] =
-	state_pos[Mag][0] = (state_neg[Mag][0] + state_pos[Mag][0]) / 2;
-
 	const auto
 		pressure_thermal_neg
 			= get_pressure<
@@ -148,9 +144,9 @@ template <
 		= velocity_pos[0] * (pressure_thermal_pos + state_pos[Nrj])
 		- bp * state_pos[Nrj];
 
-	const auto&
-		B_neg = state_neg[Mag],
-		B_pos = state_pos[Mag];
+	const auto
+		&B_neg = state_neg[Mag],
+		&B_pos = state_pos[Mag];
 
 	flux_neg[Mom][0]
 		-= 0.5
