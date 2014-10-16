@@ -33,7 +33,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef PAMHD_MHD_COMMON_HPP
 #define PAMHD_MHD_COMMON_HPP
 
+
+#include "boost/lexical_cast.hpp"
 #include "cmath"
+#include "stdexcept"
+#include "string"
+
 
 namespace pamhd {
 namespace mhd {
@@ -42,11 +47,17 @@ namespace mhd {
 /*!
 Returns pressure in given MHD state.
 
+Throws std::domain_error if given a state with non-positive mass density.
+
+Returns negative pressure if total energy in given state
+is smaller than kinetic + magnetic energies.
+
 Example:
-struct Mass_Density {using data_type = double;}; ...
-using MHD = gensimcell::Cell<Mass_Density, ...>;
-const MHD mhd;
-double p = get_pressure<MHD, Mass_Density, ...>(mhd);
+struct Mass_Density {using data_type = double;};
+...
+using MHD = gensimcell::Cell<..., Mass_Density, ...>;
+const MHD state;
+double p = get_pressure<MHD, Mass_Density, ...>(state);
 */
 template <
 	class MHD_T,
@@ -58,21 +69,24 @@ template <
 	const MHD_T& state,
 	const double adiabatic_index,
 	const double vacuum_permeability
-) {
+) throw(std::domain_error) {
+	const auto rho = state[Mass_Density_T()];
+	if (rho <= 0) {
+		throw std::domain_error(
+			std::string("Non-positive mass density given to ")
+			+ __func__
+			+ std::string(": ")
+			+ boost::lexical_cast<std::string>(rho)
+		);
+	}
+
 	const auto
 		&mom = state[Momentum_Density_T()],
-		&B = state[Magnetic_Field_T()];
+		&mag = state[Magnetic_Field_T()];
 	const auto
-		rho = state[Mass_Density_T()],
 		nrj = state[Total_Energy_Density_T()],
-		kinetic_energy = [&](){
-			if (rho > 0) {
-				return 0.5 * mom.squaredNorm() / rho;
-			} else {
-				return 0.0;
-			}
-		}(),
-		magnetic_energy = 0.5 * B.squaredNorm() / vacuum_permeability;
+		kinetic_energy = 0.5 * mom.squaredNorm() / rho,
+		magnetic_energy = 0.5 * mag.squaredNorm() / vacuum_permeability;
 
 	return (nrj - kinetic_energy - magnetic_energy) * (adiabatic_index - 1);
 }
@@ -80,6 +94,8 @@ template <
 
 /*!
 Returns flux from given state into positive x direction.
+
+Throws std::domain_error if given a state with non-positive mass density.
 */
 template <
 	class MHD_T,
@@ -91,26 +107,22 @@ template <
 	const MHD_T& state,
 	const double adiabatic_index,
 	const double vacuum_permeability
-) {
+) throw(std::domain_error) {
 	// shorthand notation for variables
 	const Mass_Density_T Mas{};
 	const Momentum_Density_T Mom{};
 	const Total_Energy_Density_T Nrj{};
 	const Magnetic_Field_T Mag{};
 
-	const auto velocity = [&](){
-		auto temp_velocity = state[Mom];
-
-		if (state[Mas] > 0) {
-			temp_velocity /= state[Mas];
-		} else {
-			// cap velocity at speed of light
-			temp_velocity.normalize();
-			temp_velocity *= 299792458;
-		}
-
-		return temp_velocity;
-	}();
+	const auto rho = state[Mas];
+	if (rho <= 0) {
+		throw std::domain_error(
+			std::string("Non-positive mass density given to ")
+			+ __func__
+			+ std::string(": ")
+			+ boost::lexical_cast<std::string>(rho)
+		);
+	}
 
 	const auto
 		inv_permeability = 1.0 / vacuum_permeability,
@@ -123,6 +135,8 @@ template <
 				Total_Energy_Density_T,
 				Magnetic_Field_T
 			>(state, adiabatic_index, vacuum_permeability);
+
+	const auto velocity = state[Mom] / rho;
 
 	MHD_T flux;
 
@@ -147,7 +161,9 @@ template <
 /*!
 Returns total energy density in given primitive MHD state.
 
-\see get_pressure() for help with the template arguments.
+Throws std::domain_error if given a state with non-positive mass density.
+
+\see get_pressure()
 */
 template <
 	class MHD_Primitive_T,
@@ -159,24 +175,36 @@ template <
 	const MHD_Primitive_T& state,
 	const double adiabatic_index,
 	const double vacuum_permeability
-) {
-	const auto
-		&v = state[Velocity_T()],
-		&B = state[Magnetic_Field_T()];
-	const auto
-		rho = state[Mass_Density_T()],
-		p = state[Pressure_T()],
-		kinetic_energy = 0.5 * rho * v.squaredNorm(),
-		magnetic_energy = 0.5 * B.squaredNorm() / vacuum_permeability;
+) throw(std::domain_error) {
+	if (state[Mass_Density_T()] <= 0) {
+		throw std::domain_error(
+			std::string("Non-positive mass density given to ")
+			+ __func__
+			+ std::string(": ")
+			+ boost::lexical_cast<std::string>(state[Mass_Density_T()])
+		);
+	}
 
-	return p / (adiabatic_index - 1) + kinetic_energy + magnetic_energy;
+	const auto
+		kinetic_energy
+			= 0.5 * state[Mass_Density_T()]
+			* state[Velocity_T()].squaredNorm(),
+		magnetic_energy
+			= 0.5 * state[Magnetic_Field_T()].squaredNorm()
+			/ vacuum_permeability;
+
+	return
+		state[Pressure_T()] / (adiabatic_index - 1)
+		+ kinetic_energy
+		+ magnetic_energy;
 }
 
 
 /*!
 Returns speed of sound wave in given MHD state.
 
-Returns a non-negative value.
+Throws std::domain_error if given a state with
+non-positive mass density or pressure.
 
 \see get_pressure() for help with the template arguments.
 */
@@ -190,20 +218,32 @@ template <
 	const MHD_T& state,
 	const double adiabatic_index,
 	const double vacuum_permeability
-) {
-	const auto
-		pressure
-			= get_pressure<
-				MHD_T,
-				Mass_Density_T,
-				Momentum_Density_T,
-				Total_Energy_Density_T,
-				Magnetic_Field_T
-			>(state, adiabatic_index, vacuum_permeability),
-		rho = state[Mass_Density_T()];
+) throw(std::domain_error) {
+	const auto rho = state[Mass_Density_T()];
+	if (rho <= 0) {
+		throw std::domain_error(
+			std::string("Non-positive mass density given to ")
+			+ __func__
+			+ std::string(": ")
+			+ boost::lexical_cast<std::string>(rho)
+		);
+	}
 
-	if (rho <= 0 or pressure < 0) {
-		return 299792458;
+	const auto pressure
+		= get_pressure<
+			MHD_T,
+			Mass_Density_T,
+			Momentum_Density_T,
+			Total_Energy_Density_T,
+			Magnetic_Field_T
+		>(state, adiabatic_index, vacuum_permeability);
+	if (pressure <= 0) {
+		throw std::domain_error(
+			std::string("Non-positive pressure given to ")
+			+ __func__
+			+ std::string(": ")
+			+ boost::lexical_cast<std::string>(pressure)
+		);
 	}
 
 	return std::sqrt(adiabatic_index * pressure / rho);
@@ -213,7 +253,7 @@ template <
 /*!
 Returns speed of AlfvŽn wave in given MHD state.
 
-Returns a non-negative value.
+Throws std::domain_error if given a state with non-positive mass density.
 
 \see get_pressure() for help with the template arguments.
 */
@@ -224,16 +264,18 @@ template <
 > double get_alfven_speed(
 	const MHD_T& state,
 	const double vacuum_permeability
-) {
-	const auto
-		rho = state[Mass_Density_T()],
-		B_mag = state[Magnetic_Field_T()].norm();
-
+) throw(std::domain_error) {
+	const auto rho = state[Mass_Density_T()];
 	if (rho <= 0) {
-		return 299792458;
+		throw std::domain_error(
+			std::string("Non-positive mass density given to ")
+			+ __func__
+			+ std::string(": ")
+			+ boost::lexical_cast<std::string>(rho)
+		);
 	}
 
-	return B_mag / std::sqrt(vacuum_permeability * rho);
+	return state[Magnetic_Field_T()].norm() / std::sqrt(vacuum_permeability * rho);
 }
 
 
@@ -257,14 +299,13 @@ template <
 ) {
 	const auto
 		B_mag = state[Magnetic_Field_T()].norm(),
-		sound
-			= get_sound_speed<
-				MHD_T,
-				Mass_Density_T,
-				Momentum_Density_T,
-				Total_Energy_Density_T,
-				Magnetic_Field_T
-			>(state, adiabatic_index, vacuum_permeability);
+		sound = get_sound_speed<
+			MHD_T,
+			Mass_Density_T,
+			Momentum_Density_T,
+			Total_Energy_Density_T,
+			Magnetic_Field_T
+		>(state, adiabatic_index, vacuum_permeability);
 
 	if (B_mag == 0) {
 		return sound;
@@ -296,6 +337,9 @@ template <
 }
 
 
+/*!
+Throws std::domain_error if given a state with non-positive mass density.
+*/
 template <
 	class MHD_Primitive_T,
 	class Velocity_T,
@@ -309,25 +353,29 @@ template <
 	const MHD_Conservative_T& state,
 	const double adiabatic_index,
 	const double vacuum_permeability
-) {
+) throw(std::domain_error) {
+	if (state[Mass_Density_T()] <= 0) {
+		throw std::domain_error(
+			std::string("Non-positive mass density given to ")
+			+ __func__
+			+ std::string(": ")
+			+ boost::lexical_cast<std::string>(state[Mass_Density_T()])
+		);
+	}
+
 	MHD_Primitive_T ret_val;
 
 	ret_val[Mass_Density_T()] = state[Mass_Density_T()];
+	ret_val[Velocity_T()] = state[Momentum_Density_T()] / state[Mass_Density_T()];
+	ret_val[Pressure_T()]
+		= get_pressure<
+			MHD_Conservative_T,
+			Mass_Density_T,
+			Momentum_Density_T,
+			Total_Energy_Density_T,
+			Magnetic_Field_T
+		>(state, adiabatic_index, vacuum_permeability);
 	ret_val[Magnetic_Field_T()] = state[Magnetic_Field_T()];
-
-	ret_val[Pressure_T()] = get_pressure<
-		MHD_Conservative_T,
-		Mass_Density_T,
-		Momentum_Density_T,
-		Total_Energy_Density_T,
-		Magnetic_Field_T
-	>(state, adiabatic_index, vacuum_permeability);
-
-	if (state[Mass_Density_T()] == 0) {
-		ret_val[Velocity_T()] = 0;
-	} else {
-		ret_val[Velocity_T()] = state[Momentum_Density_T()] / state[Mass_Density_T()];
-	}
 
 	return ret_val;
 }
@@ -445,16 +493,54 @@ template <
 
 /*!
 Positive flux adds to given cell multiplied with given factor.
+
+Throws std::domain_error if new state has
+non-positive mass density of pressure.
 */
 template <
 	class Cell_T,
 	class MHD_T,
-	class MHD_Flux_T
+	class MHD_Flux_T,
+	class Mass_Density_T,
+	class Momentum_Density_T,
+	class Total_Energy_Density_T,
+	class Magnetic_Field_T
 > void apply_fluxes(
 	Cell_T& cell_data,
-	const double factor
-) {
-	cell_data[MHD_T()] += cell_data[MHD_Flux_T()] * factor;
+	const double factor,
+	const double adiabatic_index,
+	const double vacuum_permeability
+) throw(std::domain_error) {
+	auto& state = cell_data[MHD_T()];
+	const auto& flux = cell_data[MHD_Flux_T()];
+
+	state += flux * factor;
+
+	if (state[Mass_Density_T()] <= 0) {
+		throw std::domain_error(
+			"New state has non-positive mass density: "
+			+ boost::lexical_cast<std::string>(state[Mass_Density_T()])
+		);
+	}
+
+	const auto pressure
+		= get_pressure<
+			typename MHD_T::data_type,
+			Mass_Density_T,
+			Momentum_Density_T,
+			Total_Energy_Density_T,
+			Magnetic_Field_T
+		>(
+			state,
+			adiabatic_index,
+			vacuum_permeability
+		);
+	if (pressure <= 0) {
+		throw std::domain_error(
+			"New state has non-positive pressure: "
+			+ boost::lexical_cast<std::string>(pressure)
+		);
+	}
 }
 
 

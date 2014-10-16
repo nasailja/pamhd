@@ -4,7 +4,9 @@ TESTS_MHD_EXECUTABLES = \
   tests/mhd/test.exe
 
 TESTS_MHD_TESTS = \
-  tests/mhd/reference.tst
+  tests/mhd/reference.tst_hll_athena \
+  tests/mhd/reference.tst_hlld_athena \
+  tests/mhd/reference.tst_roe_athena
 
 tests/mhd_executables: $(TESTS_MHD_EXECUTABLES)
 
@@ -33,6 +35,7 @@ TEST_MHD_COMMON_DEPS = \
   source/mhd/variables.hpp \
   source/mhd/hll_athena.hpp \
   source/mhd/hlld_athena.hpp \
+  source/mhd/roe_athena.hpp \
   tests/mhd/project_makefile \
   $(ENVIRONMENT_MAKEFILE) \
   Makefile
@@ -72,7 +75,7 @@ tests/mhd/mhd2gnuplot.exe: \
 
 tests/mhd/test.exe: \
   tests/mhd/test.cpp \
-  $(TEST_MHD_COMMON_DEPS)
+  $(TEST_MHD_PROGRAM_DEPS)
 	@printf "MPICXX $<\n" && $(MPICXX) $(TEST_MHD_COMPILE_COMMOM) \
 	  $(DCCRG_CPPFLAGS) \
 	  $(BOOST_CPPFLAGS) \
@@ -85,3 +88,12 @@ tests/mhd/test.exe: \
 	  $(ZOLTAN_CPPFLAGS) \
 	  $(ZOLTAN_LDFLAGS) \
 	  $(ZOLTAN_LIBS)
+
+
+tests/mhd/reference.tst_hll_athena: tests/mhd/reference.exe
+	@printf RUN\ $<...\ \  && $(RUN) ./$< --solver hll_athena && printf "PASS\n" && touch $@
+
+tests/mhd/reference.tst_hlld_athena: tests/mhd/reference.exe
+	@printf RUN\ $<...\ \  && $(RUN) ./$< --solver hlld_athena && printf "PASS\n" && touch $@
+tests/mhd/reference.tst_roe_athena: tests/mhd/reference.exe
+	@printf RUN\ $<...\ \  && $(RUN) ./$< --solver roe_athena && printf "PASS\n" && touch $@

@@ -248,7 +248,8 @@ template <
 					<< " and " << neighbor_id
 					<< " at " << grid.geometry.get_center(cell_id)
 					<< " and " << grid.geometry.get_center(neighbor_id)
-					<< " with states (mass, momentum, total energy, magnetic field): "
+					<< " with error value " << max_vel
+					<< " and states (mass, momentum, total energy, magnetic field): "
 					<< (*cell_data)[MHD_T()][Mass_Density_T()] << ", "
 					<< (*cell_data)[MHD_T()][Momentum_Density_T()] << ", "
 					<< (*cell_data)[MHD_T()][Total_Energy_Density_T()] << ", "
@@ -271,7 +272,6 @@ template <
 				Total_Energy_Density_T,
 				Magnetic_Field_T
 			>(flux, -abs(neighbor_dir));
-
 
 			const MHD_Flux_T Flux{};
 			if (neighbor_dir > 0) {
@@ -313,10 +313,16 @@ template <
 	class Grid_T,
 	class Cell_T,
 	class MHD_T,
-	class MHD_Flux_T
+	class MHD_Flux_T,
+	class Mass_Density_T,
+	class Momentum_Density_T,
+	class Total_Energy_Density_T,
+	class Magnetic_Field_T
 > void apply_fluxes(
 	Grid_T& grid,
-	const std::vector<uint64_t>& cells
+	const std::vector<uint64_t>& cells,
+	const double adiabatic_index,
+	const double vacuum_permeability
 ) {
 	static_assert(
 		std::is_same<typename MHD_T::data_type, typename MHD_Flux_T::data_type>::value,
@@ -335,7 +341,58 @@ template <
 		const auto length = grid.geometry.get_length(cell_id);
 		const double inverse_volume = 1.0 / (length[0] * length[1] * length[2]);
 
-		apply_fluxes<Cell_T, MHD_T, MHD_Flux_T>((*cell_data), inverse_volume);
+		const auto previous_state = (*cell_data)[MHD_T()];
+		const auto& flux = (*cell_data)[MHD_Flux_T()];
+		try {
+			apply_fluxes<
+				Cell_T,
+				MHD_T,
+				MHD_Flux_T,
+				Mass_Density_T,
+				Momentum_Density_T,
+				Total_Energy_Density_T,
+				Magnetic_Field_T
+			>(
+				*cell_data,
+				inverse_volume,
+				adiabatic_index,
+				vacuum_permeability
+			);
+		} catch (const std::domain_error& error) {
+			std::cerr <<  __FILE__ << "(" << __LINE__
+				<< ") New MHD state for cell " << cell_id
+				<< " at " << grid.geometry.get_center(cell_id)
+				<< " would be unphysical because (" << error.what()
+				<< ") with old state:\n"
+				<< previous_state[Mass_Density_T()] << ", "
+				<< previous_state[Momentum_Density_T()] << ", "
+				<< previous_state[Total_Energy_Density_T()] << ", "
+				<< previous_state[Magnetic_Field_T()]
+				<< "\nand flux * " << inverse_volume << ":\n"
+				<< flux[Mass_Density_T()] * inverse_volume << ", "
+				<< flux[Momentum_Density_T()] * inverse_volume << ", "
+				<< flux[Total_Energy_Density_T()] * inverse_volume << ", "
+				<< flux[Magnetic_Field_T()] * inverse_volume
+				<< "\ngiving:\n"
+				<< (*cell_data)[MHD_T()][Mass_Density_T()] << ", "
+				<< (*cell_data)[MHD_T()][Momentum_Density_T()] << ", "
+				<< (*cell_data)[MHD_T()][Total_Energy_Density_T()] << ", "
+				<< (*cell_data)[MHD_T()][Magnetic_Field_T()]
+				<< "\nwith pressure: "
+				<< get_pressure<
+					typename MHD_T::data_type,
+					Mass_Density_T,
+					Momentum_Density_T,
+					Total_Energy_Density_T,
+					Magnetic_Field_T
+				>(
+					(*cell_data)[MHD_T()],
+					adiabatic_index,
+					vacuum_permeability
+				)
+				<< std::endl;
+			abort();
+		}
 	}
 }
 

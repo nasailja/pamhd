@@ -38,6 +38,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 #include "mhd/hll_athena.hpp"
 #include "mhd/hlld_athena.hpp"
+#include "mhd/roe_athena.hpp"
 #include "mhd/solve.hpp"
 #include "mhd/variables.hpp"
 
@@ -285,10 +286,16 @@ template <
 		pamhd::mhd::apply_fluxes<
 			Grid_T::value_type,
 			MHD_T,
-			MHD_Flux_T
+			MHD_Flux_T,
+			Mass_Density_T,
+			Momentum_Density_T,
+			Total_Energy_Density_T,
+			Magnetic_Field_T
 		>(
 			cell,
-			inverse_volume
+			inverse_volume,
+			adiabatic_index,
+			vacuum_permeability
 		);
 
 		pamhd::mhd::zero_fluxes<
@@ -700,7 +707,7 @@ int main(int argc, char* argv[])
 		("solver",
 			boost::program_options::value<std::string>(&solver_str)
 				->default_value(solver_str),
-			"Solver to use, available: hll_athena, hlld_athena")
+			"Solver to use, available: hll_athena, hlld_athena, roe_athena")
 		("save", "Save end result to ascii file")
 		("plot", "Plot results using gnuplot")
 		("no-verify", "Do not verify against reference results")
@@ -748,6 +755,16 @@ int main(int argc, char* argv[])
 			} else if (solver_str == "hlld_athena") {
 
 				return pamhd::mhd::athena::get_flux_hlld<
+					pamhd::mhd::MHD_State_Conservative::data_type,
+					pamhd::mhd::Mass_Density,
+					pamhd::mhd::Momentum_Density,
+					pamhd::mhd::Total_Energy_Density,
+					pamhd::mhd::Magnetic_Field
+				>;
+
+			} else if (solver_str == "roe_athena") {
+
+				return pamhd::mhd::athena::get_flux_roe<
 					pamhd::mhd::MHD_State_Conservative::data_type,
 					pamhd::mhd::Mass_Density,
 					pamhd::mhd::Momentum_Density,

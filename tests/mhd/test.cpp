@@ -54,6 +54,7 @@ to get MPI support for Eigen types in generic cell
 #include "mhd/solve.hpp"
 #include "mhd/hll_athena.hpp"
 #include "mhd/hlld_athena.hpp"
+#include "mhd/roe_athena.hpp"
 #include "mhd/variables.hpp"
 #include "boundaries/copy_boundary.hpp"
 #include "boundaries/initial_condition.hpp"
@@ -155,8 +156,9 @@ int main(int argc, char* argv[])
 		save_mhd_n = -1,
 		start_time = 0,
 		end_time = 1,
+		time_step_factor = 0.5,
 		remove_div_B_n = 0.1,
-		poisson_norm_stop = 1e-5,
+		poisson_norm_stop = 1e-10,
 		poisson_norm_increase_max = 10,
 		adiabatic_index = 5.0 / 3.0,    
 		vacuum_permeability = 4e-7 * M_PI,
@@ -220,6 +222,10 @@ int main(int argc, char* argv[])
 			boost::program_options::value<double>(&end_time)
 				->default_value(end_time),
 			"Length of simulation (s)")
+		("time-step-factor",
+			boost::program_options::value<double>(&time_step_factor)
+				->default_value(time_step_factor),
+			"Multiply maximum allowed time step (CFL condition) with factor arg")
 		("vacuum-permeability",
 			boost::program_options::value<double>(&vacuum_permeability)
 				->default_value(vacuum_permeability),
@@ -365,6 +371,16 @@ int main(int argc, char* argv[])
 			} else if (mhd_solver_str == "hlld_athena") {
 
 				return pamhd::mhd::athena::get_flux_hlld<
+					pamhd::mhd::MHD_State_Conservative::data_type,
+					pamhd::mhd::Mass_Density,
+					pamhd::mhd::Momentum_Density,
+					pamhd::mhd::Total_Energy_Density,
+					pamhd::mhd::Magnetic_Field
+				>;
+
+			} else if (mhd_solver_str == "roe_athena") {
+
+				return pamhd::mhd::athena::get_flux_roe<
 					pamhd::mhd::MHD_State_Conservative::data_type,
 					pamhd::mhd::Mass_Density,
 					pamhd::mhd::Momentum_Density,
@@ -521,7 +537,6 @@ int main(int argc, char* argv[])
 		*/
 
 		double
-			time_step_factor = 0.5,
 			// don't step over the final simulation time
 			until_end = end_time - simulation_time,
 			local_time_step = std::min(time_step_factor * max_dt, until_end),
@@ -614,8 +629,17 @@ int main(int argc, char* argv[])
 			Grid_T,
 			Cell_T,
 			pamhd::mhd::MHD_State_Conservative,
-			pamhd::mhd::MHD_Flux_Conservative
-		>(grid, inner_cells);
+			pamhd::mhd::MHD_Flux_Conservative,
+			pamhd::mhd::Mass_Density,
+			pamhd::mhd::Momentum_Density,
+			pamhd::mhd::Total_Energy_Density,
+			pamhd::mhd::Magnetic_Field
+		>(
+			grid,
+			inner_cells,
+			adiabatic_index,
+			vacuum_permeability
+		);
 
 		grid.wait_remote_neighbor_copy_update_sends();
 		Cell_T::set_transfer_all(false, MHD, Cell_Type);
@@ -624,8 +648,17 @@ int main(int argc, char* argv[])
 			Grid_T,
 			Cell_T,
 			pamhd::mhd::MHD_State_Conservative,
-			pamhd::mhd::MHD_Flux_Conservative
-		>(grid, outer_cells);
+			pamhd::mhd::MHD_Flux_Conservative,
+			pamhd::mhd::Mass_Density,
+			pamhd::mhd::Momentum_Density,
+			pamhd::mhd::Total_Energy_Density,
+			pamhd::mhd::Magnetic_Field
+		>(
+			grid,
+			outer_cells,
+			adiabatic_index,
+			vacuum_permeability
+		);
 
 		simulation_time += time_step;
 

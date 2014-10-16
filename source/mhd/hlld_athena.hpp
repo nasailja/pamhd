@@ -39,8 +39,8 @@ namespace athena {
 /*!
 Returns the flux between states and maximum signal speed from interface.
 
-Returns negative signal speed in case of failure, for example,
-if encounters negative pressure, etc.
+Throws std::domain_error if given states with
+non-positive mass density or pressure.
 
 Takahiro Miyoshi, Kanya Kusano (M&K):
 A multi-state HLL approximate Riemann solver for ideal MHD,
@@ -65,18 +65,66 @@ template <
 	const double dt,
 	const double adiabatic_index,
 	const double vacuum_permeability
-) {
-	constexpr double epsilon = std::numeric_limits<double>::epsilon();
-
+) throw(std::domain_error) {
 	// shorthand notation for simulation variables
 	const Mass_Density_T Mas{};
 	const Momentum_Density_T Mom{};
 	const Total_Energy_Density_T Nrj{};
 	const Magnetic_Field_T Mag{};
 
-	// div B = 0 requires identical Bx between states
-	state_neg[Mag][0] =
-	state_pos[Mag][0] = (state_neg[Mag][0] + state_pos[Mag][0]) / 2;
+	if (state_neg[Mas] <= 0) {
+		throw std::domain_error(
+			std::string("Non-positive mass density on negative side given to ")
+			+ __func__
+			+ std::string(": ")
+			+ boost::lexical_cast<std::string>(state_neg[Mas])
+		);
+	}
+	if (state_pos[Mas] <= 0) {
+		throw std::domain_error(
+			std::string("Non-positive mass density on positive side given to ")
+			+ __func__
+			+ std::string(": ")
+			+ boost::lexical_cast<std::string>(state_pos[Mas])
+		);
+	}
+
+	const auto pressure_neg
+		= get_pressure<
+			MHD_T,
+			Mass_Density_T,
+			Momentum_Density_T,
+			Total_Energy_Density_T,
+			Magnetic_Field_T
+		>(state_neg, adiabatic_index, vacuum_permeability);
+	if (pressure_neg <= 0) {
+		throw std::domain_error(
+			std::string("Non-positive pressure on negative side given to ")
+			+ __func__
+			+ std::string(": ")
+			+ boost::lexical_cast<std::string>(pressure_neg)
+		);
+	}
+
+	const auto pressure_pos
+		= get_pressure<
+			MHD_T,
+			Mass_Density_T,
+			Momentum_Density_T,
+			Total_Energy_Density_T,
+			Magnetic_Field_T
+		>(state_pos, adiabatic_index, vacuum_permeability);
+	if (pressure_pos <= 0) {
+		throw std::domain_error(
+			std::string("Non-positive pressure on positive side given to ")
+			+ __func__
+			+ std::string(": ")
+			+ boost::lexical_cast<std::string>(pressure_pos)
+		);
+	}
+
+
+	constexpr double epsilon = std::numeric_limits<double>::epsilon();
 
 	/*
 	Figure 3 in M&K, Us are MHD states, Ss are signal speeds
@@ -109,7 +157,9 @@ template <
 	const auto
 		inv_permeability = 1.0 / vacuum_permeability,
 		inv_permeability_sqrt = 1.0 / std::sqrt(vacuum_permeability),
-		interface_Bx2 = std::pow(state_neg[Mag][0], 2),
+		// div B = 0 is assumed between states
+		interface_Bx = (state_neg[Mag][0] + state_pos[Mag][0]) / 2,
+		interface_Bx2 = std::pow(interface_Bx, 2),
 
 		fast_magnetosonic_neg
 			= get_fast_magnetosonic_speed<
@@ -181,24 +231,6 @@ template <
 		signal_flow_diff_neg = max_signal_neg - flow_v_neg[0],
 		signal_flow_diff_pos = max_signal_pos - flow_v_pos[0],
 
-		pressure_neg
-			= get_pressure<
-				MHD_T,
-				Mass_Density_T,
-				Momentum_Density_T,
-				Total_Energy_Density_T,
-				Magnetic_Field_T
-			>(state_neg, adiabatic_index, vacuum_permeability),
-
-		pressure_pos
-			= get_pressure<
-				MHD_T,
-				Mass_Density_T,
-				Momentum_Density_T,
-				Total_Energy_Density_T,
-				Magnetic_Field_T
-			>(state_pos, adiabatic_index, vacuum_permeability),
-
 		nrj_magnetic_neg = 0.5 * state_neg[Mag].squaredNorm() * inv_permeability,
 		nrj_magnetic_pos = 0.5 * state_pos[Mag].squaredNorm() * inv_permeability,
 
@@ -233,11 +265,11 @@ template <
 		// eqn 51
 		signal_s_neg
 			= signal_middle
-			- std::fabs(state_neg[Mag][0])
+			- std::fabs(interface_Bx)
 				/ std::sqrt(density_s_neg * vacuum_permeability),
 		signal_s_pos
 			= signal_middle
-			+ std::fabs(state_pos[Mag][0])
+			+ std::fabs(interface_Bx)
 				/ std::sqrt(density_s_pos * vacuum_permeability),
 
 
@@ -252,10 +284,6 @@ template <
 				* signal_flow_diff_neg
 				* (signal_middle - flow_v_neg[0]);
 
-	if (pressure_neg < 0 or pressure_pos < 0) {
-		return std::make_pair(MHD_T(), -1);
-	}
-
 	MHD_T state_s_neg;
 	const auto tmp_neg
 		= state_neg[Mas] * signal_flow_diff_neg * signal_max_middle_diff_neg
@@ -268,7 +296,7 @@ template <
 	} else {
 		// eqns 44 and 46
 		const auto tmp1
-			= state_neg[Mag][0]
+			= interface_Bx
 			* (signal_middle - flow_v_neg[0])
 			* inv_permeability
 			/ tmp_neg;
@@ -284,7 +312,7 @@ template <
 	}
 	state_s_neg[Mas] = density_s_neg;
 	state_s_neg[Mom][0] = density_s_neg * signal_middle;
-	state_s_neg[Mag][0] = state_neg[Mag][0];
+	state_s_neg[Mag][0] = interface_Bx;
 
 	const auto v_dot_b_s_neg = state_s_neg[Mom].dot(state_s_neg[Mag]) / density_s_neg;
 
@@ -294,7 +322,7 @@ template <
 			signal_flow_diff_neg * state_neg[Nrj]
 			- (pressure_neg + nrj_magnetic_neg) * flow_v_neg[0]
 			+ ptst * signal_middle
-			+ state_neg[Mag][0] * inv_permeability
+			+ interface_Bx * inv_permeability
 				* (flow_v_neg.dot(state_neg[Mag]) - v_dot_b_s_neg)
 		) / signal_max_middle_diff_neg;
 
@@ -308,7 +336,7 @@ template <
 		state_s_pos[Mag] = state_pos[Mag];
 	} else {
 		const auto tmp1
-			= state_pos[Mag][0]
+			= interface_Bx
 			* (signal_middle - flow_v_pos[0])
 			* inv_permeability
 			/ tmp_pos;
@@ -323,7 +351,7 @@ template <
 	}
 	state_s_pos[Mas] = density_s_pos;
 	state_s_pos[Mom][0] = density_s_pos * signal_middle;
-	state_s_pos[Mag][0] = state_pos[Mag][0];
+	state_s_pos[Mag][0] = interface_Bx;
 
 	const auto v_dot_b_s_pos = state_s_pos[Mom].dot(state_s_pos[Mag]) / density_s_pos;
 
@@ -333,7 +361,7 @@ template <
 			signal_flow_diff_pos * state_pos[Nrj]
 			- (pressure_pos + nrj_magnetic_pos) * flow_v_pos[0]
 			+ ptst * signal_middle
-			+ state_pos[Mag][0] * inv_permeability
+			+ interface_Bx * inv_permeability
 				* (flow_v_pos.dot(state_pos[Mag]) - v_dot_b_s_pos)
 		) / signal_max_middle_diff_pos;
 
@@ -349,7 +377,7 @@ template <
 		const auto inv_sum_density_sqrt
 			= 1.0 / (density_s_sqrt_neg + density_s_sqrt_pos);
 
-		const auto Bx_sign = (state_neg[Mag][0] > 0) ? 1.0 : -1.0;
+		const auto Bx_sign = (interface_Bx > 0) ? 1.0 : -1.0;
 
 		state_s2_neg[Mas] = state_s_neg[Mas];
 		state_s2_pos[Mas] = state_s_pos[Mas];
@@ -388,7 +416,7 @@ template <
 					* std::sqrt(vacuum_permeability)
 			);
 		state_s2_neg[Mag][0] =
-		state_s2_pos[Mag][0] = state_neg[Mag][0];
+		state_s2_pos[Mag][0] = interface_Bx;
 
 		// eqn 63
 		const auto v_dot_b_s2 = flow_v_s2.dot(state_s2_neg[Mag]);
