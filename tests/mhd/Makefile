@@ -1,5 +1,9 @@
 all:
-	@make tests/mhd_executables tests/mhd_tests -C ../..
+	@make tests/mhd_executables -C ../..
+
+t: test
+test:
+	@make tests/mhd_tests -C ../..
 
 .PHONY: results
 r: results
