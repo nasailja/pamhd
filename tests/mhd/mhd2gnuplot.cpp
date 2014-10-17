@@ -552,7 +552,15 @@ int plot_2d(
 	const double vacuum_permeability,
 	const bool /*have_fluxes*/
 ) {
-	const auto& grid_length = geometry.length;
+	const auto& grid_size = geometry.length.get();
+	const auto
+		grid_start = geometry.get_start(),
+		grid_end = geometry.get_end();
+	const decltype(grid_start) grid_geom_length{{
+		grid_end[0] - grid_start[0],
+		grid_end[1] - grid_start[1],
+		grid_end[2] - grid_start[2]
+	}};
 	const string gnuplot_file_name(output_file_name_prefix + ".dat");
 
 	ofstream gnuplot_file(gnuplot_file_name);
@@ -565,15 +573,21 @@ int plot_2d(
 		   "set xlabel 'Dimension 1'\n"
 		   //"set logscale cb\n"
 		   "set pal gray\n"
+		   "set title 'Mass density'\n"
 		   "set format cb '%.2e'\n"
-		   "plot '-' matrix with image title 'Mass density (kg / m^3)'\n";
+		   "plot '-' using ($1 / "
+		<< grid_size[0] << " * " << grid_geom_length[0] << " + "
+		<< grid_start[0] << "):($2 / "
+		<< grid_size[1] << " * " << grid_geom_length[1] << " + "
+		<< grid_start[1]
+		<< "):3 matrix with image title ''\n";
 
 	for (size_t i = 0; i < cells.size(); i++) {
 		const auto& mhd_data
 			= simulation_data.at(cells[i])[MHD_State_Conservative()];
 
 		gnuplot_file << mhd_data[Mass_Density()] << " ";
-		if (i % grid_length.get()[0] == grid_length.get()[0] - 1) {
+		if (i % grid_size[0] == grid_size[0] - 1) {
 			gnuplot_file << "\n";
 		}
 	}
@@ -583,7 +597,13 @@ int plot_2d(
 	gnuplot_file
 		<< "set output '"
 		<< output_file_name_prefix + "_P.png"
-		<< "'\nplot '-' matrix with image title 'Pressure (Pa)'\n";
+		<< "\nset title 'Pressure'"
+		<< "'\nplot '-' using ($1 / "
+		<< grid_size[0] << " * " << grid_geom_length[0] << " + "
+		<< grid_start[0] << "):($2 / "
+		<< grid_size[1] << " * " << grid_geom_length[1] << " + "
+		<< grid_start[1]
+		<< "):3 matrix with image title ''\n";
 
 	for (size_t i = 0; i < cells.size(); i++) {
 		const auto& mhd_data
@@ -598,7 +618,7 @@ int plot_2d(
 				Magnetic_Field
 			>(mhd_data, adiabatic_index, vacuum_permeability)
 			<< " ";
-		if (i % grid_length.get()[0] == grid_length.get()[0] - 1) {
+		if (i % grid_size[0] == grid_size[0] - 1) {
 			gnuplot_file << "\n";
 		}
 	}
@@ -609,7 +629,13 @@ int plot_2d(
 		//<< "unset logscale cb\n"
 		<< "set output '"
 		<< output_file_name_prefix + "_vx.png"
-		<< "'\nplot '-' matrix with image title 'V_1 (m / s)'\n";
+		<< "\nset title 'V_x'"
+		<< "'\nplot '-' using ($1 / "
+		<< grid_size[0] << " * " << grid_geom_length[0] << " + "
+		<< grid_start[0] << "):($2 / "
+		<< grid_size[1] << " * " << grid_geom_length[1] << " + "
+		<< grid_start[1]
+		<< "):3 matrix with image title ''\n";
 
 	for (size_t i = 0; i < cells.size(); i++) {
 		const auto& mhd_data
@@ -618,7 +644,7 @@ int plot_2d(
 		gnuplot_file
 			<< (mhd_data[Momentum_Density()] / mhd_data[Mass_Density()])[0]
 			<< " ";
-		if (i % grid_length.get()[0] == grid_length.get()[0] - 1) {
+		if (i % grid_size[0] == grid_size[0] - 1) {
 			gnuplot_file << "\n";
 		}
 	}
@@ -628,7 +654,13 @@ int plot_2d(
 	gnuplot_file
 		<< "set output '"
 		<< output_file_name_prefix + "_vy.png"
-		<< "'\nplot '-' matrix with image title 'V_y (m / s)'\n";
+		<< "\nset title 'V_y'"
+		<< "'\nplot '-' using ($1 / "
+		<< grid_size[0] << " * " << grid_geom_length[0] << " + "
+		<< grid_start[0] << "):($2 / "
+		<< grid_size[1] << " * " << grid_geom_length[1] << " + "
+		<< grid_start[1]
+		<< "):3 matrix with image title ''\n";
 
 	for (size_t i = 0; i < cells.size(); i++) {
 		const auto& mhd_data
@@ -637,7 +669,7 @@ int plot_2d(
 		gnuplot_file
 			<< (mhd_data[Momentum_Density()] / mhd_data[Mass_Density()])[1]
 			<< " ";
-		if (i % grid_length.get()[0] == grid_length.get()[0] - 1) {
+		if (i % grid_size[0] == grid_size[0] - 1) {
 			gnuplot_file << "\n";
 		}
 	}
@@ -647,7 +679,13 @@ int plot_2d(
 	gnuplot_file
 		<< "set output '"
 		<< output_file_name_prefix + "_vz.png"
-		<< "'\nplot '-' matrix with image title 'V_z (m / s)'\n";
+		<< "\nset title 'V_z'"
+		<< "'\nplot '-' using ($1 / "
+		<< grid_size[0] << " * " << grid_geom_length[0] << " + "
+		<< grid_start[0] << "):($2 / "
+		<< grid_size[1] << " * " << grid_geom_length[1] << " + "
+		<< grid_start[1]
+		<< "):3 matrix with image title ''\n";
 
 	for (size_t i = 0; i < cells.size(); i++) {
 		const auto& mhd_data
@@ -656,7 +694,7 @@ int plot_2d(
 		gnuplot_file
 			<< (mhd_data[Momentum_Density()] / mhd_data[Mass_Density()])[2]
 			<< " ";
-		if (i % grid_length.get()[0] == grid_length.get()[0] - 1) {
+		if (i % grid_size[0] == grid_size[0] - 1) {
 			gnuplot_file << "\n";
 		}
 	}
@@ -668,7 +706,13 @@ int plot_2d(
 		//<< "unset logscale cb\n"
 		<< "set output '"
 		<< output_file_name_prefix + "_Bx.png"
-		<< "'\nplot '-' matrix with image title 'B_1 (T)'\n";
+		<< "\nset title 'B_1'"
+		<< "'\nplot '-' using ($1 / "
+		<< grid_size[0] << " * " << grid_geom_length[0] << " + "
+		<< grid_start[0] << "):($2 / "
+		<< grid_size[1] << " * " << grid_geom_length[1] << " + "
+		<< grid_start[1]
+		<< "):3 matrix with image title ''\n";
 
 	for (size_t i = 0; i < cells.size(); i++) {
 		const auto& mhd_data
@@ -677,7 +721,7 @@ int plot_2d(
 		gnuplot_file
 			<< mhd_data[Magnetic_Field()][0]
 			<< " ";
-		if (i % grid_length.get()[0] == grid_length.get()[0] - 1) {
+		if (i % grid_size[0] == grid_size[0] - 1) {
 			gnuplot_file << "\n";
 		}
 	}
@@ -687,7 +731,13 @@ int plot_2d(
 	gnuplot_file
 		<< "set output '"
 		<< output_file_name_prefix + "_By.png"
-		<< "'\nplot '-' matrix with image title 'B_2 (T)'\n";
+		<< "\nset title 'B_2'"
+		<< "'\nplot '-' using ($1 / "
+		<< grid_size[0] << " * " << grid_geom_length[0] << " + "
+		<< grid_start[0] << "):($2 / "
+		<< grid_size[1] << " * " << grid_geom_length[1] << " + "
+		<< grid_start[1]
+		<< "):3 matrix with image title ''\n";
 
 	for (size_t i = 0; i < cells.size(); i++) {
 		const auto& mhd_data
@@ -696,7 +746,7 @@ int plot_2d(
 		gnuplot_file
 			<< mhd_data[Magnetic_Field()][1]
 			<< " ";
-		if (i % grid_length.get()[0] == grid_length.get()[0] - 1) {
+		if (i % grid_size[0] == grid_size[0] - 1) {
 			gnuplot_file << "\n";
 		}
 	}
@@ -706,7 +756,13 @@ int plot_2d(
 	gnuplot_file
 		<< "set output '"
 		<< output_file_name_prefix + "_Bz.png"
-		<< "'\nplot '-' matrix with image title 'B_3 (T)'\n";
+		<< "\nset title 'B_3'"
+		<< "'\nplot '-' using ($1 / "
+		<< grid_size[0] << " * " << grid_geom_length[0] << " + "
+		<< grid_start[0] << "):($2 / "
+		<< grid_size[1] << " * " << grid_geom_length[1] << " + "
+		<< grid_start[1]
+		<< "):3 matrix with image title ''\n";
 
 	for (size_t i = 0; i < cells.size(); i++) {
 		const auto& mhd_data
@@ -715,7 +771,7 @@ int plot_2d(
 		gnuplot_file
 			<< mhd_data[Magnetic_Field()][2]
 			<< " ";
-		if (i % grid_length.get()[0] == grid_length.get()[0] - 1) {
+		if (i % grid_size[0] == grid_size[0] - 1) {
 			gnuplot_file << "\n";
 		}
 	}
