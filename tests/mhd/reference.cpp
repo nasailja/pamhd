@@ -608,7 +608,11 @@ template <
 		}
 	}
 
-	constexpr double max_error = 1e-4;
+	constexpr double
+		// maximum allowed relative difference from reference
+		max_error = 1e-6,
+		// values smaller than this are assumed correct
+		min_value = 1e-25;
 
 	for (size_t cell_i = 0; cell_i < std::tuple_size<Grid_T>::value; cell_i++) {
 		typename Mass_Density_T::data_type ref_rho;
@@ -632,7 +636,10 @@ template <
 		const auto nrj = state[Total_Energy_Density_T()];
 		const auto mag = state[Magnetic_Field_T()];
 
-		if (get_relative_error(rho, ref_rho) > max_error) {
+		if (
+			(rho > min_value or ref_rho > min_value)
+			and get_relative_error(rho, ref_rho) > max_error
+		) {
 			std::cerr <<  __FILE__ << ":" << __LINE__
 				<< " density " << rho << " != " << ref_rho
 				<< " at cell " << cell_i
@@ -640,21 +647,30 @@ template <
 			abort();
 		}
 
-		if (get_relative_error(mom[0], ref_mom[0]) > max_error) {
+		if (
+			(mom[0] > min_value or ref_mom[0] > min_value)
+			and get_relative_error(mom[0], ref_mom[0]) > max_error
+		) {
 			std::cerr <<  __FILE__ << ":" << __LINE__
 				<< " x momentum " << mom[0] << " != " << ref_mom[0]
 				<< " at cell " << cell_i
 				<< std::endl;
 			abort();
 		}
-		if (get_relative_error(mom[1], ref_mom[1]) > max_error) {
+		if (
+			(mom[1] > min_value or ref_mom[1] > min_value)
+			and get_relative_error(mom[1], ref_mom[1]) > max_error
+		) {
 			std::cerr <<  __FILE__ << ":" << __LINE__
 				<< " y momentum " << mom[1] << " != " << ref_mom[1]
 				<< " at cell " << cell_i
 				<< std::endl;
 			abort();
 		}
-		if (get_relative_error(mom[2], ref_mom[2]) > max_error) {
+		if (
+			(mom[2] > min_value or ref_mom[2] > min_value)
+			and get_relative_error(mom[2], ref_mom[2]) > max_error
+		) {
 			std::cerr <<  __FILE__ << ":" << __LINE__
 				<< " z momentum " << mom[2] << " != " << ref_mom[2]
 				<< " at cell " << cell_i
@@ -662,7 +678,10 @@ template <
 			abort();
 		}
 
-		if (get_relative_error(nrj, ref_nrj) > max_error) {
+		if (
+			(nrj > min_value or ref_nrj > min_value)
+			and get_relative_error(nrj, ref_nrj) > max_error
+		) {
 			std::cerr <<  __FILE__ << ":" << __LINE__
 				<< " energy " << nrj << " != " << ref_nrj
 				<< " at cell " << cell_i
@@ -670,21 +689,30 @@ template <
 			abort();
 		}
 
-		if (get_relative_error(mag[0], ref_mag[0]) > max_error) {
+		if (
+			(mag[0] > min_value or ref_mag[0] > min_value)
+			and get_relative_error(mag[0], ref_mag[0]) > max_error
+		) {
 			std::cerr <<  __FILE__ << ":" << __LINE__
 				<< " x magnetic field " << mag[0] << " != " << ref_mag[0]
 				<< " at cell " << cell_i
 				<< std::endl;
 			abort();
 		}
-		if (get_relative_error(mag[1], ref_mag[1]) > max_error) {
+		if (
+			(mag[1] > min_value or ref_mag[1] > min_value)
+			and get_relative_error(mag[1], ref_mag[1]) > max_error
+		) {
 			std::cerr <<  __FILE__ << ":" << __LINE__
 				<< " y magnetic field " << mag[1] << " != " << ref_mag[1]
 				<< " at cell " << cell_i
 				<< std::endl;
 			abort();
 		}
-		if (get_relative_error(mag[2], ref_mag[2]) > max_error) {
+		if (
+			(mag[2] > min_value or ref_mag[2] > min_value)
+			and get_relative_error(mag[2], ref_mag[2]) > max_error
+		) {
 			std::cerr <<  __FILE__ << ":" << __LINE__
 				<< " z magnetic field " << mag[2] << " != " << ref_mag[2]
 				<< " at cell " << cell_i

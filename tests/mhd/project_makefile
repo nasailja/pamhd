@@ -91,9 +91,9 @@ tests/mhd/test.exe: \
 
 
 tests/mhd/reference.tst_hll_athena: tests/mhd/reference.exe
-	@printf RUN\ $<...\ \  && $(RUN) ./$< --solver hll_athena && printf "PASS\n" && touch $@
+	@printf RUN\ HLL_Athena\ $<...\ \  && $(RUN) ./$< --solver hll_athena && printf "PASS\n" && touch $@
 
 tests/mhd/reference.tst_hlld_athena: tests/mhd/reference.exe
-	@printf RUN\ $<...\ \  && $(RUN) ./$< --solver hlld_athena && printf "PASS\n" && touch $@
+	@printf RUN\ HLLD_Athena\ $<...\ \  && $(RUN) ./$< --solver hlld_athena && printf "PASS\n" && touch $@
 tests/mhd/reference.tst_roe_athena: tests/mhd/reference.exe
-	@printf RUN\ $<...\ \  && $(RUN) ./$< --solver roe_athena && printf "PASS\n" && touch $@
+	@printf RUN\ Roe_Athena\ $<...\ \  && $(RUN) ./$< --solver roe_athena && printf "PASS\n" && touch $@
