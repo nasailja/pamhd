@@ -26,7 +26,8 @@ include \
   tests/program_options/project_makefile \
   tests/boundaries/project_makefile \
   tests/divergence/project_makefile \
-  tests/poisson/project_makefile
+  tests/poisson/project_makefile \
+  tests/vectorclass/project_makefile
 
 
 all: $(EXECUTABLES)
