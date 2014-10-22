@@ -1,0 +1,37 @@
+TESTS_PARTICLE_EXECUTABLES = \
+  tests/particle/solve1.exe
+
+TESTS_PARTICLE_TESTS = \
+  tests/particle/solve1.tst
+
+tests/particle_executables: $(TESTS_PARTICLE_EXECUTABLES)
+
+tests/particle_tests: $(TESTS_PARTICLE_TESTS)
+
+tests/particle_clean:
+	@printf "CLEAN tests/particle\n" && rm -f \
+	  $(TESTS_PARTICLE_EXECUTABLES) \
+	  $(TESTS_PARTICLE_TESTS)
+
+EXECUTABLES += tests/particle_executables
+TESTS += tests/particle_tests
+CLEAN += tests/particle_clean
+
+
+PARTICLE_COMMON_HEADERS = \
+  source/particle/variables.hpp \
+  source/particle/solve.hpp
+
+TEST_PARTICLE_COMMON_COMPILE = \
+  $< -o $@ \
+  $(CPPFLAGS) \
+  $(CXXFLAGS) \
+  $(LDFLAGS) \
+  $(BOOST_CPPFLAGS) \
+  $(EIGEN_CPPFLAGS) \
+  $(GENSIMCELL_CPPFLAGS)
+
+tests/particle/solve1.exe: \
+  tests/particle/solve1.cpp \
+  $(PARTICLE_COMMON_HEADERS)
+	@printf "CXX $<\n" && $(CXX) $(TEST_PARTICLE_COMMON_COMPILE)
