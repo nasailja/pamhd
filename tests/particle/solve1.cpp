@@ -86,7 +86,7 @@ int main()
 		);
 		time += dt;
 	}
-	
+
 	if (
 		particle[Pos][0] != 5
 		or particle[Pos][1] != -27
