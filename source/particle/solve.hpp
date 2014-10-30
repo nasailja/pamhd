@@ -1,7 +1,7 @@
 /*
-Particle propagators (change particle velocity and location).
+Particle propagator of PAMHD.
 
-Copyright (c) 2014, Ilja Honkonen
+Copyright 2014 Ilja Honkonen
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification,
@@ -53,7 +53,7 @@ Proceedings of the conference on the numerical simulation of plasmas...,
 available at http://www.dtic.mil/dtic/tr/fulltext/u2/a023511.pdf
 Same notation is used here.
 */
-template<class Vector_T> std::pair<Vector_T, Vector_T> solve(
+template<class Vector_T> std::pair<Vector_T, Vector_T> propagate(
 	const Vector_T& position,
 	const Vector_T& velocity,
 	const Vector_T& electric_field,

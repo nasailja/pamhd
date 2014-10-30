@@ -1,8 +1,14 @@
 TESTS_PARTICLE_EXECUTABLES = \
-  tests/particle/solve1.exe
+  tests/particle/solve1.exe \
+  tests/particle/common.exe \
+  tests/particle/create_particles.exe \
+  tests/particle/accumulate.exe
 
 TESTS_PARTICLE_TESTS = \
-  tests/particle/solve1.tst
+  tests/particle/solve1.tst \
+  tests/particle/common.tst \
+  tests/particle/create_particles.tst \
+  tests/particle/accumulate.tst
 
 tests/particle_executables: $(TESTS_PARTICLE_EXECUTABLES)
 
@@ -18,9 +24,11 @@ TESTS += tests/particle_tests
 CLEAN += tests/particle_clean
 
 
-PARTICLE_COMMON_HEADERS = \
+TEST_PARTICLE_COMMON_DEPS = \
   source/particle/variables.hpp \
-  source/particle/solve.hpp
+  tests/particle/project_makefile \
+  $(ENVIRONMENT_MAKEFILE) \
+  Makefile
 
 TEST_PARTICLE_COMMON_COMPILE = \
   $< -o $@ \
@@ -33,5 +41,24 @@ TEST_PARTICLE_COMMON_COMPILE = \
 
 tests/particle/solve1.exe: \
   tests/particle/solve1.cpp \
-  $(PARTICLE_COMMON_HEADERS)
+  $(TEST_PARTICLE_COMMON_DEPS) \
+  source/particle/solve.hpp
+	@printf "CXX $<\n" && $(CXX) $(TEST_PARTICLE_COMMON_COMPILE)
+
+tests/particle/common.exe: \
+  tests/particle/common.cpp \
+  $(TEST_PARTICLE_COMMON_DEPS) \
+  source/particle/common.hpp
+	@printf "CXX $<\n" && $(CXX) $(TEST_PARTICLE_COMMON_COMPILE)
+
+tests/particle/create_particles.exe: \
+  tests/particle/create_particles.cpp \
+  $(TEST_PARTICLE_COMMON_DEPS) \
+  source/particle/common.hpp
+	@printf "CXX $<\n" && $(CXX) $(TEST_PARTICLE_COMMON_COMPILE)
+
+tests/particle/accumulate.exe: \
+  tests/particle/accumulate.cpp \
+  $(TEST_PARTICLE_COMMON_DEPS) \
+  source/particle/accumulate.hpp
 	@printf "CXX $<\n" && $(CXX) $(TEST_PARTICLE_COMMON_COMPILE)

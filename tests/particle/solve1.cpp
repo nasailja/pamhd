@@ -76,7 +76,7 @@ int main()
 		std::tie(
 			particle[Pos],
 			particle[Vel]
-		) = solve(
+		) = propagate(
 			particle[Pos],
 			particle[Vel],
 			electric_field,
@@ -126,7 +126,7 @@ int main()
 		std::tie(
 			particle[Pos],
 			particle[Vel]
-		) = solve(
+		) = propagate(
 			particle[Pos],
 			particle[Vel],
 			electric_field,
@@ -166,7 +166,7 @@ int main()
 		std::tie(
 			particle[Pos],
 			particle[Vel]
-		) = solve(
+		) = propagate(
 			particle[Pos],
 			particle[Vel],
 			electric_field,
@@ -205,7 +205,7 @@ int main()
 		std::tie(
 			particle[Pos],
 			particle[Vel]
-		) = solve(
+		) = propagate(
 			particle[Pos],
 			particle[Vel],
 			electric_field,
@@ -252,7 +252,7 @@ int main()
 		std::tie(
 			particle[Pos],
 			particle[Vel]
-		) = solve(
+		) = propagate(
 			particle[Pos],
 			particle[Vel],
 			electric_field,
@@ -299,7 +299,7 @@ int main()
 		std::tie(
 			particle[Pos],
 			particle[Vel]
-		) = solve(
+		) = propagate(
 			particle[Pos],
 			particle[Vel],
 			electric_field,
@@ -346,7 +346,7 @@ int main()
 		std::tie(
 			particle[Pos],
 			particle[Vel]
-		) = solve(
+		) = propagate(
 			particle[Pos],
 			particle[Vel],
 			electric_field,
@@ -398,7 +398,7 @@ int main()
 		std::tie(
 			particle[Pos],
 			particle[Vel]
-		) = solve(
+		) = propagate(
 			particle[Pos],
 			particle[Vel],
 			electric_field,
@@ -451,7 +451,7 @@ int main()
 		std::tie(
 			particle[Pos],
 			particle[Vel]
-		) = solve(
+		) = propagate(
 			particle[Pos],
 			particle[Vel],
 			(electric_field + E_change * step * dt / gyro_period).eval(),

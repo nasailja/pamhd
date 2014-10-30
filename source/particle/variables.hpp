@@ -54,15 +54,15 @@ Variables used by particle solver
 
 struct Position {
 	using data_type = Eigen::Vector3d;
-	static const std::string get_name() { return {"particle position"}; }
-	static const std::string get_option_name() { return {"particle-position"}; }
+	static const std::string get_name() { return {"position"}; }
+	static const std::string get_option_name() { return {"position"}; }
 	static const std::string get_option_help() { return {"Particle position"}; }
 };
 
 struct Velocity {
 	using data_type = Eigen::Vector3d;
-	static const std::string get_name() { return {"particle velocity"}; }
-	static const std::string get_option_name() { return {"particle-velocity"}; }
+	static const std::string get_name() { return {"velocity"}; }
+	static const std::string get_option_name() { return {"velocity"}; }
 	static const std::string get_option_help() { return {"Particle velocity"}; }
 };
 
@@ -82,16 +82,28 @@ struct Charge_Mass_Ratio {
 	static const std::string get_option_help() { return {"Particle charge to mass ratio"}; }
 };
 
+
 /*!
-Basic particle type that only stores data relevant to physics.
+Template for a particle type that stores data
+relevant to physics and given optional variables.
 */
-using Particle = gensimcell::Cell<
+template<
+	class... Extra_Variables
+> using Particle_T = gensimcell::Cell<
 	gensimcell::Always_Transfer,
 	Position,
 	Velocity,
 	Mass,
-	Charge_Mass_Ratio
+	Charge_Mass_Ratio,
+	Extra_Variables...
 >;
+
+
+/*!
+Basic particle type that only stores data relevant to physics.
+*/
+using Particle = Particle_T<>;
+
 
 /*!
 Stores a collection of particles that stay on the current process.
@@ -99,6 +111,22 @@ Stores a collection of particles that stay on the current process.
 struct Particles_Storage
 {
 	std::vector<Particle> particles;
+
+
+	//! Returns a const reference to particle data
+	const decltype(particles)& operator()() const
+	{
+		return this->particles;
+	}
+
+	//! Returns a reference to particle data
+	decltype(particles)& operator()()
+	{
+		return const_cast<decltype(particles)&>(
+			static_cast<const Particles_Storage&>(*this)()
+		);
+	}
+
 
 	#if defined(MPI_VERSION) && (MPI_VERSION >= 2)
 	//! Returns 0 bytes.
@@ -109,27 +137,27 @@ struct Particles_Storage
 	#endif
 };
 
-//! Variable used to refer to particles not moving between processes
+//! Represents particles not moving between processes
 struct Particles_Int {
 	using data_type = Particles_Storage;
 };
 
 //! Represents number of local particles, used for file I/O.
-struct Nr_Particles {
+struct Nr_Particles_Int {
 	using data_type = unsigned long long int;
 	static const std::string get_name() { return {"number of particles"}; }
 	static const std::string get_option_name() { return {"number-of-particles"}; }
 	static const std::string get_option_help() { return {"Number of particles "}; }
 };
 
-
-
+//! Represents destination process of particles moving between processes
 struct Destination_Process {
 	using data_type = int;
 	static const std::string get_name() { return {"destination process"}; }
 	static const std::string get_option_name() { return {"destination-process"}; }
 	static const std::string get_option_help() { return {"Process to whom particle should be transferred"}; }
 };
+
 
 /*!
 Particle type for transferring particles between processes.
@@ -138,17 +166,11 @@ Particles that move from a cell to another cell owned by a
 different process are changed to this type before updating
 particle data between processes.
 */
-using Particle_Transfer = gensimcell::Cell<
-	gensimcell::Always_Transfer,
-	Position,
-	Velocity,
-	Mass,
-	Charge_Mass_Ratio,
-	Destination_Process
->;
+using Particle_Transfer = Particle_T<Destination_Process>;
+
 
 /*!
-Stores a collection of particles that move between processes.
+Stores a collection of particles that move between cells/processes.
 
 Provides their data via get_mpi_datatype().
 */
@@ -156,6 +178,21 @@ class Particles_Transfer_Storage
 {
 public:
 	std::vector<Particle_Transfer> particles;
+
+
+	//! Returns a const reference to particle data
+	const decltype(particles)& operator()() const
+	{
+		return this->particles;
+	}
+
+	//! Returns a reference to particle data
+	decltype(particles)& operator()()
+	{
+		return const_cast<decltype(particles)&>(
+			static_cast<const Particles_Transfer_Storage&>(*this)()
+		);
+	}
 
 
 	#if defined(MPI_VERSION) && (MPI_VERSION >= 2)
@@ -245,23 +282,16 @@ public:
 /*!
 Records the number of particles to be transferred between processes.
 */
-struct Nr_Particles_Transfer {
+struct Nr_Particles_Ext {
 	using data_type = unsigned long long int;
 	static const std::string get_name() { return {"number of particles"}; }
 	static const std::string get_option_name() { return {"number-of-particles"}; }
 	static const std::string get_option_help() { return {"Number of particles "}; }
 };
 
-//! Variable used to refer to particles moving between processes
+//! Variable used to refer to particles moving between cells/processes
 struct Particles_Ext {
 	using data_type = Particles_Transfer_Storage;
-};
-
-
-//! Weighted averate of all particle velocities in one cell.
-struct Bulk_Velocity
-{
-	using data_type = Eigen::Vector3d;
 };
 
 
@@ -276,9 +306,8 @@ dccrg uses to save the file.
 */
 using Cell = gensimcell::Cell<
 	gensimcell::Optional_Transfer,
-	Nr_Particles,
-	Nr_Particles_Transfer,
-	Bulk_Velocity,
+	Nr_Particles_Int,
+	Nr_Particles_Ext,
 	Particles_Int,
 	Particles_Ext
 >;
