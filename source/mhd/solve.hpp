@@ -70,10 +70,9 @@ template <
 
 
 /*!
-Advances the MHD solution for one time step of length dt with given solver.
+Advances MHD solution for one time step of length dt with given solver.
 
-Returns the maximum allowed length of time step for the next step on this
-process or a negative value in case of error.
+Returns the maximum allowed length of time step for the next step on this process.
 */
 template <
 	class Grid_T,
