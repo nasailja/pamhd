@@ -189,16 +189,16 @@ int main()
 		double norm = std::numeric_limits<double>::lowest();
 		for (size_t cell_i = 0; cell_i < nr_of_cells; cell_i++) {
 			const double cell_center = get_cell_center(cell_i, nr_of_cells);
-			norm = max(norm, accumulated[cell_i] - f(cell_center));
+			norm = max(norm, fabs(accumulated[cell_i] - f(cell_center)));
 		}
 		norm /= nr_of_cells;
 
-		if (old_nr_of_cells > 0) {
+		if (old_nr_of_cells >= 40) {
 			const double order_of_accuracy
 				= -log(norm / old_norm)
 				/ log(double(nr_of_cells) / old_nr_of_cells);
 
-			if (order_of_accuracy < 1) {
+			if (order_of_accuracy < 0.9) {
 				std::cerr << __FILE__ << ":" << __LINE__
 					<< ": Order of accuracy from "
 					<< old_nr_of_cells << " to " << nr_of_cells
