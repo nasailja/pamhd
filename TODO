@@ -1,0 +1,6 @@
+Add more test problems:
+  MHD:
+    http://dx.doi.org/10.1086/504280
+
+Investigate why bicgstab solver in Eigen doesn't work in large grids
+in 1 and 2 dimensions when solving Poisson's equation.
