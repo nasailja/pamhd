@@ -1,8 +1,18 @@
 TESTS_POISSON_EXECUTABLES = \
-  tests/poisson/test.exe
+  tests/poisson/failsafe1d.exe \
+  tests/poisson/failsafe2d.exe \
+  tests/poisson/failsafe3d.exe \
+  tests/poisson/bicgstab1d.exe \
+  tests/poisson/bicgstab2d.exe \
+  tests/poisson/bicgstab3d.exe
 
 TESTS_POISSON_TESTS = \
-  tests/poisson/test.tst
+  tests/poisson/failsafe1d.tst \
+  tests/poisson/failsafe2d.tst \
+  tests/poisson/failsafe3d.tst \
+  tests/poisson/bicgstab1d.tst \
+  tests/poisson/bicgstab2d.tst \
+  tests/poisson/bicgstab3d.tst
 
 tests/poisson_executables: $(TESTS_POISSON_EXECUTABLES)
 
@@ -18,15 +28,46 @@ TESTS += tests/poisson_tests
 CLEAN += tests/poisson_clean
 
 
-tests/poisson/test.exe: \
-  tests/poisson/test.cpp \
+TESTS_POISSON_COMMON_DEPS = \
   source/poisson/solver.hpp \
   tests/poisson/project_makefile \
   $(ENVIRONMENT_MAKEFILE) \
   Makefile
-	@printf "CXX $<\n" && $(CXX) $< -o $@ \
-	  $(CPPFLAGS) \
-	  $(CXXFLAGS) \
-	  $(LDFLAGS) \
-	  $(EIGEN_CPPFLAGS) \
-	  $(PRETTYPRINT_CPPFLAGS)
+
+TESTS_POISSON_COMPILE_CMD = \
+  $(CXX) $< -o $@ \
+  $(CPPFLAGS) \
+  $(CXXFLAGS) \
+  $(LDFLAGS) \
+  $(EIGEN_CPPFLAGS) \
+  $(PRETTYPRINT_CPPFLAGS)
+
+tests/poisson/failsafe1d.exe: \
+  tests/poisson/failsafe1d.cpp \
+  $(TESTS_POISSON_COMMON_DEPS)
+	@printf "CXX $<\n" && $(TESTS_POISSON_COMPILE_CMD)
+
+tests/poisson/failsafe2d.exe: \
+  tests/poisson/failsafe2d.cpp \
+  $(TESTS_POISSON_COMMON_DEPS)
+	@printf "CXX $<\n" && $(TESTS_POISSON_COMPILE_CMD)
+
+tests/poisson/failsafe3d.exe: \
+  tests/poisson/failsafe3d.cpp \
+  $(TESTS_POISSON_COMMON_DEPS)
+	@printf "CXX $<\n" && $(TESTS_POISSON_COMPILE_CMD)
+
+tests/poisson/bicgstab1d.exe: \
+  tests/poisson/bicgstab1d.cpp \
+  $(TESTS_POISSON_COMMON_DEPS)
+	@printf "CXX $<\n" && $(TESTS_POISSON_COMPILE_CMD)
+
+tests/poisson/bicgstab2d.exe: \
+  tests/poisson/bicgstab2d.cpp \
+  $(TESTS_POISSON_COMMON_DEPS)
+	@printf "CXX $<\n" && $(TESTS_POISSON_COMPILE_CMD)
+
+tests/poisson/bicgstab3d.exe: \
+  tests/poisson/bicgstab3d.cpp \
+  $(TESTS_POISSON_COMMON_DEPS)
+	@printf "CXX $<\n" && $(TESTS_POISSON_COMPILE_CMD)

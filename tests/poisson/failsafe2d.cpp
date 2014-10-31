@@ -1,5 +1,5 @@
 /*
-Tests serial 2d Poisson solver of PAMHD.
+Tests serial failsafe Poisson solver of PAMHD in 2d.
 
 Copyright 2014 Ilja Honkonen
 All rights reserved.
@@ -37,25 +37,28 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "poisson/solver.hpp"
 
-
+//! size == number of cells, length == physical length
 template <class Scalar_T> std::vector<Scalar_T> get_analytic_solution(
 	const Scalar_T grid_length_x,
 	const Scalar_T grid_length_y,
 	const size_t grid_size_x,
-	const size_t grid_size_y
+	const size_t grid_size_y,
+	const size_t grid_size_z
 ) {
-	std::vector<Scalar_T> solution(grid_size_x * grid_size_y, 0);
+	std::vector<Scalar_T> solution(grid_size_x * grid_size_y * grid_size_z, 0);
 
+	for (size_t z_i = 0; z_i < grid_size_z; z_i++) {
 	for (size_t y_i = 0; y_i < grid_size_y; y_i++) {
 		const Scalar_T y = grid_length_y * (y_i + 0.5) / grid_size_y;
 
 		for (size_t x_i = 0; x_i < grid_size_x; x_i++) {
 			const Scalar_T x = grid_length_x * (x_i + 0.5) / grid_size_x;
 
-			const size_t cell_index = x_i + y_i * grid_size_x;
-			solution[cell_index] = std::sin(x) * std::cos(y);
+			const size_t cell_index
+				= pamhd::poisson::map_3_to_1(x_i, y_i, z_i, grid_size_x, grid_size_y);
+			solution[cell_index] = std::sin(x / 2 + 3) * std::cos(2 * y - 2);
 		}
-	}
+	}}
 
 	return solution;
 }
@@ -65,48 +68,39 @@ template <class Scalar_T> std::vector<Scalar_T> get_rhs(
 	const Scalar_T grid_length_x,
 	const Scalar_T grid_length_y,
 	const size_t grid_size_x,
-	const size_t grid_size_y
+	const size_t grid_size_y,
+	const size_t grid_size_z
 ) {
-	std::vector<Scalar_T> rhs(grid_size_x * grid_size_y, 0);
+	std::vector<Scalar_T> rhs(grid_size_x * grid_size_y * grid_size_z, 0);
 
+	for (size_t z_i = 0; z_i < grid_size_z; z_i++) {
 	for (size_t y_i = 0; y_i < grid_size_y; y_i++) {
 		const Scalar_T y = grid_length_y * (y_i + 0.5) / grid_size_y;
 
 		for (size_t x_i = 0; x_i < grid_size_x; x_i++) {
 			const Scalar_T x = grid_length_x * (x_i + 0.5) / grid_size_x;
 
-			const size_t cell_index = x_i + y_i * grid_size_x;
-			rhs[cell_index]
-				= -2 * sin(x) * cos(y);
+			const size_t cell_index
+				= pamhd::poisson::map_3_to_1(x_i, y_i, z_i, grid_size_x, grid_size_y);
+			rhs[cell_index] = -17.0 / 4.0 * std::sin(x / 2 + 3) * cos(2 * y - 2);
 		}
-	}
+	}}
 
 	return rhs;
 }
 
 
-template <class Scalar_T> void print_grid(
-	const size_t grid_size_x,
-	const size_t grid_size_y,
-	const std::vector<Scalar_T>& data
-) {
-	for (size_t y_i = 0; y_i < grid_size_y; y_i++) {
-		for (size_t x_i = 0; x_i < grid_size_x; x_i++) {
-			const size_t cell_index = x_i + y_i * grid_size_x;
+/*!
+Sets average solution to that of analytic.
 
-			std::cout << data[cell_index] << " ";
-		}
-		std::cout << "\n";
-	}
-	std::cout << std::endl;
-}
-
-
+Used because periodic boudaries don't allow to set the constant of the solution.
+*/
 template <class Scalar_T> std::vector<Scalar_T> normalize_solution(
 	const Scalar_T grid_length_x,
 	const Scalar_T grid_length_y,
 	const size_t grid_size_x,
 	const size_t grid_size_y,
+	const size_t grid_size_z,
 	const std::vector<Scalar_T>& solution
 ) {
 	Scalar_T avg_analytic = 0;
@@ -116,7 +110,8 @@ template <class Scalar_T> std::vector<Scalar_T> normalize_solution(
 			grid_length_x,
 			grid_length_y,
 			grid_size_x,
-			grid_size_y
+			grid_size_y,
+			grid_size_z
 		)
 	) {
 		avg_analytic += i;
@@ -176,85 +171,70 @@ int main()
 
 	constexpr double
 		grid_length_x = 4 * M_PI,
-		grid_length_y = 2 * M_PI;
+		grid_length_y = 2 * M_PI,
+		grid_length_z = 1;
 
 	constexpr size_t
 		grid_size_x = 32,
-		grid_size_y = 16;
+		grid_size_y = 32,
+		grid_size_z = 1;
 
 	const auto rhs
 		= get_rhs<scalar_type>(
 			grid_length_x,
 			grid_length_y,
 			grid_size_x,
-			grid_size_y
+			grid_size_y,
+			grid_size_z
 		);
 
-	scalar_type* solution_tmp
-		= pamhd::poisson::solve(
+	auto solution
+		= pamhd::poisson::solve_failsafe(
 			grid_size_x,
 			grid_size_y,
+			grid_size_z,
 			grid_length_x / grid_size_x,
 			grid_length_y / grid_size_y,
-			rhs.data()
+			grid_length_z / grid_size_z,
+			rhs
 		);
-	if (solution_tmp == NULL) {
-		std::cerr << "Solution failed." << std::endl;
-		return EXIT_FAILURE;
-	}
-	std::vector<scalar_type> solution(grid_size_x * grid_size_y, 0);
-	for (size_t i = 0; i < solution.size(); i++) {
-		solution[i] = *(solution_tmp + i);
-	}
-	free(solution_tmp);
 
 	solution = normalize_solution(
 			grid_length_x,
 			grid_length_y,
 			grid_size_x,
 			grid_size_y,
+			grid_size_z,
 			solution
 	);
 
-	/*std::cout << "Rhs:\n";
-	print_grid(grid_size_x, grid_size_y, rhs);
-	std::cout << "Solution:\n";
-	print_grid(grid_size_x, grid_size_y, solution);
-
-	std::cout << "Analytic:\n";*/
 	const auto analytic
 		= get_analytic_solution(
 			grid_length_x,
 			grid_length_y,
 			grid_size_x,
-			grid_size_y
+			grid_size_y,
+			grid_size_z
 		);
-	//print_grid(grid_size_x, grid_size_y, analytic);
 
 	const double
 		diff_l1_norm = get_diff_lp_norm(solution, analytic, scalar_type(1)),
 		diff_l2_norm = get_diff_lp_norm(solution, analytic, scalar_type(2)),
 		diff_linf_norm = get_diff_lp_norm(solution, analytic, scalar_type(0));
 
-	/*std::cout << "Norms:\n"
-		<< "  1: " << diff_l1_norm << "\n"
-		<< "  2: " << diff_l2_norm << "\n"
-		<< "Inf: " << diff_linf_norm << "\n"
-		<< std::endl;*/
-
-	if (diff_l1_norm > 2.8) {
+	if (diff_l1_norm > 6) {
 		std::cerr <<  __FILE__ << "(" << __LINE__ << "): "
 			<< "L1 norm too large: " << diff_l1_norm
 			<< std::endl;
 		abort();
 	}
-	if (diff_l2_norm > 0.15) {
+	if (diff_l2_norm > 0.25) {
 		std::cerr <<  __FILE__ << "(" << __LINE__ << "): "
 			<< "L2 norm too large: " << diff_l2_norm
 			<< std::endl;
 		abort();
 	}
-	if (diff_linf_norm > 0.013) {
+	if (diff_linf_norm > 0.02) {
 		std::cerr <<  __FILE__ << "(" << __LINE__ << "): "
 			<< "Infinite L norm too large: " << diff_linf_norm
 			<< std::endl;
