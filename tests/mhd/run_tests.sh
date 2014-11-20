@@ -52,6 +52,13 @@ mkdir -p \
     results/magnetohydrodynamic/blast_wave/2d/z1/hlld_athena \
     results/magnetohydrodynamic/blast_wave/2d/z1/roe_athena
 
+# Reconnection
+mkdir -p \
+    results/magnetohydrodynamic/reconnection/2d/y1/hll_athena \
+    results/magnetohydrodynamic/reconnection/2d/y1/hlld_athena \
+    results/magnetohydrodynamic/reconnection/2d/y1/roe_athena
+
+
 echo
 echo Running tests...
 echo
@@ -213,6 +220,21 @@ $RUN ./test.exe \
 
 
 
+echo reconnection mhd 2d y1 hll_athena
+$RUN ./test.exe \
+    --config-file config_files/magnetohydrodynamic/reconnection/2d/y1/hll_athena.cfg \
+    --boundary-file config_files/magnetohydrodynamic/reconnection/2d/y1/boundaries.cfg
+echo reconnection mhd 2d y1 hlld_athena
+$RUN ./test.exe \
+    --config-file config_files/magnetohydrodynamic/reconnection/2d/y1/hlld_athena.cfg \
+    --boundary-file config_files/magnetohydrodynamic/reconnection/2d/y1/boundaries.cfg
+echo reconnection mhd 2d y1 roe_athena
+$RUN ./test.exe \
+    --config-file config_files/magnetohydrodynamic/reconnection/2d/y1/roe_athena.cfg \
+    --boundary-file config_files/magnetohydrodynamic/reconnection/2d/y1/boundaries.cfg
+
+
+
 echo
 echo Plotting results with gnuplot
 
@@ -304,3 +326,12 @@ echo blast_wave mhd 2d z1 hll_athena
 $RUN ./mhd2gnuplot.exe results/magnetohydrodynamic/blast_wave/2d/z1/hll_athena/*dc
 echo blast_wave mhd 2d z1 hlld_athena
 $RUN ./mhd2gnuplot.exe results/magnetohydrodynamic/blast_wave/2d/z1/hlld_athena/*dc
+
+
+
+echo reconnection mhd 2d y1 hll_athena
+$RUN ./mhd2gnuplot.exe results/magnetohydrodynamic/reconnection/2d/y1/hll_athena/*dc
+echo reconnection mhd 2d y1 hlld_athena
+$RUN ./mhd2gnuplot.exe results/magnetohydrodynamic/reconnection/2d/y1/hlld_athena/*dc
+echo reconnection mhd 2d y1 roe_athena
+$RUN ./mhd2gnuplot.exe results/magnetohydrodynamic/reconnection/2d/y1/roe_athena/*dc
