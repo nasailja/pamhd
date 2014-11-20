@@ -1,0 +1,38 @@
+# Makefile for thttp://www.nas.nasa.gov/hecc/resources/pleiades.html
+# tested with these modules loaded: gcc-4.9.1, mpi-sgi/mpt.2.11r13
+# and boost, zoltan installed under your home directory
+CXX = c++
+MPICXX = mpicxx
+
+RUN =
+MPIRUN = mpiexec
+
+DCCRG_CPPFLAGS = -I $(HOME)/libraries/dccrg
+
+EIGEN_CPPFLAGS = -I $(HOME)/libraries/eigen
+
+EIGENLAB_CPPFLAGS = -I $(HOME)/libraries/EigenLab
+
+GENSIMCELL_CPPFLAGS = -I $(HOME)/libraries/gensimcell/source
+
+BOOST_CPPFLAGS = -I $(HOME)/libraries/gcc/4.9.1/mpi-sgi/2.11r13/boost/1.57.0/include
+BOOST_LDFLAGS = -L $(HOME)/libraries/gcc/4.9.1/mpi-sgi/2.11r13/boost/1.57.0/lib
+BOOST_LIBS = \
+  -lboost_coroutine \
+  -lboost_system \
+  -lboost_random \
+  -lboost_program_options
+
+PHIPROF_CPPFLAGS = -I $(HOME)/libraries/phiprof
+
+PRETTYPRINT_CPPFLAGS = -I $(HOME)/libraries/cxx-prettyprint
+
+MUPARSERX_CPPFLAGS = -I $(HOME)/libraries/gcc/4.9.1/mpi-sgi/2.11r13/muparserx/3.0.3/include
+MUPARSERX_LDFLAGS = -L $(HOME)/libraries/gcc/4.9.1/mpi-sgi/2.11r13/muparserx/3.0.3/lib
+MUPARSERX_LIBS = -lmuparserx
+
+VECTORCLASS_CPPFLAGS = -I $(HOME)/libraries/vectorclass
+
+ZOLTAN_CPPFLAGS = -I $(HOME)/libraries/gcc/4.9.1/mpi-sgi/2.11r13/zoltan/3.8/include
+ZOLTAN_LDFLAGS = -L $(HOME)/libraries/gcc/4.9.1/mpi-sgi/2.11r13/zoltan/3.8/lib
+ZOLTAN_LIBS = -lzoltan
