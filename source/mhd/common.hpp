@@ -251,7 +251,7 @@ template <
 
 
 /*!
-Returns speed of AlfvŽn wave in given MHD state.
+Returns speed of AlfvÃ©n wave in given MHD state.
 
 Throws std::domain_error if given a state with non-positive mass density.
 

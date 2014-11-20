@@ -23,6 +23,8 @@ BOOST_LIBS = \
   -lboost_random \
   -lboost_program_options
 
+PHIPROF_CPPFLAGS = -I $(HOME)/libraries/phiprof
+
 PRETTYPRINT_CPPFLAGS = -I $(HOME)/libraries/cxx-prettyprint
 
 MUPARSERX_CPPFLAGS = -I $(HOME)/include

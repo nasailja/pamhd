@@ -20,8 +20,6 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 
 #include "array"
-#include "boost/lexical_cast.hpp"
-#include "boost/program_options.hpp"
 #include "cmath"
 #include "cstdlib"
 #include "exception"
@@ -31,20 +29,18 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "iomanip"
 #include "iostream"
 #include "limits"
-#include "mpi.h"
 #include "sstream"
 #include "string"
 #include "type_traits"
 
+#include "boost/lexical_cast.hpp"
+#include "boost/program_options.hpp"
 #include "dccrg.hpp"
 #include "dccrg_cartesian_geometry.hpp"
-
-/*
-Eigen and MPI must be included before generic cell
-to get MPI support for Eigen types in generic cell
-*/
-#include "Eigen/Core"
+#include "Eigen/Core" // must be included before gensimcell.hpp
+#include "mpi.h" // must be included before gensimcell.hpp
 #include "gensimcell.hpp"
+#include "phiprof.hpp"
 
 #include "divergence/remove.hpp"
 #include "grid_options.hpp"
@@ -96,6 +92,9 @@ int main(int argc, char* argv[])
 		abort();
 	}
 
+	phiprof::Phiprof profiler;
+
+	profiler.start("Initializing");
 
 	// intialize Zoltan
 	float zoltan_version;
@@ -447,6 +446,7 @@ int main(int argc, char* argv[])
 	/*
 	Initialize simulation grid
 	*/
+	profiler.start("Initializing grid");
 
 	Grid_T grid;
 
@@ -482,6 +482,8 @@ int main(int argc, char* argv[])
 
 	grid.balance_load();
 
+	profiler.stop("Initializing grid");
+
 
 	/*
 	Simulate
@@ -503,6 +505,7 @@ int main(int argc, char* argv[])
 	if (verbose and rank == 0) {
 		cout << "Initializing MHD... " << endl;
 	}
+	profiler.start("Initializing MHD");
 	pamhd::mhd::initialize<
 		Grid_T,
 		Init_Cond_T,
@@ -522,11 +525,16 @@ int main(int argc, char* argv[])
 		proton_mass,
 		verbose
 	);
+	profiler.stop("Initializing MHD");
 	if (verbose and rank == 0) {
 		cout << "Done initializing MHD" << endl;
 	}
+	profiler.stop("Initializing");
 
+	profiler.start("Simulating");
+	size_t simulated_steps = 0;
 	while (simulation_time < end_time) {
+		simulated_steps++;
 
 		// shorthand notation for referring to variables
 		const pamhd::mhd::MHD_State_Conservative MHD{};
@@ -671,7 +679,9 @@ int main(int argc, char* argv[])
 			next_rem_div_B += remove_div_B_n;
 
 			if (verbose and rank == 0) {
-				cout << "Removing divergence of B at time " << simulation_time << "...  ";
+				cout << "Removing divergence of B at time "
+					<< simulation_time << "...  ";
+				cout.flush();
 			}
 
 			// save old value of B in case div removal fails
@@ -688,9 +698,6 @@ int main(int argc, char* argv[])
 					= (*cell_data)[MHD][pamhd::mhd::Magnetic_Field()];
 			}
 
-			Cell_T::set_transfer_all(true, MHD, pamhd::mhd::Magnetic_Field_Divergence());
-			grid.update_copies_of_remote_neighbors();
-
 			// short hand notation for how to access magnetic field in cell data
 			const auto B_path
 				= std::tuple<
@@ -704,32 +711,27 @@ int main(int argc, char* argv[])
 			const auto grad_scalar_pot_path
 				= std::tuple<pamhd::mhd::Scalar_Potential_Gradient>();
 
-
+			Cell_T::set_transfer_all(true, MHD, pamhd::mhd::Magnetic_Field_Divergence());
 			const double div_before
-				= pamhd::divergence::get_divergence(
+				= pamhd::divergence::remove(
 					cells,
+					boundary_cells,
+					{},
 					grid,
 					B_path,
-					div_B_path
+					div_B_path,
+					grad_scalar_pot_path,
+					poisson_iterations_max,
+					poisson_iterations_min,
+					poisson_norm_stop,
+					2,
+					poisson_norm_increase_max,
+					false
 				);
+			Cell_T::set_transfer_all(false, pamhd::mhd::Magnetic_Field_Divergence());
 
-			pamhd::divergence::remove(
-				cells,
-				boundary_cells,
-				{},
-				grid,
-				B_path,
-				div_B_path,
-				grad_scalar_pot_path,
-				poisson_iterations_max,
-				poisson_iterations_min,
-				poisson_norm_stop,
-				2,
-				poisson_norm_increase_max,
-				false
-			);
 			grid.update_copies_of_remote_neighbors();
-
+			Cell_T::set_transfer_all(false, MHD);
 			const double div_after
 				= pamhd::divergence::get_divergence(
 					cells,
@@ -762,8 +764,6 @@ int main(int argc, char* argv[])
 					cout << div_before << " -> " << div_after << endl;
 				}
 			}
-
-			Cell_T::set_transfer_all(false, MHD, pamhd::mhd::Magnetic_Field_Divergence());
 		}
 
 
@@ -990,6 +990,20 @@ int main(int argc, char* argv[])
 
 
 		/*
+		Calculate current density
+		*/
+		pamhd::divergence::get_curl(
+			cells,
+			grid,
+			std::tuple<
+				pamhd::mhd::MHD_State_Conservative,
+				pamhd::mhd::Magnetic_Field
+			>(),
+			std::tuple<pamhd::mhd::Electric_Current_Density>()
+		);
+
+
+		/*
 		Save simulation to disk
 		*/
 
@@ -1008,9 +1022,7 @@ int main(int argc, char* argv[])
 			if (
 				not pamhd::mhd::Save::save<
 					Grid_T,
-					Cell_T,
-					pamhd::mhd::MHD_State_Conservative,
-					pamhd::mhd::MHD_Flux_Conservative
+					Cell_T
 				>(
 					output_directory,
 					grid,
@@ -1028,6 +1040,8 @@ int main(int argc, char* argv[])
 			}
 		}
 	}
+	profiler.stop("Simulating", simulated_steps, "time steps");
+	profiler.print(comm, "profile", 0.0);
 
 	if (verbose and rank == 0) {
 		cout << "Simulation finished at time " << simulation_time << endl;

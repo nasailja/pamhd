@@ -37,6 +37,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "gensimcell.hpp"
 
+#include "mhd/variables.hpp"
+
 namespace pamhd {
 namespace mhd {
 
@@ -76,9 +78,7 @@ public:
 	*/
 	template <
 		class Grid_T,
-		class Cell_T,
-		class MHD_T,
-		class MHD_Flux_T
+		class Cell_T
 	> static bool save(
 		const std::string& file_name_prefix,
 		Grid_T& grid,
@@ -91,7 +91,7 @@ public:
 		std::string header_string(get_header_string_template());
 		if (save_fluxes) {
 			header_string += "y\n";
-			Cell_T::set_transfer_all(true, MHD_Flux_T());
+			Cell_T::set_transfer_all(true, MHD_Flux_Conservative());
 		} else {
 			header_string += "n\n";
 		}
@@ -153,19 +153,24 @@ public:
 			<< std::setprecision(3)
 			<< simulation_time;
 
-		Cell_T::set_transfer_all(true, MHD_T());
-		if (save_fluxes) {
-			Cell_T::set_transfer_all(true, MHD_Flux_T());
-		}
+		Cell_T::set_transfer_all(
+			true,
+			MHD_State_Conservative(),
+			Electric_Current_Density()
+		);
 		const bool ret_val = grid.save_grid_data(
 			file_name_prefix + "mhd_" + time_string.str() + "_s.dc",
 			0,
 			header
 		);
 		if (save_fluxes) {
-			Cell_T::set_transfer_all(false, MHD_Flux_T());
+			Cell_T::set_transfer_all(false, MHD_Flux_Conservative());
 		}
-		Cell_T::set_transfer_all(false, MHD_T());
+		Cell_T::set_transfer_all(
+			false,
+			MHD_State_Conservative(),
+			Electric_Current_Density()
+		);
 
 		return ret_val;
 	}

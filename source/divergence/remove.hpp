@@ -362,7 +362,158 @@ template <
 
 
 /*!
+Calculates curl of vector variable in given cells.
+
+See get_divergence() for more info.
+*/
+template <
+	class Grid_T,
+	template<class... Nested_Vars_To_Vec> class Vec_Container,
+	class... Nested_Vars_To_Vec,
+	template<class... Nested_Vars_To_Curl> class Curl_Container,
+	class... Nested_Vars_To_Curl
+> void get_curl(
+	const std::vector<uint64_t>& cells,
+	Grid_T& grid,
+	const Vec_Container<Nested_Vars_To_Vec...>&,
+	const Curl_Container<Nested_Vars_To_Curl...>&
+) {
+	using gensimcell::get;
+
+	for (const auto& cell: cells) {
+		if (grid.get_refinement_level(cell) != 0) {
+			std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
+				<< "Adaptive mesh refinement not supported"
+				<< std::endl;
+			abort();
+		}
+
+		const auto cell_length = grid.geometry.get_length(cell);
+
+		const auto face_neighbors_of = grid.get_face_neighbors_of(cell);
+
+		// get distance between neighbors in same dimension
+		std::array<double, 3>
+			// distance from current cell on neg and pos side (> 0)
+			neigh_neg_dist{{0, 0, 0}},
+			neigh_pos_dist{{0, 0, 0}};
+
+		// number of neighbors in each dimension
+		std::array<size_t, 3> nr_neighbors{{0, 0, 0}};
+
+		for (const auto& item: face_neighbors_of) {
+			const auto neighbor = item.first;
+			const auto direction = item.second;
+			if (direction == 0 or std::abs(direction) > 3) {
+				std::cerr << __FILE__ << "(" << __LINE__<< ")" << std::endl;
+				abort();
+			}
+			const size_t dim = std::abs(direction) - 1;
+
+			nr_neighbors[dim]++;
+
+			const auto neighbor_length
+				= grid.geometry.get_length(neighbor);
+
+			const double distance
+				= (cell_length[dim] + neighbor_length[dim]) / 2.0;
+
+			if (direction < 0) {
+				neigh_neg_dist[dim] = distance;
+			} else {
+				neigh_pos_dist[dim] = distance;
+			}
+		}
+
+		bool have_enough_neighbors = false;
+		for (auto dim = 0; dim < 3; dim++) {
+			if (nr_neighbors[dim] == 2) {
+				have_enough_neighbors = true;
+			}
+		}
+
+		auto* const cell_data = grid[cell];
+		if (cell_data == NULL) {
+			std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
+				<< "No data for simulation cell " << cell
+				<< std::endl;
+			abort();
+		}
+
+		const auto& vec = get(*cell_data, Nested_Vars_To_Vec()...);
+		auto& curl = get(*cell_data, Nested_Vars_To_Curl()...);
+		curl[0] =
+		curl[1] =
+		curl[2] = 0;
+
+		if (not have_enough_neighbors) {
+			continue;
+		}
+
+		/*
+		curl_0 = diff_vec_2 / diff_pos_1 - diff_vec_1 / diff_pos_2
+		curl_1 = diff_vec_0 / diff_pos_2 - diff_vec_2 / diff_pos_0
+		curl_2 = diff_vec_1 / diff_pos_0 - diff_vec_0 / diff_pos_1
+		*/
+		for (auto dim0 = 0; dim0 < 3; dim0++) {
+
+			const auto
+				dim1 = (dim0 + 1) % 3,
+				dim2 = (dim0 + 2) % 3;
+
+			// zero in dimensions with missing neighbor(s)
+			if (nr_neighbors[dim1] == 2) {
+				curl[dim0] += vec[dim2] * (neigh_pos_dist[dim1] - neigh_neg_dist[dim1]);
+			}
+			if (nr_neighbors[dim2] == 2) {
+				curl[dim0] -= vec[dim1] * (neigh_pos_dist[dim2] - neigh_neg_dist[dim2]);
+			}
+		}
+
+		for (const auto& item: face_neighbors_of) {
+			const auto neighbor = item.first;
+			const auto direction = item.second;
+			const size_t dim0 = std::abs(direction) - 1;
+
+			if (nr_neighbors[dim0] != 2) {
+				continue;
+			}
+
+			const auto
+				dim1 = (dim0 + 1) % 3,
+				dim2 = (dim0 + 2) % 3;
+
+			const auto* const neighbor_data = grid[neighbor];
+			if (neighbor_data == NULL) {
+				std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
+					<< "No data for neighbor " << neighbor
+					<< " of cell " << cell
+					<< std::endl;
+				abort();
+			}
+			const auto& neigh_vec
+				= get(*neighbor_data, Nested_Vars_To_Vec()...);
+
+			double multiplier = 0;
+			if (direction < 0) {
+				multiplier = -neigh_pos_dist[dim0] / neigh_neg_dist[dim0];
+			} else {
+				multiplier = neigh_neg_dist[dim0] / neigh_pos_dist[dim0];
+			}
+			multiplier /= (neigh_pos_dist[dim0] + neigh_neg_dist[dim0]);
+
+			curl[dim2] += multiplier * neigh_vec[dim1];
+			curl[dim1] -= multiplier * neigh_vec[dim2];
+		}
+	}
+}
+
+
+/*!
 Removes divergence of a vector variable from given cells.
+
+Returns total divergence of vector variable
+(from get_divergence()) before removing divergence.
 
 Solves phi from div(grad(phi)) = div(vector) and assigns
 vector = vector - grad(phi) after which div(vector) == 0.
@@ -400,7 +551,7 @@ template <
 	template<class... Nested_Vars_To_Grad> class Grad_Container,
 	class... Nested_Vars_To_Grad
 	// TODO: add possibility to reuse solution from previous call
-> void remove(
+> double remove(
 	const std::vector<uint64_t>& cells,
 	const std::vector<uint64_t>& boundary_cells,
 	const std::vector<uint64_t>& skip_cells,
@@ -436,7 +587,7 @@ template <
 	simulation_grid.update_copies_of_remote_neighbors();
 
 	// rhs for poisson solver = div(vec)
-	get_divergence(
+	const double ret_val = get_divergence(
 		cells,
 		simulation_grid,
 		std::tuple<Nested_Vars_To_Vec...>(),
@@ -547,6 +698,8 @@ template <
 
 		gensimcell::get(*simulation_data, Nested_Vars_To_Div()...) = 0;
 	}
+
+	return ret_val;
 }
 
 

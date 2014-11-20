@@ -33,8 +33,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef PAMHD_MHD_VARIABLES_HPP
 #define PAMHD_MHD_VARIABLES_HPP
 
-#include "Eigen/Core"
-
+#include "Eigen/Core" // must be included before gensimcell.hpp
 #include "gensimcell.hpp"
 
 namespace pamhd {
@@ -132,6 +131,13 @@ struct Scalar_Potential_Gradient {
 	static const std::string get_option_help() { return {"Gradient of scalar potential from Poisson's equation"}; }
 };
 
+struct Electric_Current_Density {
+	using data_type = Eigen::Vector3d;
+	static const std::string get_name() { return {"current density"}; }
+	static const std::string get_option_name() { return {"current-density"}; }
+	static const std::string get_option_help() { return {"Density of electric current"}; }
+};
+
 //! Set of conservative MHD variables
 using MHD_Conservative = gensimcell::Cell<
 	gensimcell::Always_Transfer,
@@ -178,6 +184,7 @@ using Cell = gensimcell::Cell<
 	Magnetic_Field_Temp,
 	Magnetic_Field_Divergence,
 	Scalar_Potential_Gradient,
+	Electric_Current_Density,
 	MHD_Flux_Conservative
 >;
 

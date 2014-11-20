@@ -31,22 +31,25 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "array"
-#include "boost/lexical_cast.hpp"
-#include "boost/optional.hpp"
 #include "cstdint"
 #include "cstdlib"
-#include "Eigen/Core" // must be included before gensimcell
+#include "functional"
 #include "fstream"
-#include "mpi.h"
 #include "string"
 #include "tuple"
 #include "unordered_map"
 #include "vector"
 
+#include "boost/lexical_cast.hpp"
+#include "boost/optional.hpp"
+#include "boost/program_options.hpp"
 #include "dccrg_cartesian_geometry.hpp"
 #include "dccrg_mapping.hpp"
 #include "dccrg_topology.hpp"
+#include "mpi.h" // must be included before gensimcell
+#include "Eigen/Core" // must be included before gensimcell
 #include "gensimcell.hpp"
+#include "prettyprint.hpp"
 
 #include "mhd/common.hpp"
 #include "mhd/save.hpp"
@@ -56,11 +59,12 @@ using namespace std;
 using namespace pamhd::mhd;
 
 /*
-Read data of the entire file with given name.
+Reads simulation data from given file.
 
 Fills out grid info and simulation data.
 
-On success returns whether fluxes were saved into given file,
+On success returns whether fluxes were saved into
+given file and physical constants used by the simulation,
 on failure returns an uninitialized value.
 */
 boost::optional<
@@ -69,7 +73,7 @@ boost::optional<
 		std::array<double, 3>
 	>
 > read_data(
-	dccrg::Mapping& mapping,
+	dccrg::Mapping& cell_id_mapping,
 	dccrg::Grid_Topology& topology,
 	dccrg::Cartesian_Geometry& geometry,
 	unordered_map<uint64_t, Cell>& simulation_data,
@@ -132,7 +136,11 @@ boost::optional<
 	offset += Save::nr_header_doubles * sizeof(double);
 
 
-	Cell::set_transfer_all(true, MHD_State_Conservative());
+	Cell::set_transfer_all(
+		true,
+		MHD_State_Conservative(),
+		Electric_Current_Density()
+	);
 	if (have_fluxes) {
 		Cell::set_transfer_all(true, MHD_Flux_Conservative());
 	}
@@ -140,7 +148,7 @@ boost::optional<
 	// skip endianness check data
 	offset += sizeof(uint64_t);
 
-	if (not mapping.read(file, offset)) {
+	if (not cell_id_mapping.read(file, offset)) {
 		cerr << "Process " << mpi_rank
 			<< " couldn't set cell id mapping from file " << file_name
 			<< endl;
@@ -148,7 +156,7 @@ boost::optional<
 	}
 
 	offset
-		+= mapping.data_size()
+		+= cell_id_mapping.data_size()
 		+ sizeof(unsigned int)
 		+ topology.data_size();
 
@@ -387,9 +395,12 @@ int plot_1d(
 			= simulation_data.at(cell_id)[MHD_State_Conservative()];
 		const auto& m = mhd_data[Momentum_Density()];
 		const auto& rho = mhd_data[Mass_Density()];
-		const auto v(m / rho);
 		const double x = geometry.get_center(cell_id)[tube_dim];
-		gnuplot_file << x << " " << v[0] << "\n";
+		if (rho > 0) {
+			gnuplot_file << x << " " << (m / rho)[0] << "\n";
+		} else {
+			gnuplot_file << x << " 0\n";
+		}
 	}
 	gnuplot_file << "end\n";
 
@@ -398,9 +409,12 @@ int plot_1d(
 			= simulation_data.at(cell_id)[MHD_State_Conservative()];
 		const auto& m = mhd_data[Momentum_Density()];
 		const auto& rho = mhd_data[Mass_Density()];
-		const auto v(m / rho);
 		const double x = geometry.get_center(cell_id)[tube_dim];
-		gnuplot_file << x << " " << v[1] << "\n";
+		if (rho > 0) {
+			gnuplot_file << x << " " << (m / rho)[1] << "\n";
+		} else {
+			gnuplot_file << x << " 0\n";
+		}
 	}
 	gnuplot_file << "end\n";
 
@@ -409,9 +423,12 @@ int plot_1d(
 			= simulation_data.at(cell_id)[MHD_State_Conservative()];
 		const auto& m = mhd_data[Momentum_Density()];
 		const auto& rho = mhd_data[Mass_Density()];
-		const auto v(m / rho);
 		const double x = geometry.get_center(cell_id)[tube_dim];
-		gnuplot_file << x << " " << v[2] << "\n";
+		if (rho > 0) {
+			gnuplot_file << x << " " << (m / rho)[2] << "\n";
+		} else {
+			gnuplot_file << x << " 0\n";
+		}
 	}
 	gnuplot_file << "end\n";
 
@@ -534,9 +551,102 @@ int plot_1d(
 		gnuplot_file << "end\n";
 	}
 
+	// current density
+	gnuplot_file
+		<< "set term png enhanced\nset output '"
+		<< output_file_name_prefix + "_J.png"
+		<< "'\nset ylabel 'Current density'\n"
+		   "plot "
+		     "'-' u 1:2 w l lw 2 t 'J_1', "
+		     "'-' u 1:2 w l lw 2 t 'J_2', "
+		     "'-' u 1:2 w l lw 2 t 'J_3'\n";
+
+	for (const auto& cell_id: cells) {
+		const auto& J = simulation_data.at(cell_id)[Electric_Current_Density()];
+		const double x = geometry.get_center(cell_id)[tube_dim];
+		gnuplot_file << x << " " << J[0] << "\n";
+	}
+	gnuplot_file << "end\n";
+
+	for (const auto& cell_id: cells) {
+		const auto& J = simulation_data.at(cell_id)[Electric_Current_Density()];
+		const double x = geometry.get_center(cell_id)[tube_dim];
+		gnuplot_file << x << " " << J[1] << "\n";
+	}
+	gnuplot_file << "end\n";
+
+	for (const auto& cell_id: cells) {
+		const auto& J = simulation_data.at(cell_id)[Electric_Current_Density()];
+		const double x = geometry.get_center(cell_id)[tube_dim];
+		gnuplot_file << x << " " << J[2] << "\n";
+	}
+	gnuplot_file << "end\n";
+
+
 	gnuplot_file.close();
 
 	return system(("gnuplot " + gnuplot_file_name).c_str());
+}
+
+
+/*!
+Prints gnuplot commands and data to plot given variable.
+*/
+void write_gnuplot_cmd(
+	ofstream& gnuplot_file,
+	const std::array<double, 3>& grid_geom_start,
+	const std::array<double, 3>& grid_geom_length,
+	const std::array<uint64_t, 3>& grid_size,
+	const std::array<size_t, 2>& dimensions,
+	const unordered_map<uint64_t, Cell>& simulation_data,
+	const std::vector<uint64_t>& cells,
+	const std::string& common_cmd,
+	const std::string& output_file_name_prefix,
+	const std::string& output_file_name_suffix,
+	const std::string& var_name,
+	const std::string& var_cmd,
+	const std::function<double(const Cell& cell_data)>& value_for_plot
+) {
+	const auto
+		grid_size1 = grid_size[dimensions[0]],
+		grid_size2 = grid_size[dimensions[1]];
+	const auto
+		grid_start1 = grid_geom_start[dimensions[0]],
+		grid_start2 = grid_geom_start[dimensions[1]],
+		grid_length1 = grid_geom_length[dimensions[0]],
+		grid_length2 = grid_geom_length[dimensions[1]];
+
+	gnuplot_file
+		<< common_cmd
+		<< "set output '"
+		<< output_file_name_prefix + "_"
+		<< var_name << "." << output_file_name_suffix
+		<< "'\nset ylabel 'Dimension "
+		<< boost::lexical_cast<std::string>(dimensions[1] + 1)
+		<< "'\nset xlabel 'Dimension "
+		<< boost::lexical_cast<std::string>(dimensions[0] + 1)
+		<< "'\nset xrange["
+		<< boost::lexical_cast<std::string>(grid_start1) << " : "
+		<< boost::lexical_cast<std::string>(grid_start1 + grid_length1) << "]"
+		<< "\nset yrange["
+		<< boost::lexical_cast<std::string>(grid_start2) << " : "
+		<< boost::lexical_cast<std::string>(grid_start2 + grid_length2) << "]\n"
+		<< var_cmd
+		<< "\nplot '-' using ($1 / "
+		<< grid_size1 << " * " << grid_length1 << " + "
+		<< grid_start1 << "):($2 / "
+		<< grid_size2 << " * " << grid_length2 << " + "
+		<< grid_start2
+		<< "):3 matrix with image title ''\n";
+
+	for (size_t i = 0; i < cells.size(); i++) {
+		gnuplot_file << value_for_plot(simulation_data.at(cells[i])) << " ";
+
+		if (i % grid_size1 == grid_size1 - 1) {
+			gnuplot_file << "\n";
+		}
+	}
+	gnuplot_file << "\nend\nreset\n";
 }
 
 
@@ -548,11 +658,45 @@ int plot_2d(
 	const unordered_map<uint64_t, Cell>& simulation_data,
 	const std::vector<uint64_t>& cells,
 	const std::string& output_file_name_prefix,
+	const std::string& output_file_name_suffix,
 	const double adiabatic_index,
 	const double vacuum_permeability,
-	const bool /*have_fluxes*/
+	const bool /*have_fluxes*/,
+	const std::string& common_cmd,
+	const std::string& mass_density_cmd,
+	const std::string& pressure_cmd,
+	const std::string& velocity_cmd,
+	const std::string& magnetic_field_cmd,
+	const std::string& current_density_cmd
 ) {
+	const MHD_State_Conservative MHD{};
+	const Magnetic_Field Mag{};
+
 	const auto& grid_size = geometry.length.get();
+
+	// indices of dimensions with more than one cell
+	const std::array<size_t, 2> dimensions
+		= [&grid_size](){
+
+			std::array<size_t, 2> ret_val{{0, 0}};
+			size_t dims = 0;
+
+			for (size_t dim = 0; dim < grid_size.size(); dim++) {
+				if (grid_size[dim] > 1) {
+					ret_val[dims] = dim;
+					dims++;
+				}
+			}
+			if (dims != 2) {
+				std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
+					<< "Grid with != 2 dimensions given to plot_2d: " << grid_size
+					<< std::endl;
+				abort();
+			}
+
+			return ret_val;
+		}();
+
 	const auto
 		grid_start = geometry.get_start(),
 		grid_end = geometry.get_end();
@@ -563,220 +707,152 @@ int plot_2d(
 	}};
 	const string gnuplot_file_name(output_file_name_prefix + ".dat");
 
-	ofstream gnuplot_file(gnuplot_file_name);
+	std::ofstream gnuplot_file(gnuplot_file_name);
+
+	auto write_gnuplot_cmd_current = std::bind(
+		write_gnuplot_cmd,
+		std::ref(gnuplot_file),
+		grid_start,
+		grid_geom_length,
+		grid_size,
+		dimensions,
+		simulation_data,
+		cells,
+		common_cmd + "\n",
+		output_file_name_prefix,
+		output_file_name_suffix,
+		std::placeholders::_1,
+		std::placeholders::_2,
+		std::placeholders::_3
+	);
 
 	// mass density
-	gnuplot_file
-		<< "set term png enhanced\nset output '"
-		<< output_file_name_prefix + "_rho.png"
-		<< "'\nset ylabel 'Dimension 2'\n"
-		   "set xlabel 'Dimension 1'\n"
-		   //"set logscale cb\n"
-		   "set pal gray\n"
-		   "set title 'Mass density'\n"
-		   "set format cb '%.2e'\n"
-		   "plot '-' using ($1 / "
-		<< grid_size[0] << " * " << grid_geom_length[0] << " + "
-		<< grid_start[0] << "):($2 / "
-		<< grid_size[1] << " * " << grid_geom_length[1] << " + "
-		<< grid_start[1]
-		<< "):3 matrix with image title ''\n";
-
-	for (size_t i = 0; i < cells.size(); i++) {
-		const auto& mhd_data
-			= simulation_data.at(cells[i])[MHD_State_Conservative()];
-
-		gnuplot_file << mhd_data[Mass_Density()] << " ";
-		if (i % grid_size[0] == grid_size[0] - 1) {
-			gnuplot_file << "\n";
-		}
+	if (mass_density_cmd != "") {
+		write_gnuplot_cmd_current(
+			"rho",
+			"\n" + mass_density_cmd + "\n",
+			[](const Cell& cell_data){
+				return cell_data[MHD_State_Conservative()][Mass_Density()];
+			}
+		);
 	}
-	gnuplot_file << "\nend\n";
 
 	// pressure
-	gnuplot_file
-		<< "set output '"
-		<< output_file_name_prefix + "_P.png"
-		<< "\nset title 'Pressure'"
-		<< "'\nplot '-' using ($1 / "
-		<< grid_size[0] << " * " << grid_geom_length[0] << " + "
-		<< grid_start[0] << "):($2 / "
-		<< grid_size[1] << " * " << grid_geom_length[1] << " + "
-		<< grid_start[1]
-		<< "):3 matrix with image title ''\n";
-
-	for (size_t i = 0; i < cells.size(); i++) {
-		const auto& mhd_data
-			= simulation_data.at(cells[i])[MHD_State_Conservative()];
-
-		gnuplot_file
-			<< get_pressure<
-				MHD_State_Conservative::data_type,
-				Mass_Density,
-				Momentum_Density,
-				Total_Energy_Density,
-				Magnetic_Field
-			>(mhd_data, adiabatic_index, vacuum_permeability)
-			<< " ";
-		if (i % grid_size[0] == grid_size[0] - 1) {
-			gnuplot_file << "\n";
-		}
+	if (pressure_cmd != "") {
+		write_gnuplot_cmd_current(
+			"P",
+			"\n" + pressure_cmd + "\n",
+			[&](const Cell& cell_data){
+				return get_pressure<
+					MHD_State_Conservative::data_type,
+					Mass_Density,
+					Momentum_Density,
+					Total_Energy_Density,
+					Magnetic_Field
+				>(
+					cell_data[MHD_State_Conservative()],
+					adiabatic_index,
+					vacuum_permeability
+				);
+			}
+		);
 	}
-	gnuplot_file << "\nend\n";
 
-	// vx
-	gnuplot_file
-		//<< "unset logscale cb\n"
-		<< "set output '"
-		<< output_file_name_prefix + "_vx.png"
-		<< "\nset title 'V_x'"
-		<< "'\nplot '-' using ($1 / "
-		<< grid_size[0] << " * " << grid_geom_length[0] << " + "
-		<< grid_start[0] << "):($2 / "
-		<< grid_size[1] << " * " << grid_geom_length[1] << " + "
-		<< grid_start[1]
-		<< "):3 matrix with image title ''\n";
+	// velocity
+	if (velocity_cmd != "") {
+		write_gnuplot_cmd_current(
+			"Vx",
+			"\n" + velocity_cmd + " 1\"\n",
+			[](const Cell& cell_data)->double {
+				const double rho = cell_data[MHD_State_Conservative()][Mass_Density()];
+				if (rho <= 0) {
+					return 0;
+				}
 
-	for (size_t i = 0; i < cells.size(); i++) {
-		const auto& mhd_data
-			= simulation_data.at(cells[i])[MHD_State_Conservative()];
+				return cell_data[MHD_State_Conservative()][Momentum_Density()][0] / rho;
+			}
+		);
 
-		gnuplot_file
-			<< (mhd_data[Momentum_Density()] / mhd_data[Mass_Density()])[0]
-			<< " ";
-		if (i % grid_size[0] == grid_size[0] - 1) {
-			gnuplot_file << "\n";
-		}
+		write_gnuplot_cmd_current(
+			"Vy",
+			"\n" + velocity_cmd + " 2\"\n",
+			[](const Cell& cell_data)->double {
+				const double rho = cell_data[MHD_State_Conservative()][Mass_Density()];
+				if (rho <= 0) {
+					return 0;
+				}
+
+				return cell_data[MHD_State_Conservative()][Momentum_Density()][1] / rho;
+			}
+		);
+
+		write_gnuplot_cmd_current(
+			"Vz",
+			"\n" + velocity_cmd + " 3\"\n",
+			[](const Cell& cell_data)->double {
+				const double rho = cell_data[MHD_State_Conservative()][Mass_Density()];
+				if (rho <= 0) {
+					return 0;
+				}
+
+				return cell_data[MHD_State_Conservative()][Momentum_Density()][2] / rho;
+			}
+		);
 	}
-	gnuplot_file << "\nend\n";
 
-	// vy
-	gnuplot_file
-		<< "set output '"
-		<< output_file_name_prefix + "_vy.png"
-		<< "\nset title 'V_y'"
-		<< "'\nplot '-' using ($1 / "
-		<< grid_size[0] << " * " << grid_geom_length[0] << " + "
-		<< grid_start[0] << "):($2 / "
-		<< grid_size[1] << " * " << grid_geom_length[1] << " + "
-		<< grid_start[1]
-		<< "):3 matrix with image title ''\n";
+	// magnetic field
+	if (magnetic_field_cmd != "") {
+		write_gnuplot_cmd_current(
+			"Bx",
+			"\n" + magnetic_field_cmd + " 1\"\n",
+			[](const Cell& cell_data){
+				return cell_data[MHD_State_Conservative()][Magnetic_Field()][0];
+			}
+		);
 
-	for (size_t i = 0; i < cells.size(); i++) {
-		const auto& mhd_data
-			= simulation_data.at(cells[i])[MHD_State_Conservative()];
+		write_gnuplot_cmd_current(
+			"By",
+			"\n" + magnetic_field_cmd + " 2\"\n",
+			[](const Cell& cell_data){
+				return cell_data[MHD_State_Conservative()][Magnetic_Field()][1];
+			}
+		);
 
-		gnuplot_file
-			<< (mhd_data[Momentum_Density()] / mhd_data[Mass_Density()])[1]
-			<< " ";
-		if (i % grid_size[0] == grid_size[0] - 1) {
-			gnuplot_file << "\n";
-		}
+		write_gnuplot_cmd_current(
+			"Bz",
+			"\n" + magnetic_field_cmd + " 3\"\n",
+			[](const Cell& cell_data){
+				return cell_data[MHD_State_Conservative()][Magnetic_Field()][2];
+			}
+		);
 	}
-	gnuplot_file << "\nend\n";
 
-	// vz
-	gnuplot_file
-		<< "set output '"
-		<< output_file_name_prefix + "_vz.png"
-		<< "\nset title 'V_z'"
-		<< "'\nplot '-' using ($1 / "
-		<< grid_size[0] << " * " << grid_geom_length[0] << " + "
-		<< grid_start[0] << "):($2 / "
-		<< grid_size[1] << " * " << grid_geom_length[1] << " + "
-		<< grid_start[1]
-		<< "):3 matrix with image title ''\n";
+	// current density
+	if (current_density_cmd != "") {
+		write_gnuplot_cmd_current(
+			"Jx",
+			"\n" + current_density_cmd + " 1\"\n",
+			[](const Cell& cell_data){
+				return cell_data[Electric_Current_Density()][0];
+			}
+		);
 
-	for (size_t i = 0; i < cells.size(); i++) {
-		const auto& mhd_data
-			= simulation_data.at(cells[i])[MHD_State_Conservative()];
+		write_gnuplot_cmd_current(
+			"Jy",
+			"\n" + current_density_cmd + " 2\"\n",
+			[](const Cell& cell_data){
+				return cell_data[Electric_Current_Density()][1];
+			}
+		);
 
-		gnuplot_file
-			<< (mhd_data[Momentum_Density()] / mhd_data[Mass_Density()])[2]
-			<< " ";
-		if (i % grid_size[0] == grid_size[0] - 1) {
-			gnuplot_file << "\n";
-		}
+		write_gnuplot_cmd_current(
+			"Jz",
+			"\n" + current_density_cmd + " 3\"\n",
+			[](const Cell& cell_data){
+				return cell_data[Electric_Current_Density()][2];
+			}
+		);
 	}
-	gnuplot_file << "\nend\n";
-
-
-	// Bx
-	gnuplot_file
-		//<< "unset logscale cb\n"
-		<< "set output '"
-		<< output_file_name_prefix + "_Bx.png"
-		<< "\nset title 'B_1'"
-		<< "'\nplot '-' using ($1 / "
-		<< grid_size[0] << " * " << grid_geom_length[0] << " + "
-		<< grid_start[0] << "):($2 / "
-		<< grid_size[1] << " * " << grid_geom_length[1] << " + "
-		<< grid_start[1]
-		<< "):3 matrix with image title ''\n";
-
-	for (size_t i = 0; i < cells.size(); i++) {
-		const auto& mhd_data
-			= simulation_data.at(cells[i])[MHD_State_Conservative()];
-
-		gnuplot_file
-			<< mhd_data[Magnetic_Field()][0]
-			<< " ";
-		if (i % grid_size[0] == grid_size[0] - 1) {
-			gnuplot_file << "\n";
-		}
-	}
-	gnuplot_file << "\nend\n";
-
-	// By
-	gnuplot_file
-		<< "set output '"
-		<< output_file_name_prefix + "_By.png"
-		<< "\nset title 'B_2'"
-		<< "'\nplot '-' using ($1 / "
-		<< grid_size[0] << " * " << grid_geom_length[0] << " + "
-		<< grid_start[0] << "):($2 / "
-		<< grid_size[1] << " * " << grid_geom_length[1] << " + "
-		<< grid_start[1]
-		<< "):3 matrix with image title ''\n";
-
-	for (size_t i = 0; i < cells.size(); i++) {
-		const auto& mhd_data
-			= simulation_data.at(cells[i])[MHD_State_Conservative()];
-
-		gnuplot_file
-			<< mhd_data[Magnetic_Field()][1]
-			<< " ";
-		if (i % grid_size[0] == grid_size[0] - 1) {
-			gnuplot_file << "\n";
-		}
-	}
-	gnuplot_file << "\nend\n";
-
-	// Bz
-	gnuplot_file
-		<< "set output '"
-		<< output_file_name_prefix + "_Bz.png"
-		<< "\nset title 'B_3'"
-		<< "'\nplot '-' using ($1 / "
-		<< grid_size[0] << " * " << grid_geom_length[0] << " + "
-		<< grid_start[0] << "):($2 / "
-		<< grid_size[1] << " * " << grid_geom_length[1] << " + "
-		<< grid_start[1]
-		<< "):3 matrix with image title ''\n";
-
-	for (size_t i = 0; i < cells.size(); i++) {
-		const auto& mhd_data
-			= simulation_data.at(cells[i])[MHD_State_Conservative()];
-
-		gnuplot_file
-			<< mhd_data[Magnetic_Field()][2]
-			<< " ";
-		if (i % grid_size[0] == grid_size[0] - 1) {
-			gnuplot_file << "\n";
-		}
-	}
-	gnuplot_file << "\nend\n";
-
 
 
 	/*
@@ -786,76 +862,104 @@ int plot_2d(
 	double max_v = 0, max_B = 0;
 	for (size_t i = 0; i < cells.size(); i++) {
 		const auto& mhd_data
-			= simulation_data.at(cells[i])[MHD_State_Conservative()];
+			= simulation_data.at(cells[i])[MHD];
 
-		const double
-			v = (mhd_data[Momentum_Density()] / mhd_data[Mass_Density()]).norm(),
-			B = mhd_data[Magnetic_Field()].norm();
+		const auto rho = mhd_data[Mass_Density()];
+		if (rho > 0) {
+			const double v
+				= (mhd_data[Momentum_Density()]
+				/ mhd_data[Mass_Density()]).norm();
 
-		if (max_v < v) {
-			max_v = v;
+			if (max_v < v) {
+				max_v = v;
+			}
 		}
+
+		const double B = mhd_data[Mag].norm();
 		if (max_B < B) {
 			max_B = B;
 		}
 	}
-	if (max_v == 0) {
+	if (max_v <= 0) {
 		max_v = 1;
 	}
-	if (max_B == 0) {
+	if (max_B <= 0) {
 		max_B = 1;
 	}
 
+	constexpr size_t vectors_per_screen = 1000;
 	const double
-		vectors_per_screen = 10,
 		screen_length = geometry.get_end()[0] - geometry.get_start()[0],
-		vector_length = screen_length / vectors_per_screen,
+		vector_length = screen_length / sqrt(vectors_per_screen),
 		velocity_scaling = vector_length / max_v,
 		B_scaling = vector_length / max_B;
 
 	// velocity
 	gnuplot_file
-		<< "set output '"
-		<< output_file_name_prefix + "_V.png"
-		<< "'\nset ylabel 'Y'\n"
-		   "set xlabel 'X'\n"
-		   "set title 'Velocity'\n"
+		<< common_cmd
+		<< "\nset output '"
+		<< output_file_name_prefix + "_V." << output_file_name_suffix
+		<< "'\nset ylabel 'Dimension "
+		<< boost::lexical_cast<std::string>(dimensions[1] + 1)
+		<< "'\nset xlabel 'Dimension "
+		<< boost::lexical_cast<std::string>(dimensions[0] + 1)
+		<< "'\nset title 'Velocity'\n"
 		   "plot '-' u 1:2:3:4 w vectors t ''\n";
 
 	for (size_t i = 0; i < cells.size(); i++) {
+		if (
+			cells.size() > vectors_per_screen
+			and i % (cells.size() / vectors_per_screen) != 0
+		) {
+			continue;
+		}
+
 		const auto& mhd_data
-			= simulation_data.at(cells[i])[MHD_State_Conservative()];
+			= simulation_data.at(cells[i])[MHD];
 
 		const auto& m = mhd_data[Momentum_Density()];
 		const auto& rho = mhd_data[Mass_Density()];
-		const auto v(m / rho);
-		const double
-			x = geometry.get_center(cells[i])[0],
-			y = geometry.get_center(cells[i])[1];
-		gnuplot_file << x << " " << y << " "
-			<< velocity_scaling * v[0] << " " << velocity_scaling * v[1] << "\n";
+		const auto cell_center = geometry.get_center(cells[i]);
+		gnuplot_file
+			<< cell_center[dimensions[0]] << " "
+			<< cell_center[dimensions[1]] << " ";
+		if (rho > 0) {
+			gnuplot_file
+				<< velocity_scaling * (m / rho)[dimensions[0]] << " "
+				<< velocity_scaling * (m / rho)[dimensions[1]] << "\n";
+		} else {
+			gnuplot_file << "0 0\n";
+		}
 	}
-	gnuplot_file << "end\n";
+	gnuplot_file << "\nend\n";
 
 	// magnetic field
 	gnuplot_file
-		<< "set output '"
-		<< output_file_name_prefix + "_B.png"
+		<< "\nset output '"
+		<< output_file_name_prefix + "_B." << output_file_name_suffix
 		<< "'\nset title 'Magnetic field'\n"
 		   "plot '-' u 1:2:3:4 w vectors t ''\n";
 
 	for (size_t i = 0; i < cells.size(); i++) {
-		const auto& mhd_data
-			= simulation_data.at(cells[i])[MHD_State_Conservative()];
+		if (
+			cells.size() > vectors_per_screen
+			and i % (cells.size() / vectors_per_screen) != 0
+		) {
+			continue;
+		}
 
-		const auto& B = mhd_data[Magnetic_Field()];
-		const double
-			x = geometry.get_center(cells[i])[0],
-			y = geometry.get_center(cells[i])[1];
-		gnuplot_file << x << " " << y << " "
-			<< B_scaling * B[0] << " " << B_scaling * B[1] << "\n";
+		const auto& mhd_data
+			= simulation_data.at(cells[i])[MHD];
+
+		const auto& B = mhd_data[Mag];
+		const auto cell_center = geometry.get_center(cells[i]);
+		gnuplot_file
+			<< cell_center[dimensions[0]] << " "
+			<< cell_center[dimensions[1]] << " "
+			<< B_scaling * B[dimensions[0]] << " "
+			<< B_scaling * B[dimensions[1]] << "\n";
 	}
-	gnuplot_file << "end\n";
+	gnuplot_file << "\nend\n";
 
 
 	gnuplot_file.close();
@@ -877,18 +981,113 @@ int main(int argc, char* argv[])
 	MPI_Comm_rank(comm, &rank);
 	MPI_Comm_size(comm, &comm_size);
 
+	// program options
+	bool verbose = false;
+	std::vector<std::string> input_files;
+	std::string
+		common_plot_2d(
+			"set term png enhanced size 800, 600\n"
+			"set pal gray\n"
+			"set format cb \"%.2e\""
+		),
+		mass_density_plot_2d("set title \"Mass density\""),
+		pressure_plot_2d("set title \"Pressure\""),
+		velocity_plot_2d("set title \"Velocity"),
+		magnetic_field_plot_2d("set title \"Magnetic field"),
+		current_density_plot_2d("set title \"Current density");
 
-	for (int i = 1; i < argc; i++) {
+	boost::program_options::options_description
+		options("Usage: program_name [options], where options are");
+	options.add_options()
+		("help", "Print this help message")
+		("verbose", "Print run time information")
+		("input-file",
+			boost::program_options::value<std::vector<std::string>>(&input_files)
+				->default_value(input_files),
+			"Results to plot, the --input-file part can be omitted")
+		("common-2d",
+			boost::program_options::value<std::string>(&common_plot_2d)
+				->default_value(common_plot_2d),
+			"Gnuplot command(s) common to all variables in 2d")
+		("mass-density-2d",
+			boost::program_options::value<std::string>(&mass_density_plot_2d)
+				->default_value(mass_density_plot_2d),
+			"Gnuplot command(s) for plotting mass density in 2d")
+		("pressure-2d",
+			boost::program_options::value<std::string>(&pressure_plot_2d)
+				->default_value(pressure_plot_2d),
+			"Gnuplot command(s) for plotting pressure in 2d")
+		("velocity-2d",
+			boost::program_options::value<std::string>(&velocity_plot_2d)
+				->default_value(velocity_plot_2d),
+			"Gnuplot command(s) for plotting each component of velocity in 2d "
+			"(component number and closing \" added automatically)")
+		("magnetic-field-2d",
+			boost::program_options::value<std::string>(&magnetic_field_plot_2d)
+				->default_value(magnetic_field_plot_2d),
+			"Gnuplot command(s) for plotting each component of magnetic field in 2d "
+			"(component number and closing \" added automatically)")
+		("current-density-2d",
+			boost::program_options::value<std::string>(&current_density_plot_2d)
+				->default_value(current_density_plot_2d),
+			"Gnuplot command(s) for plotting each component of current density in 2d "
+			"(component number and closing \" added automatically)");
 
-		if ((i - 1) % comm_size != rank) {
+	boost::program_options::positional_options_description positional_options;
+	positional_options.add("input-file", -1);
+
+	boost::program_options::variables_map var_map;
+	try {
+		boost::program_options::store(
+			boost::program_options::command_line_parser(argc, argv)
+				.options(options)
+				.positional(positional_options)
+				.run(),
+			var_map
+		);
+	} catch (std::exception& e) {
+		if (rank == 0) {
+			std::cerr <<  __FILE__ << "(" << __LINE__ << "): "
+				<< "Couldn't parse command line options: " << e.what()
+				<< std::endl;
+		}
+		abort();
+	}
+	boost::program_options::notify(var_map);
+
+	if (var_map.count("help") > 0) {
+		if (rank == 0) {
+			cout << options <<
+				"Each variable's plot command is given to gnuplot after "
+				"the common plot command block. To include newlines in "
+				"arguments use e.g. in bash ./mhd2gnuplot --opt "
+				"$'set title \"T\"\\nset xrange...' which expands \\n etc. "
+				"Variables with empty plot command are not plotted."
+				<< endl;
+		}
+		MPI_Finalize();
+		return EXIT_SUCCESS;
+	}
+
+	if (var_map.count("verbose") > 0) {
+		verbose = true;
+	}
+
+	for (size_t i = 0; i < input_files.size(); i++) {
+
+		if (i % comm_size != rank) {
 			continue;
 		}
 
-		const string argv_string(argv[i]);
+		if (verbose) {
+			std::cout << "MPI rank " << rank
+				<< " processing file " << input_files[i]
+				<< std::endl;
+		}
 
-		dccrg::Mapping mapping;
+		dccrg::Mapping cell_id_mapping;
 		dccrg::Grid_Topology topology;
-		dccrg::Cartesian_Geometry geometry(mapping.length, mapping, topology);
+		dccrg::Cartesian_Geometry geometry(cell_id_mapping.length, cell_id_mapping, topology);
 		unordered_map<uint64_t, Cell> simulation_data;
 
 		boost::optional<
@@ -897,16 +1096,16 @@ int main(int argc, char* argv[])
 				std::array<double, 3>
 			>
 		> header = read_data(
-			mapping,
+			cell_id_mapping,
 			topology,
 			geometry,
 			simulation_data,
-			argv_string,
+			input_files[i],
 			rank
 		);
 		if (not header) {
 			std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
-				<< "Couldn't read simulation data from file " << argv_string
+				<< "Couldn't read simulation data from file " << input_files[i]
 				<< std::endl;
 			continue;
 		}
@@ -926,7 +1125,7 @@ int main(int argc, char* argv[])
 		std::sort(cells.begin(), cells.end());
 
 		// get number of dimensions
-		const auto grid_length = mapping.length.get();
+		const auto grid_length = cell_id_mapping.length.get();
 		const size_t dimensions
 			= [&](){
 				size_t ret_val = 0;
@@ -944,7 +1143,7 @@ int main(int argc, char* argv[])
 				geometry,
 				simulation_data,
 				cells,
-				argv_string.substr(0, argv_string.size() - 3),
+				input_files[i].substr(0, input_files[i].size() - 3),
 				std::get<1>(*header)[0],
 				std::get<1>(*header)[2],
 				std::get<0>(*header)
@@ -955,15 +1154,22 @@ int main(int argc, char* argv[])
 				geometry,
 				simulation_data,
 				cells,
-				argv_string.substr(0, argv_string.size() - 3),
+				input_files[i].substr(0, input_files[i].size() - 3),
+				"png",
 				std::get<1>(*header)[0],
 				std::get<1>(*header)[2],
-				std::get<0>(*header)
+				std::get<0>(*header),
+				common_plot_2d,
+				mass_density_plot_2d,
+				pressure_plot_2d,
+				velocity_plot_2d,
+				magnetic_field_plot_2d,
+				current_density_plot_2d
 			);
 			break;
 		default:
 			std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
-				<< "Unsupported number of dimensions in file " << argv_string
+				<< "Unsupported number of dimensions in file " << input_files[i]
 				<< std::endl;
 			continue;
 			break;

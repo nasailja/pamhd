@@ -16,6 +16,7 @@ tests/mhd_clean_results:
 	@printf "CLEAN RESULTS tests/mhd\n" && rm -f \
 	  tests/mhd/*.dat \
 	  tests/mhd/*.png \
+	  tests/mhd/profile*.txt \
 	  tests/mhd/results/*/*.dat \
 	  tests/mhd/results/*/*.png \
 	  tests/mhd/results/*/*.dc
@@ -56,34 +57,33 @@ TEST_MHD_COMPILE_COMMOM = \
   $(CPPFLAGS) \
   $(CXXFLAGS) \
   $(LDFLAGS) \
+  $(BOOST_CPPFLAGS) \
+  $(BOOST_LDFLAGS) \
+  $(BOOST_LIBS) \
   $(EIGEN_CPPFLAGS) \
-  $(GENSIMCELL_CPPFLAGS) \
+  $(GENSIMCELL_CPPFLAGS)
 
 tests/mhd/reference.exe: \
   tests/mhd/reference.cpp \
   $(TEST_MHD_COMMON_DEPS)
-	@printf "CXX $<\n" && $(CXX) $(TEST_MHD_COMPILE_COMMOM) \
-	  $(BOOST_CPPFLAGS) \
-	  $(BOOST_LDFLAGS) \
-	  $(BOOST_LIBS)
+	@printf "CXX $<\n" && $(CXX) $(TEST_MHD_COMPILE_COMMOM)
 
 tests/mhd/mhd2gnuplot.exe: \
   tests/mhd/mhd2gnuplot.cpp \
   $(TEST_MHD_COMMON_DEPS)
 	@printf "MPICXX $<\n" && $(MPICXX) $(TEST_MHD_COMPILE_COMMOM) \
-	  $(DCCRG_CPPFLAGS)
+	  $(DCCRG_CPPFLAGS) \
+	  $(PRETTYPRINT_CPPFLAGS)
 
 tests/mhd/test.exe: \
   tests/mhd/test.cpp \
   $(TEST_MHD_PROGRAM_DEPS)
 	@printf "MPICXX $<\n" && $(MPICXX) $(TEST_MHD_COMPILE_COMMOM) \
 	  $(DCCRG_CPPFLAGS) \
-	  $(BOOST_CPPFLAGS) \
-	  $(BOOST_LDFLAGS) \
-	  $(BOOST_LIBS) \
 	  $(MUPARSERX_CPPFLAGS) \
 	  $(MUPARSERX_LDFLAGS) \
 	  $(MUPARSERX_LIBS) \
+	  $(PHIPROF_CPPFLAGS) \
 	  $(PRETTYPRINT_CPPFLAGS) \
 	  $(ZOLTAN_CPPFLAGS) \
 	  $(ZOLTAN_LDFLAGS) \
