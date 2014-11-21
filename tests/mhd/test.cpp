@@ -543,6 +543,7 @@ int main(int argc, char* argv[])
 		/*
 		Get maximum allowed time step
 		*/
+		profiler.start("Calculating maximum time step");
 
 		double
 			// don't step over the final simulation time
@@ -565,6 +566,7 @@ int main(int argc, char* argv[])
 				<< std::endl;
 			abort();
 		}
+		profiler.stop("Calculating maximum time step");
 
 
 		/*
@@ -578,9 +580,13 @@ int main(int argc, char* argv[])
 				<< " s with time step " << time_step << " s" << endl;
 		}
 
+		profiler.start("Solving MHD");
+		profiler.start("Starting updates");
 		Cell_T::set_transfer_all(true, MHD, Cell_Type);
 		grid.start_remote_neighbor_copy_updates();
+		profiler.stop("Starting updates");
 
+		profiler.start("Zeroing fluxes");
 		pamhd::mhd::zero_fluxes<
 			Grid_T,
 			Cell_T,
@@ -590,7 +596,9 @@ int main(int argc, char* argv[])
 			pamhd::mhd::Total_Energy_Density,
 			pamhd::mhd::Magnetic_Field
 		>(grid, cells);
+		profiler.stop("Zeroing fluxes", cells.size(), "cells");
 
+		profiler.start("Solving inner cells");
 		max_dt = std::min(
 			max_dt,
 			pamhd::mhd::solve<
@@ -610,9 +618,13 @@ int main(int argc, char* argv[])
 				vacuum_permeability
 			)
 		);
+		profiler.stop("Solving inner cells", inner_cells.size(), "cells");
 
+		profiler.start("Waiting for receives");
 		grid.wait_remote_neighbor_copy_update_receives();
+		profiler.stop("Waiting for receives");
 
+		profiler.start("Solving outer cells");
 		max_dt = std::min(
 			max_dt,
 			pamhd::mhd::solve<
@@ -632,7 +644,9 @@ int main(int argc, char* argv[])
 				vacuum_permeability
 			)
 		);
+		profiler.stop("Solving outer cells", outer_cells.size(), "cells");
 
+		profiler.start("Applying inner fluxes");
 		pamhd::mhd::apply_fluxes<
 			Grid_T,
 			Cell_T,
@@ -648,10 +662,14 @@ int main(int argc, char* argv[])
 			adiabatic_index,
 			vacuum_permeability
 		);
+		profiler.stop("Applying inner fluxes", inner_cells.size(), "cells");
 
+		profiler.start("Waiting for sends");
 		grid.wait_remote_neighbor_copy_update_sends();
 		Cell_T::set_transfer_all(false, MHD, Cell_Type);
+		profiler.stop("Waiting for sends");
 
+		profiler.start("Applying outer fluxes");
 		pamhd::mhd::apply_fluxes<
 			Grid_T,
 			Cell_T,
@@ -667,6 +685,8 @@ int main(int argc, char* argv[])
 			adiabatic_index,
 			vacuum_permeability
 		);
+		profiler.stop("Applying outer fluxes", outer_cells.size(), "cells");
+		profiler.stop("Solving MHD");
 
 		simulation_time += time_step;
 
@@ -676,6 +696,8 @@ int main(int argc, char* argv[])
 		*/
 
 		if (remove_div_B_n > 0 and simulation_time >= next_rem_div_B) {
+			profiler.start("Removing divergence of magnetic field");
+
 			next_rem_div_B += remove_div_B_n;
 
 			if (verbose and rank == 0) {
@@ -764,12 +786,17 @@ int main(int argc, char* argv[])
 					cout << div_before << " -> " << div_after << endl;
 				}
 			}
+
+			profiler.stop("Removing divergence of magnetic field", cells.size(), "cells");
 		}
 
+
+		profiler.start("Applying boundary conditions");
 
 		/*
 		Apply value boundaries
 		*/
+		profiler.start("Applying value boundaries");
 
 		value_boundaries.clear_cells();
 
@@ -849,11 +876,13 @@ int main(int argc, char* argv[])
 				>(temp, adiabatic_index, vacuum_permeability);
 			}
 		}
+		profiler.stop("Applying value boundaries");
 
 
 		/*
 		Apply copy boundaries
 		*/
+		profiler.start("Applying copy boundaries");
 
 		copy_boundary.clear_cells();
 
@@ -987,11 +1016,14 @@ int main(int argc, char* argv[])
 			(*target_data)[pamhd::mhd::MHD_State_Conservative()]
 				= (*source_data)[pamhd::mhd::MHD_State_Conservative()];
 		}
+		profiler.stop("Applying copy boundaries");
 
+		profiler.stop("Applying boundary conditions");
 
 		/*
 		Calculate current density
 		*/
+		profiler.start("Calculating current density");
 		pamhd::divergence::get_curl(
 			cells,
 			grid,
@@ -1001,6 +1033,7 @@ int main(int argc, char* argv[])
 			>(),
 			std::tuple<pamhd::mhd::Electric_Current_Density>()
 		);
+		profiler.stop("Calculating current density", cells.size(), "cells");
 
 
 		/*
@@ -1011,6 +1044,8 @@ int main(int argc, char* argv[])
 			(save_mhd_n >= 0 and (simulation_time == 0 or simulation_time >= end_time))
 			or (save_mhd_n > 0 and simulation_time >= next_mhd_save)
 		) {
+			profiler.start("Saving results");
+
 			if (next_mhd_save <= simulation_time) {
 				next_mhd_save += save_mhd_n;
 			}
@@ -1038,7 +1073,10 @@ int main(int argc, char* argv[])
 					<< std::endl;
 				abort();
 			}
+
+			profiler.stop("Saving results");
 		}
+
 	}
 	profiler.stop("Simulating", simulated_steps, "time steps");
 	profiler.print(comm, "profile", 0.0);
