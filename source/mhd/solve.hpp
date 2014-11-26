@@ -230,25 +230,26 @@ template <
 
 			typename MHD_Flux_T::data_type flux;
 			double max_vel;
-			std::tie(
-				flux,
-				max_vel
-			) = solver(
-				state_neg,
-				state_pos,
-				shared_area,
-				dt,
-				adiabatic_index,
-				vacuum_permeability
-			);
-			if (max_vel < 0) {
+			try {
+				std::tie(
+					flux,
+					max_vel
+				) = solver(
+					state_neg,
+					state_pos,
+					shared_area,
+					dt,
+					adiabatic_index,
+					vacuum_permeability
+				);
+			} catch (const std::domain_error& error) {
 				std::cerr <<  __FILE__ << "(" << __LINE__ << ") "
 					<< "Solution failed between cells " << cell_id
 					<< " and " << neighbor_id
 					<< " at " << grid.geometry.get_center(cell_id)
 					<< " and " << grid.geometry.get_center(neighbor_id)
-					<< " with error value " << max_vel
-					<< " and states (mass, momentum, total energy, magnetic field): "
+					<< " in direction " << neighbor_dir
+					<< " with states (mass, momentum, total energy, magnetic field): "
 					<< (*cell_data)[MHD_T()][Mass_Density_T()] << ", "
 					<< (*cell_data)[MHD_T()][Momentum_Density_T()] << ", "
 					<< (*cell_data)[MHD_T()][Total_Energy_Density_T()] << ", "
@@ -257,6 +258,7 @@ template <
 					<< (*neighbor_data)[MHD_T()][Momentum_Density_T()] << ", "
 					<< (*neighbor_data)[MHD_T()][Total_Energy_Density_T()] << ", "
 					<< (*neighbor_data)[MHD_T()][Magnetic_Field_T()]
+					<< " because: " << error.what()
 					<< std::endl;
 				abort();
 			}
