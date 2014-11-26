@@ -1074,7 +1074,7 @@ int main(int argc, char* argv[])
 				abort();
 			}
 
-			profiler.stop("Saving results");
+			profiler.stop("Saving results", cells.size(), "cells");
 		}
 
 	}
