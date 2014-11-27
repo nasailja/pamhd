@@ -33,6 +33,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "string"
 #include "type_traits"
 
+#include "boost/filesystem.hpp"
 #include "boost/lexical_cast.hpp"
 #include "boost/program_options.hpp"
 #include "dccrg.hpp"
@@ -422,6 +423,11 @@ int main(int argc, char* argv[])
 			abort();
 		}
 		boost::program_options::notify(option_variables);
+	}
+
+
+	if (rank == 0) {
+		boost::filesystem::create_directories(output_directory);
 	}
 
 
