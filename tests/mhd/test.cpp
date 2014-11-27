@@ -68,8 +68,14 @@ int Poisson_Cell::transfer_switch = Poisson_Cell::INIT;
 
 int main(int argc, char* argv[])
 {
+	using std::pow;
 	using Cell_T = pamhd::mhd::Cell;
 	using Grid_T = dccrg::Dccrg<Cell_T, dccrg::Cartesian_Geometry>;
+
+	const pamhd::mhd::Magnetic_Field Mag{};
+	const pamhd::mhd::Magnetic_Field_Temp Mag_Tmp{};
+	const pamhd::mhd::Magnetic_Field_Divergence Mag_Div{};
+	const pamhd::mhd::Total_Energy_Density Nrj{};
 
 	/*
 	Initialize MPI
@@ -716,8 +722,8 @@ int main(int argc, char* argv[])
 					abort();
 				}
 
-				(*cell_data)[pamhd::mhd::Magnetic_Field_Temp()]
-					= (*cell_data)[MHD][pamhd::mhd::Magnetic_Field()];
+				(*cell_data)[Mag_Tmp]
+					= (*cell_data)[MHD][Mag];
 			}
 
 			// short hand notation for how to access magnetic field in cell data
@@ -733,7 +739,7 @@ int main(int argc, char* argv[])
 			const auto grad_scalar_pot_path
 				= std::tuple<pamhd::mhd::Scalar_Potential_Gradient>();
 
-			Cell_T::set_transfer_all(true, MHD, pamhd::mhd::Magnetic_Field_Divergence());
+			Cell_T::set_transfer_all(true, MHD, Mag_Div);
 			const double div_before
 				= pamhd::divergence::remove(
 					cells,
@@ -750,7 +756,7 @@ int main(int argc, char* argv[])
 					poisson_norm_increase_max,
 					false
 				);
-			Cell_T::set_transfer_all(false, pamhd::mhd::Magnetic_Field_Divergence());
+			Cell_T::set_transfer_all(false, Mag_Div);
 
 			grid.update_copies_of_remote_neighbors();
 			Cell_T::set_transfer_all(false, MHD);
@@ -778,12 +784,32 @@ int main(int argc, char* argv[])
 						abort();
 					}
 
-					(*cell_data)[MHD][pamhd::mhd::Magnetic_Field()]
-						= (*cell_data)[pamhd::mhd::Magnetic_Field_Temp()];
+					(*cell_data)[MHD][Mag] = (*cell_data)[Mag_Tmp];
 				}
+
 			} else {
+
 				if (verbose and rank == 0) {
 					cout << div_before << " -> " << div_after << endl;
+				}
+
+				// keep pressure/temperature constant over div removal
+				for (auto& cell: cells) {
+					auto* const cell_data = grid[cell];
+					if (cell_data == nullptr) {
+						std::cerr <<  __FILE__ << "(" << __LINE__ << "): "
+							"No data for cell " << cell
+							<< std::endl;
+						abort();
+					}
+
+					const auto mag_nrj_diff
+						= (
+							(*cell_data)[MHD][Mag].squaredNorm()
+							- (*cell_data)[Mag_Tmp].squaredNorm()
+						) / (2 * vacuum_permeability);
+
+					(*cell_data)[MHD][Nrj] += mag_nrj_diff;
 				}
 			}
 
