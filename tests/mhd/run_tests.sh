@@ -235,6 +235,13 @@ $RUN ./test.exe \
 
 
 
+echo orszag-tang mhd 2d z1 roe_athena
+$RUN ./test.exe \
+    --config-file config_files/magnetohydrodynamic/orszag-tang/2d/z1/roe_athena.cfg \
+    --boundary-file config_files/magnetohydrodynamic/orszag-tang/2d/z1/boundaries.cfg
+
+
+
 echo
 echo Plotting results with gnuplot
 
@@ -335,3 +342,8 @@ echo reconnection mhd 2d y1 hlld_athena
 $RUN ./mhd2gnuplot.exe results/magnetohydrodynamic/reconnection/2d/y1/hlld_athena/*dc
 echo reconnection mhd 2d y1 roe_athena
 $RUN ./mhd2gnuplot.exe results/magnetohydrodynamic/reconnection/2d/y1/roe_athena/*dc
+
+
+
+echo orszag-tang mhd 2d z1 roe_athena
+$RUN ./mhd2gnuplot.exe results/magnetohydrodynamic/orszag-tang/2d/z1/roe_athena/*.dc
