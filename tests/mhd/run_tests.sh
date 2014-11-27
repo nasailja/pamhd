@@ -58,6 +58,11 @@ mkdir -p \
     results/magnetohydrodynamic/reconnection/2d/y1/hlld_athena \
     results/magnetohydrodynamic/reconnection/2d/y1/roe_athena
 
+# Orszag-Tang
+mkdir -p \
+    results/magnetohydrodynamic/orszag-tang/2d/z1/hll_athena \
+    results/magnetohydrodynamic/orszag-tang/2d/z1/roe_athena
+
 
 echo
 echo Running tests...
@@ -235,6 +240,10 @@ $RUN ./test.exe \
 
 
 
+echo orszag-tang mhd 2d z1 hll_athena
+$RUN ./test.exe \
+    --config-file config_files/magnetohydrodynamic/orszag-tang/2d/z1/hll_athena.cfg \
+    --boundary-file config_files/magnetohydrodynamic/orszag-tang/2d/z1/boundaries.cfg
 echo orszag-tang mhd 2d z1 roe_athena
 $RUN ./test.exe \
     --config-file config_files/magnetohydrodynamic/orszag-tang/2d/z1/roe_athena.cfg \
@@ -345,5 +354,7 @@ $RUN ./mhd2gnuplot.exe results/magnetohydrodynamic/reconnection/2d/y1/roe_athena
 
 
 
+echo orszag-tang mhd 2d z1 hll_athena
+$RUN ./mhd2gnuplot.exe results/magnetohydrodynamic/orszag-tang/2d/z1/hll_athena/*.dc
 echo orszag-tang mhd 2d z1 roe_athena
 $RUN ./mhd2gnuplot.exe results/magnetohydrodynamic/orszag-tang/2d/z1/roe_athena/*.dc
