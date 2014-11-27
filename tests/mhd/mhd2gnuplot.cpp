@@ -1075,7 +1075,7 @@ int main(int argc, char* argv[])
 
 	for (size_t i = 0; i < input_files.size(); i++) {
 
-		if (i % comm_size != rank) {
+		if (int(i) % comm_size != rank) {
 			continue;
 		}
 
