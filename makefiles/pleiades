@@ -19,6 +19,7 @@ BOOST_CPPFLAGS = -I $(HOME)/libraries/gcc/4.9.1/mpi-sgi/2.11r13/boost/1.57.0/inc
 BOOST_LDFLAGS = -L $(HOME)/libraries/gcc/4.9.1/mpi-sgi/2.11r13/boost/1.57.0/lib
 BOOST_LIBS = \
   -lboost_coroutine \
+  -lboost_filesystem \
   -lboost_system \
   -lboost_random \
   -lboost_program_options

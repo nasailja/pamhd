@@ -19,6 +19,7 @@ BOOST_CPPFLAGS = -I $(HOME)/include
 BOOST_LDFLAGS = -L $(HOME)/lib
 BOOST_LIBS = \
   -lboost_coroutine \
+  -lboost_filesystem \
   -lboost_system \
   -lboost_random \
   -lboost_program_options

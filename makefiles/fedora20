@@ -10,6 +10,7 @@ BOOST_LDFLAGS = -L $(HOME)/lib
 BOOST_LIBS = \
   -lboost_coroutine \
   -lboost_context \
+  -lboost_filesystem \
   -lboost_system \
   -lboost_random \
   -lboost_program_options
