@@ -178,7 +178,7 @@ template <
 			const double shared_area
 				= std::min(cell_area[neighbor_dim], neighbor_area[neighbor_dim]);
 
-			if (not isnormal(shared_area) or shared_area < 0) {
+			if (not std::isnormal(shared_area) or shared_area < 0) {
 				throw std::domain_error(
 					"Invalid area between cells "
 					+ boost::lexical_cast<std::string>(cell_id)
