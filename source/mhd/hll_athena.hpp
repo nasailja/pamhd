@@ -69,103 +69,22 @@ template <
 	const Total_Energy_Density_T Nrj{};
 	const Magnetic_Field_T Mag{};
 
-	if (not isnormal(state_neg[Rho]) or state_neg[Rho] < 0) {
-		throw std::domain_error(
-			"Invalid density in state_neg: "
-			+ boost::lexical_cast<std::string>(state_neg[Rho])
-		);
-	}
-	if (not isfinite(state_neg[Mom][0])) {
-		throw std::domain_error(
-			"Invalid x momentum in state_neg: "
-			+ boost::lexical_cast<std::string>(state_neg[Mom][0])
-		);
-	}
-	if (not isfinite(state_neg[Mom][1])) {
-		throw std::domain_error(
-			"Invalid y momentum in state_neg: "
-			+ boost::lexical_cast<std::string>(state_neg[Mom][1])
-		);
-	}
-	if (not isnormal(state_neg[Nrj]) or state_neg[Nrj] < 0) {
-		throw std::domain_error(
-			"Invalid total energy in state_neg: "
-			+ boost::lexical_cast<std::string>(state_neg[Nrj])
-		);
-	}
-	if (not isfinite(state_neg[Mom][2])) {
-		throw std::domain_error(
-			"Invalid z momentum in state_neg: "
-			+ boost::lexical_cast<std::string>(state_neg[Mom][2])
-		);
-	}
-	if (not isfinite(state_neg[Mag][0])) {
-		throw std::domain_error(
-			"Invalid x magnetic field in state_neg: "
-			+ boost::lexical_cast<std::string>(state_neg[Mag][0])
-		);
-	}
-	if (not isfinite(state_neg[Mag][1])) {
-		throw std::domain_error(
-			"Invalid y magnetic field in state_neg: "
-			+ boost::lexical_cast<std::string>(state_neg[Mag][1])
-		);
-	}
-	if (not isfinite(state_neg[Mag][2])) {
-		throw std::domain_error(
-			"Invalid z magnetic field in state_neg: "
-			+ boost::lexical_cast<std::string>(state_neg[Mag][2])
-		);
-	}
+	check_state<
+		MHD_T,
+		Mass_Density_T,
+		Momentum_Density_T,
+		Total_Energy_Density_T,
+		Magnetic_Field_T
+	>(state_neg);
 
-	if (not isnormal(state_pos[Rho]) or state_pos[Rho] < 0) {
-		throw std::domain_error(
-			"Invalid density in state_pos: "
-			+ boost::lexical_cast<std::string>(state_pos[Rho])
-		);
-	}
-	if (not isfinite(state_pos[Mom][0])) {
-		throw std::domain_error(
-			"Invalid x momentum in state_pos: "
-			+ boost::lexical_cast<std::string>(state_pos[Mom][0])
-		);
-	}
-	if (not isfinite(state_pos[Mom][1])) {
-		throw std::domain_error(
-			"Invalid y momentum in state_pos: "
-			+ boost::lexical_cast<std::string>(state_pos[Mom][1])
-		);
-	}
-	if (not isnormal(state_pos[Nrj]) or state_pos[Nrj] < 0) {
-		throw std::domain_error(
-			"Invalid total energy in state_pos: "
-			+ boost::lexical_cast<std::string>(state_pos[Nrj])
-		);
-	}
-	if (not isfinite(state_pos[Mom][2])) {
-		throw std::domain_error(
-			"Invalid z momentum in state_pos: "
-			+ boost::lexical_cast<std::string>(state_pos[Mom][2])
-		);
-	}
-	if (not isfinite(state_pos[Mag][0])) {
-		throw std::domain_error(
-			"Invalid x magnetic field in state_pos: "
-			+ boost::lexical_cast<std::string>(state_pos[Mag][0])
-		);
-	}
-	if (not isfinite(state_pos[Mag][1])) {
-		throw std::domain_error(
-			"Invalid y magnetic field in state_pos: "
-			+ boost::lexical_cast<std::string>(state_pos[Mag][1])
-		);
-	}
-	if (not isfinite(state_pos[Mag][2])) {
-		throw std::domain_error(
-			"Invalid z magnetic field in state_pos: "
-			+ boost::lexical_cast<std::string>(state_pos[Mag][2])
-		);
-	}
+	check_state<
+		MHD_T,
+		Mass_Density_T,
+		Momentum_Density_T,
+		Total_Energy_Density_T,
+		Magnetic_Field_T
+	>(state_pos);
+
 
 	const auto
 		velocity_neg(state_neg[Mom] / state_neg[Rho]),
@@ -320,15 +239,23 @@ template <
 	flux_neg[Mag][0] = 0;
 
 
-	MHD_T ret_val = (flux_neg + flux_pos) / 2;
+	MHD_T flux = (flux_neg + flux_pos) / 2;
 	const auto divisor = 2 * (bp - bm);
 	if (isnormal(divisor) and divisor > 0) {
-		ret_val += (flux_neg - flux_pos) * (bp + bm) / divisor;
+		flux += (flux_neg - flux_pos) * (bp + bm) / divisor;
 	}
 
-	ret_val *= area * dt;
+	check_flux<
+		MHD_T,
+		Mass_Density_T,
+		Momentum_Density_T,
+		Total_Energy_Density_T,
+		Magnetic_Field_T
+	>(flux);
 
-	return std::make_pair(ret_val, std::max(std::fabs(bp), std::fabs(bm)));
+	flux *= area * dt;
+
+	return std::make_pair(flux, std::max(std::fabs(bp), std::fabs(bm)));
 }
 
 
