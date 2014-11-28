@@ -510,9 +510,59 @@ template <
 	const double factor,
 	const double adiabatic_index,
 	const double vacuum_permeability
-) throw(std::domain_error) {
+) {
 	auto& state = cell_data[MHD_T()];
 	const auto& flux = cell_data[MHD_Flux_T()];
+
+	if (std::isnan(state[Mass_Density_T()])) {
+		throw std::domain_error("Given state has NaN mass density");
+	}
+	if (std::isnan(state[Total_Energy_Density_T()])) {
+		throw std::domain_error("Given state has NaN total energy density");
+	}
+	if (std::isnan(state[Momentum_Density_T()][0])) {
+		throw std::domain_error("Given state has NaN x component of momentum density");
+	}
+	if (std::isnan(state[Momentum_Density_T()][1])) {
+		throw std::domain_error("Given state has NaN y component of momentum density");
+	}
+	if (std::isnan(state[Momentum_Density_T()][2])) {
+		throw std::domain_error("Given state has NaN z component of momentum density");
+	}
+	if (std::isnan(state[Magnetic_Field_T()][0])) {
+		throw std::domain_error("Given state has NaN x component of magnetic field");
+	}
+	if (std::isnan(state[Magnetic_Field_T()][1])) {
+		throw std::domain_error("Given state has NaN y component of magnetic field");
+	}
+	if (std::isnan(state[Magnetic_Field_T()][2])) {
+		throw std::domain_error("Given state has NaN z component of magnetic field");
+	}
+
+	if (std::isnan(flux[Mass_Density_T()])) {
+		throw std::domain_error("Given flux has NaN mass density");
+	}
+	if (std::isnan(flux[Total_Energy_Density_T()])) {
+		throw std::domain_error("Given flux has NaN total energy density");
+	}
+	if (std::isnan(flux[Momentum_Density_T()][0])) {
+		throw std::domain_error("Given flux has NaN x component of momentum density");
+	}
+	if (std::isnan(flux[Momentum_Density_T()][1])) {
+		throw std::domain_error("Given flux has NaN y component of momentum density");
+	}
+	if (std::isnan(flux[Momentum_Density_T()][2])) {
+		throw std::domain_error("Given flux has NaN z component of momentum density");
+	}
+	if (std::isnan(flux[Magnetic_Field_T()][0])) {
+		throw std::domain_error("Given flux has NaN x component of magnetic field");
+	}
+	if (std::isnan(flux[Magnetic_Field_T()][1])) {
+		throw std::domain_error("Given flux has NaN y component of magnetic field");
+	}
+	if (std::isnan(flux[Magnetic_Field_T()][2])) {
+		throw std::domain_error("Given flux has NaN z component of magnetic field");
+	}
 
 	state += flux * factor;
 
