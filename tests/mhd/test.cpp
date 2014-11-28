@@ -354,6 +354,25 @@ int main(int argc, char* argv[])
 		return EXIT_SUCCESS;
 	}
 
+
+	if (not isnormal(adiabatic_index) or adiabatic_index < 0) {
+		if (rank == 0) {
+			std::cerr <<  __FILE__ << "(" << __LINE__ << "): "
+				<< "Invalid adiabatic index: " << adiabatic_index
+				<< std::endl;
+		}
+		abort();
+	}
+	if (not isnormal(vacuum_permeability) or vacuum_permeability < 0) {
+		if (rank == 0) {
+			std::cerr <<  __FILE__ << "(" << __LINE__ << "): "
+				<< "Invalid vacuum permeability: " << vacuum_permeability
+				<< std::endl;
+		}
+		abort();
+	}
+
+
 	if (option_variables.count("verbose") > 0) {
 		verbose = true;
 	}
