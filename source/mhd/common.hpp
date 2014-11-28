@@ -492,6 +492,117 @@ template <
 
 
 /*!
+Throws domain_error if given flux has values that will cause trouble.
+*/
+template <
+	class MHD_T,
+	class Mass_Density_T,
+	class Momentum_Density_T,
+	class Total_Energy_Density_T,
+	class Magnetic_Field_T
+> void check_flux(const MHD_T& flux)
+{
+	const Mass_Density_T Rho{};
+	const Momentum_Density_T Mom{};
+	const Total_Energy_Density_T Nrj{};
+	const Magnetic_Field_T Mag{};
+
+	if (not isfinite(flux[Rho])) {
+		throw std::domain_error(
+			"Invalid density: "
+			+ boost::lexical_cast<std::string>(flux[Rho])
+		);
+	}
+
+	if (not isfinite(flux[Mom][0])) {
+		throw std::domain_error(
+			"Invalid x momentum: "
+			+ boost::lexical_cast<std::string>(flux[Mom][0])
+		);
+	}
+
+	if (not isfinite(flux[Mom][1])) {
+		throw std::domain_error(
+			"Invalid y momentum: "
+			+ boost::lexical_cast<std::string>(flux[Mom][1])
+		);
+	}
+
+	if (not isfinite(flux[Mom][2])) {
+		throw std::domain_error(
+			"Invalid z momentum: "
+			+ boost::lexical_cast<std::string>(flux[Mom][2])
+		);
+	}
+
+	if (not isfinite(flux[Nrj])) {
+		throw std::domain_error(
+			"Invalid total energy: "
+			+ boost::lexical_cast<std::string>(flux[Nrj])
+		);
+	}
+
+	if (not isfinite(flux[Mag][0])) {
+		throw std::domain_error(
+			"Invalid x magnetic field: "
+			+ boost::lexical_cast<std::string>(flux[Mag][0])
+		);
+	}
+
+	if (not isfinite(flux[Mag][1])) {
+		throw std::domain_error(
+			"Invalid y magnetic field: "
+			+ boost::lexical_cast<std::string>(flux[Mag][1])
+		);
+	}
+
+	if (not isfinite(flux[Mag][2])) {
+		throw std::domain_error(
+			"Invalid z magnetic field: "
+			+ boost::lexical_cast<std::string>(flux[Mag][2])
+		);
+	}
+}
+
+/*!
+Throws domain_error if given state has values that will cause trouble.
+*/
+template <
+	class MHD_T,
+	class Mass_Density_T,
+	class Momentum_Density_T,
+	class Total_Energy_Density_T,
+	class Magnetic_Field_T
+> void check_state(const MHD_T& state)
+{
+	check_flux<
+		MHD_T,
+		Mass_Density_T,
+		Momentum_Density_T,
+		Total_Energy_Density_T,
+		Magnetic_Field_T
+	>(state);
+
+	const Mass_Density_T Rho{};
+	const Total_Energy_Density_T Nrj{};
+
+	if (not isnormal(state[Rho]) or state[Rho] < 0) {
+		throw std::domain_error(
+			"Invalid density: "
+			+ boost::lexical_cast<std::string>(state[Rho])
+		);
+	}
+
+	if (not isnormal(state[Nrj]) or state[Nrj] < 0) {
+		throw std::domain_error(
+			"Invalid total energy: "
+			+ boost::lexical_cast<std::string>(state[Nrj])
+		);
+	}
+}
+
+
+/*!
 Positive flux adds to given cell multiplied with given factor.
 
 Throws std::domain_error if new state has
@@ -513,56 +624,6 @@ template <
 ) {
 	auto& state = cell_data[MHD_T()];
 	const auto& flux = cell_data[MHD_Flux_T()];
-
-	if (std::isnan(state[Mass_Density_T()])) {
-		throw std::domain_error("Given state has NaN mass density");
-	}
-	if (std::isnan(state[Total_Energy_Density_T()])) {
-		throw std::domain_error("Given state has NaN total energy density");
-	}
-	if (std::isnan(state[Momentum_Density_T()][0])) {
-		throw std::domain_error("Given state has NaN x component of momentum density");
-	}
-	if (std::isnan(state[Momentum_Density_T()][1])) {
-		throw std::domain_error("Given state has NaN y component of momentum density");
-	}
-	if (std::isnan(state[Momentum_Density_T()][2])) {
-		throw std::domain_error("Given state has NaN z component of momentum density");
-	}
-	if (std::isnan(state[Magnetic_Field_T()][0])) {
-		throw std::domain_error("Given state has NaN x component of magnetic field");
-	}
-	if (std::isnan(state[Magnetic_Field_T()][1])) {
-		throw std::domain_error("Given state has NaN y component of magnetic field");
-	}
-	if (std::isnan(state[Magnetic_Field_T()][2])) {
-		throw std::domain_error("Given state has NaN z component of magnetic field");
-	}
-
-	if (std::isnan(flux[Mass_Density_T()])) {
-		throw std::domain_error("Given flux has NaN mass density");
-	}
-	if (std::isnan(flux[Total_Energy_Density_T()])) {
-		throw std::domain_error("Given flux has NaN total energy density");
-	}
-	if (std::isnan(flux[Momentum_Density_T()][0])) {
-		throw std::domain_error("Given flux has NaN x component of momentum density");
-	}
-	if (std::isnan(flux[Momentum_Density_T()][1])) {
-		throw std::domain_error("Given flux has NaN y component of momentum density");
-	}
-	if (std::isnan(flux[Momentum_Density_T()][2])) {
-		throw std::domain_error("Given flux has NaN z component of momentum density");
-	}
-	if (std::isnan(flux[Magnetic_Field_T()][0])) {
-		throw std::domain_error("Given flux has NaN x component of magnetic field");
-	}
-	if (std::isnan(flux[Magnetic_Field_T()][1])) {
-		throw std::domain_error("Given flux has NaN y component of magnetic field");
-	}
-	if (std::isnan(flux[Magnetic_Field_T()][2])) {
-		throw std::domain_error("Given flux has NaN z component of magnetic field");
-	}
 
 	state += flux * factor;
 
