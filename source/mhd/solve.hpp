@@ -95,6 +95,13 @@ template <
 		"The data types of variables MHD_T and MHD_Flux_T must be equal"
 	);
 
+	if (not std::isfinite(dt) or dt < 0) {
+		throw std::domain_error(
+			"Invalid time step: "
+			+ boost::lexical_cast<std::string>(dt)
+		);
+	}
+
 	const Mass_Density_T Rho{};
 	const Momentum_Density_T M{};
 	const Total_Energy_Density_T E{};
@@ -170,6 +177,17 @@ template <
 
 			const double shared_area
 				= std::min(cell_area[neighbor_dim], neighbor_area[neighbor_dim]);
+
+			if (not isnormal(shared_area) or shared_area < 0) {
+				throw std::domain_error(
+					"Invalid area between cells "
+					+ boost::lexical_cast<std::string>(cell_id)
+					+ " and "
+					+ boost::lexical_cast<std::string>(neighbor_id)
+					+ ": "
+					+ boost::lexical_cast<std::string>(shared_area)
+				);
+			}
 
 			// take into account direction of neighbor from cell
 			const typename MHD_T::data_type
