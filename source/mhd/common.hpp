@@ -502,6 +502,7 @@ template <
 	class Magnetic_Field_T
 > void check_flux(const MHD_T& flux)
 {
+	using std::isfinite;
 	const Mass_Density_T Rho{};
 	const Momentum_Density_T Mom{};
 	const Total_Energy_Density_T Nrj{};
@@ -583,6 +584,7 @@ template <
 		Magnetic_Field_T
 	>(state);
 
+	using std::isnormal;
 	const Mass_Density_T Rho{};
 	const Total_Energy_Density_T Nrj{};
 
