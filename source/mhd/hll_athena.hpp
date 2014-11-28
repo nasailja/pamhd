@@ -154,7 +154,7 @@ template <
 			+ boost::lexical_cast<std::string>(pressure_thermal_neg)
 		);
 	}
-	if (not isnormal(pressure_magnetic_neg) or pressure_magnetic_neg < 0) {
+	if (not isfinite(pressure_magnetic_neg) or pressure_magnetic_neg < 0) {
 		throw std::domain_error(
 			"Invalid magnetic pressure in state_neg: "
 			+ boost::lexical_cast<std::string>(pressure_magnetic_neg)
@@ -173,7 +173,7 @@ template <
 			+ boost::lexical_cast<std::string>(pressure_thermal_pos)
 		);
 	}
-	if (not isnormal(pressure_magnetic_pos) or pressure_magnetic_pos < 0) {
+	if (not isfinite(pressure_magnetic_pos) or pressure_magnetic_pos < 0) {
 		throw std::domain_error(
 			"Invalid magnetic pressure in state_pos: "
 			+ boost::lexical_cast<std::string>(pressure_magnetic_pos)
