@@ -38,7 +38,7 @@ namespace athena {
 
 
 /*!
-Returns the flux between states.
+Returns the flux between states and maximum signal speed from cells' shared face.
 
 \param [Mass_Density_T] Used to access mass density in MHD states
 \param [state_neg] MHD state in negative x direction from the face
@@ -87,8 +87,8 @@ template <
 
 
 	const auto
-		velocity_neg(state_neg[Mom] / state_neg[Rho]),
-		velocity_pos(state_pos[Mom] / state_pos[Rho]);
+		flow_v_neg(state_neg[Mom] / state_neg[Rho]),
+		flow_v_pos(state_pos[Mom] / state_pos[Rho]);
 
 	const auto
 		pressure_thermal_neg
@@ -115,7 +115,7 @@ template <
 		pressure_magnetic_pos
 			= state_pos[Mag].squaredNorm() / (2 * vacuum_permeability),
 
-		max_signal_neg
+		fast_magnetosonic_neg
 			= get_fast_magnetosonic_speed<
 				MHD_T,
 				Mass_Density_T,
@@ -124,7 +124,7 @@ template <
 				Magnetic_Field_T
 			>(state_neg, adiabatic_index, vacuum_permeability),
 
-		max_signal_pos
+		fast_magnetosonic_pos
 			= get_fast_magnetosonic_speed<
 				MHD_T,
 				Mass_Density_T,
@@ -133,8 +133,20 @@ template <
 				Magnetic_Field_T
 			>(state_pos, adiabatic_index, vacuum_permeability),
 
-		bm = std::min(velocity_neg[0] - max_signal_neg, 0.0),
-		bp = std::max(velocity_pos[0] + max_signal_pos, 0.0);
+		max_signal = std::max(fast_magnetosonic_neg, fast_magnetosonic_pos),
+
+		max_signal_neg
+			= (flow_v_neg[0] <= flow_v_pos[0])
+			? flow_v_neg[0] - max_signal
+			: flow_v_pos[0] - max_signal,
+
+		max_signal_pos
+			= (flow_v_neg[0] <= flow_v_pos[0])
+			? flow_v_pos[0] + max_signal
+			: flow_v_neg[0] + max_signal,
+
+		bm = std::min(max_signal_neg, 0.0),
+		bp = std::max(max_signal_pos, 0.0);
 
 	if (not isnormal(pressure_thermal_neg) or pressure_thermal_neg < 0) {
 		throw std::domain_error(
@@ -174,6 +186,22 @@ template <
 		);
 	}
 
+	if (not isnormal(bp - bm) or bp - bm < 0) {
+		MHD_T flux;
+
+		flux[Rho]    =
+		flux[Mom][0] =
+		flux[Mom][1] =
+		flux[Mom][2] =
+		flux[Nrj]    =
+		flux[Mag][0] =
+		flux[Mag][1] =
+		flux[Mag][2] = 0;
+
+		return std::make_pair(flux, 0);
+	}
+
+
 	MHD_T flux_neg, flux_pos;
 
 	// compute L/R fluxes along the lines bm/bp: F_{L}-S_{L}U_{L}; F_{R}-S_{R}U_{R}
@@ -187,22 +215,22 @@ template <
 
 	flux_neg[Mom]
 		= state_neg[Mom]
-		* (velocity_neg[0] - bm);
+		* (flow_v_neg[0] - bm);
 
 	flux_pos[Mom]
 		= state_pos[Mom]
-		* (velocity_pos[0] - bp);
+		* (flow_v_pos[0] - bp);
 
 	flux_neg[Mom][0] += pressure_thermal_neg;
 
 	flux_pos[Mom][0] += pressure_thermal_pos;
 
 	flux_neg[Nrj]
-		= velocity_neg[0] * (pressure_thermal_neg + state_neg[Nrj])
+		= flow_v_neg[0] * (pressure_thermal_neg + state_neg[Nrj])
 		- bm * state_neg[Nrj];
 
 	flux_pos[Nrj]
-		= velocity_pos[0] * (pressure_thermal_pos + state_pos[Nrj])
+		= flow_v_pos[0] * (pressure_thermal_pos + state_pos[Nrj])
 		- bp * state_pos[Nrj];
 
 	const auto
@@ -224,26 +252,24 @@ template <
 	flux_pos[Mom][2] -= B_pos[0] * B_pos[2] / vacuum_permeability;
 
 	flux_neg[Nrj]
-		+= pressure_magnetic_neg * velocity_neg[0]
-		- B_neg[0] * velocity_neg.dot(B_neg) / vacuum_permeability;
+		+= pressure_magnetic_neg * flow_v_neg[0]
+		- B_neg[0] * flow_v_neg.dot(B_neg) / vacuum_permeability;
 
 	flux_pos[Nrj]
-		+= pressure_magnetic_pos * velocity_pos[0]
-		- B_pos[0] * velocity_pos.dot(B_pos) / vacuum_permeability;
+		+= pressure_magnetic_pos * flow_v_pos[0]
+		- B_pos[0] * flow_v_pos.dot(B_pos) / vacuum_permeability;
 
-	flux_neg[Mag] = B_neg * (velocity_neg[0] - bm) - B_neg[0] * velocity_neg;
+	flux_neg[Mag] = B_neg * (flow_v_neg[0] - bm) - B_neg[0] * flow_v_neg;
 
-	flux_pos[Mag] = B_pos * (velocity_pos[0] - bp) - B_pos[0] * velocity_pos;
+	flux_pos[Mag] = B_pos * (flow_v_pos[0] - bp) - B_pos[0] * flow_v_pos;
 
 	flux_pos[Mag][0] =
 	flux_neg[Mag][0] = 0;
 
 
-	MHD_T flux = (flux_neg + flux_pos) / 2;
-	const auto divisor = 2 * (bp - bm);
-	if (isnormal(divisor) and divisor > 0) {
-		flux += (flux_neg - flux_pos) * (bp + bm) / divisor;
-	}
+	MHD_T flux
+		= (flux_neg + flux_pos) / 2
+		+ (flux_neg - flux_pos) * (bp + bm) / (bp - bm) / 2.0;
 
 	check_flux<
 		MHD_T,
