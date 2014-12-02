@@ -1,6 +1,7 @@
 TESTS_MHD_EXECUTABLES = \
   tests/mhd/reference.exe \
   tests/mhd/mhd2gnuplot.exe \
+  tests/mhd/mhd2vtk.exe \
   tests/mhd/test.exe
 
 TESTS_MHD_TESTS = \
@@ -16,10 +17,7 @@ tests/mhd_clean_results:
 	@printf "CLEAN RESULTS tests/mhd\n" && rm -f \
 	  tests/mhd/*.dat \
 	  tests/mhd/*.png \
-	  tests/mhd/profile*.txt \
-	  tests/mhd/results/*/*.dat \
-	  tests/mhd/results/*/*.png \
-	  tests/mhd/results/*/*.dc
+	  tests/mhd/profile*.txt
 
 tests/mhd_clean:
 	@printf "CLEAN tests/mhd\n" && rm -f \
@@ -74,6 +72,13 @@ tests/mhd/mhd2gnuplot.exe: \
 	@printf "MPICXX $<\n" && $(MPICXX) $(TEST_MHD_COMPILE_COMMOM) \
 	  $(DCCRG_CPPFLAGS) \
 	  $(PRETTYPRINT_CPPFLAGS)
+
+tests/mhd/mhd2vtk.exe: \
+  tests/mhd/mhd2vtk.cpp \
+  $(TEST_MHD_COMMON_DEPS)
+	@printf "MPICXX $<\n" && $(MPICXX) $(TEST_MHD_COMPILE_COMMOM) \
+	  $(DCCRG_CPPFLAGS) \
+	  #$(PRETTYPRINT_CPPFLAGS)
 
 tests/mhd/test.exe: \
   tests/mhd/test.cpp \
