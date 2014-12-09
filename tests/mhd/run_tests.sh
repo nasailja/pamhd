@@ -16,21 +16,18 @@ echo
 
 # shock tube
 echo shock_tube mhd 1d +x hll_athena
-mkdir -p results/magnetohydrodynamic/shock_tube/1d/+x/hll_athena
 $RUN ./test.exe \
     --config-file config_files/magnetohydrodynamic/shock_tube/1d/+x/hll_athena.cfg \
     --boundary-file config_files/magnetohydrodynamic/shock_tube/1d/+x/boundaries.cfg
 $RUN ./mhd2gnuplot.exe results/magnetohydrodynamic/shock_tube/1d/+x/hll_athena/*dc
 
 echo shock_tube mhd 1d +x hlld_athena
-mkdir -p results/magnetohydrodynamic/shock_tube/1d/+x/hlld_athena
 $RUN ./test.exe \
     --config-file config_files/magnetohydrodynamic/shock_tube/1d/+x/hlld_athena.cfg \
     --boundary-file config_files/magnetohydrodynamic/shock_tube/1d/+x/boundaries.cfg
 $RUN ./mhd2gnuplot.exe results/magnetohydrodynamic/shock_tube/1d/+x/hlld_athena/*dc
 
 echo shock_tube mhd 1d +x roe_athena
-mkdir -p results/magnetohydrodynamic/shock_tube/1d/+x/roe_athena
 $RUN ./test.exe \
     --config-file config_files/magnetohydrodynamic/shock_tube/1d/+x/roe_athena.cfg \
     --boundary-file config_files/magnetohydrodynamic/shock_tube/1d/+x/boundaries.cfg
@@ -38,21 +35,18 @@ $RUN ./mhd2gnuplot.exe results/magnetohydrodynamic/shock_tube/1d/+x/roe_athena/*
 
 
 echo shock_tube mhd 1d -x hll_athena
-mkdir -p results/magnetohydrodynamic/shock_tube/1d/-x/hll_athena
 $RUN ./test.exe \
     --config-file config_files/magnetohydrodynamic/shock_tube/1d/-x/hll_athena.cfg \
     --boundary-file config_files/magnetohydrodynamic/shock_tube/1d/-x/boundaries.cfg
 $RUN ./mhd2gnuplot.exe results/magnetohydrodynamic/shock_tube/1d/-x/hll_athena/*dc
 
 echo shock_tube mhd 1d -x hlld_athena
-mkdir -p results/magnetohydrodynamic/shock_tube/1d/-x/hlld_athena
 $RUN ./test.exe \
     --config-file config_files/magnetohydrodynamic/shock_tube/1d/-x/hlld_athena.cfg \
     --boundary-file config_files/magnetohydrodynamic/shock_tube/1d/-x/boundaries.cfg
 $RUN ./mhd2gnuplot.exe results/magnetohydrodynamic/shock_tube/1d/-x/hlld_athena/*dc
 
 echo shock_tube mhd 1d -x roe_athena
-mkdir -p results/magnetohydrodynamic/shock_tube/1d/-x/roe_athena
 $RUN ./test.exe \
     --config-file config_files/magnetohydrodynamic/shock_tube/1d/-x/roe_athena.cfg \
     --boundary-file config_files/magnetohydrodynamic/shock_tube/1d/-x/boundaries.cfg
@@ -60,21 +54,18 @@ $RUN ./mhd2gnuplot.exe results/magnetohydrodynamic/shock_tube/1d/-x/roe_athena/*
 
 
 echo shock_tube mhd 1d +y hll_athena
-mkdir -p results/magnetohydrodynamic/shock_tube/1d/+y/hll_athena
 $RUN ./test.exe \
     --config-file config_files/magnetohydrodynamic/shock_tube/1d/+y/hll_athena.cfg \
     --boundary-file config_files/magnetohydrodynamic/shock_tube/1d/+y/boundaries.cfg
 $RUN ./mhd2gnuplot.exe results/magnetohydrodynamic/shock_tube/1d/+y/hll_athena/*dc
 
 echo shock_tube mhd 1d +y hlld_athena
-mkdir -p results/magnetohydrodynamic/shock_tube/1d/+y/hlld_athena
 $RUN ./test.exe \
     --config-file config_files/magnetohydrodynamic/shock_tube/1d/+y/hlld_athena.cfg \
     --boundary-file config_files/magnetohydrodynamic/shock_tube/1d/+y/boundaries.cfg
 $RUN ./mhd2gnuplot.exe results/magnetohydrodynamic/shock_tube/1d/+y/hlld_athena/*dc
 
 echo shock_tube mhd 1d +y roe_athena
-mkdir -p results/magnetohydrodynamic/shock_tube/1d/+y/roe_athena
 $RUN ./test.exe \
     --config-file config_files/magnetohydrodynamic/shock_tube/1d/+y/roe_athena.cfg \
     --boundary-file config_files/magnetohydrodynamic/shock_tube/1d/+y/boundaries.cfg
@@ -82,21 +73,18 @@ $RUN ./mhd2gnuplot.exe results/magnetohydrodynamic/shock_tube/1d/+y/roe_athena/*
 
 
 echo shock_tube mhd 1d -y hll_athena
-mkdir -p results/magnetohydrodynamic/shock_tube/1d/-y/hll_athena
 $RUN ./test.exe \
     --config-file config_files/magnetohydrodynamic/shock_tube/1d/-y/hll_athena.cfg \
     --boundary-file config_files/magnetohydrodynamic/shock_tube/1d/-y/boundaries.cfg
 $RUN ./mhd2gnuplot.exe results/magnetohydrodynamic/shock_tube/1d/-y/hll_athena/*dc
 
 echo shock_tube mhd 1d -y hlld_athena
-mkdir -p results/magnetohydrodynamic/shock_tube/1d/-y/hlld_athena
 $RUN ./test.exe \
     --config-file config_files/magnetohydrodynamic/shock_tube/1d/-y/hlld_athena.cfg \
     --boundary-file config_files/magnetohydrodynamic/shock_tube/1d/-y/boundaries.cfg
 $RUN ./mhd2gnuplot.exe results/magnetohydrodynamic/shock_tube/1d/-y/hlld_athena/*dc
 
 echo shock_tube mhd 1d -y roe_athena
-mkdir -p results/magnetohydrodynamic/shock_tube/1d/-y/roe_athena
 $RUN ./test.exe \
     --config-file config_files/magnetohydrodynamic/shock_tube/1d/-y/roe_athena.cfg \
     --boundary-file config_files/magnetohydrodynamic/shock_tube/1d/-y/boundaries.cfg
@@ -104,21 +92,18 @@ $RUN ./mhd2gnuplot.exe results/magnetohydrodynamic/shock_tube/1d/-y/roe_athena/*
 
 
 echo shock_tube mhd 1d +z hll_athena
-mkdir -p results/magnetohydrodynamic/shock_tube/1d/+z/hll_athena
 $RUN ./test.exe \
     --config-file config_files/magnetohydrodynamic/shock_tube/1d/+z/hll_athena.cfg \
     --boundary-file config_files/magnetohydrodynamic/shock_tube/1d/+z/boundaries.cfg
 $RUN ./mhd2gnuplot.exe results/magnetohydrodynamic/shock_tube/1d/+z/hll_athena/*dc
 
 echo shock_tube mhd 1d +z hlld_athena
-mkdir -p results/magnetohydrodynamic/shock_tube/1d/+z/hlld_athena
 $RUN ./test.exe \
     --config-file config_files/magnetohydrodynamic/shock_tube/1d/+z/hlld_athena.cfg \
     --boundary-file config_files/magnetohydrodynamic/shock_tube/1d/+z/boundaries.cfg
 $RUN ./mhd2gnuplot.exe results/magnetohydrodynamic/shock_tube/1d/+z/hlld_athena/*dc
 
 echo shock_tube mhd 1d +z roe_athena
-mkdir -p results/magnetohydrodynamic/shock_tube/1d/+z/roe_athena
 $RUN ./test.exe \
     --config-file config_files/magnetohydrodynamic/shock_tube/1d/+z/roe_athena.cfg \
     --boundary-file config_files/magnetohydrodynamic/shock_tube/1d/+z/boundaries.cfg
@@ -126,21 +111,18 @@ $RUN ./mhd2gnuplot.exe results/magnetohydrodynamic/shock_tube/1d/+z/roe_athena/*
 
 
 echo shock_tube mhd 1d -z hll_athena
-mkdir -p results/magnetohydrodynamic/shock_tube/1d/-z/hll_athena
 $RUN ./test.exe \
     --config-file config_files/magnetohydrodynamic/shock_tube/1d/-z/hll_athena.cfg \
     --boundary-file config_files/magnetohydrodynamic/shock_tube/1d/-z/boundaries.cfg
 $RUN ./mhd2gnuplot.exe results/magnetohydrodynamic/shock_tube/1d/-z/hll_athena/*dc
 
 echo shock_tube mhd 1d -z hlld_athena
-mkdir -p results/magnetohydrodynamic/shock_tube/1d/-z/hlld_athena
 $RUN ./test.exe \
     --config-file config_files/magnetohydrodynamic/shock_tube/1d/-z/hlld_athena.cfg \
     --boundary-file config_files/magnetohydrodynamic/shock_tube/1d/-z/boundaries.cfg
 $RUN ./mhd2gnuplot.exe results/magnetohydrodynamic/shock_tube/1d/-z/hlld_athena/*dc
 
 echo shock_tube mhd 1d -z roe_athena
-mkdir -p results/magnetohydrodynamic/shock_tube/1d/-z/roe_athena
 $RUN ./test.exe \
     --config-file config_files/magnetohydrodynamic/shock_tube/1d/-z/roe_athena.cfg \
     --boundary-file config_files/magnetohydrodynamic/shock_tube/1d/-z/boundaries.cfg
@@ -150,21 +132,18 @@ $RUN ./mhd2gnuplot.exe results/magnetohydrodynamic/shock_tube/1d/-z/roe_athena/*
 
 # Kelvin-Helmholtz
 echo kelvin-helmholtz hd 2d z1 hll_athena
-mkdir -p results/hydrodynamic/kelvin-helmholtz/2d/z1/hll_athena
 $RUN ./test.exe \
     --config-file config_files/hydrodynamic/kelvin-helmholtz/2d/z1/hll_athena.cfg \
     --boundary-file config_files/hydrodynamic/kelvin-helmholtz/2d/z1/boundaries.cfg
 $RUN ./mhd2gnuplot.exe results/hydrodynamic/kelvin-helmholtz/2d/z1/hll_athena/*dc
 
 echo kelvin-helmholtz hd 2d z1 hlld_athena
-mkdir -p results/hydrodynamic/kelvin-helmholtz/2d/z1/hlld_athena
 $RUN ./test.exe \
     --config-file config_files/hydrodynamic/kelvin-helmholtz/2d/z1/hlld_athena.cfg \
     --boundary-file config_files/hydrodynamic/kelvin-helmholtz/2d/z1/boundaries.cfg
 $RUN ./mhd2gnuplot.exe results/hydrodynamic/kelvin-helmholtz/2d/z1/hlld_athena/*dc
 
 echo kelvin-helmholtz hd 2d z1 roe_athena
-mkdir -p results/hydrodynamic/kelvin-helmholtz/2d/z1/roe_athena
 $RUN ./test.exe \
     --config-file config_files/hydrodynamic/kelvin-helmholtz/2d/z1/roe_athena.cfg \
     --boundary-file config_files/hydrodynamic/kelvin-helmholtz/2d/z1/boundaries.cfg
@@ -172,21 +151,18 @@ $RUN ./mhd2gnuplot.exe results/hydrodynamic/kelvin-helmholtz/2d/z1/roe_athena/*d
 
 
 echo kelvin-helmholtz mhd 2d z1 hll_athena
-mkdir -p results/magnetohydrodynamic/kelvin-helmholtz/2d/z1/hll_athena
 $RUN ./test.exe \
     --config-file config_files/magnetohydrodynamic/kelvin-helmholtz/2d/z1/hll_athena.cfg \
     --boundary-file config_files/magnetohydrodynamic/kelvin-helmholtz/2d/z1/boundaries.cfg
 $RUN ./mhd2gnuplot.exe results/magnetohydrodynamic/kelvin-helmholtz/2d/z1/hll_athena/*dc
 
 echo kelvin-helmholtz mhd 2d z1 hlld_athena
-mkdir -p results/magnetohydrodynamic/kelvin-helmholtz/2d/z1/hlld_athena
 $RUN ./test.exe \
     --config-file config_files/magnetohydrodynamic/kelvin-helmholtz/2d/z1/hlld_athena.cfg \
     --boundary-file config_files/magnetohydrodynamic/kelvin-helmholtz/2d/z1/boundaries.cfg
 $RUN ./mhd2gnuplot.exe results/magnetohydrodynamic/kelvin-helmholtz/2d/z1/hlld_athena/*dc
 
 echo kelvin-helmholtz mhd 2d z1 roe_athena
-mkdir -p results/magnetohydrodynamic/kelvin-helmholtz/2d/z1/roe_athena
 $RUN ./test.exe \
     --config-file config_files/magnetohydrodynamic/kelvin-helmholtz/2d/z1/roe_athena.cfg \
     --boundary-file config_files/magnetohydrodynamic/kelvin-helmholtz/2d/z1/boundaries.cfg
@@ -196,14 +172,12 @@ $RUN ./mhd2gnuplot.exe results/magnetohydrodynamic/kelvin-helmholtz/2d/z1/roe_at
 
 # Bow shock
 echo bow_shock hd 2d z1 hll_athena
-mkdir -p results/hydrodynamic/bow_shock/2d/z1/hll_athena
 $RUN ./test.exe \
     --config-file config_files/hydrodynamic/bow_shock/2d/z1/hll_athena.cfg \
     --boundary-file config_files/hydrodynamic/bow_shock/2d/z1/boundaries.cfg
 $RUN ./mhd2gnuplot.exe results/hydrodynamic/bow_shock/2d/z1/hll_athena/*dc
 
 echo bow_shock hd 2d z1 hlld_athena
-mkdir -p results/hydrodynamic/bow_shock/2d/z1/hlld_athena
 $RUN ./test.exe \
     --config-file config_files/hydrodynamic/bow_shock/2d/z1/hlld_athena.cfg \
     --boundary-file config_files/hydrodynamic/bow_shock/2d/z1/boundaries.cfg
@@ -211,38 +185,27 @@ $RUN ./mhd2gnuplot.exe results/hydrodynamic/bow_shock/2d/z1/hlld_athena/*dc
 
 
 echo bow_shock mhd 2d z1 hll_athena
-mkdir -p results/magnetohydrodynamic/bow_shock/2d/z1/hll_athena
 $RUN ./test.exe \
     --config-file config_files/magnetohydrodynamic/bow_shock/2d/z1/hll_athena.cfg \
     --boundary-file config_files/magnetohydrodynamic/bow_shock/2d/z1/boundaries.cfg
 $RUN ./mhd2gnuplot.exe results/magnetohydrodynamic/bow_shock/2d/z1/hll_athena/*dc
 
-echo bow_shock mhd 2d z1 hlld_athena
-mkdir -p results/magnetohydrodynamic/bow_shock/2d/z1/hlld_athena
-$RUN ./test.exe \
-    --config-file config_files/magnetohydrodynamic/bow_shock/2d/z1/hlld_athena.cfg \
-    --boundary-file config_files/magnetohydrodynamic/bow_shock/2d/z1/boundaries.cfg
-$RUN ./mhd2gnuplot.exe results/magnetohydrodynamic/bow_shock/2d/z1/hlld_athena/*dc
-
 
 
 # Blast wave
 echo blast_wave hd 2d z1 hll_athena
-mkdir -p results/hydrodynamic/blast_wave/2d/z1/hll_athena
 $RUN ./test.exe \
     --config-file config_files/hydrodynamic/blast_wave/2d/z1/hll_athena.cfg \
     --boundary-file config_files/hydrodynamic/blast_wave/2d/z1/boundaries.cfg
 $RUN ./mhd2gnuplot.exe results/hydrodynamic/blast_wave/2d/z1/hll_athena/*dc
 
 echo blast_wave hd 2d z1 hlld_athena
-mkdir -p results/hydrodynamic/blast_wave/2d/z1/hlld_athena
 $RUN ./test.exe \
     --config-file config_files/hydrodynamic/blast_wave/2d/z1/hlld_athena.cfg \
     --boundary-file config_files/hydrodynamic/blast_wave/2d/z1/boundaries.cfg
 $RUN ./mhd2gnuplot.exe results/hydrodynamic/blast_wave/2d/z1/hlld_athena/*dc
 
 echo blast_wave hd 2d z1 roe_athena
-mkdir -p results/hydrodynamic/blast_wave/2d/z1/roe_athena
 $RUN ./test.exe \
     --config-file config_files/hydrodynamic/blast_wave/2d/z1/roe_athena.cfg \
     --boundary-file config_files/hydrodynamic/blast_wave/2d/z1/boundaries.cfg
@@ -250,13 +213,11 @@ $RUN ./mhd2gnuplot.exe results/hydrodynamic/blast_wave/2d/z1/roe_athena/*dc
 
 
 echo blast_wave mhd 2d z1 hll_athena
-mkdir -p results/magnetohydrodynamic/blast_wave/2d/z1/hll_athena
 $RUN ./test.exe \
     --config-file config_files/magnetohydrodynamic/blast_wave/2d/z1/hll_athena.cfg \
     --boundary-file config_files/magnetohydrodynamic/blast_wave/2d/z1/boundaries.cfg
 $RUN ./mhd2gnuplot.exe results/magnetohydrodynamic/blast_wave/2d/z1/hll_athena/*dc
 
-echo blast_wave mhd 2d z1 hlld_athena
 mkdir -p results/magnetohydrodynamic/blast_wave/2d/z1/hlld_athena
 $RUN ./test.exe \
     --config-file config_files/magnetohydrodynamic/blast_wave/2d/z1/hlld_athena.cfg \
@@ -267,13 +228,11 @@ $RUN ./mhd2gnuplot.exe results/magnetohydrodynamic/blast_wave/2d/z1/hlld_athena/
 
 # Reconnection
 echo reconnection mhd 2d y1 hll_athena
-mkdir -p results/magnetohydrodynamic/reconnection/2d/y1/hll_athena
 $RUN ./test.exe \
     --config-file config_files/magnetohydrodynamic/reconnection/2d/y1/hll_athena.cfg \
     --boundary-file config_files/magnetohydrodynamic/reconnection/2d/y1/boundaries.cfg
 $RUN ./mhd2gnuplot.exe results/magnetohydrodynamic/reconnection/2d/y1/hll_athena/*dc
 
-echo reconnection mhd 2d y1 hlld_athena
 mkdir -p results/magnetohydrodynamic/reconnection/2d/y1/hlld_athena
 $RUN ./test.exe \
     --config-file config_files/magnetohydrodynamic/reconnection/2d/y1/hlld_athena.cfg \
@@ -281,7 +240,6 @@ $RUN ./test.exe \
 $RUN ./mhd2gnuplot.exe results/magnetohydrodynamic/reconnection/2d/y1/hlld_athena/*dc
 
 echo reconnection mhd 2d y1 roe_athena
-mkdir -p results/magnetohydrodynamic/reconnection/2d/y1/roe_athena
 $RUN ./test.exe \
     --config-file config_files/magnetohydrodynamic/reconnection/2d/y1/roe_athena.cfg \
     --boundary-file config_files/magnetohydrodynamic/reconnection/2d/y1/boundaries.cfg
@@ -291,14 +249,12 @@ $RUN ./mhd2gnuplot.exe results/magnetohydrodynamic/reconnection/2d/y1/roe_athena
 
 # Orszag-Tang
 echo orszag-tang mhd 2d z1 hll_athena
-mkdir -p results/magnetohydrodynamic/orszag-tang/2d/z1/hll_athena
 $RUN ./test.exe \
     --config-file config_files/magnetohydrodynamic/orszag-tang/2d/z1/hll_athena.cfg \
     --boundary-file config_files/magnetohydrodynamic/orszag-tang/2d/z1/boundaries.cfg
 $RUN ./mhd2gnuplot.exe results/magnetohydrodynamic/orszag-tang/2d/z1/hll_athena/*dc
 
 echo orszag-tang mhd 2d z1 roe_athena
-mkdir -p results/magnetohydrodynamic/orszag-tang/2d/z1/roe_athena
 $RUN ./test.exe \
     --config-file config_files/magnetohydrodynamic/orszag-tang/2d/z1/roe_athena.cfg \
     --boundary-file config_files/magnetohydrodynamic/orszag-tang/2d/z1/boundaries.cfg
