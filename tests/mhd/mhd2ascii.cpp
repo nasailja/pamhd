@@ -40,7 +40,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "unordered_map"
 #include "vector"
 
-#include "boost/filesystem.hpp"
 #include "boost/optional.hpp"
 #include "boost/program_options.hpp"
 #include "dccrg_cartesian_geometry.hpp"
@@ -49,7 +48,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "mpi.h" // must be included before gensimcell
 #include "Eigen/Core" // must be included before gensimcell
 #include "gensimcell.hpp"
-//#include "prettyprint.hpp"
 
 #include "mhd/common.hpp"
 #include "mhd/save.hpp"
@@ -266,7 +264,7 @@ boost::optional<
 
 
 /*
-Writes given data in vtk format to given file appended with .vtk.
+Writes given data in ascii format to given file appended with .txt.
 */
 void convert(
 	const dccrg::Cartesian_Geometry& geometry,
@@ -421,21 +419,6 @@ int main(int argc, char* argv[])
 
 	if (var_map.count("verbose") > 0) {
 		verbose = true;
-	}
-
-	if (rank == 0) {
-		std::ofstream visit_file(
-			boost::filesystem::path(input_files[0]).parent_path().string()
-			+ "/mhd.visit"
-		);
-
-		visit_file << "!NBLOCKS 1\n";
-		for (size_t i = 0; i < input_files.size(); i++) {
-			visit_file << boost::filesystem::path(
-				input_files[i].substr(0, input_files[i].size() - 3) + ".vtk\n"
-			).filename().string();
-		}
-		visit_file.close();
 	}
 
 	for (size_t i = 0; i < input_files.size(); i++) {
