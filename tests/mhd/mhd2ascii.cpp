@@ -400,11 +400,7 @@ int main(int argc, char* argv[])
 	if (var_map.count("help") > 0) {
 		if (rank == 0) {
 			cout
-				<<
-					"Converts given .dc files from MHD test program to "
-					"VTK format and writes the names of all created files "
-					"to a mhd.visit file in the directory of the first "
-					"given .dc file.\n"
+				<< "Converts given .dc files from MHD test program to ASCII format\n"
 				<< options
 				<< endl;
 		}
