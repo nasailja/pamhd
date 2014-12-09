@@ -590,9 +590,9 @@ int plot_1d(
 
 
 /*!
-Prints gnuplot commands and data to plot given variable.
+Prints gnuplot commands and data to plot given variable in 2d.
 */
-void write_gnuplot_cmd(
+void write_gnuplot_cmd_2d(
 	ofstream& gnuplot_file,
 	const std::array<double, 3>& grid_geom_start,
 	const std::array<double, 3>& grid_geom_length,
@@ -710,7 +710,7 @@ int plot_2d(
 	std::ofstream gnuplot_file(gnuplot_file_name);
 
 	auto write_gnuplot_cmd_current = std::bind(
-		write_gnuplot_cmd,
+		write_gnuplot_cmd_2d,
 		std::ref(gnuplot_file),
 		grid_start,
 		grid_geom_length,
