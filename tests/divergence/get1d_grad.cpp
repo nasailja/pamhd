@@ -33,6 +33,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "array"
 #include "cstdlib"
+#include "functional"
 #include "iostream"
 #include "limits"
 #include "tuple"
@@ -246,14 +247,20 @@ int main(int argc, char* argv[])
 			}
 		}
 
+		auto Scalar_Getter = [](Cell& cell_data) -> Scalar::data_type& {
+			return cell_data[Scalar()];
+		};
+		auto Gradient_Getter = [](Cell& cell_data) -> Gradient::data_type& {
+			return cell_data[Gradient()];
+		};
 		pamhd::divergence::get_gradient(
-			solve_cells, grid_x, std::tuple<Scalar>(), std::tuple<Gradient>()
+			solve_cells, grid_x, Scalar_Getter, Gradient_Getter
 		);
 		pamhd::divergence::get_gradient(
-			solve_cells, grid_y, std::tuple<Scalar>(), std::tuple<Gradient>()
+			solve_cells, grid_y, Scalar_Getter, Gradient_Getter
 		);
 		pamhd::divergence::get_gradient(
-			solve_cells, grid_z, std::tuple<Scalar>(), std::tuple<Gradient>()
+			solve_cells, grid_z, Scalar_Getter, Gradient_Getter
 		);
 
 		const double

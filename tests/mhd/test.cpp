@@ -591,6 +591,37 @@ int main(int argc, char* argv[])
 	while (simulation_time < end_time) {
 		simulated_steps++;
 
+		/*
+		These fetch data of variables from given cell data for various functions
+		*/
+
+		auto Mag_Getter
+			= [](Cell_T& cell_data)
+				// TODO: switch to -> auto& of C++14
+				-> pamhd::mhd::Magnetic_Field::data_type&
+			{
+				return cell_data[
+					pamhd::mhd::MHD_State_Conservative()
+				][
+					pamhd::mhd::Magnetic_Field()
+				];
+			};
+
+		auto Div_Getter
+			= [](Cell_T& cell_data)
+				-> pamhd::mhd::Magnetic_Field_Divergence::data_type&
+			{
+				return cell_data[pamhd::mhd::Magnetic_Field_Divergence()];
+			};
+
+		auto Current_Getter
+			= [](Cell_T& cell_data)
+				-> pamhd::mhd::Electric_Current_Density::data_type&
+			{
+				return cell_data[pamhd::mhd::Electric_Current_Density()];
+			};
+
+
 		// shorthand notation for referring to variables
 		const pamhd::mhd::MHD_State_Conservative MHD{};
 		const pamhd::mhd::Cell_Type Cell_Type{};
@@ -771,33 +802,23 @@ int main(int argc, char* argv[])
 					abort();
 				}
 
-				(*cell_data)[Mag_Tmp]
-					= (*cell_data)[MHD][Mag];
+				(*cell_data)[Mag_Tmp] = (*cell_data)[MHD][Mag];
 			}
 
-			// short hand notation for how to access magnetic field in cell data
-			const auto B_path
-				= std::tuple<
-					pamhd::mhd::MHD_State_Conservative,
-					pamhd::mhd::Magnetic_Field
-				>();
-			// ditto for divergence of magnetic field...
-			const auto div_B_path
-				= std::tuple<pamhd::mhd::Magnetic_Field_Divergence>();
-			// ...and gradient of solution to Poisson's equation
-			const auto grad_scalar_pot_path
-				= std::tuple<pamhd::mhd::Scalar_Potential_Gradient>();
-
 			Cell_T::set_transfer_all(true, MHD, Mag_Div);
-			const double div_before
+			const auto div_before
 				= pamhd::divergence::remove(
 					cells,
 					boundary_cells,
 					{},
 					grid,
-					B_path,
-					div_B_path,
-					grad_scalar_pot_path,
+					Mag_Getter,
+					Div_Getter,
+					[](Cell_T& cell_data)
+						-> pamhd::mhd::Scalar_Potential_Gradient::data_type&
+					{
+						return cell_data[pamhd::mhd::Scalar_Potential_Gradient()];
+					},
 					poisson_iterations_max,
 					poisson_iterations_min,
 					poisson_norm_stop,
@@ -813,8 +834,8 @@ int main(int argc, char* argv[])
 				= pamhd::divergence::get_divergence(
 					cells,
 					grid,
-					B_path,
-					div_B_path
+					Mag_Getter,
+					Div_Getter
 				);
 
 			// restore old B
@@ -1102,11 +1123,8 @@ int main(int argc, char* argv[])
 		pamhd::divergence::get_curl(
 			cells,
 			grid,
-			std::tuple<
-				pamhd::mhd::MHD_State_Conservative,
-				pamhd::mhd::Magnetic_Field
-			>(),
-			std::tuple<pamhd::mhd::Electric_Current_Density>()
+			Mag_Getter,
+			Current_Getter
 		);
 		profiler.stop("Calculating current density", cells.size(), "cells");
 

@@ -249,14 +249,20 @@ int main(int argc, char* argv[])
 			}
 		}
 
+		auto Vector_Getter = [](Cell& cell_data) -> Vector_Field::data_type& {
+			return cell_data[Vector_Field()];
+		};
+		auto Divergence_Getter = [](Cell& cell_data) -> Divergence::data_type& {
+			return cell_data[Divergence()];
+		};
 		pamhd::divergence::get_divergence(
-			solve_cells, grid_x, std::tuple<Vector_Field>(), std::tuple<Divergence>()
+			solve_cells, grid_x, Vector_Getter, Divergence_Getter
 		);
 		pamhd::divergence::get_divergence(
-			solve_cells, grid_y, std::tuple<Vector_Field>(), std::tuple<Divergence>()
+			solve_cells, grid_y, Vector_Getter, Divergence_Getter
 		);
 		pamhd::divergence::get_divergence(
-			solve_cells, grid_z, std::tuple<Vector_Field>(), std::tuple<Divergence>()
+			solve_cells, grid_z, Vector_Getter, Divergence_Getter
 		);
 
 		const double

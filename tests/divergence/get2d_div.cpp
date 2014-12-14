@@ -237,8 +237,12 @@ int main(int argc, char* argv[])
 		pamhd::divergence::get_divergence(
 			solve_cells,
 			grid,
-			std::tuple<Vector_Field>(),
-			std::tuple<Divergence>()
+			[](Cell& cell_data) -> Vector_Field::data_type& {
+				return cell_data[Vector_Field()];
+			},
+			[](Cell& cell_data) -> Divergence::data_type& {
+				return cell_data[Divergence()];
+			}
 		);
 
 		const double

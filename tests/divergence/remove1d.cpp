@@ -298,14 +298,23 @@ int main(int argc, char* argv[])
 			(*cell_data_z)[Vector_Field()] = (*neighbor_data_z)[Vector_Field()];
 		}
 
+		auto Vector_Getter = [](Cell& cell_data) -> Vector_Field::data_type& {
+			return cell_data[Vector_Field()];
+		};
+		auto Divergence_Getter = [](Cell& cell_data) -> Divergence::data_type& {
+			return cell_data[Divergence()];
+		};
+		auto Gradient_Getter = [](Cell& cell_data) -> Gradient::data_type& {
+			return cell_data[Gradient()];
+		};
 		pamhd::divergence::remove(
 			solve_cells,
 			boundary_cells,
 			{},
 			grid_x,
-			std::tuple<Vector_Field>(),
-			std::tuple<Divergence>(),
-			std::tuple<Gradient>(),
+			Vector_Getter,
+			Divergence_Getter,
+			Gradient_Getter,
 			2000, 0, 1e-15, 2, 100, false
 		);
 		pamhd::divergence::remove(
@@ -313,9 +322,9 @@ int main(int argc, char* argv[])
 			boundary_cells,
 			{},
 			grid_y,
-			std::tuple<Vector_Field>(),
-			std::tuple<Divergence>(),
-			std::tuple<Gradient>(),
+			Vector_Getter,
+			Divergence_Getter,
+			Gradient_Getter,
 			2000, 0, 1e-15, 2, 100, false
 		);
 		pamhd::divergence::remove(
@@ -323,9 +332,9 @@ int main(int argc, char* argv[])
 			boundary_cells,
 			{},
 			grid_z,
-			std::tuple<Vector_Field>(),
-			std::tuple<Divergence>(),
-			std::tuple<Gradient>(),
+			Vector_Getter,
+			Divergence_Getter,
+			Gradient_Getter,
 			2000, 0, 1e-15, 2, 100, false
 		);
 

@@ -224,11 +224,19 @@ int main(int argc, char* argv[])
 		}
 		grid.update_copies_of_remote_neighbors();
 
+		auto Vector_Getter = [](Cell& cell_data) -> Vector_Field::data_type& {
+			return cell_data[Vector_Field()];
+		};
+		auto Div_After_Getter = [](Cell& cell_data) -> Divergence_After::data_type& {
+			return cell_data[Divergence_After()];
+		};
 		const double div_before = pamhd::divergence::get_divergence(
 			solve_cells,
 			grid,
-			std::tuple<Vector_Field>(),
-			std::tuple<Divergence_Before>()
+			Vector_Getter,
+			[](Cell& cell_data) -> Divergence_Before::data_type& {
+				return cell_data[Divergence_Before()];
+			}
 		);
 
 		pamhd::divergence::remove(
@@ -236,9 +244,11 @@ int main(int argc, char* argv[])
 			boundary_cells,
 			{},
 			grid,
-			std::tuple<Vector_Field>(),
-			std::tuple<Divergence_After>(),
-			std::tuple<Gradient>(),
+			Vector_Getter,
+			Div_After_Getter,
+			[](Cell& cell_data) -> Gradient::data_type& {
+				return cell_data[Gradient()];
+			},
 			2000, 0, 1e-15, 2, 100, false
 		);
 		grid.update_copies_of_remote_neighbors();
@@ -273,8 +283,8 @@ int main(int argc, char* argv[])
 		const double div_after = pamhd::divergence::get_divergence(
 			solve_cells,
 			grid,
-			std::tuple<Vector_Field>(),
-			std::tuple<Divergence_After>()
+			Vector_Getter,
+			Div_After_Getter
 		);
 
 		if (div_after > div_before) {

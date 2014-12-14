@@ -234,8 +234,12 @@ int main(int argc, char* argv[])
 		pamhd::divergence::get_gradient(
 			solve_cells,
 			grid,
-			std::tuple<Scalar>(),
-			std::tuple<Gradient>()
+			[](Cell& cell_data) -> Scalar::data_type& {
+				return cell_data[Scalar()];
+			},
+			[](Cell& cell_data) -> Gradient::data_type& {
+				return cell_data[Gradient()];
+			}
 		);
 
 		const double

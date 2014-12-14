@@ -45,19 +45,18 @@ divergence in given cells of all processes divided
 by number of cells on all processes in which divergence
 was calculated.
 
-Uses gensimcell::get() for accessing vector variable from
-which divergence is calculated and scalar variable where
-divergence is stored.
-
 Vector variable must have a defined value in face
 neighbors of given cells. In given cells contribution
 to divergence is 0 from dimensions with at least one
 missing neighbor.
 
-Assumes Grid_T API is compatible with dccrg.
+Vector must be an object that, when given a reference
+to the data of one grid cell, returns a reference to
+the data from which divergnce should be calculated.
+Similarly Divergence should return a reference to data
+in which calculated divergence should be stored.
 
-Vec_ and Div_Containers are dummy classes, store the
-Nested_Vars_To_ in e.g. std::tuple.
+Assumes Grid_T API is compatible with dccrg.
 
 Example:
 
@@ -80,21 +79,23 @@ using Grid_T = dccrg::Dccrg<Cell, Cartesian_Geometry>;
 pamhd::divergence::get_divergence(
 	std::vector<uint64_t>(),
 	grid,
-	std::tuple<Vector_Field>(),
-	std::tuple<Divergence>()
+	[](Cell& cell_data)->Vector_Field::data_type& {
+		return cell_data[Vector_Field()];
+	},
+	[](Cell& cell_data)->Divergence::data_type& {
+		return cell_data[Divergence()];
+	}
 );
 */
 template <
 	class Grid_T,
-	template<class... Nested_Vars_To_Vec> class Vec_Container,
-	class... Nested_Vars_To_Vec,
-	template<class... Nested_Vars_To_Div> class Div_Container,
-	class... Nested_Vars_To_Div
+	class Vector_Getter,
+	class Divergence_Getter
 > double get_divergence(
 	const std::vector<uint64_t>& cells,
 	Grid_T& grid,
-	const Vec_Container<Nested_Vars_To_Vec...>&,
-	const Div_Container<Nested_Vars_To_Div...>&
+	Vector_Getter Vector,
+	Divergence_Getter Divergence
 ) {
 	double local_divergence = 0, global_divergence = 0;
 	uint64_t local_calculated_cells = 0, global_calculated_cells = 0;
@@ -158,8 +159,7 @@ template <
 			abort();
 		}
 
-		const auto& vec = gensimcell::get(*cell_data, Nested_Vars_To_Vec()...);
-		auto& div = gensimcell::get(*cell_data, Nested_Vars_To_Div()...);
+		auto& div = Divergence(*cell_data);
 		div = 0;
 
 		if (not have_enough_neighbors) {
@@ -171,7 +171,9 @@ template <
 		for (auto dim = 0; dim < 3; dim++) {
 			// divergence is zero in dimensions with missing neighbor(s)
 			if (nr_neighbors[dim] == 2) {
-				div += vec[dim] * (neigh_pos_dist[dim] - neigh_neg_dist[dim]);
+				div
+					+= Vector(*cell_data)[dim]
+					* (neigh_pos_dist[dim] - neigh_neg_dist[dim]);
 			}
 		}
 
@@ -184,17 +186,6 @@ template <
 				continue;
 			}
 
-			const auto* const neighbor_data = grid[neighbor];
-			if (neighbor_data == NULL) {
-				std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
-					<< "No data for neighbor " << neighbor
-					<< " of cell " << cell
-					<< std::endl;
-				abort();
-			}
-			const auto& neigh_vec
-				= gensimcell::get(*neighbor_data, Nested_Vars_To_Vec()...);
-
 			double multiplier = 0;
 			if (direction < 0) {
 				multiplier = -neigh_pos_dist[dim] / neigh_neg_dist[dim];
@@ -203,7 +194,16 @@ template <
 			}
 			multiplier /= (neigh_pos_dist[dim] + neigh_neg_dist[dim]);
 
-			div += multiplier * neigh_vec[dim];
+			auto* const neighbor_data = grid[neighbor];
+			if (neighbor_data == NULL) {
+				std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
+					<< "No data for neighbor " << neighbor
+					<< " of cell " << cell
+					<< std::endl;
+				abort();
+			}
+
+			div += multiplier * Vector(*neighbor_data)[dim];
 		}
 
 		local_divergence += std::fabs(div);
@@ -235,19 +235,17 @@ template <
 /*!
 Calculates gradient of scalar variable in given cells.
 
-See get_divergence() for more info.
+See get_divergence() for more info on arguments, etc.
 */
 template <
 	class Grid_T,
-	template<class... Nested_Vars_To_Sca> class Sca_Container,
-	class... Nested_Vars_To_Sca,
-	template<class... Nested_Vars_To_Grad> class Grad_Container,
-	class... Nested_Vars_To_Grad
+	class Scalar_Getter,
+	class Gradient_Getter
 > void get_gradient(
 	const std::vector<uint64_t>& cells,
 	Grid_T& grid,
-	const Sca_Container<Nested_Vars_To_Sca...>&,
-	const Grad_Container<Nested_Vars_To_Grad...>&
+	Scalar_Getter Scalar,
+	Gradient_Getter Gradient
 ) {
 	for (const auto& cell: cells) {
 		if (grid.get_refinement_level(cell) != 0) {
@@ -309,8 +307,7 @@ template <
 			abort();
 		}
 
-		const auto& scalar = gensimcell::get(*cell_data, Nested_Vars_To_Sca()...);
-		auto& gradient = gensimcell::get(*cell_data, Nested_Vars_To_Grad()...);
+		auto& gradient = Gradient(*cell_data);
 		gradient[0] =
 		gradient[1] =
 		gradient[2] = 0;
@@ -323,7 +320,9 @@ template <
 		for (auto dim = 0; dim < 3; dim++) {
 			// gradient is zero in dimensions with missing neighbor(s)
 			if (nr_neighbors[dim] == 2) {
-				gradient[dim] += scalar * (neigh_pos_dist[dim] - neigh_neg_dist[dim]);
+				gradient[dim]
+					+= Scalar(*cell_data)
+					* (neigh_pos_dist[dim] - neigh_neg_dist[dim]);
 			}
 		}
 
@@ -336,17 +335,6 @@ template <
 				continue;
 			}
 
-			const auto* const neighbor_data = grid[neighbor];
-			if (neighbor_data == NULL) {
-				std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
-					<< "No data for neighbor " << neighbor
-					<< " of cell " << cell
-					<< std::endl;
-				abort();
-			}
-			const auto& neigh_scalar
-				= gensimcell::get(*neighbor_data, Nested_Vars_To_Sca()...);
-
 			double multiplier = 0;
 			if (direction < 0) {
 				multiplier = -neigh_pos_dist[dim] / neigh_neg_dist[dim];
@@ -355,7 +343,16 @@ template <
 			}
 			multiplier /= (neigh_pos_dist[dim] + neigh_neg_dist[dim]);
 
-			gradient[dim] += multiplier * neigh_scalar;
+			auto* const neighbor_data = grid[neighbor];
+			if (neighbor_data == NULL) {
+				std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
+					<< "No data for neighbor " << neighbor
+					<< " of cell " << cell
+					<< std::endl;
+				abort();
+			}
+
+			gradient[dim] += multiplier * Scalar(*neighbor_data);
 		}
 	}
 }
@@ -364,22 +361,18 @@ template <
 /*!
 Calculates curl of vector variable in given cells.
 
-See get_divergence() for more info.
+See get_divergence() for more info on arguments, etc.
 */
 template <
 	class Grid_T,
-	template<class... Nested_Vars_To_Vec> class Vec_Container,
-	class... Nested_Vars_To_Vec,
-	template<class... Nested_Vars_To_Curl> class Curl_Container,
-	class... Nested_Vars_To_Curl
+	class Vector_Getter,
+	class Curl_Getter
 > void get_curl(
 	const std::vector<uint64_t>& cells,
 	Grid_T& grid,
-	const Vec_Container<Nested_Vars_To_Vec...>&,
-	const Curl_Container<Nested_Vars_To_Curl...>&
+	Vector_Getter Vector,
+	Curl_Getter Curl
 ) {
-	using gensimcell::get;
-
 	for (const auto& cell: cells) {
 		if (grid.get_refinement_level(cell) != 0) {
 			std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
@@ -440,8 +433,10 @@ template <
 			abort();
 		}
 
-		const auto& vec = get(*cell_data, Nested_Vars_To_Vec()...);
-		auto& curl = get(*cell_data, Nested_Vars_To_Curl()...);
+		auto
+			&vec = Vector(*cell_data),
+			&curl = Curl(*cell_data);
+
 		curl[0] =
 		curl[1] =
 		curl[2] = 0;
@@ -483,17 +478,6 @@ template <
 				dim1 = (dim0 + 1) % 3,
 				dim2 = (dim0 + 2) % 3;
 
-			const auto* const neighbor_data = grid[neighbor];
-			if (neighbor_data == NULL) {
-				std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
-					<< "No data for neighbor " << neighbor
-					<< " of cell " << cell
-					<< std::endl;
-				abort();
-			}
-			const auto& neigh_vec
-				= get(*neighbor_data, Nested_Vars_To_Vec()...);
-
 			double multiplier = 0;
 			if (direction < 0) {
 				multiplier = -neigh_pos_dist[dim0] / neigh_neg_dist[dim0];
@@ -501,6 +485,16 @@ template <
 				multiplier = neigh_neg_dist[dim0] / neigh_pos_dist[dim0];
 			}
 			multiplier /= (neigh_pos_dist[dim0] + neigh_neg_dist[dim0]);
+
+			auto* const neighbor_data = grid[neighbor];
+			if (neighbor_data == NULL) {
+				std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
+					<< "No data for neighbor " << neighbor
+					<< " of cell " << cell
+					<< std::endl;
+				abort();
+			}
+			auto& neigh_vec = Vector(*neighbor_data);
 
 			curl[dim2] += multiplier * neigh_vec[dim1];
 			curl[dim1] -= multiplier * neigh_vec[dim2];
@@ -521,20 +515,14 @@ vector = vector - grad(phi) after which div(vector) == 0.
 Vector variable must have been updated between processes
 before calling this function.
 
-Vec_Container represents the path to the vector variable
-in cells of simulation_grid whose divergence is removed.
+Vector, Divergence and Gradient should return a reference
+to the variable's data.
 
-Div_Container represents the path to the temporary
-scalar variable in cells of simulation_grid to use
-by this function.
+See get_divergence() for more info on arguments, etc.
 
-Grad_Container represents the path to the temporary
-vector variable in cells of simulation_grid to use
-by this function.
-
-The transfer of Vec and Div variables must have been
-switched on in cells of simulation grid before
-calling this function.
+The transfer of Vector and Divergence variables' data
+must have been switched on in cells of simulation grid
+before calling this function.
 
 The arguments max_iterations to verbose are given
 directly to the constructor of dccrg Poisson equation
@@ -544,21 +532,18 @@ https://gitorious.org/dccrg/dccrg/source/master:tests/poisson/poisson_solve.hpp
 template <
 	class Cell_T,
 	class Geometry_T,
-	template<class... Nested_Vars_To_Vec> class Vec_Container,
-	class... Nested_Vars_To_Vec,
-	template<class... Nested_Vars_To_Div> class Div_Container,
-	class... Nested_Vars_To_Div,
-	template<class... Nested_Vars_To_Grad> class Grad_Container,
-	class... Nested_Vars_To_Grad
+	class Vector_Getter,
+	class Divergence_Getter,
+	class Gradient_Getter
 	// TODO: add possibility to reuse solution from previous call
 > double remove(
 	const std::vector<uint64_t>& cells,
 	const std::vector<uint64_t>& boundary_cells,
 	const std::vector<uint64_t>& skip_cells,
 	dccrg::Dccrg<Cell_T, Geometry_T>& simulation_grid,
-	const Vec_Container<Nested_Vars_To_Vec...>&,
-	const Div_Container<Nested_Vars_To_Div...>&,
-	const Grad_Container<Nested_Vars_To_Grad...>&,
+	Vector_Getter Vector,
+	Divergence_Getter Divergence,
+	Gradient_Getter Gradient,
 	const unsigned int max_iterations = 1000,
 	const unsigned int min_iterations = 0,
 	const double stop_residual = 1e-15,
@@ -590,14 +575,14 @@ template <
 	const double ret_val = get_divergence(
 		cells,
 		simulation_grid,
-		std::tuple<Nested_Vars_To_Vec...>(),
-		std::tuple<Nested_Vars_To_Div...>()
+		Vector,
+		Divergence
 	);
 	// zero divergence in boundary cells
 	for (const auto& cell: boundary_cells) {
 		auto* const cell_data = simulation_grid[cell];
 		if (cell_data == NULL) { abort(); }
-		gensimcell::get(*cell_data, Nested_Vars_To_Div()...) = 0;
+		Divergence(*cell_data) = 0;
 	}
 
 	dccrg::Dccrg<Poisson_Cell, Geometry_T> poisson_grid(simulation_grid);
@@ -612,7 +597,7 @@ template <
 			abort();
 		}
 
-		const auto* const simulation_data = simulation_grid[cell];
+		auto* const simulation_data = simulation_grid[cell];
 		if (simulation_data == NULL) {
 			std::cerr << __FILE__ << "(" << __LINE__<< "): "
 				<< "No data for simulation cell " << cell
@@ -621,7 +606,7 @@ template <
 		}
 
 		poisson_data->solution = 0;
-		poisson_data->rhs = gensimcell::get(*simulation_data, Nested_Vars_To_Div()...);
+		poisson_data->rhs = Divergence(*simulation_data);
 	}
 
 	Poisson_Solve solver(
@@ -641,7 +626,7 @@ template <
 
 	// store phi (solution) in divergence variable
 	for (const auto& cell: cells) {
-		const auto* const poisson_data = poisson_grid[cell];
+		auto* const poisson_data = poisson_grid[cell];
 		if (poisson_data == NULL) {
 			std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
 				<< "No data for poisson cell " << cell
@@ -657,8 +642,7 @@ template <
 			abort();
 		}
 
-		gensimcell::get(*simulation_data, Nested_Vars_To_Div()...)
-			= poisson_data->solution;
+		Divergence(*simulation_data) = poisson_data->solution;
 	}
 
 	simulation_grid.update_copies_of_remote_neighbors();
@@ -666,23 +650,21 @@ template <
 	get_gradient(
 		cells,
 		simulation_grid,
-		std::tuple<Nested_Vars_To_Div...>(),
-		std::tuple<Nested_Vars_To_Grad...>()
+		Divergence,
+		Gradient
 	);
 
 	for (const auto& cell: cells) {
-		auto* const data = simulation_grid[cell];
-		if (data == NULL) {
+		auto* const cell_data = simulation_grid[cell];
+		if (cell_data == NULL) {
 			std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
 				<< "No data for simulation cell " << cell
 				<< std::endl;
 			abort();
 		}
 
-		const auto& grad = gensimcell::get(*data, Nested_Vars_To_Grad()...);
-		auto& vec = gensimcell::get(*data, Nested_Vars_To_Vec()...);
 		for (size_t dim = 0; dim < 3; dim++) {
-			vec[dim] -= grad[dim];
+			Vector(*cell_data)[dim] -= Gradient(*cell_data)[dim];
 		}
 	}
 
@@ -696,7 +678,7 @@ template <
 			abort();
 		}
 
-		gensimcell::get(*simulation_data, Nested_Vars_To_Div()...) = 0;
+		Divergence(*simulation_data) = 0;
 	}
 
 	return ret_val;

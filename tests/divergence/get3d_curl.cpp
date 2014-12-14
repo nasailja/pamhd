@@ -251,8 +251,12 @@ int main(int argc, char* argv[])
 		pamhd::divergence::get_curl(
 			solve_cells,
 			grid,
-			std::tuple<Vector>(),
-			std::tuple<Curl>()
+			[](Cell& cell_data) -> Vector::data_type& {
+				return cell_data[Vector()];
+			},
+			[](Cell& cell_data) -> Curl::data_type& {
+				return cell_data[Curl()];
+			}
 		);
 
 		const double

@@ -1,5 +1,5 @@
 /*
-Tests scalar field gradient calculation of PAMHD in 3d.
+Tests vector field divergence calculation of PAMHD in 1d with AMR.
 
 Copyright 2014 Ilja Honkonen
 All rights reserved.
@@ -40,61 +40,46 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "dccrg.hpp"
 #include "dccrg_cartesian_geometry.hpp"
-#include "prettyprint.hpp"
 
 #include "divergence/remove.hpp"
 
 
-double function(const std::array<double, 3>& r)
+double function(const double x)
 {
-	const double x = r[0], y = r[1], z = r[2];
-
-	return
-		std::exp(2*x) / 2 + 5 * x*x / 2 + 6 * x
-		- std::pow(std::cos(y), 2) / 2 + 2 * y*y + 5 * y
-		+ 3 * z*z*z*z / 4 - 2 * z*z*z / 3 + z*z / 2 - 2 * z;
+	return std::sin(x);
 }
 
-std::array<double, 3> grad_of_function(const std::array<double, 3>& r)
+double div_of_function(const double x)
 {
-	const double x = r[0], y = r[1], z = r[2];
-
-	return {{
-		std::exp(2*x) + 5*x + 6,
-		std::sin(y) * std::cos(y) + 4*y + 5,
-		3*z*z*z - 2*z*z + z - 2
-	}};
+	return std::cos(x);
 }
 
 
-struct Scalar {
-	using data_type = double;
+struct Vector_Field {
+	using data_type = std::array<double, 3>;
 };
 
-struct Gradient {
-	using data_type = std::array<double, 3>;
+struct Divergence {
+	using data_type = double;
 };
 
 using Cell = gensimcell::Cell<
 	gensimcell::Always_Transfer,
-	Scalar,
-	Gradient
+	Vector_Field,
+	Divergence
 >;
 
 
 /*!
 Returns maximum norm if p == 0
 */
-template<class Grid_T> std::array<double, 3> get_diff_lp_norm(
+template<class Grid_T> double get_diff_lp_norm(
 	const std::vector<uint64_t>& cells,
 	const Grid_T& grid,
 	const double p,
 	const double cell_volume
 ) {
-	std::array<double, 3>
-		local_norm{{0, 0, 0}},
-		global_norm{{0, 0, 0}};
-
+	double local_norm = 0, global_norm = 0;
 	for (const auto& cell: cells) {
 		const auto* const cell_data = grid[cell];
 		if (cell_data == NULL) {
@@ -106,56 +91,31 @@ template<class Grid_T> std::array<double, 3> get_diff_lp_norm(
 
 		const auto center = grid.geometry.get_center(cell);
 
-		const auto grad_of = grad_of_function(center);
-
 		if (p == 0) {
-			for (size_t i = 0; i < 3; i++) {
-				local_norm[i] = std::max(
-					local_norm[i],
-					std::fabs((*cell_data)[Gradient()][i] - grad_of[i])
-				);
-			}
+			local_norm = std::max(
+				local_norm,
+				std::fabs((*cell_data)[Divergence()] - div_of_function(center[0]))
+			);
 		} else {
-			for (size_t i = 0; i < 3; i++) {
-				local_norm[i] += std::pow(
-					std::fabs((*cell_data)[Gradient()][i] - grad_of[i]),
-					p
-				);
-			}
+			local_norm += std::pow(
+				std::fabs((*cell_data)[Divergence()] - div_of_function(center[0])),
+				p
+			);
 		}
 	}
-	for (size_t i = 0; i < 3; i++) {
-		local_norm[i] *= cell_volume;
-	}
+	local_norm *= cell_volume;
 
-	MPI_Comm comm = grid.get_communicator();
 	if (p == 0) {
-		MPI_Allreduce(
-			local_norm.data(),
-			global_norm.data(),
-			3,
-			MPI_DOUBLE,
-			MPI_MAX,
-			comm
-		);
-
+		MPI_Comm comm = grid.get_communicator();
+		MPI_Allreduce(&local_norm, &global_norm, 1, MPI_DOUBLE, MPI_MAX, comm);
+		MPI_Comm_free(&comm);
+		return global_norm;
 	} else {
-		MPI_Allreduce(
-			local_norm.data(),
-			global_norm.data(),
-			3,
-			MPI_DOUBLE,
-			MPI_SUM,
-			comm
-		);
-
-		for (size_t i = 0; i < 3; i++) {
-			global_norm[i] = std::pow(global_norm[i], 1.0 / p);
-		}
+		MPI_Comm comm = grid.get_communicator();
+		MPI_Allreduce(&local_norm, &global_norm, 1, MPI_DOUBLE, MPI_SUM, comm);
+		MPI_Comm_free(&comm);
+		return std::pow(global_norm, 1.0 / p);
 	}
-	MPI_Comm_free(&comm);
-
-	return global_norm;
 }
 
 
@@ -187,23 +147,17 @@ int main(int argc, char* argv[])
 	}
 
 	const unsigned int neighborhood_size = 0;
-	const int max_refinement_level = 0;
+	const int max_refinement_level = 1;
 
-	std::array<double, 3> old_norm{{
-		std::numeric_limits<double>::max(),
-		std::numeric_limits<double>::max(),
-		std::numeric_limits<double>::max()
-	}};
+	const std::array<double, 3> grid_length{{2 * M_PI, 1, 1}};
+
+	double old_norm = std::numeric_limits<double>::max();
 	size_t old_nr_of_cells = 0;
-	for (size_t nr_of_cells = 8; nr_of_cells <= 64; nr_of_cells *= 2) {
+	for (size_t nr_of_cells = 8; nr_of_cells <= 4096; nr_of_cells *= 2) {
 
 		dccrg::Dccrg<Cell, dccrg::Cartesian_Geometry> grid;
 
-		const std::array<uint64_t, 3> grid_size{{
-			nr_of_cells + 2,
-			nr_of_cells + 2,
-			nr_of_cells + 2
-		}};
+		const std::array<uint64_t, 3> grid_size{{nr_of_cells + 2, 1, 1}};
 
 		if (
 			not grid.initialize(
@@ -225,11 +179,13 @@ int main(int argc, char* argv[])
 
 		const std::array<double, 3>
 			cell_length{{
-				double(5) / (grid_size[0] - 2),
-				double(5) / (grid_size[1] - 2),
-				double(1) / (grid_size[2] - 2),
+				grid_length[0] / grid_size[0],
+				grid_length[1] / grid_size[1],
+				grid_length[2] / grid_size[2]
 			}},
-			grid_start{{1, 1, 0}};
+			grid_start{{
+				-cell_length[0] / 2, 0, 0
+			}};
 
 		const double cell_volume
 			= cell_length[0] * cell_length[1] * cell_length[2];
@@ -247,6 +203,14 @@ int main(int argc, char* argv[])
 
 		grid.balance_load();
 
+		const auto lvl_0_cells = grid.get_cells();
+		for (const auto& cell: lvl_0_cells) {
+			if (cell > nr_of_cells / 4 and cell < 3 * nr_of_cells / 4) {
+				grid.refine_completely(cell);
+			}
+		}
+		grid.stop_refining();
+
 		const auto all_cells = grid.get_cells();
 		for (const auto& cell: all_cells) {
 			auto* const cell_data = grid[cell];
@@ -259,69 +223,63 @@ int main(int argc, char* argv[])
 
 			const auto center = grid.geometry.get_center(cell);
 
-			(*cell_data)[Scalar()] = function(center);
+			auto& vec = (*cell_data)[Vector_Field()];
+			vec[0] = function(center[0]);
+			vec[1] =
+			vec[2] = 0;
 		}
 		grid.update_copies_of_remote_neighbors();
 
 		std::vector<uint64_t> solve_cells;
 		for (const auto& cell: all_cells) {
 			const auto index = grid.mapping.get_indices(cell);
-			if (
-				index[0] > 0
-				and index[0] < grid_size[0] - 1
-				and index[1] > 0
-				and index[1] < grid_size[1] - 1
-				and index[2] > 0
-				and index[2] < grid_size[2] - 1
-			) {
+			if (index[0] > 1 and index[0] < 2 * (grid_size[0] - 1)) {
 				solve_cells.push_back(cell);
 			}
 		}
 
-		pamhd::divergence::get_gradient(
+		pamhd::divergence::get_divergence(
 			solve_cells,
 			grid,
-			[](Cell& cell_data) -> Scalar::data_type& {
-				return cell_data[Scalar()];
+			[](Cell& cell_data) -> Vector_Field::data_type& {
+				return cell_data[Vector_Field()];
 			},
-			[](Cell& cell_data) -> Gradient::data_type& {
-				return cell_data[Gradient()];
+			[](Cell& cell_data) -> Divergence::data_type& {
+				return cell_data[Divergence()];
 			}
 		);
 
-		const double p_of_norm = 2;
-		const auto norm = get_diff_lp_norm(solve_cells, grid, p_of_norm, cell_volume);
+		const double
+			p_of_norm = 2,
+			norm = get_diff_lp_norm(solve_cells, grid, p_of_norm, cell_volume);
 
-		for (size_t dim = 0; dim < 3; dim++) {
-			if (norm[dim] > old_norm[dim]) {
+		if (norm > old_norm) {
+			if (grid.get_rank() == 0) {
+				std::cerr << __FILE__ << ":" << __LINE__
+					<< ": Norm with " << nr_of_cells
+					<< " cells " << norm
+					<< " is larger than with " << nr_of_cells / 2
+					<< " cells " << old_norm
+					<< std::endl;
+			}
+			abort();
+		}
+
+		if (old_nr_of_cells >= 1) {
+			const double order_of_accuracy
+				= -log(norm / old_norm)
+				/ log(double(nr_of_cells) / old_nr_of_cells);
+
+			if (order_of_accuracy < 1.9) {
 				if (grid.get_rank() == 0) {
 					std::cerr << __FILE__ << ":" << __LINE__
 						<< ": Norm with " << nr_of_cells
-						<< " cells " << norm[dim]
+						<< " cells " << norm
 						<< " is larger than with " << nr_of_cells / 2
-						<< " cells " << old_norm[dim]
-						<< " for dimension " << dim
+						<< " cells " << old_norm
 						<< std::endl;
 				}
-				abort();
-			}
-
-			if (old_nr_of_cells > 0) {
-				const double order_of_accuracy
-					= -log(norm[dim] / old_norm[dim])
-					/ log(double(nr_of_cells) / old_nr_of_cells);
-
-				if (order_of_accuracy < 1.9) {
-					if (grid.get_rank() == 0) {
-						std::cerr << __FILE__ << ":" << __LINE__
-							<< ": Order of accuracy from "
-							<< old_nr_of_cells << " to " << nr_of_cells
-							<< " is too low: " << order_of_accuracy
-							<< " for dimension " << dim
-							<< std::endl;
-					}
-					abort();
-				}
+				//abort();
 			}
 		}
 
