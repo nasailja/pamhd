@@ -170,7 +170,7 @@ int main(int argc, char* argv[])
 		vacuum_permeability = 4e-7 * M_PI,
 		proton_mass = 1.672621777e-27;
 	std::string
-		mhd_solver_str("hlld_athena"),
+		mhd_solver_str("roe_athena"),
 		config_file_name(""),
 		boundary_file_name(""),
 		lb_name("RCB"),
@@ -180,7 +180,6 @@ int main(int argc, char* argv[])
 		options(
 			"Usage: program_name [options], where options are"
 		),
-		boundary_options(""),
 		// grouped options for printing help
 		initial_condition_help(
 			"Options for initial condition which sets cell data to values "
@@ -208,13 +207,8 @@ int main(int argc, char* argv[])
 		("config-file",
 			boost::program_options::value<std::string>(&config_file_name)
 				->default_value(config_file_name),
-			"Read general options from  file arg (added to command line, "
+			"Read options also from file arg (command line has priority, "
 			"not read if empty string)")
-		("boundary-file",
-			boost::program_options::value<std::string>(&boundary_file_name)
-				->default_value(boundary_file_name),
-			"Read initial and boundary conditions from file arg "
-			"(cannot be same as --config-file, not read if empty string)")
 		("output-directory",
 			boost::program_options::value<std::string>(&output_directory)
 				->default_value(output_directory),
@@ -272,10 +266,15 @@ int main(int argc, char* argv[])
 
 	boost::program_options::variables_map option_variables;
 	try {
+		profiler.start("Parsing command line");
 		boost::program_options::store(
-			boost::program_options::parse_command_line(argc, argv, options),
+			boost::program_options::command_line_parser(argc, argv)
+				.options(options)
+				.allow_unregistered()
+				.run(),
 			option_variables
 		);
+		profiler.stop("Parsing command line");
 	} catch (std::exception& e) {
 		if (rank == 0) {
 			std::cerr <<  __FILE__ << "(" << __LINE__ << "): "
@@ -304,13 +303,16 @@ int main(int argc, char* argv[])
 
 	if (config_file_name != "") {
 		try {
+			profiler.start("Parsing configuration file");
 			boost::program_options::store(
 				boost::program_options::parse_config_file<char>(
 					config_file_name.c_str(),
-					options
+					options,
+					true
 				),
 				option_variables
 			);
+			profiler.stop("Parsing configuration file");
 		} catch (std::exception& e) {
 			if (rank == 0) {
 				std::cerr <<  __FILE__ << "(" << __LINE__ << "): "
@@ -323,12 +325,56 @@ int main(int argc, char* argv[])
 		boost::program_options::notify(option_variables);
 	}
 
-	initial_condition.add_options("initial.", boundary_options);
+	initial_condition.add_options("initial.", options);
 	initial_condition.add_options("initial.", initial_condition_help);
-	value_boundaries.add_options("value-boundaries.", boundary_options);
+	value_boundaries.add_options("value-boundaries.", options);
 	value_boundaries.add_options("value-boundaries.", boundary_condition_help);
-	copy_boundary.add_options("copy-boundaries.", boundary_options);
+	copy_boundary.add_options("copy-boundaries.", options);
 	copy_boundary.add_options("copy-boundaries.", copy_boundary_help);
+
+	// parse again to get boundaries' options
+	try {
+		profiler.start("Parsing command line");
+		boost::program_options::store(
+			boost::program_options::command_line_parser(argc, argv)
+				.options(options)
+				.allow_unregistered()
+				.run(),
+			option_variables
+		);
+		profiler.stop("Parsing command line");
+	} catch (std::exception& e) {
+		if (rank == 0) {
+			std::cerr <<  __FILE__ << "(" << __LINE__ << "): "
+				<< "Couldn't parse command line options: " << e.what()
+				<< std::endl;
+		}
+		abort();
+	}
+
+	if (config_file_name != "") {
+		try {
+			profiler.start("Parsing configuration file");
+			boost::program_options::store(
+				boost::program_options::parse_config_file<char>(
+					config_file_name.c_str(),
+					options,
+					true
+				),
+				option_variables
+			);
+			profiler.stop("Parsing configuration file");
+		} catch (std::exception& e) {
+			if (rank == 0) {
+				std::cerr <<  __FILE__ << "(" << __LINE__ << "): "
+					<< "Couldn't parse boundary options from file "
+					<< config_file_name << ": " << e.what()
+					<< std::endl;
+			}
+			abort();
+		}
+	}
+	boost::program_options::notify(option_variables);
 
 	if (option_variables.count("initial-help") > 0) {
 		if (rank == 0) {
@@ -421,28 +467,6 @@ int main(int argc, char* argv[])
 				abort();
 			}
 		}();
-
-
-	if (boundary_file_name != "") {
-		try {
-			boost::program_options::store(
-				boost::program_options::parse_config_file<char>(
-					boundary_file_name.c_str(),
-					boundary_options
-				),
-				option_variables
-			);
-		} catch (std::exception& e) {
-			if (rank == 0) {
-				std::cerr <<  __FILE__ << "(" << __LINE__ << "): "
-					<< "Couldn't parse boundary options from file "
-					<< boundary_file_name << ": " << e.what()
-					<< std::endl;
-			}
-			abort();
-		}
-		boost::program_options::notify(option_variables);
-	}
 
 
 	if (rank == 0) {
