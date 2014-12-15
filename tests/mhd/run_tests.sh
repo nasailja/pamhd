@@ -148,6 +148,98 @@ $RUN ./mhd2gnuplot.exe results/magnetohydrodynamic/shock_tube/1d/-z/roe_athena/*
 
 
 
+# Fast magnetosonic wave, small amplitude
+echo fast_magnetosonic_wave mhd 1d +x small hll_athena
+$RUN ./test.exe \
+    --solver-mhd hll_athena \
+    --output-directory results/magnetohydrodynamic/fast_magnetosonic_wave/1d/+x/small/hll_athena/ \
+    --config-file config_files/magnetohydrodynamic/fast_magnetosonic_wave/1d/+x/small.cfg
+$RUN ./mhd2gnuplot.exe results/magnetohydrodynamic/fast_magnetosonic_wave/1d/+x/small/hll_athena/*dc
+
+echo fast_magnetosonic_wave mhd 1d +x small hlld_athena
+$RUN ./test.exe \
+    --solver-mhd hlld_athena \
+    --output-directory results/magnetohydrodynamic/fast_magnetosonic_wave/1d/+x/small/hlld_athena/ \
+    --config-file config_files/magnetohydrodynamic/fast_magnetosonic_wave/1d/+x/small.cfg
+$RUN ./mhd2gnuplot.exe results/magnetohydrodynamic/fast_magnetosonic_wave/1d/+x/small/hlld_athena/*dc
+
+echo fast_magnetosonic_wave mhd 1d +x small roe_athena
+$RUN ./test.exe \
+    --solver-mhd roe_athena \
+    --output-directory results/magnetohydrodynamic/fast_magnetosonic_wave/1d/+x/small/roe_athena/ \
+    --config-file config_files/magnetohydrodynamic/fast_magnetosonic_wave/1d/+x/small.cfg
+$RUN ./mhd2gnuplot.exe results/magnetohydrodynamic/fast_magnetosonic_wave/1d/+x/small/roe_athena/*dc
+
+
+# Fast magnetosonic wave, medium amplitude
+echo fast_magnetosonic_wave mhd 1d +x medium hll_athena
+$RUN ./test.exe \
+    --solver-mhd hll_athena \
+    --output-directory results/magnetohydrodynamic/fast_magnetosonic_wave/1d/+x/medium/hll_athena/ \
+    --config-file config_files/magnetohydrodynamic/fast_magnetosonic_wave/1d/+x/medium.cfg
+$RUN ./mhd2gnuplot.exe results/magnetohydrodynamic/fast_magnetosonic_wave/1d/+x/medium/hll_athena/*dc
+
+echo fast_magnetosonic_wave mhd 1d +x medium hlld_athena
+$RUN ./test.exe \
+    --solver-mhd hlld_athena \
+    --output-directory results/magnetohydrodynamic/fast_magnetosonic_wave/1d/+x/medium/hlld_athena/ \
+    --config-file config_files/magnetohydrodynamic/fast_magnetosonic_wave/1d/+x/medium.cfg
+$RUN ./mhd2gnuplot.exe results/magnetohydrodynamic/fast_magnetosonic_wave/1d/+x/medium/hlld_athena/*dc
+
+echo fast_magnetosonic_wave mhd 1d +x medium roe_athena
+$RUN ./test.exe \
+    --solver-mhd roe_athena \
+    --output-directory results/magnetohydrodynamic/fast_magnetosonic_wave/1d/+x/medium/roe_athena/ \
+    --config-file config_files/magnetohydrodynamic/fast_magnetosonic_wave/1d/+x/medium.cfg
+$RUN ./mhd2gnuplot.exe results/magnetohydrodynamic/fast_magnetosonic_wave/1d/+x/medium/roe_athena/*dc
+
+
+# Fast magnetosonic wave, large amplitude
+echo fast_magnetosonic_wave mhd 1d +x large hll_athena
+$RUN ./test.exe \
+    --solver-mhd hll_athena \
+    --output-directory results/magnetohydrodynamic/fast_magnetosonic_wave/1d/+x/large/hll_athena/ \
+    --config-file config_files/magnetohydrodynamic/fast_magnetosonic_wave/1d/+x/large.cfg
+$RUN ./mhd2gnuplot.exe results/magnetohydrodynamic/fast_magnetosonic_wave/1d/+x/large/hll_athena/*dc
+
+echo fast_magnetosonic_wave mhd 1d +x large hlld_athena
+$RUN ./test.exe \
+    --solver-mhd hlld_athena \
+    --output-directory results/magnetohydrodynamic/fast_magnetosonic_wave/1d/+x/large/hlld_athena/ \
+    --config-file config_files/magnetohydrodynamic/fast_magnetosonic_wave/1d/+x/large.cfg
+$RUN ./mhd2gnuplot.exe results/magnetohydrodynamic/fast_magnetosonic_wave/1d/+x/large/hlld_athena/*dc
+
+echo fast_magnetosonic_wave mhd 1d +x large roe_athena
+$RUN ./test.exe \
+    --solver-mhd roe_athena \
+    --output-directory results/magnetohydrodynamic/fast_magnetosonic_wave/1d/+x/large/roe_athena/ \
+    --config-file config_files/magnetohydrodynamic/fast_magnetosonic_wave/1d/+x/large.cfg
+$RUN ./mhd2gnuplot.exe results/magnetohydrodynamic/fast_magnetosonic_wave/1d/+x/large/roe_athena/*dc
+
+
+# Fast magnetosonic wave, huge amplitude
+echo fast_magnetosonic_wave mhd 1d +x huge hll_athena
+$RUN ./test.exe \
+    --solver-mhd hll_athena \
+    --output-directory results/magnetohydrodynamic/fast_magnetosonic_wave/1d/+x/huge/hll_athena/ \
+    --config-file config_files/magnetohydrodynamic/fast_magnetosonic_wave/1d/+x/huge.cfg
+$RUN ./mhd2gnuplot.exe results/magnetohydrodynamic/fast_magnetosonic_wave/1d/+x/huge/hll_athena/*dc
+
+echo fast_magnetosonic_wave mhd 1d +x huge hlld_athena
+$RUN ./test.exe \
+    --solver-mhd hlld_athena \
+    --output-directory results/magnetohydrodynamic/fast_magnetosonic_wave/1d/+x/huge/hlld_athena/ \
+    --config-file config_files/magnetohydrodynamic/fast_magnetosonic_wave/1d/+x/huge.cfg
+$RUN ./mhd2gnuplot.exe results/magnetohydrodynamic/fast_magnetosonic_wave/1d/+x/huge/hlld_athena/*dc
+
+echo fast_magnetosonic_wave mhd 1d +x huge roe_athena
+$RUN ./test.exe \
+    --solver-mhd roe_athena \
+    --output-directory results/magnetohydrodynamic/fast_magnetosonic_wave/1d/+x/huge/roe_athena/ \
+    --config-file config_files/magnetohydrodynamic/fast_magnetosonic_wave/1d/+x/huge.cfg
+$RUN ./mhd2gnuplot.exe results/magnetohydrodynamic/fast_magnetosonic_wave/1d/+x/huge/roe_athena/*dc
+
+
 # Kelvin-Helmholtz
 echo kelvin-helmholtz hd 2d z1 hll_athena
 $RUN ./test.exe \
