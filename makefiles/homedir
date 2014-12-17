@@ -7,6 +7,10 @@ MPICXX = $(HOME)/bin/mpic++
 RUN =
 MPIRUN = mpirun -n 5
 
+CDF_CPPFLAGS = -I $(HOME)/include
+CDF_LDFLAGS = -L $(HOME)/lib
+CDF_LIBS = -lcdf
+
 DCCRG_CPPFLAGS = -I $(HOME)/libraries/dccrg
 
 EIGEN_CPPFLAGS = -I $(HOME)/libraries/eigen
