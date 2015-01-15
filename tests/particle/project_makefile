@@ -83,3 +83,14 @@ tests/particle/accumulate.exe: \
   $(TEST_PARTICLE_COMMON_DEPS) \
   source/particle/accumulate.hpp
 	@printf "CXX $<\n" && $(CXX) $(TEST_PARTICLE_COMMON_COMPILE)
+
+tests/particle/reference.exe: \
+  tests/particle/reference.cpp \
+  $(TEST_PARTICLE_COMMON_DEPS) \
+  source/particle/common.hpp \
+  source/particle/solve.hpp
+	@printf "CXX $<\n" && $(CXX) \
+	  $(TEST_PARTICLE_COMMON_COMPILE) \
+	  $(BOOST_CPPFLAGS) \
+	  $(BOOST_LDFLAGS) \
+	  $(BOOST_LIBS)

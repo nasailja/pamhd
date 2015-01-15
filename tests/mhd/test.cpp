@@ -1,7 +1,7 @@
 /*
 MHD test program of PAMHD.
 
-Copyright 2014 Ilja Honkonen
+Copyright 2014, 2015 Ilja Honkonen
 All rights reserved.
 
 This program is free software: you can redistribute it and/or modify
