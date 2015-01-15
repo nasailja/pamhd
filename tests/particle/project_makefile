@@ -14,6 +14,11 @@ tests/particle_executables: $(TESTS_PARTICLE_EXECUTABLES)
 
 tests/particle_tests: $(TESTS_PARTICLE_TESTS)
 
+tests/particle_clean_results:
+	@printf "CLEAN RESULTS tests/particle\n" && rm -f \
+	  tests/particle/*.dat \
+	  tests/particle/*.png
+
 tests/particle_clean:
 	@printf "CLEAN tests/particle\n" && rm -f \
 	  $(TESTS_PARTICLE_EXECUTABLES) \
@@ -21,6 +26,7 @@ tests/particle_clean:
 
 EXECUTABLES += tests/particle_executables
 TESTS += tests/particle_tests
+RESULTS += tests/particle_clean_results
 CLEAN += tests/particle_clean
 
 
@@ -37,7 +43,8 @@ TEST_PARTICLE_COMMON_COMPILE = \
   $(LDFLAGS) \
   $(BOOST_CPPFLAGS) \
   $(EIGEN_CPPFLAGS) \
-  $(GENSIMCELL_CPPFLAGS)
+  $(GENSIMCELL_CPPFLAGS) \
+  $(PRETTYPRINT_CPPFLAGS)
 
 tests/particle/solve1.exe: \
   tests/particle/solve1.cpp \
