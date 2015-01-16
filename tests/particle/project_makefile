@@ -2,6 +2,7 @@ TESTS_PARTICLE_EXECUTABLES = \
   tests/particle/solve1.exe \
   tests/particle/common.exe \
   tests/particle/odeint.exe \
+  tests/particle/dipole_odeint.exe \
   tests/particle/create_particles.exe \
   tests/particle/accumulate.exe
 
@@ -9,6 +10,7 @@ TESTS_PARTICLE_TESTS = \
   tests/particle/solve1.tst \
   tests/particle/common.tst \
   tests/particle/odeint.tst \
+  tests/particle/dipole_odeint.tst \
   tests/particle/create_particles.tst \
   tests/particle/accumulate.tst
 
@@ -64,6 +66,17 @@ tests/particle/odeint.exe: \
   tests/particle/odeint.cpp \
   $(TEST_PARTICLE_COMMON_DEPS) \
   source/particle/common.hpp
+	@printf "CXX $<\n" && $(CXX) $(TEST_PARTICLE_COMMON_COMPILE) \
+	  $(BOOST_CPPFLAGS) \
+	  $(BOOST_LDFLAGS) \
+	  $(BOOST_LIBS) \
+	  -Wno-unused-variable \
+	  -Wno-unused-parameter \
+	  -Wno-unused-function
+
+tests/particle/dipole_odeint.exe: \
+  tests/particle/dipole_odeint.cpp \
+  $(TEST_PARTICLE_COMMON_DEPS)
 	@printf "CXX $<\n" && $(CXX) $(TEST_PARTICLE_COMMON_COMPILE) \
 	  $(BOOST_CPPFLAGS) \
 	  $(BOOST_LDFLAGS) \
