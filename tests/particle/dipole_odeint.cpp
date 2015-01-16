@@ -526,10 +526,7 @@ template<class Stepper> bool test_stepper()
 		double old_max_error = 0;
 		size_t old_step_divisor = 0;
 
-		/// smaller step divisor makes particle escape
-		/// convergence of energy error stops at largest step divisor
 		for (size_t step_divisor = 1; step_divisor <= (1 << 10); step_divisor *= 2) {
-
 			//cout << kinetic_energy << " " << pitch_angle << " " << step_divisor << ": ";
 
 			state_t state{{initial_position, initial_velocity}};
