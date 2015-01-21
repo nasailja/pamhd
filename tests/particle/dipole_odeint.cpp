@@ -60,6 +60,7 @@ constexpr double
 
 const Eigen::Vector3d dipole_moment{0, 0, -8e22};
 
+
 // state[0] = particle position, state[1] = velocity
 using state_t = std::array<Vector3d, 2>;
 
@@ -88,8 +89,11 @@ struct Particle_Propagator
 };
 
 
-//! returns propagated state and max relative error in kinetic energy
-template<class Stepper> std::pair<state_t, double> trace_trajectory(
+/*!
+Returns propagated state and max relative errors in
+kinetic energy and magnetic moment of particle.
+*/
+template<class Stepper> std::tuple<state_t, double, double> trace_trajectory(
 	state_t state,
 	const double time_step
 ) {
@@ -100,22 +104,41 @@ template<class Stepper> std::pair<state_t, double> trace_trajectory(
 
 	Particle_Propagator propagator(proton_charge_mass_ratio);
 
-	const double initial_energy
-		= 0.5 * proton_mass * state[1].squaredNorm();
+	const double
+		initial_energy = 0.5 * proton_mass * state[1].squaredNorm(),
+		initial_magnetic_moment
+			= proton_mass
+			* std::pow(state[1][1], 2)
+			/ (2 * get_earth_dipole(state[0]).norm());
 
 	Stepper stepper;
-	double error = 0;
+	double nrj_error = 0, mom_error = 0;
 	for (double time = 0; time < propagation_time; time += time_step) {
 		stepper.do_step(propagator, state, time, time_step);
-		//cout << state[0][0] / earth_radius << " " << state[0][1] / earth_radius << " " << state[0][2] / earth_radius << endl;
 
-		const double current_energy
-			= 0.5 * proton_mass * state[1].squaredNorm();
+		const Eigen::Vector3d
+			v(state[1]),
+			b(get_earth_dipole(state[0])),
+			v_perp_b(v - (v.dot(b) / b.squaredNorm()) * b);
 
-		error = max(error, fabs(current_energy - initial_energy) / initial_energy);
+		const double
+			current_energy
+				= 0.5 * proton_mass * state[1].squaredNorm(),
+			current_magnetic_moment
+				= proton_mass * v_perp_b.squaredNorm() / (2 * b.norm());
+
+		nrj_error = max(
+			nrj_error,
+			fabs(current_energy - initial_energy) / initial_energy
+		);
+		mom_error = max(
+			mom_error,
+			fabs(current_magnetic_moment - initial_magnetic_moment)
+				/ initial_magnetic_moment
+		);
 	}
 
-	return std::make_pair(state, error);
+	return std::make_tuple(state, nrj_error, mom_error);
 }
 
 
@@ -129,7 +152,8 @@ bool check_result(
 	const double initial_angle,
 	const size_t step_divisor,
 	const double order_of_accuracy,
-	const double error,
+	const double nrj_error,
+	const double mom_error,
 	const Eigen::Vector3d& position
 ) {
 	// particle escapes
@@ -144,11 +168,14 @@ bool check_result(
 			if (order_of_accuracy < 4) {
 				return false;
 			}
-			if (step_divisor >= 128 and error > 1e-3) {
+			if (step_divisor >= 128 and nrj_error > 1e-3) {
 				return false;
-			} else {
-				return true;
 			}
+			if (step_divisor >= 128 and mom_error > 2e-2) {
+				return false;
+			}
+
+			return true;
 
 		} else {
 
@@ -158,11 +185,14 @@ bool check_result(
 			if (order_of_accuracy < 4) {
 				return false;
 			}
-			if (step_divisor >= 256 and error > 1e-3) {
+			if (step_divisor >= 256 and nrj_error > 1e-3) {
 				return false;
-			} else {
-				return true;
 			}
+			if (step_divisor >= 512 and mom_error > 4e-2) {
+				return false;
+			}
+
+			return true;
 		}
 
 	} else {
@@ -172,11 +202,14 @@ bool check_result(
 			if (order_of_accuracy < 4) {
 				return false;
 			}
-			if (step_divisor >= 64 and error > 1e-3) {
+			if (step_divisor >= 64 and nrj_error > 1e-3) {
 				return false;
-			} else {
-				return true;
 			}
+			if (step_divisor >= 64 and mom_error > 0.6) {
+				return false;
+			}
+
+			return true;
 
 		} else {
 
@@ -186,13 +219,15 @@ bool check_result(
 			if (order_of_accuracy < 4) {
 				return false;
 			}
-			if (step_divisor >= 128 and error > 1e-3) {
+			if (step_divisor >= 128 and nrj_error > 1e-3) {
 				return false;
-			} else {
-				return true;
 			}
-		}
+			if (step_divisor >= 128 and mom_error > 2.1) {
+				return false;
+			}
 
+			return true;
+		}
 	}
 }
 
@@ -202,7 +237,8 @@ bool check_result(
 	const double initial_angle,
 	const size_t step_divisor,
 	const double order_of_accuracy,
-	const double error,
+	const double nrj_error,
+	const double mom_error,
 	const Eigen::Vector3d& position
 ) {
 	// particle escapes
@@ -217,26 +253,31 @@ bool check_result(
 			if (step_divisor >= 32 and order_of_accuracy < 4) {
 				return false;
 			}
-			if (step_divisor >= 128 and error > 1e-3) {
+			if (step_divisor >= 128 and nrj_error > 1e-3) {
 				return false;
-			} else {
-				return true;
 			}
+			if (step_divisor >= 64 and mom_error > 2e-2) {
+				return false;
+			}
+
+			return true;
 
 		} else {
 
-			// particle escapes
 			if (step_divisor <= 32) {
 				return true;
 			}
 			if (order_of_accuracy < 4) {
 				return false;
 			}
-			if (step_divisor >= 256 and error > 1e-3) {
+			if (step_divisor >= 256 and nrj_error > 1e-3) {
 				return false;
-			} else {
-				return true;
 			}
+			if (step_divisor >= 128 and mom_error > 4e-2) {
+				return false;
+			}
+
+			return true;
 		}
 
 	} else {
@@ -246,11 +287,14 @@ bool check_result(
 			if (step_divisor >= 32 and order_of_accuracy < 4) {
 				return false;
 			}
-			if (step_divisor >= 64 and error > 1e-3) {
+			if (step_divisor >= 64 and nrj_error > 1e-3) {
 				return false;
-			} else {
-				return true;
 			}
+			if (step_divisor >= 32 and mom_error > 0.6) {
+				return false;
+			}
+
+			return true;
 
 		} else {
 
@@ -260,11 +304,14 @@ bool check_result(
 			if (order_of_accuracy < 4.5) {
 				return false;
 			}
-			if (step_divisor >= 128 and error > 1e-3) {
+			if (step_divisor >= 128 and nrj_error > 1e-3) {
 				return false;
-			} else {
-				return true;
 			}
+			if (step_divisor >= 32 and mom_error > 2.1) {
+				return false;
+			}
+
+			return true;
 		}
 
 	}
@@ -276,7 +323,8 @@ bool check_result(
 	const double initial_angle,
 	const size_t step_divisor,
 	const double order_of_accuracy,
-	const double error,
+	const double nrj_error,
+	const double mom_error,
 	const Eigen::Vector3d& position
 ) {
 	// particle escapes
@@ -291,11 +339,14 @@ bool check_result(
 			if (order_of_accuracy < 4.5) {
 				return false;
 			}
-			if (step_divisor >= 32 and error > 1e-3) {
+			if (step_divisor >= 32 and nrj_error > 1e-3) {
 				return false;
-			} else {
-				return true;
 			}
+			if (step_divisor >= 32 and mom_error > 2e-2) {
+				return false;
+			}
+
+			return true;
 
 		} else {
 
@@ -305,11 +356,14 @@ bool check_result(
 			if (order_of_accuracy < 4.5) {
 				return false;
 			}
-			if (step_divisor >= 128 and error > 1e-3) {
+			if (step_divisor >= 128 and nrj_error > 1e-3) {
 				return false;
-			} else {
-				return true;
 			}
+			if (step_divisor >= 128 and mom_error > 5e-2) {
+				return false;
+			}
+
+			return true;
 		}
 
 	} else {
@@ -319,11 +373,14 @@ bool check_result(
 			if (order_of_accuracy < 4.5) {
 				return false;
 			}
-			if (step_divisor >= 32 and error > 1e-3) {
+			if (step_divisor >= 32 and nrj_error > 1e-3) {
 				return false;
-			} else {
-				return true;
 			}
+			if (step_divisor >= 16 and mom_error > 0.6) {
+				return false;
+			}
+
+			return true;
 
 		} else {
 
@@ -333,13 +390,15 @@ bool check_result(
 			if (order_of_accuracy < 4.5) {
 				return false;
 			}
-			if (step_divisor >= 64 and error > 1e-3) {
+			if (step_divisor >= 64 and nrj_error > 1e-3) {
 				return false;
-			} else {
-				return true;
 			}
-		}
+			if (step_divisor >= 64 and mom_error > 2.1) {
+				return false;
+			}
 
+			return true;
+		}
 	}
 }
 
@@ -349,7 +408,8 @@ bool check_result(
 	const double initial_angle,
 	const size_t step_divisor,
 	const double order_of_accuracy,
-	const double error,
+	const double nrj_error,
+	const double mom_error,
 	const Eigen::Vector3d& position
 ) {
 	// particle escapes
@@ -364,11 +424,14 @@ bool check_result(
 			if (step_divisor >= 64 and order_of_accuracy < 4.5) {
 				return false;
 			}
-			if (step_divisor >= 64 and error > 1e-3) {
+			if (step_divisor >= 64 and nrj_error > 1e-3) {
 				return false;
-			} else {
-				return true;
 			}
+			if (step_divisor >= 32 and mom_error > 2e-2) {
+				return false;
+			}
+
+			return true;
 
 		} else {
 
@@ -378,11 +441,14 @@ bool check_result(
 			if (step_divisor >= 128 and order_of_accuracy < 4.5) {
 				return false;
 			}
-			if (step_divisor >= 128 and error > 1e-3) {
+			if (step_divisor >= 128 and nrj_error > 1e-3) {
 				return false;
-			} else {
-				return true;
 			}
+			if (step_divisor >= 64 and mom_error > 4e-2) {
+				return false;
+			}
+
+			return true;
 		}
 
 	} else {
@@ -392,11 +458,14 @@ bool check_result(
 			if (step_divisor >= 64 and order_of_accuracy < 4.5) {
 				return false;
 			}
-			if (step_divisor >= 32 and error > 1e-3) {
+			if (step_divisor >= 32 and nrj_error > 1e-3) {
 				return false;
-			} else {
-				return true;
 			}
+			if (step_divisor >= 4 and mom_error > 0.6) {
+				return false;
+			}
+
+			return true;
 
 		} else {
 
@@ -406,13 +475,15 @@ bool check_result(
 			if (step_divisor >= 64 and order_of_accuracy < 4.5) {
 				return false;
 			}
-			if (step_divisor >= 128 and error > 1e-3) {
+			if (step_divisor >= 128 and nrj_error > 1e-3) {
 				return false;
-			} else {
-				return true;
 			}
-		}
+			if (step_divisor >= 16 and mom_error > 2.1) {
+				return false;
+			}
 
+			return true;
+		}
 	}
 }
 
@@ -422,12 +493,27 @@ bool check_result(
 	const double initial_angle,
 	const size_t step_divisor,
 	const double order_of_accuracy,
-	const double error,
+	const double nrj_error,
+	const double mom_error,
 	const Eigen::Vector3d& position
 ) {
 	// particle escapes
 	if (step_divisor <= 2) {
 		return true;
+	}
+
+	if (position.norm() > 7 * earth_radius) {
+		if (initial_angle == 30) {
+			if (initial_energy == 1e4) {
+				if (step_divisor <= 8) {
+					return true;
+				}
+			} else if (step_divisor <= 4) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	if (initial_energy == 1e4) {
@@ -437,11 +523,14 @@ bool check_result(
 			if (step_divisor < 256 and order_of_accuracy < 6) {
 				return false;
 			}
-			if (step_divisor >= 8 and error > 1e-3) {
+			if (step_divisor >= 8 and nrj_error > 1e-3) {
 				return false;
-			} else {
-				return true;
 			}
+			if (step_divisor >= 8 and mom_error > 2e-2) {
+				return false;
+			}
+
+			return true;
 
 		} else {
 
@@ -451,11 +540,14 @@ bool check_result(
 			if (step_divisor < 512 and order_of_accuracy < 7) {
 				return false;
 			}
-			if (step_divisor >= 32 and error > 1e-3) {
+			if (step_divisor >= 32 and nrj_error > 1e-3) {
 				return false;
-			} else {
-				return true;
 			}
+			if (step_divisor >= 32 and mom_error > 4e-2) {
+				return false;
+			}
+
+			return true;
 		}
 
 	} else {
@@ -465,11 +557,14 @@ bool check_result(
 			if (step_divisor < 128 and order_of_accuracy < 8) {
 				return false;
 			}
-			if (step_divisor >= 8 and error > 1e-3) {
+			if (step_divisor >= 8 and nrj_error > 1e-3) {
 				return false;
-			} else {
-				return true;
 			}
+			if (step_divisor >= 4 and mom_error > 0.6) {
+				return false;
+			}
+
+			return true;
 
 		} else {
 
@@ -479,11 +574,14 @@ bool check_result(
 			if (step_divisor < 256 and order_of_accuracy < 4.5) {
 				return false;
 			}
-			if (step_divisor >= 16 and error > 1e-3) {
+			if (step_divisor >= 16 and nrj_error > 1e-3) {
 				return false;
-			} else {
-				return true;
 			}
+			if (step_divisor >= 8 and mom_error > 2.1) {
+				return false;
+			}
+
+			return true;
 		}
 
 	}
@@ -508,11 +606,12 @@ template<class Stepper> bool test_stepper()
 		const double particle_speed
 			= sqrt(2 * kinetic_energy * proton_charge_mass_ratio);
 
-		const Eigen::Vector3d initial_velocity{
-			0,
-			sin(pitch_angle / 180 * M_PI) * particle_speed,
-			cos(pitch_angle / 180 * M_PI) * particle_speed
-		};
+		const Eigen::Vector3d
+			initial_velocity{
+				0,
+				sin(pitch_angle / 180 * M_PI) * particle_speed,
+				cos(pitch_angle / 180 * M_PI) * particle_speed
+			};
 
 		const double gyroradius
 			= initial_velocity[1]
@@ -523,49 +622,54 @@ template<class Stepper> bool test_stepper()
 			offset_from_gc{gyroradius, 0, 0},
 			initial_position{guiding_center_start + offset_from_gc};
 
-		double old_max_error = 0;
+		double old_nrj_error = 0;
 		size_t old_step_divisor = 0;
 
 		for (size_t step_divisor = 1; step_divisor <= (1 << 10); step_divisor *= 2) {
-			//cout << kinetic_energy << " " << pitch_angle << " " << step_divisor << ": ";
 
 			state_t state{{initial_position, initial_velocity}};
 			const double time_step = gyroperiod / step_divisor;
-			double max_relative_error = -1;
+			double
+				max_nrj_error = -1,
+				max_mom_error = -1,
+				order_of_accuracy = 0;
 
 			std::tie(
 				state,
-				max_relative_error
+				max_nrj_error,
+				max_mom_error
 			) = trace_trajectory<Stepper>(state, time_step);
 
-			// check that position is sane
-			if (state[0].norm() > 7 * earth_radius) {
-				/*std::cerr <<  __FILE__ << " (" << __LINE__ << "): "
-					<< "Particle escaped from earth with step divisor " << step_divisor
-					<< std::endl;*/
-			} else if (old_step_divisor > 0) {
-				const double order_of_accuracy
-						= -log(max_relative_error / old_max_error)
+			/*cout
+				<< kinetic_energy << " "
+				<< pitch_angle << " "
+				<< step_divisor << ": "
+				<< max_nrj_error << " "
+				<< max_mom_error
+				<< endl;*/
+
+			if (old_step_divisor > 0) {
+				order_of_accuracy
+						= -log(max_nrj_error / old_nrj_error)
 						/ log(double(step_divisor) / old_step_divisor);
-
-				//cout << order_of_accuracy << " " << max_relative_error << endl;
-
-				if (
-					not check_result(
-						Stepper(),
-						kinetic_energy,
-						pitch_angle,
-						step_divisor,
-						order_of_accuracy,
-						max_relative_error,
-						state[0]
-					)
-				) {
-					return false;
-				}
 			}
 
-			old_max_error = max_relative_error;
+			if (
+				not check_result(
+					Stepper(),
+					kinetic_energy,
+					pitch_angle,
+					step_divisor,
+					order_of_accuracy,
+					max_nrj_error,
+					max_mom_error,
+					state[0]
+				)
+			) {
+				return false;
+			}
+
+			old_nrj_error = max_nrj_error;
 			old_step_divisor = step_divisor;
 		}
 	}}
@@ -580,7 +684,7 @@ int main()
 
 	if (not test_stepper<modified_midpoint<state_t>>()) {
 		std::cerr <<  __FILE__ << " (" << __LINE__ << "): "
-			<< "modified_midpoint stepper failed."
+			<< "Unexpected failure in modified_midpoint stepper."
 			<< std::endl;
 		return EXIT_FAILURE;
 	}
@@ -589,28 +693,28 @@ int main()
 
 	if (not test_stepper<runge_kutta4<state_t>>()) {
 		std::cerr <<  __FILE__ << " (" << __LINE__ << "): "
-			<< "runge_kutta4 stepper failed."
+			<< "Unexpected failure in runge_kutta4 stepper."
 			<< std::endl;
 		return EXIT_FAILURE;
 	}
 
 	if (not test_stepper<runge_kutta_cash_karp54<state_t>>()) {
 		std::cerr <<  __FILE__ << " (" << __LINE__ << "): "
-			<< "runge_kutta_cash_karp54 stepper failed."
+			<< "Unexpected failure in runge_kutta_cash_karp54 stepper."
 			<< std::endl;
 		return EXIT_FAILURE;
 	}
 
 	if (not test_stepper<runge_kutta_dopri5<state_t>>()) {
 		std::cerr <<  __FILE__ << " (" << __LINE__ << "): "
-			<< "runge_kutta_dopri5 stepper failed."
+			<< "Unexpected failure in runge_kutta_dopri5 stepper."
 			<< std::endl;
 		return EXIT_FAILURE;
 	}
 
 	if (not test_stepper<runge_kutta_fehlberg78<state_t>>()) {
 		std::cerr <<  __FILE__ << " (" << __LINE__ << "): "
-			<< "runge_kutta_fehlberg78 stepper failed."
+			<< "Unexpected failure in runge_kutta_fehlberg78 stepper."
 			<< std::endl;
 		return EXIT_FAILURE;
 	}
