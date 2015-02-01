@@ -57,7 +57,7 @@ constexpr double
 
 const Eigen::Vector3d dipole_moment{0, 0, -8e22};
 
-
+// state[0] = particle position, state[1] = velocity
 using state_t = std::array<Vector3d, 2>;
 
 
