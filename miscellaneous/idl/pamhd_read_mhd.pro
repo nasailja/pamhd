@@ -168,7 +168,7 @@ function pamhd_read_mhd, filename, variable_names = variable_names, variable_des
 		cell_data = make_array(11, /double)
 		point_lun, in_file, data_offset
 		readu, in_file, cell_data
-		data_field[6:13, i] = cell_data
+		data_field[6:13, i] = cell_data[0:7]
 
 		; add derived data
 		cell_id = cell_id - 1
