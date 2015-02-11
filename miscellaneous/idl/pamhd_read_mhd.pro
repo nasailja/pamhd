@@ -69,7 +69,7 @@ function pamhd_read_mhd, filename, variable_names = variable_names, variable_des
 	if (have_fluxes ne 1) then begin
 		close, in_file
 		free_lun, in_file
-		print, "File with MHDfluxes not supported."
+		print, "File with MHD fluxes not supported."
 		return, 1
 	endif
 
