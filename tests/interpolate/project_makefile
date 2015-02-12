@@ -1,0 +1,33 @@
+TESTS_INTERPOLATE_EXECUTABLES = \
+  tests/interpolate/test1.exe
+
+TESTS_INTERPOLATE_TESTS = \
+  tests/interpolate/test1.tst
+
+tests/interpolate_executables: $(TESTS_INTERPOLATE_EXECUTABLES)
+
+tests/interpolate_tests: $(TESTS_INTERPOLATE_TESTS)
+
+tests/interpolate_clean:
+	@printf "CLEAN tests/interpolate\n" && rm -f \
+	  $(TESTS_INTERPOLATE_EXECUTABLES) \
+	  $(TESTS_INTERPOLATE_TESTS)
+
+EXECUTABLES += tests/interpolate_executables
+TESTS += tests/interpolate_tests
+CLEAN += tests/interpolate_clean
+
+tests/interpolate/test1.exe: \
+  tests/interpolate/test1.cpp \
+  source/volume_range.hpp \
+  source/interpolate.hpp \
+  tests/interpolate/project_makefile \
+  $(ENVIRONMENT_MAKEFILE) \
+  Makefile
+	@printf "CXX $<\n" && $(CXX) $< -o $@ \
+	  $(CPPFLAGS) \
+	  $(CXXFLAGS) \
+	  $(LDFLAGS) \
+	  $(BOOST_CPPFLAGS) \
+	  $(BOOST_LDFLAGS) \
+	  $(BOOST_LIBS)

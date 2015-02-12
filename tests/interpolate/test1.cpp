@@ -1,0 +1,108 @@
+/*
+Tests for interpolate function of PAMHD.
+
+Copyright 2015 Ilja Honkonen
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+
+* Redistributions of source code must retain the above copyright notice, this
+  list of conditions and the following disclaimer.
+
+* Redistributions in binary form must reproduce the above copyright notice, this
+  list of conditions and the following disclaimer in the documentation and/or
+  other materials provided with the distribution.
+
+* Neither the names of the copyright holders nor the names of their contributors
+  may be used to endorse or promote products derived from this software
+  without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
+ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
+
+
+#include "array"
+#include "cmath"
+#include "cstdlib"
+#include "iostream"
+
+#include "interpolate.hpp"
+#include "volume_range.hpp"
+
+
+using namespace std;
+using namespace pamhd;
+
+double f(const double x, const double y, const double z)
+{
+	return -0.5*(x + 3) + 2*(y - 1) + 4*z + 5;
+}
+
+void test(
+	const std::array<double, 3>& start,
+	const std::array<double, 3>& end
+) {
+	const std::array<double, 3> mid{{
+		0.5 * (end[0] + start[0]),
+		0.5 * (end[1] + start[1]),
+		0.5 * (end[2] + start[2])
+	}};
+
+	const std::array<double, 27> data{{
+		f(start[0], start[1], start[2]),
+		f(mid[0], start[1], start[2]),
+		f(end[0], start[1], start[2]),
+		f(start[0], mid[1], start[2]),
+		f(mid[0], mid[1], start[2]),
+		f(end[0], mid[1], start[2]),
+		f(start[0], end[1], start[2]),
+		f(mid[0], end[1], start[2]),
+		f(end[0], end[1], start[2]),
+		f(start[0], start[1], mid[2]),
+		f(mid[0], start[1], mid[2]),
+		f(end[0], start[1], mid[2]),
+		f(start[0], mid[1], mid[2]),
+		f(mid[0], mid[1], mid[2]),
+		f(end[0], mid[1], mid[2]),
+		f(start[0], end[1], mid[2]),
+		f(mid[0], end[1], mid[2]),
+		f(end[0], end[1], mid[2]),
+		f(start[0], start[1], end[2]),
+		f(mid[0], start[1], end[2]),
+		f(end[0], start[1], end[2]),
+		f(start[0], mid[1], end[2]),
+		f(mid[0], mid[1], end[2]),
+		f(end[0], mid[1], end[2]),
+		f(start[0], end[1], end[2]),
+		f(mid[0], end[1], end[2]),
+		f(end[0], end[1], end[2]),
+	}};
+
+	for (size_t samples = 1; samples <= 5; samples++) {
+	for (const auto& coord: volume_range(start, end, samples)) {
+		const double
+			interpolated = interpolate(coord, start, end, data),
+			exact = f(coord[0], coord[1], coord[2]);
+		if (fabs(interpolated - exact) > 1e-10) {
+			abort();
+		}
+	}}
+}
+
+int main()
+{
+	test({{1., -4., -2.}}, {{5., 0., 2.}});
+	test({{-1.3, 4.5, 2.1}}, {{5.5, 6.7, 10.8}});
+
+	return EXIT_SUCCESS;
+}
