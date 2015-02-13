@@ -1,8 +1,10 @@
 TESTS_INTERPOLATE_EXECUTABLES = \
-  tests/interpolate/test1.exe
+  tests/interpolate/test1.exe \
+  tests/interpolate/eigen.exe
 
 TESTS_INTERPOLATE_TESTS = \
-  tests/interpolate/test1.tst
+  tests/interpolate/test1.tst \
+  tests/interpolate/eigen.tst
 
 tests/interpolate_executables: $(TESTS_INTERPOLATE_EXECUTABLES)
 
@@ -31,3 +33,19 @@ tests/interpolate/test1.exe: \
 	  $(BOOST_CPPFLAGS) \
 	  $(BOOST_LDFLAGS) \
 	  $(BOOST_LIBS)
+
+tests/interpolate/eigen.exe: \
+  tests/interpolate/eigen.cpp \
+  source/volume_range.hpp \
+  source/interpolate.hpp \
+  tests/interpolate/project_makefile \
+  $(ENVIRONMENT_MAKEFILE) \
+  Makefile
+	@printf "CXX $<\n" && $(CXX) $< -o $@ \
+	  $(CPPFLAGS) \
+	  $(CXXFLAGS) \
+	  $(LDFLAGS) \
+	  $(BOOST_CPPFLAGS) \
+	  $(BOOST_LDFLAGS) \
+	  $(BOOST_LIBS) \
+	  $(EIGEN_CPPFLAGS)

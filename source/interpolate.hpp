@@ -36,6 +36,23 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace pamhd {
 
+namespace detail {
+
+template<class T> T ZERO()
+{
+	return 0;
+}
+
+#ifdef EIGEN_WORLD_VERSION
+template<> Eigen::Vector3d ZERO<Eigen::Vector3d>()
+{
+	return Eigen::Vector3d(0, 0, 0);
+}
+#endif
+
+} // namespace pamhd
+
+
 /*!
 Returns value linearly interpolated from data to position coord.
 
@@ -50,15 +67,15 @@ marks location of (+x, +y, +z).
 coord must be within start and end.
 */
 template<class T> T interpolate(
-	const std::array<T, 3>& coord,
-	const std::array<T, 3>& start,
-	const std::array<T, 3>& end,
+	const std::array<double, 3>& coord,
+	const std::array<double, 3>& start,
+	const std::array<double, 3>& end,
 	const std::array<T, 27>& data
 ) {
 	using std::fabs;
 	using std::max;
 
-	const std::array<T, 3>
+	const std::array<double, 3>
 		mid{{
 			0.5 * (end[0] + start[0]),
 			0.5 * (end[1] + start[1]),
@@ -72,57 +89,57 @@ template<class T> T interpolate(
 		}};
 
 	// weights for corresponding item in data
-	const std::array<T, 27> weights{{
+	const std::array<double, 27> weights{{
 			// data point at -x, -y, -z
-			max(T{0}, 1 - (coord[0] - start[0]) / dr[0])
-			* max(T{0}, 1 - (coord[1] - start[1]) / dr[1])
-			* max(T{0}, 1 - (coord[2] - start[2]) / dr[2]),
+			max(0.0, 1 - (coord[0] - start[0]) / dr[0])
+			* max(0.0, 1 - (coord[1] - start[1]) / dr[1])
+			* max(0.0, 1 - (coord[2] - start[2]) / dr[2]),
 			// 0, -y, -z
 			(1 - fabs(coord[0] - mid[0]) / dr[0])
-			* max(T{0}, 1 - (coord[1] - start[1]) / dr[1])
-			* max(T{0}, 1 - (coord[2] - start[2]) / dr[2]),
+			* max(0.0, 1 - (coord[1] - start[1]) / dr[1])
+			* max(0.0, 1 - (coord[2] - start[2]) / dr[2]),
 			// +x, -y, -z
-			max(T{0}, 1 - (end[0] - coord[0]) / dr[0])
-			* max(T{0}, 1 - (coord[1] - start[1]) / dr[1])
-			* max(T{0}, 1 - (coord[2] - start[2]) / dr[2]),
+			max(0.0, 1 - (end[0] - coord[0]) / dr[0])
+			* max(0.0, 1 - (coord[1] - start[1]) / dr[1])
+			* max(0.0, 1 - (coord[2] - start[2]) / dr[2]),
 			// -x, 0, -z
-			max(T{0}, 1 - (coord[0] - start[0]) / dr[0])
+			max(0.0, 1 - (coord[0] - start[0]) / dr[0])
 			* (1 - fabs(coord[1] - mid[1]) / dr[1])
-			* max(T{0}, 1 - (coord[2] - start[2]) / dr[2]),
+			* max(0.0, 1 - (coord[2] - start[2]) / dr[2]),
 			// 0, 0, -z
 			(1 - fabs(coord[0] - mid[0]) / dr[0])
 			* (1 - fabs(coord[1] - mid[1]) / dr[1])
-			* max(T{0}, 1 - (coord[2] - start[2]) / dr[2]),
+			* max(0.0, 1 - (coord[2] - start[2]) / dr[2]),
 			// +x, 0, -z
-			max(T{0}, 1 - (end[0] - coord[0]) / dr[0])
+			max(0.0, 1 - (end[0] - coord[0]) / dr[0])
 			* (1 - fabs(coord[1] - mid[1]) / dr[1])
-			* max(T{0}, 1 - (coord[2] - start[2]) / dr[2]),
+			* max(0.0, 1 - (coord[2] - start[2]) / dr[2]),
 			// -x, +y, -z
-			max(T{0}, 1 - (coord[0] - start[0]) / dr[0])
-			* max(T{0}, 1 - (end[1] - coord[1]) / dr[1])
-			* max(T{0}, 1 - (coord[2] - start[2]) / dr[2]),
+			max(0.0, 1 - (coord[0] - start[0]) / dr[0])
+			* max(0.0, 1 - (end[1] - coord[1]) / dr[1])
+			* max(0.0, 1 - (coord[2] - start[2]) / dr[2]),
 			// 0, +y, -z
 			(1 - fabs(coord[0] - mid[0]) / dr[0])
-			* max(T{0}, 1 - (end[1] - coord[1]) / dr[1])
-			* max(T{0}, 1 - (coord[2] - start[2]) / dr[2]),
+			* max(0.0, 1 - (end[1] - coord[1]) / dr[1])
+			* max(0.0, 1 - (coord[2] - start[2]) / dr[2]),
 			// +x, +y, -z
-			max(T{0}, 1 - (end[0] - coord[0]) / dr[0])
-			* max(T{0}, 1 - (end[1] - coord[1]) / dr[1])
-			* max(T{0}, 1 - (coord[2] - start[2]) / dr[2]),
+			max(0.0, 1 - (end[0] - coord[0]) / dr[0])
+			* max(0.0, 1 - (end[1] - coord[1]) / dr[1])
+			* max(0.0, 1 - (coord[2] - start[2]) / dr[2]),
 			// -x, -y, 0
-			max(T{0}, 1 - (coord[0] - start[0]) / dr[0])
-			* max(T{0}, 1 - (coord[1] - start[1]) / dr[1])
+			max(0.0, 1 - (coord[0] - start[0]) / dr[0])
+			* max(0.0, 1 - (coord[1] - start[1]) / dr[1])
 			* (1 - fabs(coord[2] - mid[2]) / dr[2]),
 			// 0, -y, 0
 			(1 - fabs(coord[0] - mid[0]) / dr[0])
-			* max(T{0}, 1 - (coord[1] - start[1]) / dr[1])
+			* max(0.0, 1 - (coord[1] - start[1]) / dr[1])
 			* (1 - fabs(coord[2] - mid[2]) / dr[2]),
 			// +x, -y, 0
-			max(T{0}, 1 - (end[0] - coord[0]) / dr[0])
-			* max(T{0}, 1 - (coord[1] - start[1]) / dr[1])
+			max(0.0, 1 - (end[0] - coord[0]) / dr[0])
+			* max(0.0, 1 - (coord[1] - start[1]) / dr[1])
 			* (1 - fabs(coord[2] - mid[2]) / dr[2]),
 			// -x, 0, 0
-			max(T{0}, 1 - (coord[0] - start[0]) / dr[0])
+			max(0.0, 1 - (coord[0] - start[0]) / dr[0])
 			* (1 - fabs(coord[1] - mid[1]) / dr[1])
 			* (1 - fabs(coord[2] - mid[2]) / dr[2]),
 			// 0, 0, 0
@@ -130,60 +147,60 @@ template<class T> T interpolate(
 			* (1 - fabs(coord[1] - mid[1]) / dr[1])
 			* (1 - fabs(coord[2] - mid[2]) / dr[2]),
 			// +x, 0, 0
-			max(T{0}, 1 - (end[0] - coord[0]) / dr[0])
+			max(0.0, 1 - (end[0] - coord[0]) / dr[0])
 			* (1 - fabs(coord[1] - mid[1]) / dr[1])
 			* (1 - fabs(coord[2] - mid[2]) / dr[2]),
 			// -x, +y, 0
-			max(T{0}, 1 - (coord[0] - start[0]) / dr[0])
-			* max(T{0}, 1 - (end[1] - coord[1]) / dr[1])
+			max(0.0, 1 - (coord[0] - start[0]) / dr[0])
+			* max(0.0, 1 - (end[1] - coord[1]) / dr[1])
 			* (1 - fabs(coord[2] - mid[2]) / dr[2]),
 			// 0, +y, 0
 			(1 - fabs(coord[0] - mid[0]) / dr[0])
-			* max(T{0}, 1 - (end[1] - coord[1]) / dr[1])
+			* max(0.0, 1 - (end[1] - coord[1]) / dr[1])
 			* (1 - fabs(coord[2] - mid[2]) / dr[2]),
 			// +x, +y, 0
-			max(T{0}, 1 - (end[0] - coord[0]) / dr[0])
-			* max(T{0}, 1 - (end[1] - coord[1]) / dr[1])
+			max(0.0, 1 - (end[0] - coord[0]) / dr[0])
+			* max(0.0, 1 - (end[1] - coord[1]) / dr[1])
 			* (1 - fabs(coord[2] - mid[2]) / dr[2]),
 			// -x, -y, +z
-			max(T{0}, 1 - (coord[0] - start[0]) / dr[0])
-			* max(T{0}, 1 - (coord[1] - start[1]) / dr[1])
-			* max(T{0}, 1 - (end[2] - coord[2]) / dr[2]),
+			max(0.0, 1 - (coord[0] - start[0]) / dr[0])
+			* max(0.0, 1 - (coord[1] - start[1]) / dr[1])
+			* max(0.0, 1 - (end[2] - coord[2]) / dr[2]),
 			// 0, -y, +z
 			(1 - fabs(coord[0] - mid[0]) / dr[0])
-			* max(T{0}, 1 - (coord[1] - start[1]) / dr[1])
-			* max(T{0}, 1 - (end[2] - coord[2]) / dr[2]),
+			* max(0.0, 1 - (coord[1] - start[1]) / dr[1])
+			* max(0.0, 1 - (end[2] - coord[2]) / dr[2]),
 			// +x, -y, +z
-			max(T{0}, 1 - (end[0] - coord[0]) / dr[0])
-			* max(T{0}, 1 - (coord[1] - start[1]) / dr[1])
-			* max(T{0}, 1 - (end[2] - coord[2]) / dr[2]),
+			max(0.0, 1 - (end[0] - coord[0]) / dr[0])
+			* max(0.0, 1 - (coord[1] - start[1]) / dr[1])
+			* max(0.0, 1 - (end[2] - coord[2]) / dr[2]),
 			// -x, 0, +z
-			max(T{0}, 1 - (coord[0] - start[0]) / dr[0])
+			max(0.0, 1 - (coord[0] - start[0]) / dr[0])
 			* (1 - fabs(coord[1] - mid[1]) / dr[1])
-			* max(T{0}, 1 - (end[2] - coord[2]) / dr[2]),
+			* max(0.0, 1 - (end[2] - coord[2]) / dr[2]),
 			// 0, 0, +z
 			(1 - fabs(coord[0] - mid[0]) / dr[0])
 			* (1 - fabs(coord[1] - mid[1]) / dr[1])
-			* max(T{0}, 1 - (end[2] - coord[2]) / dr[2]),
+			* max(0.0, 1 - (end[2] - coord[2]) / dr[2]),
 			// +x, 0, +z
-			max(T{0}, 1 - (end[0] - coord[0]) / dr[0])
+			max(0.0, 1 - (end[0] - coord[0]) / dr[0])
 			* (1 - fabs(coord[1] - mid[1]) / dr[1])
-			* max(T{0}, 1 - (end[2] - coord[2]) / dr[2]),
+			* max(0.0, 1 - (end[2] - coord[2]) / dr[2]),
 			// -x, +y, +z
-			max(T{0}, 1 - (coord[0] - start[0]) / dr[0])
-			* max(T{0}, 1 - (end[1] - coord[1]) / dr[1])
-			* max(T{0}, 1 - (end[2] - coord[2]) / dr[2]),
+			max(0.0, 1 - (coord[0] - start[0]) / dr[0])
+			* max(0.0, 1 - (end[1] - coord[1]) / dr[1])
+			* max(0.0, 1 - (end[2] - coord[2]) / dr[2]),
 			// 0, +y, +z
 			(1 - fabs(coord[0] - mid[0]) / dr[0])
-			* max(T{0}, 1 - (end[1] - coord[1]) / dr[1])
-			* max(T{0}, 1 - (end[2] - coord[2]) / dr[2]),
+			* max(0.0, 1 - (end[1] - coord[1]) / dr[1])
+			* max(0.0, 1 - (end[2] - coord[2]) / dr[2]),
 			// +x, +y, +z
-			max(T{0}, 1 - (end[0] - coord[0]) / dr[0])
-			* max(T{0}, 1 - (end[1] - coord[1]) / dr[1])
-			* max(T{0}, 1 - (end[2] - coord[2]) / dr[2])
+			max(0.0, 1 - (end[0] - coord[0]) / dr[0])
+			* max(0.0, 1 - (end[1] - coord[1]) / dr[1])
+			* max(0.0, 1 - (end[2] - coord[2]) / dr[2])
 	}};
 
-	T ret_val{0};
+	T ret_val = detail::ZERO<T>();
 	for (size_t i = 0; i < data.size(); i++) {
 		ret_val += weights[i] * data[i];
 	}
