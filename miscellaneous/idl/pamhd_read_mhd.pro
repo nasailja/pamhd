@@ -237,11 +237,11 @@ function pamhd_read_mhd, filename, variable_names = variable_names, variable_des
 
 	; read cell data into final array
 	data_field = make_array(14, total_cells, /double)
-	for i = 0, total_cells - 1 do begin
+	cell_data = make_array(11, /double)
+	for i = ulong64(0), total_cells - ulong64(1) do begin
 		cell_id = cell_ids_data_offsets[0, i]
 		data_offset = cell_ids_data_offsets[1, i]
 
-		cell_data = make_array(11, /double)
 		point_lun, in_file, data_offset
 		readu, in_file, cell_data, transfer_count = items_read
 		if (items_read ne 11) then begin
