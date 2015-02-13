@@ -60,9 +60,18 @@ function pamhd_read_mhd, filename, variable_names = variable_names, variable_des
 
 	openr, in_file, filename, /get_lun
 
+	items_read = ulong64(0)
+
 	; whether fluxes were saved
 	fluxes_header = bytarr(11)
-	readu, in_file, fluxes_header
+	readu, in_file, fluxes_header, transfer_count = items_read
+	if (items_read ne 11) then begin
+		close, in_file
+		free_lun, in_file
+		print, "Couldn't read header", items_read
+		return, 1
+	endif
+
 	fluxes_header = string(fluxes_header)
 
 	have_fluxes = strmatch(fluxes_header, 'fluxes = n' + string(10B))
@@ -70,7 +79,7 @@ function pamhd_read_mhd, filename, variable_names = variable_names, variable_des
 		close, in_file
 		free_lun, in_file
 		print, "File with MHD fluxes not supported."
-		return, 1
+		return, 2
 	endif
 
 
@@ -78,7 +87,13 @@ function pamhd_read_mhd, filename, variable_names = variable_names, variable_des
 	adiabatic_index = double(-1)
 	proton_mass = double(-1)
 	vacuum_permeability = double(-1)
-	readu, in_file, adiabatic_index, proton_mass, vacuum_permeability
+	readu, in_file, adiabatic_index, proton_mass, vacuum_permeability, transfer_count = items_read
+	if (items_read ne 1) then begin
+		close, in_file
+		free_lun, in_file
+		print, "Couldn't read metadata", items_read
+		return, 3
+	endif
 
 	meta_data = make_array(3, /double)
 	meta_data[0] = adiabatic_index
@@ -89,12 +104,18 @@ function pamhd_read_mhd, filename, variable_names = variable_names, variable_des
 	; endianness check
 	endianness = ulong64(1311768467294899695) ; 0x1234567890abcdef
 	endianness_file = ulong64(0)
-	readu, in_file, endianness_file
+	readu, in_file, endianness_file, transfer_count = items_read
+	if (items_read ne 1) then begin
+		close, in_file
+		free_lun, in_file
+		print, "Couldn't read file endianness", items_read
+		return, 4
+	endif
 	if (endianness ne endianness_file) then begin
 		close, in_file
 		free_lun, in_file
 		print, "Unsupported endianness."
-		return, 2
+		return, 5
 	endif
 
 
@@ -102,61 +123,116 @@ function pamhd_read_mhd, filename, variable_names = variable_names, variable_des
 	grid_size_x = ulong64(0)
 	grid_size_y = ulong64(0)
 	grid_size_z = ulong64(0)
-	readu, in_file, grid_size_x, grid_size_y, grid_size_z
-	;print, grid_size_x, grid_size_y, grid_size_z
+	readu, in_file, grid_size_x, grid_size_y, grid_size_z, transfer_count = items_read
+	if (items_read ne 1) then begin
+		close, in_file
+		free_lun, in_file
+		print, "Couldn't read grid size", items_read
+		return, 6
+	endif
+	;print, "Grid size in ref. lvl. 0 cells", grid_size_x, grid_size_y, grid_size_z
 
 	max_refinement_level = long(-1)
-	readu, in_file, max_refinement_level
-	;print, max_refinement_level
+	readu, in_file, max_refinement_level, transfer_count = items_read
+	if (items_read ne 1) then begin
+		close, in_file
+		free_lun, in_file
+		print, "Couldn't read maximum refinement level of grid", items_read
+		return, 7
+	endif
+	;print, "Maximum refinement level of grid cells", max_refinement_level
 	if (max_refinement_level ne 0) then begin
 		print, "Maximum refinement level > 0 not supported."
-		return, 3
+		return, 8
 		close, in_file
 		free_lun, in_file
 	endif
 
 	; size of cells' neighborhoods
 	neighborhood_length = ulong(0)
-	readu, in_file, neighborhood_length
-	;print, neighborhood_length
+	readu, in_file, neighborhood_length, transfer_count = items_read
+	if (items_read ne 1) then begin
+		close, in_file
+		free_lun, in_file
+		print, "Couldn't read length of neighborhood", items_read
+		return, 9
+	endif
+	;print, "Length of cells' neighborhood: ", neighborhood_length
 
 	; grid periodicity
 	periodic_x = byte(0)
 	periodic_y = byte(0)
 	periodic_z = byte(0)
-	readu, in_file, periodic_x, periodic_y, periodic_z
-	;print, periodic_x, periodic_y, periodic_z
+	readu, in_file, periodic_x, periodic_y, periodic_z, transfer_count = items_read
+	if (items_read ne 1) then begin
+		close, in_file
+		free_lun, in_file
+		print, "Couldn't read grid periodicity", items_read
+		return, 10
+	endif
+	;print, "Grid periodicity info", periodic_x, periodic_y, periodic_z
 
 	; grid geometry
 	geometry_id = long(-1)
-	readu, in_file, geometry_id
+	readu, in_file, geometry_id, transfer_count = items_read
+	if (items_read ne 1) then begin
+		close, in_file
+		free_lun, in_file
+		print, "Couldn't read grid geometry id", items_read
+		return, 11
+	endif
 	if (geometry_id ne 1) then begin
 		close, in_file
 		free_lun, in_file
 		print, "Unsupported geometry: ", geometry_id
-		return, 4
+		return, 12
 	endif
 
 	grid_start_x = double(0)
 	grid_start_y = double(0)
 	grid_start_z = double(0)
-	readu, in_file, grid_start_x, grid_start_y, grid_start_z
-	;print, grid_start_x, grid_start_y, grid_start_z
+	readu, in_file, grid_start_x, grid_start_y, grid_start_z, transfer_count = items_read
+	if (items_read ne 1) then begin
+		close, in_file
+		free_lun, in_file
+		print, "Couldn't read starting coordinate of grid", items_read
+		return, 13
+	endif
+	;print, "Starting coordinate of grid", grid_start_x, grid_start_y, grid_start_z
 
 	lvl_0_cell_length_x = double(0)
 	lvl_0_cell_length_y = double(0)
 	lvl_0_cell_length_z = double(0)
-	readu, in_file, lvl_0_cell_length_x, lvl_0_cell_length_y, lvl_0_cell_length_z
-	;print, lvl_0_cell_length_x, lvl_0_cell_length_y, lvl_0_cell_length_z
+	readu, in_file, lvl_0_cell_length_x, lvl_0_cell_length_y, lvl_0_cell_length_z, transfer_count = items_read
+	if (items_read ne 1) then begin
+		close, in_file
+		free_lun, in_file
+		print, "Couldn't read length of ref. lvl. 0 cells", items_read
+		return, 14
+	endif
+	;print, "Length of ref. lvl. 0 cells", lvl_0_cell_length_x, lvl_0_cell_length_y, lvl_0_cell_length_z
 
 
 	; total number of cells
 	total_cells = ulong64(0)
-	readu, in_file, total_cells
+	readu, in_file, total_cells, transfer_count = items_read
+	if (items_read ne 1) then begin
+		close, in_file
+		free_lun, in_file
+		print, "Couldn't read total number of cells", items_read
+		return, 15
+	endif
+	;print, "Total number of cells in grid", total_cells
 
 	; read in cell ids and their datas' byte offsets
 	cell_ids_data_offsets = make_array(2, total_cells, /ul64)
-	readu, in_file, cell_ids_data_offsets
+	readu, in_file, cell_ids_data_offsets, transfer_count = items_read
+	if (items_read ne 2 * total_cells) then begin
+		close, in_file
+		free_lun, in_file
+		print, "Couldn't read cell ids and data offsets", items_read
+		return, 16
+	endif
 
 
 	; read cell data into final array
@@ -167,7 +243,15 @@ function pamhd_read_mhd, filename, variable_names = variable_names, variable_des
 
 		cell_data = make_array(11, /double)
 		point_lun, in_file, data_offset
-		readu, in_file, cell_data
+		readu, in_file, cell_data, transfer_count = items_read
+		if (items_read ne 11) then begin
+			close, in_file
+			free_lun, in_file
+			print, "Couldn't read cell data at byte offset", data_offset
+			print, items_read, "items read, should be 11"
+			return, 17
+		endif
+
 		data_field[6:13, i] = cell_data[0:7]
 
 		; add derived data
