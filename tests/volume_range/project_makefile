@@ -1,8 +1,10 @@
 TESTS_VOLUME_RANGE_EXECUTABLES = \
-  tests/volume_range/number_of_samples.exe
+  tests/volume_range/number_of_samples.exe \
+  tests/volume_range/eigen.exe
 
 TESTS_VOLUME_RANGE_TESTS = \
-  tests/volume_range/number_of_samples.tst
+  tests/volume_range/number_of_samples.tst \
+  tests/volume_range/eigen.tst
 
 tests/volume_range_executables: $(TESTS_VOLUME_RANGE_EXECUTABLES)
 
@@ -17,16 +19,27 @@ EXECUTABLES += tests/volume_range_executables
 TESTS += tests/volume_range_tests
 CLEAN += tests/volume_range_clean
 
-tests/volume_range/number_of_samples.exe: \
-  tests/volume_range/number_of_samples.cpp \
-  source/volume_range.hpp \
-  tests/volume_range/project_makefile \
-  $(ENVIRONMENT_MAKEFILE) \
-  Makefile
-	@printf "CXX $<\n" && $(CXX) $< -o $@ \
+COMMON_COMPILE_CMD = \
+	  $(CXX) $< -o $@ \
 	  $(CPPFLAGS) \
 	  $(CXXFLAGS) \
 	  $(LDFLAGS) \
 	  $(BOOST_CPPFLAGS) \
 	  $(BOOST_LDFLAGS) \
 	  $(BOOST_LIBS)
+
+tests/volume_range/number_of_samples.exe: \
+  tests/volume_range/number_of_samples.cpp \
+  source/volume_range.hpp \
+  tests/volume_range/project_makefile \
+  $(ENVIRONMENT_MAKEFILE) \
+  Makefile
+	@printf "CXX $<\n" && $(COMMON_COMPILE_CMD)
+
+tests/volume_range/eigen.exe: \
+  tests/volume_range/eigen.cpp \
+  source/volume_range.hpp \
+  tests/volume_range/project_makefile \
+  $(ENVIRONMENT_MAKEFILE) \
+  Makefile
+	@printf "CXX $<\n" && $(COMMON_COMPILE_CMD) $(EIGEN_CPPFLAGS)
