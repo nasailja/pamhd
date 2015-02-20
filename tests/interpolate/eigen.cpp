@@ -54,14 +54,14 @@ Eigen::Vector3d f(const double x, const double y, const double z)
 }
 
 void test(
-	const std::array<double, 3>& start,
-	const std::array<double, 3>& end
+	const Eigen::Vector3d& start,
+	const Eigen::Vector3d& end
 ) {
-	const std::array<double, 3> mid{{
+	const Eigen::Vector3d mid{
 		0.5 * (end[0] + start[0]),
 		0.5 * (end[1] + start[1]),
 		0.5 * (end[2] + start[2])
-	}};
+	};
 
 	const std::array<Eigen::Vector3d, 27> data{{
 		f(start[0], start[1], start[2]),
@@ -106,8 +106,8 @@ void test(
 
 int main()
 {
-	test({{1., -4., -2.}}, {{5., 0., 2.}});
-	test({{-1.3, 4.5, 2.1}}, {{5.5, 6.7, 10.8}});
+	test({1., -4., -2.}, {5., 0., 2.});
+	test({-1.3, 4.5, 2.1}, {5.5, 6.7, 10.8});
 
 	return EXIT_SUCCESS;
 }
