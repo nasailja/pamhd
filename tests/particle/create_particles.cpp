@@ -77,7 +77,7 @@ int main()
 
 		const auto particles
 			= create_particles<
-				Particle,
+				Particle_T<>,
 				Mass,
 				Charge_Mass_Ratio,
 				Position,

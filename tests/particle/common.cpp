@@ -60,7 +60,7 @@ int main()
 	const Mass Mas{};
 	const Charge_Mass_Ratio C2M{};
 
-	Particle particle;
+	Particle_T<> particle;
 	Eigen::Vector3d electric_field, magnetic_field;
 
 	// not needed

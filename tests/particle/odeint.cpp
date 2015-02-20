@@ -82,7 +82,7 @@ int main()
 	const Charge_Mass_Ratio C2M{};
 
 	double time, dt, gyro_radius;
-	Particle particle;
+	Particle_T<> particle;
 
 	particle[C2M] = 1;
 	const Vector3d

@@ -57,7 +57,7 @@ int main()
 	const Charge_Mass_Ratio C2M{};
 
 	double time, dt, gyro_radius, gyro_period;
-	Particle particle;
+	Particle_T<> particle;
 	Eigen::Vector3d electric_field, magnetic_field;
 
 	// not needed

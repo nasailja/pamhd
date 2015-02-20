@@ -42,7 +42,6 @@ Propagation test after http://dx.doi.org/10.1029/2005JA011382
 #include "Eigen/Core" // must be included before gensimcell.hpp
 #include "Eigen/Geometry"
 
-#include "particle/variables.hpp"
 #include "particle/solve.hpp"
 
 

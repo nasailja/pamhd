@@ -40,7 +40,6 @@ Propagation test after http://dx.doi.org/10.1029/2005JA011382
 #include "iomanip"
 #include "iostream"
 
-#include "particle/variables.hpp"
 #include "particle/solve.hpp"
 
 
