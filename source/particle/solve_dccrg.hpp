@@ -135,7 +135,6 @@ template<
 	class Cell_T,
 	class Electric_Field_T,
 	class Magnetic_Field_T,
-	class Nr_Particles_Internal_T,
 	class Nr_Particles_External_T,
 	class Particles_Internal_T,
 	class Particles_External_T,
@@ -155,13 +154,16 @@ template<
 	using std::is_same;
 
 	static_assert(
-		is_same<Stepper, odeint::runge_kutta_fehlberg78<state_t>>::value,
+		is_same<Stepper, odeint::euler<state_t>>::value
+		or is_same<Stepper, odeint::modified_midpoint<state_t>>::value
+		or is_same<Stepper, odeint::runge_kutta4<state_t>>::value
+		or is_same<Stepper, odeint::runge_kutta_cash_karp54<state_t>>::value
+		or is_same<Stepper, odeint::runge_kutta_fehlberg78<state_t>>::value,
 		"Only odeint steppers without internal state are supported."
 	);
 
 	constexpr Electric_Field_T Ele{};
 	constexpr Magnetic_Field_T Mag{};
-	constexpr Nr_Particles_Internal_T Nr_Int{};
 	constexpr Nr_Particles_External_T Nr_Ext{};
 	constexpr Particles_Internal_T Part_Int{};
 	constexpr Particles_External_T Part_Ext{};
@@ -225,11 +227,11 @@ template<
 			}
 
 			if (i <= 13) {
-				electric_fields[i] = electric_fields[14];
-				magnetic_fields[i] = magnetic_fields[14];
+				electric_fields[i] = (*neighbor_data)[Ele];
+				magnetic_fields[i] = (*neighbor_data)[Mag];
 			} else {
-				electric_fields[i + 1] = electric_fields[14];
-				magnetic_fields[i + 1] = magnetic_fields[14];
+				electric_fields[i + 1] = (*neighbor_data)[Ele];
+				magnetic_fields[i + 1] = (*neighbor_data)[Mag];
 			}
 		}
 
@@ -271,22 +273,23 @@ template<
 			);
 
 			state_t state{{particle[Pos], particle[Vel]}};
-
 			stepper.do_step(propagator, state, 0.0, dt);
+			(*cell_data)[Part_Int][i][Vel] = state[1];
 
 
 			// take into account periodic grid
-			std::array<double, 3> temp{{state[0][0], state[0][1], state[0][2]}};
-			temp = grid.geometry.get_real_coordinate(temp);
-			(*cell_data)[Part_Int][i][Pos][0] = temp[0];
-			(*cell_data)[Part_Int][i][Pos][1] = temp[1];
-			(*cell_data)[Part_Int][i][Pos][2] = temp[2];
+			const std::array<double, 3> real_pos
+				= grid.geometry.get_real_coordinate({{
+					state[0][0],
+					state[0][1],
+					state[0][2]
+				}});
 
 			// remove from simulation if particle not inside of grid
 			if (
-				isnan(particle[Pos][0])
-				or isnan(particle[Pos][1])
-				or isnan(particle[Pos][2])
+				isnan(real_pos[0])
+				or isnan(real_pos[1])
+				or isnan(real_pos[2])
 			) {
 
 				(*cell_data)[Part_Int].erase((*cell_data)[Part_Int].begin() + i);
@@ -294,12 +297,12 @@ template<
 
 			// move to ext list if particle outside of current cell
 			} else if (
-				particle[Pos][0] < cell_min[0]
-				or particle[Pos][0] > cell_max[0]
-				or particle[Pos][1] < cell_min[1]
-				or particle[Pos][1] > cell_max[1]
-				or particle[Pos][2] < cell_min[2]
-				or particle[Pos][2] > cell_max[2]
+				real_pos[0] < cell_min[0]
+				or real_pos[0] > cell_max[0]
+				or real_pos[1] < cell_min[1]
+				or real_pos[1] > cell_max[1]
+				or real_pos[2] < cell_min[2]
+				or real_pos[2] > cell_max[2]
 			) {
 				uint64_t destination = dccrg::error_cell;
 
@@ -313,12 +316,12 @@ template<
 						neighbor_max = grid.geometry.get_max(neighbor_id);
 
 					if (
-						particle[Pos][0] >= neighbor_min[0]
-						and particle[Pos][0] <= neighbor_max[0]
-						and particle[Pos][1] >= neighbor_min[1]
-						and particle[Pos][1] <= neighbor_max[1]
-						and particle[Pos][2] >= neighbor_min[2]
-						and particle[Pos][2] <= neighbor_max[2]
+						real_pos[0] >= neighbor_min[0]
+						and real_pos[0] <= neighbor_max[0]
+						and real_pos[1] >= neighbor_min[1]
+						and real_pos[1] <= neighbor_max[1]
+						and real_pos[2] >= neighbor_min[2]
+						and real_pos[2] <= neighbor_max[2]
 					) {
 						destination = neighbor_id;
 						break;
@@ -326,22 +329,37 @@ template<
 				}
 
 				if (destination != dccrg::error_cell) {
-					const auto old_size = (*cell_data)[Part_Ext].size();
+					const auto index = (*cell_data)[Part_Ext].size();
 
-					(*cell_data)[Part_Ext].resize(old_size + 1);
+					(*cell_data)[Part_Ext].resize(index + 1);
 					assign(
-						(*cell_data)[Part_Ext][old_size],
+						(*cell_data)[Part_Ext][index],
 						(*cell_data)[Part_Int][i]
 					);
-					(*cell_data)[Part_Ext][old_size][Des] = destination;
+					(*cell_data)[Part_Ext][index][Des] = destination;
+					(*cell_data)[Part_Ext][index][Pos] = {
+						real_pos[0],
+						real_pos[1],
+						real_pos[2]
+					};
 
 					(*cell_data)[Part_Int].erase((*cell_data)[Part_Int].begin() + i);
 					i--;
+				} else {
+					std::cerr << __FILE__ << "(" << __LINE__ << ")" << std::endl;
+					abort();
 				}
+
+			// update particle position in this cell's internal list
+			} else {
+				(*cell_data)[Part_Int][i][Pos] = {
+					real_pos[0],
+					real_pos[1],
+					real_pos[2]
+				};
 			}
 		}
 
-		(*cell_data)[Nr_Int] = (*cell_data)[Part_Int].size();
 		(*cell_data)[Nr_Ext] = (*cell_data)[Part_Ext].size();
 	}
 
@@ -376,7 +394,6 @@ template<
 
 template<
 	class Cell_T,
-	class Nr_Particles_Internal_T,
 	class Nr_Particles_External_T,
 	class Particles_Internal_T,
 	class Particles_External_T,
@@ -385,7 +402,6 @@ template<
 	const std::vector<uint64_t>& cell_ids,
 	dccrg::Dccrg<Cell_T, dccrg::Cartesian_Geometry>& grid
 ) {
-	constexpr Nr_Particles_Internal_T Nr_Int{};
 	constexpr Nr_Particles_External_T Nr_Ext{};
 	constexpr Particles_Internal_T Part_Int{};
 	constexpr Particles_External_T Part_Ext{};
@@ -412,30 +428,29 @@ template<
 				continue;
 			}
 
-			const auto* const neighbor_ptr = grid[neighbor_id];
+			auto* const neighbor_ptr = grid[neighbor_id];
 			if (neighbor_ptr == nullptr) {
 				std::cerr << __FILE__ << "(" << __LINE__ << ")" << std::endl;
 				abort();
 			}
-			const auto& neighbor_data = *neighbor_ptr;
+			auto& neighbor_data = *neighbor_ptr;
 
-			for (const auto& particle: neighbor_data[Part_Ext]) {
+			for (auto& particle: neighbor_data[Part_Ext]) {
 				if (particle[Dest] == dccrg::error_cell) {
-					std::cerr << __FILE__ << "(" << __LINE__ << ")" << std::endl;
-					abort();
+					continue;
 				}
 
 				if (particle[Dest] == cell_id) {
-					const auto old_size = cell_data[Part_Int].size();
+					particle[Dest] = dccrg::error_cell;
 
-					cell_data[Part_Int].resize(old_size + 1);
+					const auto index = cell_data[Part_Int].size();
 
-					assign(cell_data[Part_Int][old_size], particle);
+					cell_data[Part_Int].resize(index + 1);
+
+					assign(cell_data[Part_Int][index], particle);
 				}
 			}
 		}
-
-		cell_data[Nr_Int] = cell_data[Part_Int].size();
 	}
 }
 

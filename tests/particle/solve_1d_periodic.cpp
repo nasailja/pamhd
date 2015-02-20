@@ -1,5 +1,5 @@
 /*
-Tests odeint particle solver of PAMHD in 1 dimension.
+Tests odeint particle solver of PAMHD in 1 dimension with periodic grid.
 
 Copyright 2015 Ilja Honkonen
 All rights reserved.
@@ -95,24 +95,24 @@ int main(int argc, char* argv[])
 		not grid_x.initialize(
 			number_of_cells_x,
 			comm,
-			"RANDOM",
+			"RCB",
 			neighborhood_size,
 			0,
-			false, false, false)
+			true, true, true)
 		or not grid_y.initialize(
 			number_of_cells_y,
 			comm,
-			"RANDOM",
+			"RCB",
 			neighborhood_size,
 			0,
-			false, false, false)
+			true, true, true)
 		or not grid_z.initialize(
 			number_of_cells_z,
 			comm,
-			"RANDOM",
+			"RCB",
 			neighborhood_size,
 			0,
-			false, false, false
+			true, true, true
 		)
 	) {
 		std::cerr << __FILE__ << "(" << __LINE__ << "): "
@@ -193,9 +193,9 @@ int main(int argc, char* argv[])
 			cell_center_z[1],
 			cell_center_z[2]
 		};
-		particle_x[Velocity()] = {1.0,   0,   0};
-		particle_y[Velocity()] = {  0, 1.0,   0};
-		particle_z[Velocity()] = {  0,   0, 1.0};
+		particle_x[Velocity()] = {1.0,   0.5,   -0.5};
+		particle_y[Velocity()] = {  0.5, 1.0,   -0.5};
+		particle_z[Velocity()] = {  0.5,   -0.5, 1.0};
 
 		particle_x[Mass()] =
 		particle_y[Mass()] =
@@ -281,7 +281,7 @@ int main(int argc, char* argv[])
 	};
 
 
-	for (size_t step = 0; step < 10; step++) {
+	for (size_t step = 0; step < 1; step++) {
 		solve(outer_cell_ids, grid_x);
 		solve(outer_cell_ids, grid_y);
 		solve(outer_cell_ids, grid_z);
@@ -357,8 +357,8 @@ int main(int argc, char* argv[])
 
 		// check that solution is correct
 		std::array<int, 3>
-			total_particles_local{{0, 0, 0}},
-			total_particles{{0, 0, 0}};
+			total_particles_local={0, 0, 0},
+			total_particles={0, 0, 0};
 
 		for (const auto& cell_id: cell_ids) {
 			auto
@@ -391,6 +391,7 @@ int main(int argc, char* argv[])
 			if (cell_data_x[pamhd::particle::Particles_Internal()].size() > 1) {
 				std::cerr << __FILE__ << "(" << __LINE__ << ") "
 					<< "Incorrect number of internal particles in cell " << cell_id
+					<< " after step " << step
 					<< ": " << cell_data_x[pamhd::particle::Particles_Internal()].size()
 					<< std::endl;
 				abort();
@@ -398,6 +399,7 @@ int main(int argc, char* argv[])
 			if (cell_data_y[pamhd::particle::Particles_Internal()].size() > 1) {
 				std::cerr << __FILE__ << "(" << __LINE__ << ") "
 					<< "Incorrect number of internal particles in cell " << cell_id
+					<< " after step " << step
 					<< ": " << cell_data_y[pamhd::particle::Particles_Internal()].size()
 					<< std::endl;
 				abort();
@@ -405,6 +407,7 @@ int main(int argc, char* argv[])
 			if (cell_data_z[pamhd::particle::Particles_Internal()].size() > 1) {
 				std::cerr << __FILE__ << "(" << __LINE__ << ") "
 					<< "Incorrect number of internal particles in cell " << cell_id
+					<< " after step " << step
 					<< ": " << cell_data_z[pamhd::particle::Particles_Internal()].size()
 					<< std::endl;
 				abort();
@@ -419,7 +422,7 @@ int main(int argc, char* argv[])
 			MPI_SUM,
 			comm
 		);
-		if (total_particles[0] != 9 - int(step)) {
+		if (total_particles[0] != 10) {
 			if (grid_x.get_rank() == 0) {
 				std::cerr << __FILE__ << "(" << __LINE__ << ") "
 					<< "Incorrect total number of particles at end of step "
@@ -428,7 +431,7 @@ int main(int argc, char* argv[])
 			}
 			abort();
 		}
-		if (total_particles[1] != 9 - int(step)) {
+		if (total_particles[1] != 10) {
 			if (grid_y.get_rank() == 0) {
 				std::cerr << __FILE__ << "(" << __LINE__ << ") "
 					<< "Incorrect total number of particles at end of step "
@@ -437,7 +440,7 @@ int main(int argc, char* argv[])
 			}
 			abort();
 		}
-		if (total_particles[2] != 9 - int(step)) {
+		if (total_particles[2] != 10) {
 			if (grid_z.get_rank() == 0) {
 				std::cerr << __FILE__ << "(" << __LINE__ << ") "
 					<< "Incorrect total number of particles at end of step "
