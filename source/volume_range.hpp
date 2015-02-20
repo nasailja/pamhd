@@ -28,6 +28,9 @@ LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
 ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+
+Include Eigen/Core before this header to get support for Eigen vectors.
 */
 
 #ifndef PAMHD_VOLUME_RANGE_HPP
@@ -39,38 +42,62 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "type_traits"
 
 
+#ifdef EIGEN_WORLD_VERSION
+namespace std {
+
+template <
+	typename _Scalar,
+	int _Rows, int _Cols,
+	int _Options,
+	int _MaxRows, int _MaxCols
+> class tuple_size<
+	Eigen::Matrix<
+		_Scalar,
+		_Rows, _Cols,
+		_Options,
+		_MaxRows, _MaxCols
+	>
+> {
+public:
+	static_assert(
+		_Rows != Eigen::Dynamic and _Cols != Eigen::Dynamic,
+		"tuple_size is only supported for fixed size matrices"
+	);
+	static const size_t value = _Rows * _Cols;
+};
+
+}
+#endif // ifdef EIGEN_WORLD_VERSION
+
+
 namespace pamhd {
 
 namespace detail {
 
 //! iterates over values in dimension Index
 template <
-	template <class Value_T, size_t Length> class Container_T,
-	class Value_T,
-	size_t Length,
-	size_t Index
+	size_t Index,
+	class Container_T
 > class volume_range_impl
 {
 public:
 	static void iterate(
 		typename boost::coroutines::coroutine<
-			Container_T<Value_T, Length>
+			Container_T
 		>::push_type& sink,
-		Container_T<Value_T, Length>& current,
-		const Container_T<Value_T, Length>& start,
-		const Container_T<Value_T, Length>& end,
-		const Container_T<Value_T, Length>& increment
+		Container_T& current,
+		const Container_T& start,
+		const Container_T& end,
+		const Container_T& increment
 	) {
 		for(
-			current[Index] = start[Index] + increment[Index] / Value_T(2);
+			current[Index] = start[Index] + increment[Index] / 2.0;
 			current[Index] < end[Index];
 			current[Index] += increment[Index]
 		) {
 			volume_range_impl<
-				Container_T,
-				Value_T,
-				Length,
-				Index - 1
+				Index - 1,
+				Container_T
 			>::iterate(
 				sink,
 				current,
@@ -84,23 +111,21 @@ public:
 
 //! iterates over values of the last or only dimension
 template <
-	template <class Value_T, size_t Length> class Container_T,
-	class Value_T,
-	size_t Length
-> class volume_range_impl<Container_T, Value_T, Length, 0>
+	class Container_T
+> class volume_range_impl<0, Container_T>
 {
 public:
 	static void iterate(
 		typename boost::coroutines::coroutine<
-			Container_T<Value_T, Length>
+			Container_T
 		>::push_type& sink,
-		Container_T<Value_T, Length>& current,
-		const Container_T<Value_T, Length>& start,
-		const Container_T<Value_T, Length>& end,
-		const Container_T<Value_T, Length>& increment
+		Container_T& current,
+		const Container_T& start,
+		const Container_T& end,
+		const Container_T& increment
 	) {
 		for(
-			current[0] = start[0] + increment[0] / Value_T(2);
+			current[0] = start[0] + increment[0] / 2.0;
 			current[0] < end[0];
 			current[0] += increment[0]
 		) {
@@ -161,48 +186,42 @@ prints
  0.5  1 
 \endverbatim
 
-Linking requires boost_coroutine and boost_system
+Linking requires boost_coroutine and boost_system.
+
+Only supports floating point types as components
+of start and end coordinates.
 */
 template <
-	template <
-		class Value_T,
-		size_t Length
-	> class Container_T,
-	class Value_T,
-	size_t Length
+	class Container_T
 > typename boost::coroutines::coroutine<
-	Container_T<Value_T, Length>
+	Container_T
 >::pull_type volume_range(
-	const Container_T<Value_T, Length>& start,
-	const Container_T<Value_T, Length>& end,
+	const Container_T& start,
+	const Container_T& end,
 	const size_t samples_per_dim
 ) {
-	static_assert(
-		std::is_floating_point<Value_T>::value,
-		"Only floating point value types supported, "
-		"but patches more than welcome"
-	);
+	using std::tuple_size;
 
-	Container_T<Value_T, Length> increment;
+	constexpr auto dimensions = tuple_size<Container_T>::value;
+
+	Container_T increment;
 
 	// TODO: could loop at comple time
-	for (size_t i = 0; i < Length; i++) {
+	for (size_t i = 0; i < dimensions; i++) {
 		increment[i] = (end[i] - start[i]) / samples_per_dim;
 	}
 
 	return
 		typename boost::coroutines::coroutine<
-			Container_T<Value_T, Length>
+			Container_T
 		>::pull_type(
 			std::bind(
 				&detail::volume_range_impl<
-					Container_T,
-					Value_T,
-					Length,
-					Length - 1
+					dimensions - 1,
+					Container_T
 				>::iterate,
 				std::placeholders::_1,
-				Container_T<Value_T, Length>(),
+				Container_T(),
 				start,
 				end,
 				increment
