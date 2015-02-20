@@ -33,6 +33,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 Propagation test after http://dx.doi.org/10.1029/2005JA011382
 */
 
+#include "array"
 #include "cmath"
 #include "cstdlib"
 #include "Eigen/Core"
