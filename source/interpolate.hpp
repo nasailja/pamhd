@@ -34,6 +34,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define PAMHD_INTERPOLATE_HPP
 
 
+#include "array"
+
+
 namespace pamhd {
 
 namespace detail {
@@ -66,27 +69,27 @@ marks location of (+x, +y, +z).
 
 coord must be within start and end.
 */
-template<class T> T interpolate(
-	const std::array<double, 3>& coord,
-	const std::array<double, 3>& start,
-	const std::array<double, 3>& end,
-	const std::array<T, 27>& data
+template<class Coord_T, class Data_T> Data_T interpolate(
+	const Coord_T& coord,
+	const Coord_T& start,
+	const Coord_T& end,
+	const std::array<Data_T, 27>& data
 ) {
 	using std::fabs;
 	using std::max;
 
-	const std::array<double, 3>
-		mid{{
+	const Coord_T
+		mid{
 			0.5 * (end[0] + start[0]),
 			0.5 * (end[1] + start[1]),
 			0.5 * (end[2] + start[2])
-		}},
+		},
 		// length of one cell
-		dr{{
+		dr{
 			0.5 * (end[0] - start[0]),
 			0.5 * (end[1] - start[1]),
 			0.5 * (end[2] - start[2])
-		}};
+		};
 
 	// weights for corresponding item in data
 	const std::array<double, 27> weights{{
@@ -200,7 +203,7 @@ template<class T> T interpolate(
 			* max(0.0, 1 - (end[2] - coord[2]) / dr[2])
 	}};
 
-	T ret_val = detail::ZERO<T>();
+	Data_T ret_val = detail::ZERO<Data_T>();
 	for (size_t i = 0; i < data.size(); i++) {
 		ret_val += weights[i] * data[i];
 	}
