@@ -357,8 +357,8 @@ int main(int argc, char* argv[])
 
 		// check that solution is correct
 		std::array<int, 3>
-			total_particles_local={0, 0, 0},
-			total_particles={0, 0, 0};
+			total_particles_local={{0, 0, 0}},
+			total_particles={{0, 0, 0}};
 
 		for (const auto& cell_id: cell_ids) {
 			auto
