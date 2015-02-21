@@ -41,6 +41,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Eigen/Core"
 #include "Eigen/Geometry"
 
+#include "common.hpp"
 #include "interpolate.hpp"
 
 
@@ -256,13 +257,20 @@ template<
 		for (size_t i = 0; i < (*cell_data)[Part_Int].size(); i++) {
 			const auto& particle = (*cell_data)[Part_Int][i];
 
-			// check max length of time step for next step
-			max_time_step =
-				std::min(max_time_step,
-				std::min(fabs(cell_length[0] / particle[Vel][0]),
-				std::min(fabs(cell_length[1] / particle[Vel][1]),
-				         fabs(cell_length[2] / particle[Vel][2])
-				)));
+			// calculate max length of time step for next step
+			max_time_step = std::min(
+				max_time_step,
+				get_minmax_step(
+					1.0,
+					1.0 / 32.0,
+					// only allow particles to propagate through half a
+					// cell in order to not break field interpolation
+					cell_length[0] / 2.0,
+					particle[C2M],
+					particle[Vel],
+					(*cell_data)[Mag]
+				).second
+			);
 
 			const Particle_Propagator propagator(
 				particle[C2M],
@@ -363,9 +371,7 @@ template<
 		(*cell_data)[Nr_Ext] = (*cell_data)[Part_Ext].size();
 	}
 
-	// only allow particles to propagate through half a
-	// cell in order to not break field interpolation
-	return max_time_step / 2.0;
+	return max_time_step;
 }
 
 
