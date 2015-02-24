@@ -9,9 +9,9 @@ MPIRUN = mpirun -n 5
 
 BACKGROUND_B_CPPFLAGS = -I $(HOME)/libraries/background_B/source
 
-CUBATURE_CPPFLAGS = -I $(HOME)/libraries/cubature
-CUBATURE_LDFLAGS = -L $(HOME)/libraries/cubature
-CUBATURE_LIBS = -lcubature
+CUBATURE_CPPFLAGS = -I $(HOME)/include
+CUBATURE_LDFLAGS = -L $(HOME)/lib
+CUBATURE_LIBS = -lpcubature
 
 DCCRG_CPPFLAGS = -I $(HOME)/libraries/dccrg
 
