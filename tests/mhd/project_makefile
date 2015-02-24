@@ -1,7 +1,6 @@
 TESTS_MHD_EXECUTABLES = \
   tests/mhd/reference.exe \
   tests/mhd/mhd2ascii.exe \
-  tests/mhd/mhd2cdf.exe \
   tests/mhd/mhd2gnuplot.exe \
   tests/mhd/mhd2vtk.exe \
   tests/mhd/test.exe
@@ -73,15 +72,6 @@ tests/mhd/mhd2ascii.exe: \
   $(TEST_MHD_COMMON_DEPS)
 	@printf "MPICXX $<\n" && $(MPICXX) $(TEST_MHD_COMPILE_COMMOM) \
 	  $(DCCRG_CPPFLAGS)
-
-tests/mhd/mhd2cdf.exe: \
-  tests/mhd/mhd2cdf.cpp \
-  $(TEST_MHD_COMMON_DEPS)
-	@printf "MPICXX $<\n" && $(MPICXX) $(TEST_MHD_COMPILE_COMMOM) \
-	  $(DCCRG_CPPFLAGS) \
-	  $(CDF_CPPFLAGS) \
-	  $(CDF_LDFLAGS) \
-	  $(CDF_LIBS)
 
 tests/mhd/mhd2gnuplot.exe: \
   tests/mhd/mhd2gnuplot.cpp \
