@@ -61,6 +61,7 @@ var
 	config_text_updater = document.getElementById("update_config_text"),
 	// form that will be submitted
 	form = document.getElementById("form"),
+	clearer = document.getElementById("clear"),
 	// references to buttons creating example simulations
 	shock_tube_maker = document.getElementById("make_shock_tube"),
 	kelvin_helmholtz_maker = document.getElementById("make_kelvin_helmholtz"),
@@ -487,6 +488,46 @@ function remove_boundaries() {
 	while (copy_spheres > 0) { copy_sphere_remover.click(); }
 }
 
+clearer.addEventListener("click", function() {
+	remove_boundaries();
+	document.getElementById("solver_mhd").value = "";
+	document.getElementById("time_start").value = "";
+	document.getElementById("time_length").value = "";
+	document.getElementById("save_mhd_n").value = "";
+	document.getElementById("remove_div_b_n").value = "";
+	document.getElementById("adiabatic_index").value = "";
+	document.getElementById("vacuum_permeability").value = "";
+	document.getElementById("proton_mass").value = "";
+	document.getElementById("time_step_factor").value = "";
+	document.getElementById("output_directory").value = "";
+	document.getElementById("periodic_x").value = "";
+	document.getElementById("periodic_y").value = "";
+	document.getElementById("periodic_z").value = "";
+	document.getElementById("cells_x").value = "";
+	document.getElementById("cells_y").value = "";
+	document.getElementById("cells_z").value = "";
+	document.getElementById("volume_x").value = "";
+	document.getElementById("volume_y").value = "";
+	document.getElementById("volume_z").value = "";
+	document.getElementById("start_x").value = "";
+	document.getElementById("start_y").value = "";
+	document.getElementById("start_z").value = "";
+	document.getElementById("init_default_mass").value = "";
+	document.getElementById("init_default_pressure").value = "";
+	document.getElementById("init_default_vx").value = "";
+	document.getElementById("init_default_vy").value = "";
+	document.getElementById("init_default_vz").value = "";
+	document.getElementById("init_default_Bx").value = "";
+	document.getElementById("init_default_By").value = "";
+	document.getElementById("init_default_Bz").value = "";
+	var config_text = document.getElementById("config_text");
+	while (config_text.hasChildNodes()) {
+	    config_text.removeChild(config_text.firstChild);
+	}
+	config_text.innerHTML
+		= "<br>Push the button above to see contents of current configuration file";
+});
+
 //! buttons for example simulations
 shock_tube_maker.addEventListener("click", function() {
 	remove_boundaries();
@@ -838,6 +879,8 @@ Expressions for values of MHD variables can refer to the x, y and z coordinates 
 	Remove last spherical region of copy boundary
 </button><br>
 </p>
+
+<button id="clear" type="button">Clear</button>
 
 <form method="get" id="form">
 	<!--input type="submit" value="Submit run"><br-->
