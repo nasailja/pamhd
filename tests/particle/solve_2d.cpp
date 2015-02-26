@@ -1,5 +1,5 @@
 /*
-Tests odeint particle solver of PAMHD in 2 dimensions.
+Tests parallel particle solver of PAMHD in 2 dimensions.
 
 Copyright 2015 Ilja Honkonen
 All rights reserved.

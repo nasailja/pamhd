@@ -1,5 +1,5 @@
 /*
-Tests odeint particle solver of PAMHD in 1 dimension with periodic grid.
+Tests parallel particle solver of PAMHD in 1 dimension with periodic grid.
 
 Copyright 2015 Ilja Honkonen
 All rights reserved.

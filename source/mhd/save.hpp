@@ -65,8 +65,6 @@ public:
 
 	file_name_prefix is added to the beginning of the file name.
 
-	MHD_T and subsequent arguments refer to the MHD solution to save.
-
 	The transfer of all first level variables must be switched
 	off before this function is called. After save returns the
 	transfer of all first level variables is switched off.
