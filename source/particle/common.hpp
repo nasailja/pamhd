@@ -34,6 +34,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define PAMHD_PARTICLE_COMMON_HPP
 
 
+#include "algorithm"
 #include "cmath"
 #include "iostream"
 #include "random"
@@ -142,14 +143,21 @@ template<class Vector> std::pair<double, double> get_minmax_step(
 /*!
 Returns particles with given average temperature and velocity.
 
+Number of returned particles is specified by nr_of_particles.
+
 Temperature components are used for standard deviation
 of velocity in respective dimensions.
 Total temperature is a sum of the components.
 
-total_mass is the total mass assigned to created particles.
+Each particle is create with a mass of total_mass / nr_of_particles.
 species_mass is used for particles' velocity distribution.
 
 random_source is assumed to be std::mt19937 or similar.
+
+particle_temp_nrj_ratio is the Boltzmann constant and is used
+when calculating standard deviation of particle velocities.
+
+Particles are evenly distributed within given volume.
 */
 template <
 	class Particle,
@@ -195,16 +203,22 @@ template <
 		position_generator_z(volume_min[2], volume_max[2]);
 
 	std::vector<Particle> particles(nr_of_particles);
-	for (auto& particle: particles) {
-		particle[Mas] = particle_mass;
-		particle[C2M] = charge_mass_ratio;
-		particle[Pos][0] = position_generator_x(random_source);
-		particle[Pos][1] = position_generator_y(random_source);
-		particle[Pos][2] = position_generator_z(random_source);
-		particle[Vel][0] = velocity_generator_x(random_source);
-		particle[Vel][1] = velocity_generator_y(random_source);
-		particle[Vel][2] = velocity_generator_z(random_source);
-	}
+	std::generate_n(
+		particles.begin(),
+		nr_of_particles,
+		[&](){
+			Particle p;
+			p[Mas] = particle_mass;
+			p[C2M] = charge_mass_ratio;
+			p[Pos][0] = position_generator_x(random_source);
+			p[Pos][1] = position_generator_y(random_source);
+			p[Pos][2] = position_generator_z(random_source);
+			p[Vel][0] = velocity_generator_x(random_source);
+			p[Vel][1] = velocity_generator_y(random_source);
+			p[Vel][2] = velocity_generator_z(random_source);
+			return p;
+		}
+	);
 
 	return particles;
 }
