@@ -126,10 +126,16 @@ struct Nr_Particles_External {
 
 struct Electric_Field {
 	using data_type = Eigen::Vector3d;
+	static const std::string get_name() { return {"electric field"}; }
+	static const std::string get_option_name() { return {"electric-field"}; }
+	static const std::string get_option_help() { return {"Electric field used for propagating particles"}; }
 };
 
 struct Magnetic_Field {
 	using data_type = Eigen::Vector3d;
+	static const std::string get_name() { return {"magnetic field"}; }
+	static const std::string get_option_name() { return {"magnetic-field"}; }
+	static const std::string get_option_help() { return {"Magnetic field used for propagating particles"}; }
 };
 
 

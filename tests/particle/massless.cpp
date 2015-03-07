@@ -94,7 +94,10 @@ struct Nr_Particles_In_Cell {
 
 
 /*
-Initializes electric and magnetic fields in given grid from given file.
+Initializes electric and magnetic fields in given grid.
+
+Fields are initialized either from given file or from
+given options of given file == "".
 
 File format (ascii data):
 x, y and z coordinate of 1st E & B location in meters,
@@ -102,114 +105,154 @@ x, y and z components of 1st electric field in volt/meter,
 x, y and z components of 1st magnetic field in tesla,
 x, y and z coordinates of 2nd E & B location in meters,
 ...
-
 Each local cell in given grid is initialized from the closest value
 in given file.
 */
-void initialize_fields(
+template<class Init_Cond_T> void initialize_fields(
+	Init_Cond_T& init_cond,
+	const std::vector<uint64_t>& cell_ids,
 	dccrg::Dccrg<pamhd::particle::Cell, dccrg::Cartesian_Geometry>& grid,
 	const std::string& fields_file
 ) {
 	using std::pow;
 
-	std::ifstream infile(fields_file);
+	// set initial fields from file
+	if (fields_file != "") {
+		std::ifstream infile(fields_file);
 
-	const auto cell_ids = grid.get_cells();
+		/*
+		Read in file data
+		*/
 
-	/*
-	Read in file data
-	*/
+		std::vector<
+			// r, E, B
+			std::array<
+				Eigen::Vector3d,
+				3
+			>
+		> file_data;
+		file_data.reserve(cell_ids.size()); // guess
 
-	std::vector<
-		// r, E, B
-		std::array<
-			Eigen::Vector3d,
-			3
-		>
-	> file_data;
-	file_data.reserve(cell_ids.size()); // guess
+		while (infile) {
+			Eigen::Vector3d r, E, B;
 
-	while (infile) {
-		Eigen::Vector3d r, E, B;
+			infile >> r[0];
 
-		infile >> r[0];
-
-		if (infile.eof()) {
-			break;
-		} else if (not infile.good()) {
-			std::cerr << "Couldn't extract first coordinate of location from "
-				<< fields_file << " after " << file_data.size() << " items"
-				<< std::endl;
-			abort();
-		}
-
-		infile >> r[1] >> r[2];
-		if (not infile.good()) {
-			std::cerr << "Couldn't extract other coordinates from "
-				<< fields_file << " after " << file_data.size() << " items"
-				<< std::endl;
-			abort();
-		}
-
-		infile >> E[0] >> E[1] >> E[2];
-		if (not infile.good()) {
-			std::cerr << "Couldn't extract electric field from "
-				<< fields_file << " after " << file_data.size() << " items"
-				<< std::endl;
-			abort();
-		}
-
-		infile >> B[0] >> B[1] >> B[2];
-		if (not infile.good()) {
-			std::cerr << "Couldn't extract magnetic field from "
-				<< fields_file << " after " << file_data.size() << " items"
-				<< std::endl;
-			abort();
-		}
-
-		file_data.push_back({{r, E, B}});
-	}
-
-	// set field values in local cells
-	for (const auto& cell_id: cell_ids) {
-		const auto cell_center = grid.geometry.get_center(cell_id);
-
-		const auto closest_item = std::min_element(
-			file_data.cbegin(),
-			file_data.cend(),
-			[&cell_center](
-				const std::array<Eigen::Vector3d, 3>& a,
-				const std::array<Eigen::Vector3d, 3>& b
-			) {
-				const auto
-					a_distance2
-						= pow(a[0][0] - cell_center[0], 2)
-						+ pow(a[0][1] - cell_center[1], 2)
-						+ pow(a[0][2] - cell_center[2], 2),
-					b_distance2
-						= pow(b[0][0] - cell_center[0], 2)
-						+ pow(b[0][1] - cell_center[1], 2)
-						+ pow(b[0][2] - cell_center[2], 2);
-
-				return a_distance2 < b_distance2;
+			if (infile.eof()) {
+				break;
+			} else if (not infile.good()) {
+				std::cerr << "Couldn't extract first coordinate of location from "
+					<< fields_file << " after " << file_data.size() << " items"
+					<< std::endl;
+				abort();
 			}
-		);
 
-		if (closest_item == file_data.cend()) {
-			std::cerr << "Couldn't find field data item closest to center of cell "
-				<< cell_id
-				<< std::endl;
-			abort();
+			infile >> r[1] >> r[2];
+			if (not infile.good()) {
+				std::cerr << "Couldn't extract other coordinates from "
+					<< fields_file << " after " << file_data.size() << " items"
+					<< std::endl;
+				abort();
+			}
+
+			infile >> E[0] >> E[1] >> E[2];
+			if (not infile.good()) {
+				std::cerr << "Couldn't extract electric field from "
+					<< fields_file << " after " << file_data.size() << " items"
+					<< std::endl;
+				abort();
+			}
+
+			infile >> B[0] >> B[1] >> B[2];
+			if (not infile.good()) {
+				std::cerr << "Couldn't extract magnetic field from "
+					<< fields_file << " after " << file_data.size() << " items"
+					<< std::endl;
+				abort();
+			}
+
+			file_data.push_back({{r, E, B}});
 		}
 
-		auto* const cell_data = grid[cell_id];
-		if (cell_data == nullptr) {
-			std::cerr << __FILE__ << ":" << __LINE__ << std::endl;
-			abort();
+		// set field values in local cells
+		for (const auto& cell_id: cell_ids) {
+			const auto cell_center = grid.geometry.get_center(cell_id);
+
+			const auto closest_item = std::min_element(
+				file_data.cbegin(),
+				file_data.cend(),
+				[&cell_center](
+					const std::array<Eigen::Vector3d, 3>& a,
+					const std::array<Eigen::Vector3d, 3>& b
+				) {
+					const auto
+						a_distance2
+							= pow(a[0][0] - cell_center[0], 2)
+							+ pow(a[0][1] - cell_center[1], 2)
+							+ pow(a[0][2] - cell_center[2], 2),
+						b_distance2
+							= pow(b[0][0] - cell_center[0], 2)
+							+ pow(b[0][1] - cell_center[1], 2)
+							+ pow(b[0][2] - cell_center[2], 2);
+
+					return a_distance2 < b_distance2;
+				}
+			);
+
+			if (closest_item == file_data.cend()) {
+				std::cerr << "Couldn't find field data item closest to center of cell "
+					<< cell_id
+					<< std::endl;
+				abort();
+			}
+
+			auto* const cell_data = grid[cell_id];
+			if (cell_data == nullptr) {
+				std::cerr << __FILE__ << ":" << __LINE__ << std::endl;
+				abort();
+			}
+
+			(*cell_data)[Electric_Field()] = (*closest_item)[1];
+			(*cell_data)[Magnetic_Field()] = (*closest_item)[2];
 		}
 
-		(*cell_data)[Electric_Field()] = (*closest_item)[1];
-		(*cell_data)[Magnetic_Field()] = (*closest_item)[2];
+	// set initial fields from command line
+	} else {
+
+		for (const auto cell_id: cell_ids) {
+			const auto
+				cell_start = grid.geometry.get_min(cell_id),
+				cell_end = grid.geometry.get_max(cell_id),
+				cell_center = grid.geometry.get_center(cell_id);
+
+			init_cond.add_cell(
+				cell_id,
+				cell_start,
+				cell_end
+			);
+
+			auto* const cell_data = grid[cell_id];
+			if (cell_data == NULL) {
+				std::cerr <<  __FILE__ << "(" << __LINE__ << ") No data for cell: "
+					<< cell_id
+					<< std::endl;
+				abort();
+			}
+
+			// set default state
+			(*cell_data)[Electric_Field()]
+				= init_cond.default_data.get_data(
+					Electric_Field(),
+					cell_center,
+					0
+				);
+			(*cell_data)[Magnetic_Field()]
+				= init_cond.default_data.get_data(
+					Magnetic_Field(),
+					cell_center,
+					0
+				);
+		}
 	}
 }
 
@@ -371,19 +414,25 @@ int main(int argc, char* argv[])
 	}
 
 
-	using Init_Cond_T
-		= pamhd::boundaries::Initial_Condition<
-			uint64_t,
-			double,
-			std::array<double, 3>,
-			Mass_Density,
-			Temperature,
-			Bulk_Velocity,
-			Nr_Particles_In_Cell,
-			Charge_Mass_Ratio,
-			Species_Mass
-		>;
-	Init_Cond_T initial_condition;
+	pamhd::boundaries::Initial_Condition<
+		uint64_t,
+		double,
+		std::array<double, 3>,
+		Mass_Density,
+		Temperature,
+		Bulk_Velocity,
+		Nr_Particles_In_Cell,
+		Charge_Mass_Ratio,
+		Species_Mass
+	> initial_particles;
+
+	pamhd::boundaries::Initial_Condition<
+		uint64_t,
+		double,
+		std::array<double, 3>,
+		Electric_Field,
+		Magnetic_Field
+	> initial_fields;
 
 
 	pamhd::grid::Options grid_options;
@@ -400,9 +449,7 @@ int main(int argc, char* argv[])
 		time_step_factor = 0.5,
 		adiabatic_index = 5.0 / 3.0,    
 		vacuum_permeability = 4e-7 * M_PI,
-		particle_temp_nrj_ratio = 1.3806488e-23,
-		proton_mass = 1.672621777e-27,
-		proton_charge = 1.602176565e-19;
+		particle_temp_nrj_ratio = 1.3806488e-23;
 
 	std::string
 		config_file_name(""),
@@ -416,9 +463,8 @@ int main(int argc, char* argv[])
 		),
 		// grouped options for printing help
 		initial_condition_help(
-			"Options for initial condition which sets cell data to values "
-			"given in --boundary-file at start of simulation (cannot be same "
-			"file as --config-file, not read if empty strging)"
+			"Options for initial condition which sets cell data to values given "
+			"in --config-file at start of simulation (not read if empty strging)"
 		);
 
 	// handle general options
@@ -434,7 +480,8 @@ int main(int argc, char* argv[])
 		("fields-file",
 			boost::program_options::value<std::string>(&fields_file_name)
 				->default_value(fields_file_name),
-			"Initialize electric and magnetic fields from file arg")
+			"Initialize electric and magnetic fields from "
+			"file arg instead of config-file")
 		("output-directory",
 			boost::program_options::value<std::string>(&output_directory)
 				->default_value(output_directory),
@@ -464,7 +511,8 @@ int main(int argc, char* argv[])
 
 
 	grid_options.add_options("grid.", options);
-	initial_condition.add_initialization_options("initial.", options);
+	initial_particles.add_initialization_options("initial-particles.", options);
+	initial_fields.add_initialization_options("initial-fields.", options);
 
 	boost::program_options::variables_map option_variables;
 	try {
@@ -520,8 +568,10 @@ int main(int argc, char* argv[])
 		boost::program_options::notify(option_variables);
 	}
 
-	initial_condition.add_options("initial.", options);
-	initial_condition.add_options("initial.", initial_condition_help);
+	initial_particles.add_options("initial-particles.", options);
+	initial_particles.add_options("initial-particles.", initial_condition_help);
+	initial_fields.add_options("initial-fields.", options);
+	initial_fields.add_options("initial-fields.", initial_condition_help);
 
 	// parse again to get boundaries' options
 	try {
@@ -646,10 +696,15 @@ int main(int argc, char* argv[])
 	std::mt19937 random_source;
 	random_source.seed(grid.get_rank());
 
-	initialize_fields(grid, fields_file_name);
+	initialize_fields(
+		initial_fields,
+		cell_ids,
+		grid,
+		fields_file_name
+	);
 
 	initialize_particles(
-		initial_condition,
+		initial_particles,
 		cell_ids,
 		grid,
 		random_source,
