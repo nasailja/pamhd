@@ -102,10 +102,11 @@ public:
 	*/
 	bool exists() const
 	{
-		if (this->boundaries.get_number_of_boundaries() == 0)
+		if (this->boundaries.get_number_of_boundaries() == 0) {
 			return false;
-		else
+		} else {
 			return true;
+		}
 	}
 
 
