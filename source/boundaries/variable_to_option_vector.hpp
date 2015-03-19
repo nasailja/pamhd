@@ -36,6 +36,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "array"
 #include "cstddef"
+#include "stdexcept"
 #include "type_traits"
 #include "utility"
 
@@ -148,15 +149,18 @@ public:
 		const std::array<double, 3>& given_position,
 		const double given_time
 	) {
-		if (index >= this->expressions.size()) {
-			std::cerr <<  __FILE__ << "(" << __LINE__<< ") "
-				<< "Invalid index: " << index
-				<< ", should be less than " << this->expressions.size()
-				<< std::endl;
-			abort();
+		if (index == std::numeric_limits<size_t>::max()) {
+			throw std::out_of_range("Index must be less than max size_t");
 		}
 
-		this->parser.SetExpr(this->expressions[index]);
+		if (index >= this->expressions.size()) {
+			throw std::out_of_range("Index must be less than number of expressions");
+		}
+
+		if (this->last_set_expression != index) {
+			this->last_set_expression = index;
+			this->parser.SetExpr(this->expressions[index]);
+		}
 
 		return this->get_parsed_value<
 			typename Current_Variable::data_type
@@ -238,6 +242,8 @@ protected:
 private:
 
 	std::vector<std::string> expressions;
+	size_t last_set_expression = std::numeric_limits<size_t>::max();
+
 	mup::ParserX parser;
 	mup::Value r_val, t_val;
 	mup::Variable r_var, t_var;
