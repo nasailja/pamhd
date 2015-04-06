@@ -46,7 +46,7 @@ Returns portion of value spanning value_min/max that is within cell_min/max.
 
 value is assumed to have a constant value within its volume.
 */
-template<class Scalar, class Vector> double get_accumulated_value(
+template<class Scalar, class Vector> Scalar get_accumulated_value(
 	const Scalar& value,
 	const Vector& value_min,
 	const Vector& value_max,
