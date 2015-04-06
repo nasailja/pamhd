@@ -392,14 +392,14 @@ std::tuple<Eigen::MatrixXd, double, double, double, double> prepare_plot_data(
 	if (
 		(horizontal_variable == "v" or vertical_variable == "v")
 		or (
-			(isinf(v_start[0]) or isinf(v_end[0]))
-			and (horizontal_variable == "vx" or vertical_variable == "vx")
+			(horizontal_variable == "vx" or vertical_variable == "vx")
+			and (isinf(v_start[0]) or isinf(v_end[0]))
 		) or (
-			(isinf(v_start[1]) or isinf(v_end[1]))
-			and (horizontal_variable == "vy" or vertical_variable == "vy")
+			(horizontal_variable == "vy" or vertical_variable == "vy")
+			and (isinf(v_start[1]) or isinf(v_end[1]))
 		) or (
-			(isinf(v_start[2]) or isinf(v_end[2]))
-			and (horizontal_variable == "vz" or vertical_variable == "vz")
+			(horizontal_variable == "vz" or vertical_variable == "vz")
+			and (isinf(v_start[2]) or isinf(v_end[2]))
 		)
 	) {
 		need_v_range = true;
@@ -431,16 +431,16 @@ std::tuple<Eigen::MatrixXd, double, double, double, double> prepare_plot_data(
 		for (const auto& item: simulation_data) {
 			const auto cell_id = item.first;
 			const auto
-				cell_min = geometry.get_min(cell_id),
-				cell_max = geometry.get_max(cell_id);
+				cell_start = geometry.get_min(cell_id),
+				cell_end = geometry.get_max(cell_id);
 
 			if (
-				cell_max[0] < r_start[0]
-				or cell_max[1] < r_start[1]
-				or cell_max[2] < r_start[2]
-				or cell_min[0] > r_end[0]
-				or cell_min[1] > r_end[1]
-				or cell_min[2] > r_end[2]
+				cell_end[0] < r_start[0]
+				or cell_end[1] < r_start[1]
+				or cell_end[2] < r_start[2]
+				or cell_start[0] > r_end[0]
+				or cell_start[1] > r_end[1]
+				or cell_start[2] > r_end[2]
 			) {
 				continue;
 			}
@@ -534,6 +534,8 @@ std::tuple<Eigen::MatrixXd, double, double, double, double> prepare_plot_data(
 		abort();
 	}
 
+	size_t nr_of_particles = 0;
+
 	const double
 		horiz_cell_length = (horiz_max - horiz_min) / horizontal_resolution,
 		vert_cell_length = (vert_max - vert_min) / vertical_resolution;
@@ -541,21 +543,22 @@ std::tuple<Eigen::MatrixXd, double, double, double, double> prepare_plot_data(
 	for (const auto& item: simulation_data) {
 		const auto cell_id = item.first;
 		const auto
-			cell_min = geometry.get_min(cell_id),
-			cell_max = geometry.get_max(cell_id);
+			cell_start = geometry.get_min(cell_id),
+			cell_end = geometry.get_max(cell_id);
 
 		if (
-			cell_max[0] < real_r_start[0]
-			or cell_max[1] < real_r_start[1]
-			or cell_max[2] < real_r_start[2]
-			or cell_min[0] > real_r_end[0]
-			or cell_min[1] > real_r_end[1]
-			or cell_min[2] > real_r_end[2]
+			cell_end[0] < real_r_start[0]
+			or cell_end[1] < real_r_start[1]
+			or cell_end[2] < real_r_start[2]
+			or cell_start[0] > real_r_end[0]
+			or cell_start[1] > real_r_end[1]
+			or cell_start[2] > real_r_end[2]
 		) {
 			continue;
 		}
 
 		const auto& cell_data = item.second;
+
 		for (const auto& particle: cell_data[Particles_Internal()]) {
 			const auto
 				&r = particle[Position()],
@@ -598,7 +601,7 @@ std::tuple<Eigen::MatrixXd, double, double, double, double> prepare_plot_data(
 				horiz = r[2];
 			} else if (horizontal_variable == "vx") {
 				if (v[0] < horiz_min or v[0] > horiz_max) { continue; }
-				horiz = v[0];
+					horiz = v[0];
 			} else if (horizontal_variable == "vy") {
 				if (v[1] < horiz_min or v[1] > horiz_max) { continue; }
 				horiz = v[1];
@@ -606,7 +609,7 @@ std::tuple<Eigen::MatrixXd, double, double, double, double> prepare_plot_data(
 				if (v[2] < horiz_min or v[2] > horiz_max) { continue; }
 				horiz = v[2];
 			} else if (horizontal_variable == "v") {
-				if (v.norm() < horiz_min or v.norm() > horiz_max) { continue; }
+			if (v.norm() < horiz_min or v.norm() > horiz_max) { continue; }
 				horiz = v.norm();
 			} else if (horizontal_variable == "r") {
 				if (r.norm() < horiz_min or r.norm() > horiz_max) { continue; }
@@ -617,15 +620,15 @@ std::tuple<Eigen::MatrixXd, double, double, double, double> prepare_plot_data(
 				vert = r[0];
 			} else if (vertical_variable == "ry") {
 				if (r[1] < vert_min or r[1] > vert_max) { continue; }
-				vert = r[1];
+					vert = r[1];
 			} else if (vertical_variable == "rz") {
 				if (r[2] < vert_min or r[2] > vert_max) { continue; }
 				vert = r[2];
 			} else if (vertical_variable == "vx") {
 				if (v[0] < vert_min or v[0] > vert_max) { continue; }
-				vert = v[0];
-			} else if (vertical_variable == "vy") {
-				if (v[1] < vert_min or v[1] > vert_max) { continue; }
+			vert = v[0];
+				} else if (vertical_variable == "vy") {
+			if (v[1] < vert_min or v[1] > vert_max) { continue; }
 				vert = v[1];
 			} else if (vertical_variable == "vz") {
 				if (v[2] < vert_min or v[2] > vert_max) { continue; }
@@ -648,10 +651,18 @@ std::tuple<Eigen::MatrixXd, double, double, double, double> prepare_plot_data(
 					size_t(floor((vert - vert_min) / vert_cell_length))
 				);
 			plot_data(vert_index, horiz_index) += value;
+			nr_of_particles++;
 		}
 	}
 
-	return {plot_data, horiz_min, horiz_max, vert_min, vert_max};
+	if (fabs(horiz_min - horiz_max) / fabs(horiz_min + horiz_max) < 1e-4) {
+		horiz_max += 1e-4 * fabs(horiz_max);
+	}
+	if (fabs(vert_min - vert_max) / fabs(vert_min + vert_max) < 1e-4) {
+		vert_max += 1e-4 * fabs(vert_max);
+	}
+
+	return std::make_tuple(plot_data, horiz_min, horiz_max, vert_min, vert_max);
 }
 
 
@@ -674,13 +685,20 @@ int plot_2d(
 		cell_length_x = (xrange_end - xrange_start) / plot_data.cols(),
 		cell_length_y = (yrange_end - yrange_start) / plot_data.rows();
 
-	const std::string gnuplot_file_name(output_file_name + ".gnuplot");
+	const std::string
+		gnuplot_file_name(output_file_name + ".gnuplot"),
+		plot_title
+			= output_file_name.substr(
+				output_file_name.size() - std::min(size_t(47), output_file_name.size() - 1),
+				output_file_name.size()
+			);
 	std::ofstream gnuplot_file(gnuplot_file_name);
 
 	gnuplot_file
 		<< plot_command_prefix
 		<< "\nset output '" << output_file_name
-		<< "'\nset xlabel '" << xlabel
+		<< "'\nset title '..." << plot_title
+		<< "' noenhanced\nset xlabel '" << xlabel
 		<< "'\nset ylabel '" << ylabel
 		<< "'\nset cblabel '" << cblabel
 		<< "'\nset xrange[" << xrange_start
@@ -711,7 +729,7 @@ int plot_2d(
 
 	gnuplot_file.close();
 
-	return system(("gnuplot " + gnuplot_file_name).c_str());
+	return system(("gnuplot '" + gnuplot_file_name + "'").c_str());
 }
 
 
@@ -760,8 +778,8 @@ int main(int argc, char* argv[])
 		("plot-variable",
 			boost::program_options::value<>(&plot_variable)
 				->default_value(plot_variable),
-			"Plot variable arg as a function of horizontal and vertical "
-			"variables (one of r, rx, ry, rz, v, vx, vy, vz, mass, count)")
+			"Plot variable arg as a function of horizontal and vertical variables "
+			"(one of r, rx, ry, rz, v, vx, vy, vz, mass, count, E, B)")
 		("horizontal-variable",
 			boost::program_options::value<>(&horizontal_variable)
 				->default_value(horizontal_variable),
@@ -773,11 +791,11 @@ int main(int argc, char* argv[])
 		("horizontal-resolution",
 			boost::program_options::value<>(&horizontal_resolution)
 				->default_value(horizontal_resolution),
-			"Number of cells in horizontal direction of plot")
+			"Use arg number of cells in horizontal direction of plot")
 		("vertical-resolution",
 			boost::program_options::value<>(&vertical_resolution)
 				->default_value(vertical_resolution),
-			"Number of cells in vertical direction of plot")
+			"Use arg number of cells in vertical direction of plot")
 		("rx-start",
 			boost::program_options::value<>(&r_start[0])
 				->default_value(r_start[0]),
@@ -923,9 +941,11 @@ int main(int argc, char* argv[])
 			geometry
 		);
 
-		if (x_start > x_end) {
+		// error or nothing to plot
+		if (x_start > x_end or y_start > y_end) {
 			std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
 				<< "Couldn't prepare plot data from file " << input_files[i]
+				<< ", either there was nothing to plot or an error occurred."
 				<< std::endl;
 			continue;
 		}
