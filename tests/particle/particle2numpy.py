@@ -33,10 +33,22 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 If called as the main program loads particle data from first given file into
 dictionary particle_data and appends to it data from any subsequent files.
-Requires NUMPY. Example listing the id of every particle in one file:
+Requires NumPy. Unique particle IDs are keys in the returned dictionary,
+values consist of lists where each element is a tuple of particle position
+and velocity in three dimensions. Each list is filled in order from given
+files.
+
+Example printing the id of every particle
+in one file:
 python -i particle2numpy.py particle_0.000e+00_s.dc
 for key in particle_data:
 	print(key)
+exit()
+
+Example printing the velocity of particle with id == 4 from the last given
+file where the particle existed:
+python -i particle2numpy.py results/massless/data/p_avg\=5dt/particle_0.000e+00_s.dc
+print(particle_data[4][-1][1])
 exit()
 '''
 
