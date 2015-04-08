@@ -371,6 +371,15 @@ void convert(
 
 	particle_file << "POINT_DATA " << total_particles << "\n";
 
+	particle_file << "SCALARS id float\nLOOKUP_TABLE default\n";
+	for (const auto& cell: cells) {
+		for (const auto& particle:
+			simulation_data.at(cell)[Particles_Internal()]
+		) {
+			particle_file << particle[Particle_ID()] << "\n";
+		}
+	}
+
 	particle_file << "SCALARS velocity_magnitude float\nLOOKUP_TABLE default\n";
 	for (const auto& cell: cells) {
 		for (const auto& particle:
