@@ -187,7 +187,7 @@ int main(int argc, char* argv[])
 			continue;
 		}
 
-		Particle_T<> particle;
+		Particle_Internal particle;
 		particle[Position()] = r;
 		particle[Velocity()] = 2e6 * r / r.norm(); // m / s
 		particle[Mass()] = 0;

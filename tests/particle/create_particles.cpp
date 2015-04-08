@@ -77,11 +77,12 @@ int main()
 
 		const auto particles
 			= create_particles<
-				Particle_T<>,
+				Particle_Internal,
 				Mass,
 				Charge_Mass_Ratio,
 				Position,
-				Velocity
+				Velocity,
+				Particle_ID
 			>(
 				bulk_velocity_ref,
 				volume_min_ref,
