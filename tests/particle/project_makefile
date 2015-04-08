@@ -214,7 +214,8 @@ tests/particle/particle2vtk.exe: \
 tests/particle/massless.exe: \
   tests/particle/massless.cpp \
   $(TEST_PARTICLE_COMMON_DEPS) \
-  source/particle/solve_dccrg.hpp
+  source/particle/solve_dccrg.hpp \
+  source/particle/save.hpp
 	@printf "MPICXX $<\n" && $(MPICXX) \
 	  $(TEST_PARTICLE_SOLVE_COMPILE) \
 	  $(MUPARSERX_CPPFLAGS) \

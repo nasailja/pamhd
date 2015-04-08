@@ -36,8 +36,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "iomanip"
 
-#include "mpi.h" // must be included before gensimcell
-#include "gensimcell.hpp"
+#include "dccrg.hpp"
+#include "mpi.h"
 
 #include "particle/variables.hpp"
 
@@ -46,78 +46,77 @@ namespace pamhd {
 namespace particle {
 
 
-class Save
-{
-public:
+/*!
+Saves the particle solution into a file with name derived from simulation time.
 
-	/*!
-	Saves the particle solution into a file with name derived from simulation time.
+file_name_prefix is added to the beginning of the file name.
 
-	file_name_prefix is added to the beginning of the file name.
+The transfer of all first level variables must be switched
+off before this function is called. After save returns the
+transfer of all first level variables is switched off.
 
-	The transfer of all first level variables must be switched
-	off before this function is called. After save returns the
-	transfer of all first level variables is switched off.
+Cell must be compatible with gensimcell (github.com/nasailja/gensimcell)
 
-	Grid_T is assumed to provide the dccrg API.
+Return true on success, false otherwise.
+*/
+template <
+	class Electric_Field_T,
+	class Magnetic_Field_T,
+	class Nr_Particles_T,
+	class Particles_T,
+	class Cell,
+	class Geometry
+> bool save(
+	const std::string& file_name_prefix,
+	dccrg::Dccrg<Cell, Geometry>& grid,
+	const double simulation_time,
+	const double vacuum_permeability
+) {
+	std::tuple<void*, int, MPI_Datatype> header{
+		(void*) &vacuum_permeability,
+		1,
+		MPI_DOUBLE
+	};
 
-	Return true on success, false otherwise.
-	*/
-	template <
-		class Grid_T,
-		class Cell_T
-	> static bool save(
-		const std::string& file_name_prefix,
-		Grid_T& grid,
-		const double simulation_time,
-		const double vacuum_permeability
-	) {
-		std::tuple<void*, int, MPI_Datatype> header{
-			(void*) &vacuum_permeability,
-			1,
-			MPI_DOUBLE
-		};
+	std::ostringstream time_string;
+	time_string
+		<< std::scientific
+		<< std::setprecision(3)
+		<< simulation_time;
 
-		std::ostringstream time_string;
-		time_string
-			<< std::scientific
-			<< std::setprecision(3)
-			<< simulation_time;
-
-		// update number of internal particles
-		for (const auto& cell_id: grid.get_cells()) {
-			auto* const cell_data = grid[cell_id];
-			if (cell_data == nullptr) {
-				std::cerr << __FILE__ << "(" << __LINE__ << ")" << std::endl;
-				abort();
-			}
-			(*cell_data)[Nr_Particles_Internal()]
-				= (*cell_data)[Particles_Internal()].size();
+	// update number of internal particles
+	for (const auto& cell_id: grid.get_cells()) {
+		auto* const cell_data = grid[cell_id];
+		if (cell_data == nullptr) {
+			std::cerr << __FILE__ << "(" << __LINE__ << ")" << std::endl;
+			abort();
 		}
-
-		Cell_T::set_transfer_all(
-			true,
-			Electric_Field(),
-			Magnetic_Field(),
-			Nr_Particles_Internal(),
-			Particles_Internal()
-		);
-		const bool ret_val = grid.save_grid_data(
-			file_name_prefix + "particle_" + time_string.str() + "_s.dc",
-			0,
-			header
-		);
-		Cell_T::set_transfer_all(
-			false,
-			Electric_Field(),
-			Magnetic_Field(),
-			Nr_Particles_Internal(),
-			Particles_Internal()
-		);
-
-		return ret_val;
+		(*cell_data)[Nr_Particles_T()]
+			= (*cell_data)[Particles_T()].size();
 	}
-};
+
+	Cell::set_transfer_all(
+		true,
+		Electric_Field_T(),
+		Magnetic_Field_T(),
+		Nr_Particles_T(),
+		Particles_T()
+	);
+	const bool ret_val = grid.save_grid_data(
+		file_name_prefix + "particle_" + time_string.str() + "_s.dc",
+		0,
+		header
+	);
+	Cell::set_transfer_all(
+		false,
+		Electric_Field_T(),
+		Magnetic_Field_T(),
+		Nr_Particles_T(),
+		Particles_T()
+	);
+
+	return ret_val;
+}
 
 
 }} // namespaces

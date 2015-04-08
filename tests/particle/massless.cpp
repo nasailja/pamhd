@@ -50,6 +50,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "boundaries/initial_condition.hpp"
 #include "boundaries/value_boundaries.hpp"
 #include "grid_options.hpp"
+#include "particle/initialize.hpp"
 #include "particle/save.hpp"
 #include "particle/solve_dccrg.hpp"
 #include "particle/variables.hpp"
@@ -301,206 +302,6 @@ template<class Init_Cond_T> void initialize_fields(
 	if (verbose && grid.get_rank() == 0) {
 		std::cout << "done";
 		std::cout.flush();
-	}
-}
-
-
-/*
-Creates particles in given cells as defined initial conditions obtained from user.
-*/
-template<class Init_Cond_T> void initialize_particles(
-	Init_Cond_T& init_cond,
-	const double simulation_time,
-	const std::vector<uint64_t>& cells,
-	dccrg::Dccrg<pamhd::particle::Cell, dccrg::Cartesian_Geometry>& grid,
-	std::mt19937& random_source,
-	const double particle_temp_nrj_ratio,
-	const bool verbose
-) {
-	if (verbose && grid.get_rank() == 0) {
-		std::cout << "Setting default particle state... ";
-		std::cout.flush();
-	}
-	for (const auto cell_id: cells) {
-		const auto
-			cell_start = grid.geometry.get_min(cell_id),
-			cell_end = grid.geometry.get_max(cell_id),
-			cell_length = grid.geometry.get_length(cell_id),
-			cell_center = grid.geometry.get_center(cell_id);
-
-		// classify cells for setting non-default initial state
-		init_cond.add_cell(
-			cell_id,
-			cell_start,
-			cell_end
-		);
-
-		auto* const cell_data = grid[cell_id];
-		if (cell_data == NULL) {
-			std::cerr <<  __FILE__ << "(" << __LINE__ << ") No data for cell: "
-				<< cell_id
-				<< std::endl;
-			abort();
-		}
-
-		// set default state
-		const auto
-			mass_density
-				= init_cond.default_data.get_data(
-					Mass_Density(),
-					cell_center,
-					simulation_time
-				),
-			temperature
-				= init_cond.default_data.get_data(
-					Temperature(),
-					cell_center,
-					simulation_time
-				),
-			charge_mass_ratio
-				= init_cond.default_data.get_data(
-					Charge_Mass_Ratio(),
-					cell_center,
-					simulation_time
-				),
-			species_mass
-				= init_cond.default_data.get_data(
-					Species_Mass(),
-					cell_center,
-					simulation_time
-				);
-		const auto bulk_velocity
-			= init_cond.default_data.get_data(
-				Bulk_Velocity(),
-				cell_center,
-				simulation_time
-			);
-		const auto nr_particles
-			= init_cond.default_data.get_data(
-				Nr_Particles_In_Cell(),
-				cell_center,
-				simulation_time
-			);
-
-		(*cell_data)[Particles_Internal()]
-			= create_particles<
-				Particle_Internal,
-				Mass,
-				Charge_Mass_Ratio,
-				Position,
-				Velocity,
-				Particle_ID,
-				std::mt19937
-			>(
-				bulk_velocity,
-				Eigen::Vector3d{cell_start[0], cell_start[1], cell_start[2]},
-				Eigen::Vector3d{cell_end[0], cell_end[1], cell_end[2]},
-				Eigen::Vector3d{temperature / 3, temperature / 3, temperature / 3},
-				nr_particles,
-				charge_mass_ratio,
-				mass_density * cell_length[0] * cell_length[1] * cell_length[2],
-				species_mass,
-				particle_temp_nrj_ratio,
-				random_source,
-				next_particle_id,
-				grid.get_comm_size()
-			);
-		next_particle_id += nr_particles * grid.get_comm_size();
-	}
-
-	// set non-default initial conditions
-	if (verbose && grid.get_rank() == 0) {
-		std::cout << "done\nSetting non-default initial particle state... ";
-		std::cout.flush();
-	}
-	for (size_t bdy_id = 0; bdy_id < init_cond.get_number_of_boundaries(); bdy_id++) {
-		for (const auto& cell_id: init_cond.get_cells(bdy_id)) {
-			const auto
-				cell_start = grid.geometry.get_min(cell_id),
-				cell_end = grid.geometry.get_max(cell_id),
-				cell_length = grid.geometry.get_length(cell_id),
-				cell_center = grid.geometry.get_center(cell_id);
-
-			const auto
-				mass_density
-					= init_cond.get_data(
-						Mass_Density(),
-						bdy_id,
-						cell_center,
-						simulation_time
-					),
-				temperature
-					= init_cond.get_data(
-						Temperature(),
-						bdy_id,
-						cell_center,
-						simulation_time
-					),
-				charge_mass_ratio
-					= init_cond.get_data(
-						Charge_Mass_Ratio(),
-						bdy_id,
-						cell_center,
-						simulation_time
-					),
-				species_mass
-					= init_cond.get_data(
-						Species_Mass(),
-						bdy_id,
-						cell_center,
-						simulation_time
-					);
-			const auto bulk_velocity
-				= init_cond.get_data(
-					Bulk_Velocity(),
-					bdy_id,
-					cell_center,
-					simulation_time
-				);
-			const auto nr_particles
-				= init_cond.get_data(
-					Nr_Particles_In_Cell(),
-					bdy_id,
-					cell_center,
-					simulation_time
-				);
-
-			auto* const cell_data = grid[cell_id];
-			if (cell_data == NULL) {
-				std::cerr <<  __FILE__ << "(" << __LINE__ << ") No data for cell: "
-					<< cell_id
-					<< std::endl;
-				abort();
-			}
-
-			(*cell_data)[Particles_Internal()]
-				= create_particles<
-					Particle_Internal,
-					Mass,
-					Charge_Mass_Ratio,
-					Position,
-					Velocity,
-					Particle_ID,
-					std::mt19937
-				>(
-					bulk_velocity,
-					Eigen::Vector3d{cell_start[0], cell_start[1], cell_start[2]},
-					Eigen::Vector3d{cell_end[0], cell_end[1], cell_end[2]},
-					Eigen::Vector3d{temperature / 3, temperature / 3, temperature / 3},
-					nr_particles,
-					charge_mass_ratio,
-					mass_density * cell_length[0] * cell_length[1] * cell_length[2],
-					species_mass,
-					particle_temp_nrj_ratio,
-					random_source,
-					next_particle_id,
-					grid.get_comm_size()
-				);
-			next_particle_id += nr_particles * grid.get_comm_size();
-		}
-	}
-	if (verbose && grid.get_rank() == 0) {
-		std::cout << "done" << std::endl;
 	}
 }
 
@@ -871,13 +672,29 @@ int main(int argc, char* argv[])
 		verbose
 	);
 
-	initialize_particles(
+	initialize<
+		Mass_Density,
+		Temperature,
+		Charge_Mass_Ratio,
+		Species_Mass,
+		Bulk_Velocity,
+		Nr_Particles_In_Cell,
+		Particles_Internal,
+		Particle_Internal,
+		Mass,
+		Charge_Mass_Ratio,
+		Position,
+		Velocity,
+		Particle_ID
+	>(
 		initial_particles,
 		0,
 		cell_ids,
 		grid,
 		random_source,
 		particle_temp_nrj_ratio,
+		next_particle_id,
+		grid.get_comm_size(),
 		verbose
 	);
 
@@ -1174,9 +991,11 @@ int main(int argc, char* argv[])
 			}
 
 			if (
-				not Save::save<
-					Grid_T,
-					Cell_T
+				not save<
+					Electric_Field,
+					Magnetic_Field,
+					Nr_Particles_Internal,
+					Particles_Internal
 				>(
 					// TODO: append directory separator if missing
 					output_directory,

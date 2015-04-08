@@ -374,9 +374,11 @@ int main(int argc, char* argv[])
 			}
 
 			if (
-				not Save::save<
-					Grid_T,
-					Cell_T
+				not save<
+					Electric_Field,
+					Magnetic_Field,
+					Nr_Particles_Internal,
+					Particles_Internal
 				>(
 					"",
 					grid,
