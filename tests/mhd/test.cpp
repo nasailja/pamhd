@@ -69,6 +69,7 @@ int Poisson_Cell::transfer_switch = Poisson_Cell::INIT;
 
 int main(int argc, char* argv[])
 {
+	using std::min;
 	using std::pow;
 	using Cell_T = pamhd::mhd::Cell;
 	using Grid_T = dccrg::Dccrg<Cell_T, dccrg::Cartesian_Geometry>;
@@ -634,7 +635,7 @@ int main(int argc, char* argv[])
 		double
 			// don't step over the final simulation time
 			until_end = end_time - simulation_time,
-			local_time_step = std::min(time_step_factor * max_dt, until_end),
+			local_time_step = min(time_step_factor * max_dt, until_end),
 			time_step = -1;
 
 		if (
@@ -685,7 +686,7 @@ int main(int argc, char* argv[])
 		profiler.stop("Zeroing fluxes", cells.size(), "cells");
 
 		profiler.start("Solving inner cells");
-		max_dt = std::min(
+		max_dt = min(
 			max_dt,
 			pamhd::mhd::solve<
 				Grid_T,
@@ -711,7 +712,7 @@ int main(int argc, char* argv[])
 		profiler.stop("Waiting for receives");
 
 		profiler.start("Solving outer cells");
-		max_dt = std::min(
+		max_dt = min(
 			max_dt,
 			pamhd::mhd::solve<
 				Grid_T,
