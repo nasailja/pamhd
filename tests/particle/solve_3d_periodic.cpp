@@ -135,7 +135,7 @@ int main(int argc, char* argv[])
 
 		const auto cell_center = grid.geometry.get_center(cell_id);
 
-		Particle_T<> particle;
+		Particle_Internal particle;
 		particle[Position()] = {
 			cell_center[0],
 			cell_center[1],

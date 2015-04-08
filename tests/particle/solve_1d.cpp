@@ -177,7 +177,7 @@ int main(int argc, char* argv[])
 			cell_center_y = grid_y.geometry.get_center(cell_id),
 			cell_center_z = grid_z.geometry.get_center(cell_id);
 
-		Particle_T<> particle_x, particle_y, particle_z;
+		Particle_Internal particle_x, particle_y, particle_z;
 		particle_x[Position()] = {
 			cell_center_x[0],
 			cell_center_x[1],
