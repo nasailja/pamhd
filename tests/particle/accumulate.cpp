@@ -1,5 +1,5 @@
 /*
-Test particle accumulator of PAMHD.
+Serial test for particle accumulator of PAMHD.
 
 Copyright 2014, 2015 Ilja Honkonen
 All rights reserved.
@@ -70,7 +70,7 @@ constexpr double get_cell_max(const size_t index, const size_t grid_size)
 
 constexpr double get_cell_center(const size_t index, const size_t grid_size)
 {
-	return (get_cell_max(index, grid_size) - get_cell_min(index, grid_size)) / 2;
+	return (get_cell_max(index, grid_size) + get_cell_min(index, grid_size)) / 2;
 }
 
 
@@ -159,13 +159,15 @@ int main()
 
 		for (const auto& item: values) {
 			for (size_t cell_i = 0; cell_i < nr_of_cells; cell_i++) {
-				accumulated[cell_i] += get_accumulated_value(
+				const auto accumulated_value = get_accumulated_value(
 					item.first,
 					Vector3d(item.second - cell_length / 2, 0, 0),
 					Vector3d(item.second + cell_length / 2, 1, 1),
 					Vector3d(get_cell_min(cell_i, nr_of_cells), 0, 0),
 					Vector3d(get_cell_max(cell_i, nr_of_cells), 1, 1)
 				);
+
+				accumulated[cell_i] += accumulated_value;
 			}
 
 			// accumulate across periodic boundary
@@ -173,27 +175,27 @@ int main()
 				item.first,
 				Vector3d(item.second - cell_length / 2, 0, 0),
 				Vector3d(item.second + cell_length / 2, 1, 1),
-				Vector3d(get_cell_min(nr_of_cells - 1, nr_of_cells), 0, 0),
-				Vector3d(get_cell_max(nr_of_cells - 1, nr_of_cells), 1, 1)
+				Vector3d(get_cell_max(nr_of_cells - 1, nr_of_cells), 0, 0),
+				Vector3d(get_cell_max(nr_of_cells - 1, nr_of_cells) + cell_length, 1, 1)
 			);
 			accumulated[nr_of_cells - 1] += get_accumulated_value(
 				item.first,
 				Vector3d(item.second - cell_length / 2, 0, 0),
 				Vector3d(item.second + cell_length / 2, 1, 1),
-				Vector3d(get_cell_min(0, nr_of_cells), 0, 0),
-				Vector3d(get_cell_max(0, nr_of_cells), 1, 1)
+				Vector3d(get_cell_min(0, nr_of_cells) - cell_length, 0, 0),
+				Vector3d(get_cell_min(0, nr_of_cells), 1, 1)
 			);
 		}
 
 		// get inf norm from analytic
-		double norm = std::numeric_limits<double>::lowest();
+		double norm = 0;
 		for (size_t cell_i = 0; cell_i < nr_of_cells; cell_i++) {
 			const double cell_center = get_cell_center(cell_i, nr_of_cells);
 			norm = max(norm, fabs(accumulated[cell_i] - f(cell_center)));
 		}
 		norm /= nr_of_cells;
 
-		if (old_nr_of_cells >= 40) {
+		if (old_nr_of_cells > 0 and old_nr_of_cells < 320) {
 			const double order_of_accuracy
 				= -log(norm / old_norm)
 				/ log(double(nr_of_cells) / old_nr_of_cells);
