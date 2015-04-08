@@ -33,14 +33,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef PAMHD_MHD_INITIALIZE_HPP
 #define PAMHD_MHD_INITIALIZE_HPP
 
+
 #include "cmath"
 #include "iostream"
 #include "limits"
 
-#include "gensimcell.hpp"
+#include "dccrg.hpp"
 
 #include "mhd/common.hpp"
 #include "mhd/variables.hpp"
+
 
 namespace pamhd {
 namespace mhd {
@@ -62,17 +64,18 @@ Sets the initial state of MHD simulation and zeroes fluxes.
 \param [vacuum_permeability] https://en.wikipedia.org/wiki/Vacuum_permeability
 */
 template <
-	class Grid_T,
-	class Init_Cond_T,
 	class MHD_T,
 	class MHD_Flux_T,
 	class Mass_Density_T,
 	class Momentum_Density_T,
 	class Total_Energy_Density_T,
-	class Magnetic_Field_T
+	class Magnetic_Field_T,
+	class Init_Cond,
+	class Cell,
+	class Geometry
 > void initialize(
-	Grid_T& grid,
-	Init_Cond_T& init_cond,
+	Init_Cond& init_cond,
+	dccrg::Dccrg<Cell, Geometry>& grid,
 	std::vector<uint64_t>& cells,
 	const double time,
 	const double adiabatic_index,

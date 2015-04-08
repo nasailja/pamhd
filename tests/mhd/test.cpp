@@ -71,8 +71,8 @@ int main(int argc, char* argv[])
 {
 	using std::min;
 	using std::pow;
-	using Cell_T = pamhd::mhd::Cell;
-	using Grid_T = dccrg::Dccrg<Cell_T, dccrg::Cartesian_Geometry>;
+	using Cell = pamhd::mhd::Cell;
+	using Grid = dccrg::Dccrg<Cell, dccrg::Cartesian_Geometry>;
 
 	const pamhd::mhd::Magnetic_Field Mag{};
 	const pamhd::mhd::Magnetic_Field_Temp Mag_Tmp{};
@@ -183,19 +183,16 @@ int main(int argc, char* argv[])
 		),
 		// grouped options for printing help
 		initial_condition_help(
-			"Options for initial condition which sets cell data to values "
-			"given in --boundary-file at start of simulation (cannot be same "
-			"file as --config-file, not read if empty strging)"
+			"Options for initial conditions which set cell data to specified "
+			"values before the simulation is started of the simulation."
 		),
-		boundary_condition_help(
+		value_boundary_help(
 			"Options for value boundary conditions which set cell data "
-			"to values given in --boundary-file (cannot be same file as "
-			"--config-file, not read if empty string)"
+			"to specified values after each simulation time step"
 		),
 		copy_boundary_help(
-			"Options for copy boundaries which set cell data to average value "
-			"of neighboring non-boundary cells (read from file --boundary-file, "
-			"cannot be same file as --config-file, not read if empty string)"
+			"Options for copy boundaries which set cell data to average "
+			"value of neighboring non-boundary cells"
 		);
 
 	// handle general options
@@ -329,7 +326,7 @@ int main(int argc, char* argv[])
 	initial_condition.add_options("initial.", options);
 	initial_condition.add_options("initial.", initial_condition_help);
 	value_boundaries.add_options("value-boundaries.", options);
-	value_boundaries.add_options("value-boundaries.", boundary_condition_help);
+	value_boundaries.add_options("value-boundaries.", value_boundary_help);
 	copy_boundary.add_options("copy-boundaries.", options);
 	copy_boundary.add_options("copy-boundaries.", copy_boundary_help);
 
@@ -387,7 +384,7 @@ int main(int argc, char* argv[])
 
 	if (option_variables.count("value-boundary-help") > 0) {
 		if (rank == 0) {
-			cout << boundary_condition_help << endl;
+			cout << value_boundary_help << endl;
 		}
 		MPI_Finalize();
 		return EXIT_SUCCESS;
@@ -504,7 +501,7 @@ int main(int argc, char* argv[])
 	*/
 	profiler.start("Initializing grid");
 
-	Grid_T grid;
+	Grid grid;
 
 	const unsigned int neighborhood_size = 0;
 	const auto periodic = grid_options.data.get_data(pamhd::grid::Periodic());
@@ -563,8 +560,6 @@ int main(int argc, char* argv[])
 	}
 	profiler.start("Initializing MHD");
 	pamhd::mhd::initialize<
-		Grid_T,
-		Init_Cond_T,
 		pamhd::mhd::MHD_State_Conservative,
 		pamhd::mhd::MHD_Flux_Conservative,
 		pamhd::mhd::Mass_Density,
@@ -572,8 +567,8 @@ int main(int argc, char* argv[])
 		pamhd::mhd::Total_Energy_Density,
 		pamhd::mhd::Magnetic_Field
 	>(
-		grid,
 		initial_condition,
+		grid,
 		cells,
 		0,
 		adiabatic_index,
@@ -597,7 +592,7 @@ int main(int argc, char* argv[])
 		*/
 
 		auto Mag_Getter
-			= [](Cell_T& cell_data)
+			= [](Cell& cell_data)
 				// TODO: switch to -> auto& of C++14
 				-> pamhd::mhd::Magnetic_Field::data_type&
 			{
@@ -609,14 +604,14 @@ int main(int argc, char* argv[])
 			};
 
 		auto Div_Getter
-			= [](Cell_T& cell_data)
+			= [](Cell& cell_data)
 				-> pamhd::mhd::Magnetic_Field_Divergence::data_type&
 			{
 				return cell_data[pamhd::mhd::Magnetic_Field_Divergence()];
 			};
 
 		auto Current_Getter
-			= [](Cell_T& cell_data)
+			= [](Cell& cell_data)
 				-> pamhd::mhd::Electric_Current_Density::data_type&
 			{
 				return cell_data[pamhd::mhd::Electric_Current_Density()];
@@ -669,14 +664,14 @@ int main(int argc, char* argv[])
 
 		profiler.start("Solving MHD");
 		profiler.start("Starting updates");
-		Cell_T::set_transfer_all(true, MHD, Cell_Type);
+		Cell::set_transfer_all(true, MHD, Cell_Type);
 		grid.start_remote_neighbor_copy_updates();
 		profiler.stop("Starting updates");
 
 		profiler.start("Zeroing fluxes");
 		pamhd::mhd::zero_fluxes<
-			Grid_T,
-			Cell_T,
+			Grid,
+			Cell,
 			pamhd::mhd::MHD_Flux_Conservative,
 			pamhd::mhd::Mass_Density,
 			pamhd::mhd::Momentum_Density,
@@ -689,7 +684,7 @@ int main(int argc, char* argv[])
 		max_dt = min(
 			max_dt,
 			pamhd::mhd::solve<
-				Grid_T,
+				Grid,
 				pamhd::mhd::MHD_State_Conservative,
 				pamhd::mhd::MHD_Flux_Conservative,
 				pamhd::mhd::Mass_Density,
@@ -715,7 +710,7 @@ int main(int argc, char* argv[])
 		max_dt = min(
 			max_dt,
 			pamhd::mhd::solve<
-				Grid_T,
+				Grid,
 				pamhd::mhd::MHD_State_Conservative,
 				pamhd::mhd::MHD_Flux_Conservative,
 				pamhd::mhd::Mass_Density,
@@ -735,8 +730,8 @@ int main(int argc, char* argv[])
 
 		profiler.start("Applying inner fluxes");
 		pamhd::mhd::apply_fluxes<
-			Grid_T,
-			Cell_T,
+			Grid,
+			Cell,
 			pamhd::mhd::MHD_State_Conservative,
 			pamhd::mhd::MHD_Flux_Conservative,
 			pamhd::mhd::Mass_Density,
@@ -753,13 +748,13 @@ int main(int argc, char* argv[])
 
 		profiler.start("Waiting for sends");
 		grid.wait_remote_neighbor_copy_update_sends();
-		Cell_T::set_transfer_all(false, MHD, Cell_Type);
+		Cell::set_transfer_all(false, MHD, Cell_Type);
 		profiler.stop("Waiting for sends");
 
 		profiler.start("Applying outer fluxes");
 		pamhd::mhd::apply_fluxes<
-			Grid_T,
-			Cell_T,
+			Grid,
+			Cell,
 			pamhd::mhd::MHD_State_Conservative,
 			pamhd::mhd::MHD_Flux_Conservative,
 			pamhd::mhd::Mass_Density,
@@ -806,7 +801,7 @@ int main(int argc, char* argv[])
 				(*cell_data)[Mag_Tmp] = (*cell_data)[MHD][Mag];
 			}
 
-			Cell_T::set_transfer_all(true, MHD, Mag_Div);
+			Cell::set_transfer_all(true, MHD, Mag_Div);
 			const auto div_before
 				= pamhd::divergence::remove(
 					cells,
@@ -815,7 +810,7 @@ int main(int argc, char* argv[])
 					grid,
 					Mag_Getter,
 					Div_Getter,
-					[](Cell_T& cell_data)
+					[](Cell& cell_data)
 						-> pamhd::mhd::Scalar_Potential_Gradient::data_type&
 					{
 						return cell_data[pamhd::mhd::Scalar_Potential_Gradient()];
@@ -827,10 +822,10 @@ int main(int argc, char* argv[])
 					poisson_norm_increase_max,
 					false
 				);
-			Cell_T::set_transfer_all(false, Mag_Div);
+			Cell::set_transfer_all(false, Mag_Div);
 
 			grid.update_copies_of_remote_neighbors();
-			Cell_T::set_transfer_all(false, MHD);
+			Cell::set_transfer_all(false, MHD);
 			const double div_after
 				= pamhd::divergence::get_divergence(
 					cells,
@@ -1010,9 +1005,9 @@ int main(int argc, char* argv[])
 		}
 
 		// copy up-to-date data
-		Cell_T::set_transfer_all(true, MHD, Cell_Type);
+		Cell::set_transfer_all(true, MHD, Cell_Type);
 		grid.update_copies_of_remote_neighbors();
-		Cell_T::set_transfer_all(false, MHD, Cell_Type);
+		Cell::set_transfer_all(false, MHD, Cell_Type);
 
 		// set copy boundary cells' neighbors
 		for (const auto& cell: copy_boundary.get_cells()) {
@@ -1150,8 +1145,8 @@ int main(int argc, char* argv[])
 
 			if (
 				not pamhd::mhd::Save::save<
-					Grid_T,
-					Cell_T
+					Grid,
+					Cell
 				>(
 					output_directory,
 					grid,
