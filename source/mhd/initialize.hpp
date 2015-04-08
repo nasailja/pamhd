@@ -76,7 +76,7 @@ template <
 > void initialize(
 	Init_Cond& init_cond,
 	dccrg::Dccrg<Cell, Geometry>& grid,
-	std::vector<uint64_t>& cells,
+	const std::vector<uint64_t>& cells,
 	const double time,
 	const double adiabatic_index,
 	const double vacuum_permeability,
