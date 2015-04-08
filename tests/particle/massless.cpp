@@ -38,6 +38,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "random"
 #include "string"
 
+#include "boost/filesystem.hpp"
 #include "boost/numeric/odeint.hpp"
 #include "dccrg.hpp"
 #include "dccrg_cartesian_geometry.hpp"
@@ -46,8 +47,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "mpi.h" // must be included before gensimcell
 #include "gensimcell.hpp"
 
-
 #include "boundaries/initial_condition.hpp"
+#include "boundaries/value_boundaries.hpp"
 #include "grid_options.hpp"
 #include "particle/save.hpp"
 #include "particle/solve_dccrg.hpp"
@@ -56,6 +57,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using namespace std;
 using namespace pamhd::particle;
 
+
+// unique particle id to assign to next particle
+unsigned long long int next_particle_id;
 
 /*
 Variables for bulk particle parameters of initial and value boundaries.
@@ -110,11 +114,18 @@ in given file.
 */
 template<class Init_Cond_T> void initialize_fields(
 	Init_Cond_T& init_cond,
+	const double simulation_time,
 	const std::vector<uint64_t>& cell_ids,
 	dccrg::Dccrg<pamhd::particle::Cell, dccrg::Cartesian_Geometry>& grid,
-	const std::string& fields_file
+	const std::string& fields_file,
+	const bool verbose
 ) {
 	using std::pow;
+
+	if (verbose && grid.get_rank() == 0) {
+		std::cout << "Setting initial electric and magnetic fields... ";
+		std::cout.flush();
+	}
 
 	// set initial fields from file
 	if (fields_file != "") {
@@ -219,12 +230,14 @@ template<class Init_Cond_T> void initialize_fields(
 	// set initial fields from command line
 	} else {
 
+		// set default state
 		for (const auto cell_id: cell_ids) {
 			const auto
 				cell_start = grid.geometry.get_min(cell_id),
 				cell_end = grid.geometry.get_max(cell_id),
 				cell_center = grid.geometry.get_center(cell_id);
 
+			// classify cells for the next loop
 			init_cond.add_cell(
 				cell_id,
 				cell_start,
@@ -239,7 +252,6 @@ template<class Init_Cond_T> void initialize_fields(
 				abort();
 			}
 
-			// set default state
 			(*cell_data)[Electric_Field()]
 				= init_cond.default_data.get_data(
 					Electric_Field(),
@@ -253,6 +265,42 @@ template<class Init_Cond_T> void initialize_fields(
 					0
 				);
 		}
+
+		// set state in additional boundary regions
+		for (size_t bdy_id = 0; bdy_id < init_cond.get_number_of_boundaries(); bdy_id++) {
+			for (const auto& cell_id: init_cond.get_cells(bdy_id)) {
+
+				const auto cell_center = grid.geometry.get_center(cell_id);
+
+				auto* const cell_data = grid[cell_id];
+				if (cell_data == NULL) {
+					std::cerr <<  __FILE__ << "(" << __LINE__ << ") No data for cell: "
+						<< cell_id
+						<< std::endl;
+					abort();
+				}
+
+				(*cell_data)[Electric_Field()]
+					= init_cond.get_data(
+						Electric_Field(),
+						bdy_id,
+						cell_center,
+						simulation_time
+					);
+				(*cell_data)[Magnetic_Field()]
+					= init_cond.get_data(
+						Magnetic_Field(),
+						bdy_id,
+						cell_center,
+						simulation_time
+					);
+			}
+		}
+	}
+
+	if (verbose && grid.get_rank() == 0) {
+		std::cout << "done";
+		std::cout.flush();
 	}
 }
 
@@ -262,12 +310,14 @@ Creates particles in given cells as defined initial conditions obtained from use
 */
 template<class Init_Cond_T> void initialize_particles(
 	Init_Cond_T& init_cond,
+	const double simulation_time,
 	const std::vector<uint64_t>& cells,
 	dccrg::Dccrg<pamhd::particle::Cell, dccrg::Cartesian_Geometry>& grid,
 	std::mt19937& random_source,
-	const double particle_temp_nrj_ratio
+	const double particle_temp_nrj_ratio,
+	const bool verbose
 ) {
-	if (grid.get_rank() == 0) {
+	if (verbose && grid.get_rank() == 0) {
 		std::cout << "Setting default particle state... ";
 		std::cout.flush();
 	}
@@ -275,8 +325,10 @@ template<class Init_Cond_T> void initialize_particles(
 		const auto
 			cell_start = grid.geometry.get_min(cell_id),
 			cell_end = grid.geometry.get_max(cell_id),
-			cell_length = grid.geometry.get_length(cell_id);
+			cell_length = grid.geometry.get_length(cell_id),
+			cell_center = grid.geometry.get_center(cell_id);
 
+		// classify cells for setting non-default initial state
 		init_cond.add_cell(
 			cell_id,
 			cell_start,
@@ -293,20 +345,51 @@ template<class Init_Cond_T> void initialize_particles(
 
 		// set default state
 		const auto
-			mass_density = init_cond.default_data.get_data(Mass_Density(), {{0, 0, 0}}, 0),
-			temperature = init_cond.default_data.get_data(Temperature(), {{0, 0, 0}}, 0),
-			charge_mass_ratio = init_cond.default_data.get_data(Charge_Mass_Ratio(), {{0, 0, 0}}, 0),
-			species_mass = init_cond.default_data.get_data(Species_Mass(), {{0, 0, 0}}, 0);
-		const auto bulk_velocity = init_cond.default_data.get_data(Bulk_Velocity(), {{0, 0, 0}}, 0);
-		const auto nr_particles = init_cond.default_data.get_data(Nr_Particles_In_Cell(), {{0, 0, 0}}, 0);
-		
+			mass_density
+				= init_cond.default_data.get_data(
+					Mass_Density(),
+					cell_center,
+					simulation_time
+				),
+			temperature
+				= init_cond.default_data.get_data(
+					Temperature(),
+					cell_center,
+					simulation_time
+				),
+			charge_mass_ratio
+				= init_cond.default_data.get_data(
+					Charge_Mass_Ratio(),
+					cell_center,
+					simulation_time
+				),
+			species_mass
+				= init_cond.default_data.get_data(
+					Species_Mass(),
+					cell_center,
+					simulation_time
+				);
+		const auto bulk_velocity
+			= init_cond.default_data.get_data(
+				Bulk_Velocity(),
+				cell_center,
+				simulation_time
+			);
+		const auto nr_particles
+			= init_cond.default_data.get_data(
+				Nr_Particles_In_Cell(),
+				cell_center,
+				simulation_time
+			);
+
 		(*cell_data)[Particles_Internal()]
 			= create_particles<
-				Particle_T<>,
+				Particle_Internal,
 				Mass,
 				Charge_Mass_Ratio,
 				Position,
 				Velocity,
+				Particle_ID,
 				std::mt19937
 			>(
 				bulk_velocity,
@@ -318,29 +401,69 @@ template<class Init_Cond_T> void initialize_particles(
 				mass_density * cell_length[0] * cell_length[1] * cell_length[2],
 				species_mass,
 				particle_temp_nrj_ratio,
-				random_source
+				random_source,
+				next_particle_id,
+				grid.get_comm_size()
 			);
+		next_particle_id += nr_particles * grid.get_comm_size();
 	}
 
 	// set non-default initial conditions
-	if (grid.get_rank() == 0) {
+	if (verbose && grid.get_rank() == 0) {
 		std::cout << "done\nSetting non-default initial particle state... ";
 		std::cout.flush();
 	}
-	for (size_t bdy_i = 0; bdy_i < init_cond.get_number_of_boundaries(); bdy_i++) {
-		const auto
-			mass_density = init_cond.get_data(Mass_Density(), bdy_i, {{0, 0, 0}}, 0),
-			temperature = init_cond.get_data(Temperature(), bdy_i, {{0, 0, 0}}, 0),
-			charge_mass_ratio = init_cond.get_data(Charge_Mass_Ratio(), bdy_i, {{0, 0, 0}}, 0),
-			species_mass = init_cond.get_data(Species_Mass(), bdy_i, {{0, 0, 0}}, 0);
-		const auto bulk_velocity = init_cond.get_data(Bulk_Velocity(), bdy_i, {{0, 0, 0}}, 0);
-		const auto nr_particles = init_cond.get_data(Nr_Particles_In_Cell(), bdy_i, {{0, 0, 0}}, 0);
-
-		for (const auto& cell_id: init_cond.get_cells(bdy_i)) {
+	for (size_t bdy_id = 0; bdy_id < init_cond.get_number_of_boundaries(); bdy_id++) {
+		for (const auto& cell_id: init_cond.get_cells(bdy_id)) {
 			const auto
 				cell_start = grid.geometry.get_min(cell_id),
 				cell_end = grid.geometry.get_max(cell_id),
-				cell_length = grid.geometry.get_length(cell_id);
+				cell_length = grid.geometry.get_length(cell_id),
+				cell_center = grid.geometry.get_center(cell_id);
+
+			const auto
+				mass_density
+					= init_cond.get_data(
+						Mass_Density(),
+						bdy_id,
+						cell_center,
+						simulation_time
+					),
+				temperature
+					= init_cond.get_data(
+						Temperature(),
+						bdy_id,
+						cell_center,
+						simulation_time
+					),
+				charge_mass_ratio
+					= init_cond.get_data(
+						Charge_Mass_Ratio(),
+						bdy_id,
+						cell_center,
+						simulation_time
+					),
+				species_mass
+					= init_cond.get_data(
+						Species_Mass(),
+						bdy_id,
+						cell_center,
+						simulation_time
+					);
+			const auto bulk_velocity
+				= init_cond.get_data(
+					Bulk_Velocity(),
+					bdy_id,
+					cell_center,
+					simulation_time
+				);
+			const auto nr_particles
+				= init_cond.get_data(
+					Nr_Particles_In_Cell(),
+					bdy_id,
+					cell_center,
+					simulation_time
+				);
 
 			auto* const cell_data = grid[cell_id];
 			if (cell_data == NULL) {
@@ -352,11 +475,12 @@ template<class Init_Cond_T> void initialize_particles(
 
 			(*cell_data)[Particles_Internal()]
 				= create_particles<
-					Particle_T<>,
+					Particle_Internal,
 					Mass,
 					Charge_Mass_Ratio,
 					Position,
 					Velocity,
+					Particle_ID,
 					std::mt19937
 				>(
 					bulk_velocity,
@@ -368,11 +492,14 @@ template<class Init_Cond_T> void initialize_particles(
 					mass_density * cell_length[0] * cell_length[1] * cell_length[2],
 					species_mass,
 					particle_temp_nrj_ratio,
-					random_source
+					random_source,
+					next_particle_id,
+					grid.get_comm_size()
 				);
+			next_particle_id += nr_particles * grid.get_comm_size();
 		}
 	}
-	if (grid.get_rank() == 0) {
+	if (verbose && grid.get_rank() == 0) {
 		std::cout << "done" << std::endl;
 	}
 }
@@ -406,6 +533,8 @@ int main(int argc, char* argv[])
 		abort();
 	}
 
+	next_particle_id = 1 + rank;
+
 	// intialize Zoltan
 	float zoltan_version;
 	if (Zoltan_Initialize(argc, argv, &zoltan_version) != ZOLTAN_OK) {
@@ -435,6 +564,29 @@ int main(int argc, char* argv[])
 	> initial_fields;
 
 
+	pamhd::boundaries::Value_Boundaries<
+		uint64_t,
+		double,
+		double,
+		std::array<double, 3>,
+		Mass_Density,
+		Temperature,
+		Bulk_Velocity,
+		Nr_Particles_In_Cell,
+		Charge_Mass_Ratio,
+		Species_Mass
+	> particles_value_bdy;
+
+	pamhd::boundaries::Value_Boundaries<
+		uint64_t,
+		double,
+		double,
+		std::array<double, 3>,
+		Electric_Field,
+		Magnetic_Field
+	> fields_value_bdy;
+
+
 	pamhd::grid::Options grid_options;
 	grid_options.data.set_expression(pamhd::grid::Number_Of_Cells(), "{1, 1, 1}");
 	grid_options.data.set_expression(pamhd::grid::Volume(), "{1, 1, 1}");
@@ -443,6 +595,7 @@ int main(int argc, char* argv[])
 
 	bool verbose = false;
 	double
+		max_time_step = std::numeric_limits<double>::infinity(),
 		save_particle_n = -1,
 		start_time = 0,
 		end_time = 1,
@@ -454,8 +607,8 @@ int main(int argc, char* argv[])
 	std::string
 		config_file_name(""),
 		lb_name("RCB"),
-		output_directory(""),
-		fields_file_name("");
+		fields_file_name(""),
+		output_directory("./");
 
 	boost::program_options::options_description
 		options(
@@ -486,7 +639,7 @@ int main(int argc, char* argv[])
 			boost::program_options::value<std::string>(&output_directory)
 				->default_value(output_directory),
 			"Output simulation results into directory arg (relative to "
-			"current working directory")
+			"current working directory, must include final dir separator")
 		("time-start",
 			boost::program_options::value<double>(&start_time)
 				->default_value(start_time),
@@ -495,15 +648,19 @@ int main(int argc, char* argv[])
 			boost::program_options::value<double>(&end_time)
 				->default_value(end_time),
 			"Length of simulation (s)")
-		("time-step-factor",
-			boost::program_options::value<double>(&time_step_factor)
-				->default_value(time_step_factor),
-			"Multiply maximum allowed time step (CFL condition) with factor arg")
 		("save-particle-n",
 			boost::program_options::value<double>(&save_particle_n)
 				->default_value(save_particle_n),
 			"Save results every arg seconds, 0 saves "
 			"initial and final states, -1 doesn't save")
+		("time-step-factor",
+			boost::program_options::value<double>(&time_step_factor)
+				->default_value(time_step_factor),
+			"Multiply maximum allowed time step (CFL condition) with factor arg")
+		("max-time-step",
+			boost::program_options::value<double>(&max_time_step)
+				->default_value(max_time_step),
+			"Maximum length of simulation time step, before " "physical/mathematical/numerical considerations")
 		("boltzmann",
 			boost::program_options::value<double>(&particle_temp_nrj_ratio)
 				->default_value(particle_temp_nrj_ratio),
@@ -513,6 +670,8 @@ int main(int argc, char* argv[])
 	grid_options.add_options("grid.", options);
 	initial_particles.add_initialization_options("initial-particles.", options);
 	initial_fields.add_initialization_options("initial-fields.", options);
+	particles_value_bdy.add_initialization_options("particles-value-boundaries.", options);
+	fields_value_bdy.add_initialization_options("fields-value-boundaries.", options);
 
 	boost::program_options::variables_map option_variables;
 	try {
@@ -572,6 +731,10 @@ int main(int argc, char* argv[])
 	initial_particles.add_options("initial-particles.", initial_condition_help);
 	initial_fields.add_options("initial-fields.", options);
 	initial_fields.add_options("initial-fields.", initial_condition_help);
+	particles_value_bdy.add_options("particles-value-boundaries.", options);
+	particles_value_bdy.add_options("particles-value-boundaries.", initial_condition_help);
+	fields_value_bdy.add_options("fields-value-boundaries.", options);
+	fields_value_bdy.add_options("fields-value-boundaries.", initial_condition_help);
 
 	// parse again to get boundaries' options
 	try {
@@ -626,6 +789,9 @@ int main(int argc, char* argv[])
 		verbose = true;
 	}
 
+	if (rank == 0) {
+		boost::filesystem::create_directories(output_directory);
+	}
 
 	Grid_T grid;
 
@@ -678,7 +844,7 @@ int main(int argc, char* argv[])
 
 	if (not grid.set_geometry(geom_params)) {
 		std::cerr << __FILE__ << "(" << __LINE__ << "): "
-			<< "Couldn't set geometry of one or more grids."
+			<< "Couldn't set grid geometry."
 			<< std::endl;
 		abort();
 	}
@@ -698,17 +864,21 @@ int main(int argc, char* argv[])
 
 	initialize_fields(
 		initial_fields,
+		0,
 		cell_ids,
 		grid,
-		fields_file_name
+		fields_file_name,
+		verbose
 	);
 
 	initialize_particles(
 		initial_particles,
+		0,
 		cell_ids,
 		grid,
 		random_source,
-		particle_temp_nrj_ratio
+		particle_temp_nrj_ratio,
+		verbose
 	);
 
 	// allocate copies of remote neighbor cells
@@ -726,7 +896,7 @@ int main(int argc, char* argv[])
 		double
 			// don't step over the final simulation time
 			until_end = end_time - simulation_time,
-			local_time_step = std::min(0.5 * max_dt, until_end),
+			local_time_step = std::min(std::min(0.5 * max_dt, until_end), max_time_step),
 			time_step = -1;
 
 		if (
@@ -740,12 +910,12 @@ int main(int argc, char* argv[])
 			) != MPI_SUCCESS
 		) {
 			std::cerr << __FILE__ << ":" << __LINE__
-				<< ": Couldn't set reduce time step."
+				<< ": Couldn't reduce time step."
 				<< std::endl;
 			abort();
 		}
 
-		if (grid.get_rank() == 0) {
+		if (verbose && grid.get_rank() == 0) {
 			cout << "Solving particles at time " << simulation_time
 				<< " s with time step " << time_step << " s" << endl;
 		}
@@ -857,6 +1027,140 @@ int main(int argc, char* argv[])
 		>(outer_cell_ids, grid);
 
 
+		/*
+		Classify cells into value boundaries.
+		*/
+
+		particles_value_bdy.clear_cells();
+		fields_value_bdy.clear_cells();
+
+		for (const auto cell_id: cell_ids) {
+			const auto
+				cell_start = grid.geometry.get_min(cell_id),
+				cell_end = grid.geometry.get_max(cell_id);
+
+			boost::optional<size_t> result = particles_value_bdy.add_cell(
+				simulation_time,
+				cell_id,
+				cell_start,
+				cell_end
+			);
+			if (not result) {
+				std::cerr <<  __FILE__ << "(" << __LINE__ << "): "
+					"Couldn't add cell " << cell_id << " to particle value boundaries."
+					<< std::endl;
+				abort();
+			}
+
+			result = fields_value_bdy.add_cell(
+				simulation_time,
+				cell_id,
+				cell_start,
+				cell_end
+			);
+			if (not result) {
+				std::cerr <<  __FILE__ << "(" << __LINE__ << "): "
+					"Couldn't add cell " << cell_id << " to fields value boundaries."
+					<< std::endl;
+				abort();
+			}
+		}
+
+		for (size_t bdy_id = 0; bdy_id < particles_value_bdy.get_number_of_boundaries(); bdy_id++) {
+
+			for (const auto& cell_id: particles_value_bdy.get_cells(bdy_id)) {
+				const auto
+					cell_start = grid.geometry.get_min(cell_id),
+					cell_end = grid.geometry.get_max(cell_id),
+					cell_length = grid.geometry.get_length(cell_id),
+					cell_center = grid.geometry.get_center(cell_id);
+
+				const auto
+					mass_density
+						= particles_value_bdy.get_data(
+							Mass_Density(), bdy_id, cell_center, simulation_time
+						),
+					temperature
+						= particles_value_bdy.get_data(
+							Temperature(), bdy_id, cell_center, simulation_time
+						),
+					charge_mass_ratio
+						= particles_value_bdy.get_data(
+							Charge_Mass_Ratio(), bdy_id, cell_center, simulation_time
+						),
+					species_mass
+						= particles_value_bdy.get_data(
+							Species_Mass(), bdy_id, cell_center, simulation_time
+						);
+				const auto bulk_velocity
+					= particles_value_bdy.get_data(
+						Bulk_Velocity(), bdy_id, cell_center, simulation_time
+					);
+				const auto nr_particles
+					= particles_value_bdy.get_data(
+						Nr_Particles_In_Cell(), bdy_id, cell_center, simulation_time
+					);
+
+				auto* const cell_data = grid[cell_id];
+				if (cell_data == NULL) {
+					std::cerr <<  __FILE__ << "(" << __LINE__ << "): "
+						"No data for cell: " << cell_id
+						<< std::endl;
+					abort();
+				}
+
+				(*cell_data)[Particles_Internal()]
+					= create_particles<
+						Particle_Internal,
+						Mass,
+						Charge_Mass_Ratio,
+						Position,
+						Velocity,
+						Particle_ID,
+						std::mt19937
+					>(
+						bulk_velocity,
+						Eigen::Vector3d{cell_start[0], cell_start[1], cell_start[2]},
+						Eigen::Vector3d{cell_end[0], cell_end[1], cell_end[2]},
+						Eigen::Vector3d{temperature / 3, temperature / 3, temperature / 3},
+						nr_particles,
+						charge_mass_ratio,
+						mass_density * cell_length[0] * cell_length[1] * cell_length[2],
+						species_mass,
+						particle_temp_nrj_ratio,
+						random_source,
+						next_particle_id,
+						grid.get_comm_size()
+					);
+				next_particle_id += nr_particles * grid.get_comm_size();
+			}
+		}
+
+		for (size_t bdy_id = 0; bdy_id < fields_value_bdy.get_number_of_boundaries(); bdy_id++) {
+
+			for (const auto& cell_id: fields_value_bdy.get_cells(bdy_id)) {
+				const auto cell_center = grid.geometry.get_center(cell_id);
+
+				auto* const cell_data = grid[cell_id];
+				if (cell_data == NULL) {
+					std::cerr <<  __FILE__ << "(" << __LINE__ << ") No data for cell: "
+						<< cell_id
+						<< std::endl;
+					abort();
+				}
+
+				(*cell_data)[Electric_Field()]
+					= fields_value_bdy.get_data(
+						Electric_Field(), bdy_id, cell_center, simulation_time
+					);
+				(*cell_data)[Magnetic_Field()]
+					= fields_value_bdy.get_data(
+						Magnetic_Field(), bdy_id, cell_center, simulation_time
+					);
+			}
+		}
+
+
 		if (
 			(save_particle_n >= 0 and (simulation_time == 0 or simulation_time >= end_time))
 			or (save_particle_n > 0 and simulation_time >= next_particle_save)
@@ -865,7 +1169,7 @@ int main(int argc, char* argv[])
 				next_particle_save += save_particle_n;
 			}
 
-			if (rank == 0) {
+			if (verbose && rank == 0) {
 				cout << "Saving particles at time " << simulation_time << endl;
 			}
 
@@ -874,7 +1178,8 @@ int main(int argc, char* argv[])
 					Grid_T,
 					Cell_T
 				>(
-					"",
+					// TODO: append directory separator if missing
+					output_directory,
 					grid,
 					simulation_time,
 					vacuum_permeability
@@ -883,7 +1188,8 @@ int main(int argc, char* argv[])
 				std::cerr <<  __FILE__ << "(" << __LINE__ << "): "
 					"Couldn't save particle result."
 					<< std::endl;
-				abort();
+				MPI_Finalize();
+				return EXIT_SUCCESS;
 			}
 		}
 	}
