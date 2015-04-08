@@ -158,6 +158,10 @@ particle_temp_nrj_ratio is the Boltzmann constant and is used
 when calculating standard deviation of particle velocities.
 
 Particles are evenly distributed within given volume.
+
+Created particles are assigned a sequentially increasing
+id starting at first_id with an increment of id_increment,
+i.e. first_id, first_id+id_increment, first_id+2*id_increment...
 */
 template <
 	class Particle,
@@ -165,6 +169,7 @@ template <
 	class Charge_Mass_Ratio_T,
 	class Position_T,
 	class Velocity_T,
+	class Particle_ID_T,
 	class Random_Source
 > std::vector<Particle> create_particles(
 	const typename Velocity_T::data_type bulk_velocity,
@@ -176,7 +181,9 @@ template <
 	const double total_mass,
 	const double species_mass,
 	const double particle_temp_nrj_ratio,
-	Random_Source& random_source
+	Random_Source& random_source,
+	const typename Particle_ID_T::data_type first_id = 0,
+	const typename Particle_ID_T::data_type id_increment = 0
 ) {
 	using std::sqrt;
 
@@ -184,6 +191,7 @@ template <
 	const Position_T Pos{};
 	const Velocity_T Vel{};
 	const Charge_Mass_Ratio_T C2M{};
+	const Particle_ID_T Id{};
 
 	const double particle_mass = total_mass / nr_of_particles;
 
@@ -203,6 +211,7 @@ template <
 		position_generator_z(volume_min[2], volume_max[2]);
 
 	std::vector<Particle> particles(nr_of_particles);
+	typename Particle_ID_T::data_type new_id = first_id;
 	std::generate_n(
 		particles.begin(),
 		nr_of_particles,
@@ -216,9 +225,18 @@ template <
 			p[Vel][0] = velocity_generator_x(random_source);
 			p[Vel][1] = velocity_generator_y(random_source);
 			p[Vel][2] = velocity_generator_z(random_source);
+			p[Id] = new_id;
+			new_id += id_increment;
 			return p;
 		}
 	);
+
+	if (new_id < first_id) {
+		std::cout <<  __FILE__ << "(" << __LINE__ << "): "
+			<< "WARNING unique particle id wrapped around from " << first_id
+			<< " to " << new_id
+			<< std::endl;
+	}
 
 	return particles;
 }

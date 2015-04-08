@@ -40,6 +40,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "dccrg.hpp"
 #include "Eigen/Core"
 #include "Eigen/Geometry"
+#include "prettyprint.hpp"
 
 #include "common.hpp"
 #include "interpolate.hpp"
@@ -354,7 +355,15 @@ template<
 					(*cell_data)[Part_Int].erase((*cell_data)[Part_Int].begin() + i);
 					i--;
 				} else {
-					std::cerr << __FILE__ << "(" << __LINE__ << ")" << std::endl;
+					std::cerr << __FILE__ << "(" << __LINE__ << "): "
+						<< " No destination found for particle at " << real_pos
+						<< " in cell " << cell_id
+						<< " at " << cell_center
+						<< " from neighbors ";
+					for (const auto& neighbor_id: *neighbor_ids) {
+						std::cerr << neighbor_id << " ";
+					}
+					std::cerr << std::endl;
 					abort();
 				}
 

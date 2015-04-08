@@ -97,9 +97,16 @@ template<
 >;
 
 
-//! Represents particles not moving between cells
+//! Unique id of each particle
+struct Particle_ID {
+	using data_type = unsigned long long int;
+};
+
+//! A particle not moving between cells
+using Particle_Internal = Particle_T<Particle_ID>;
+
 struct Particles_Internal {
-	using data_type = std::vector<Particle_T<>>;
+	using data_type = std::vector<Particle_Internal>;
 };
 
 //! Represents number of particles not moving between cells.
@@ -113,9 +120,11 @@ struct Destination_Cell {
 	using data_type = unsigned long long int;
 };
 
+using Particle_External = Particle_T<Particle_ID, Destination_Cell>;
+
 //! Represents particles moving between cells
 struct Particles_External {
-	using data_type = std::vector<Particle_T<Destination_Cell>>;
+	using data_type = std::vector<Particle_External>;
 };
 
 //! Represents number of particles moving between cells.
