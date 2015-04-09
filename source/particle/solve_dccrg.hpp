@@ -134,7 +134,6 @@ list of their previous cell and added to Particle_Destinations_T
 information.
 */
 template<
-	class Cell_T,
 	class Electric_Field_T,
 	class Magnetic_Field_T,
 	class Nr_Particles_External_T,
@@ -145,11 +144,12 @@ template<
 	class Charge_To_Mass_Ratio_T,
 	class Particle_Mass_T,
 	class Particle_Destination_T,
-	class Stepper
+	class Stepper,
+	class Cell
 > double solve(
 	const double dt,
 	const std::vector<uint64_t>& cell_ids,
-	dccrg::Dccrg<Cell_T, dccrg::Cartesian_Geometry>& grid
+	dccrg::Dccrg<Cell, dccrg::Cartesian_Geometry>& grid
 ) {
 	namespace odeint = boost::numeric::odeint;
 	using std::isnan;
@@ -385,12 +385,12 @@ template<
 
 
 template<
-	class Cell_T,
 	class Nr_Particles_External_T,
-	class Particles_External_T
+	class Particles_External_T,
+	class Cell
 > void resize_receiving_containers(
 	const std::vector<uint64_t>& cell_ids,
-	dccrg::Dccrg<Cell_T, dccrg::Cartesian_Geometry>& grid
+	dccrg::Dccrg<Cell, dccrg::Cartesian_Geometry>& grid
 ) {
 	for (const auto& cell_id: cell_ids) {
 
@@ -408,14 +408,14 @@ template<
 
 
 template<
-	class Cell_T,
 	class Nr_Particles_External_T,
 	class Particles_Internal_T,
 	class Particles_External_T,
-	class Particle_Destination_T
+	class Particle_Destination_T,
+	class Cell
 > void incorporate_external_particles(
 	const std::vector<uint64_t>& cell_ids,
-	dccrg::Dccrg<Cell_T, dccrg::Cartesian_Geometry>& grid
+	dccrg::Dccrg<Cell, dccrg::Cartesian_Geometry>& grid
 ) {
 	constexpr Nr_Particles_External_T Nr_Ext{};
 	constexpr Particles_Internal_T Part_Int{};
@@ -471,12 +471,12 @@ template<
 
 
 template<
-	class Cell_T,
 	class Nr_Particles_External_T,
-	class Particles_External_T
+	class Particles_External_T,
+	class Cell
 > void remove_external_particles(
 	const std::vector<uint64_t>& cell_ids,
-	dccrg::Dccrg<Cell_T, dccrg::Cartesian_Geometry>& grid
+	dccrg::Dccrg<Cell, dccrg::Cartesian_Geometry>& grid
 ) {
 	for (auto cell_id: cell_ids) {
 

@@ -308,8 +308,8 @@ template<class Init_Cond_T> void initialize_fields(
 
 int main(int argc, char* argv[])
 {
-	using Cell_T = pamhd::particle::Cell;
-	using Grid_T = dccrg::Dccrg<Cell_T, dccrg::Cartesian_Geometry>;
+	using Cell = pamhd::particle::Cell;
+	using Grid = dccrg::Dccrg<Cell, dccrg::Cartesian_Geometry>;
 
 	constexpr double Re = 6.371e6; // radius of earth
 
@@ -594,7 +594,7 @@ int main(int argc, char* argv[])
 		boost::filesystem::create_directories(output_directory);
 	}
 
-	Grid_T grid;
+	Grid grid;
 
 	/*
 	Set/update derived grid parameters based on given options
@@ -742,7 +742,6 @@ int main(int argc, char* argv[])
 		max_dt = std::min(
 			max_dt,
 			pamhd::particle::solve<
-				Cell_T,
 				pamhd::particle::Electric_Field,
 				pamhd::particle::Magnetic_Field,
 				pamhd::particle::Nr_Particles_External,
@@ -757,7 +756,7 @@ int main(int argc, char* argv[])
 			>(time_step, outer_cell_ids, grid)
 		);
 
-		Cell_T::set_transfer_all(
+		Cell::set_transfer_all(
 			true,
 			pamhd::particle::Electric_Field(),
 			pamhd::particle::Magnetic_Field(),
@@ -768,7 +767,6 @@ int main(int argc, char* argv[])
 		max_dt = std::min(
 			max_dt,
 			pamhd::particle::solve<
-				Cell_T,
 				pamhd::particle::Electric_Field,
 				pamhd::particle::Magnetic_Field,
 				pamhd::particle::Nr_Particles_External,
@@ -787,20 +785,19 @@ int main(int argc, char* argv[])
 
 		grid.wait_remote_neighbor_copy_update_receives();
 		pamhd::particle::resize_receiving_containers<
-			Cell_T,
 			pamhd::particle::Nr_Particles_External,
 			pamhd::particle::Particles_External
 		>(remote_cell_ids, grid);
 
 		grid.wait_remote_neighbor_copy_update_sends();
 
-		Cell_T::set_transfer_all(
+		Cell::set_transfer_all(
 			false,
 			pamhd::particle::Electric_Field(),
 			pamhd::particle::Magnetic_Field(),
 			pamhd::particle::Nr_Particles_External()
 		);
-		Cell_T::set_transfer_all(
+		Cell::set_transfer_all(
 			true,
 			pamhd::particle::Particles_External()
 		);
@@ -808,7 +805,6 @@ int main(int argc, char* argv[])
 		grid.start_remote_neighbor_copy_updates();
 
 		pamhd::particle::incorporate_external_particles<
-			Cell_T,
 			pamhd::particle::Nr_Particles_External,
 			pamhd::particle::Particles_Internal,
 			pamhd::particle::Particles_External,
@@ -818,7 +814,6 @@ int main(int argc, char* argv[])
 		grid.wait_remote_neighbor_copy_update_receives();
 
 		pamhd::particle::incorporate_external_particles<
-			Cell_T,
 			pamhd::particle::Nr_Particles_External,
 			pamhd::particle::Particles_Internal,
 			pamhd::particle::Particles_External,
@@ -826,19 +821,17 @@ int main(int argc, char* argv[])
 		>(outer_cell_ids, grid);
 
 		pamhd::particle::remove_external_particles<
-			Cell_T,
 			pamhd::particle::Nr_Particles_External,
 			pamhd::particle::Particles_External
 		>(inner_cell_ids, grid);
 
 		grid.wait_remote_neighbor_copy_update_sends();
-		Cell_T::set_transfer_all(
+		Cell::set_transfer_all(
 			false,
 			pamhd::particle::Particles_External()
 		);
 
 		pamhd::particle::remove_external_particles<
-			Cell_T,
 			pamhd::particle::Nr_Particles_External,
 			pamhd::particle::Particles_External
 		>(outer_cell_ids, grid);

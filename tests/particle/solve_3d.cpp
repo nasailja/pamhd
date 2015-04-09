@@ -52,8 +52,8 @@ using namespace pamhd::particle;
 
 int main(int argc, char* argv[])
 {
-	using Cell_T = pamhd::particle::Cell;
-	using Grid_T = dccrg::Dccrg<Cell_T, dccrg::Cartesian_Geometry>;
+	using Cell = pamhd::particle::Cell;
+	using Grid = dccrg::Dccrg<Cell, dccrg::Cartesian_Geometry>;
 
 	/*
 	Initialize MPI
@@ -84,7 +84,7 @@ int main(int argc, char* argv[])
 	}
 
 
-	Grid_T grid;
+	Grid grid;
 
 	const unsigned int neighborhood_size = 1;
 	const std::array<uint64_t, 3> number_of_cells{{ 10, 10, 10}};
@@ -159,10 +159,9 @@ int main(int argc, char* argv[])
 	// short hand notation for calling solvers
 	auto solve = [](
 		const std::vector<uint64_t>& cell_ids,
-		Grid_T& grid
+		Grid& grid
 	) {
 		pamhd::particle::solve<
-			Cell_T,
 			pamhd::particle::Electric_Field,
 			pamhd::particle::Magnetic_Field,
 			pamhd::particle::Nr_Particles_External,
@@ -179,10 +178,9 @@ int main(int argc, char* argv[])
 
 	auto resize_receiving = [](
 		const std::vector<uint64_t>& cell_ids,
-		Grid_T& grid
+		Grid& grid
 	) {
 		pamhd::particle::resize_receiving_containers<
-			Cell_T,
 			pamhd::particle::Nr_Particles_External,
 			pamhd::particle::Particles_External
 		>(cell_ids, grid);
@@ -190,10 +188,9 @@ int main(int argc, char* argv[])
 
 	auto incorporate_external = [](
 		const std::vector<uint64_t>& cell_ids,
-		Grid_T& grid
+		Grid& grid
 	) {
 		pamhd::particle::incorporate_external_particles<
-			Cell_T,
 			pamhd::particle::Nr_Particles_External,
 			pamhd::particle::Particles_Internal,
 			pamhd::particle::Particles_External,
@@ -203,10 +200,9 @@ int main(int argc, char* argv[])
 
 	auto remove_external = [](
 		const std::vector<uint64_t>& cell_ids,
-		Grid_T& grid
+		Grid& grid
 	) {
 		pamhd::particle::remove_external_particles<
-			Cell_T,
 			pamhd::particle::Nr_Particles_External,
 			pamhd::particle::Particles_External
 		>(cell_ids, grid);
@@ -216,7 +212,7 @@ int main(int argc, char* argv[])
 	for (size_t step = 0; step < 10; step++) {
 		solve(outer_cell_ids, grid);
 
-		Cell_T::set_transfer_all(
+		Cell::set_transfer_all(
 			true,
 			pamhd::particle::Electric_Field(),
 			pamhd::particle::Magnetic_Field(),
@@ -231,13 +227,13 @@ int main(int argc, char* argv[])
 
 		grid.wait_remote_neighbor_copy_update_sends();
 
-		Cell_T::set_transfer_all(
+		Cell::set_transfer_all(
 			false,
 			pamhd::particle::Electric_Field(),
 			pamhd::particle::Magnetic_Field(),
 			pamhd::particle::Nr_Particles_External()
 		);
-		Cell_T::set_transfer_all(
+		Cell::set_transfer_all(
 			true,
 			pamhd::particle::Particles_External()
 		);
@@ -253,7 +249,7 @@ int main(int argc, char* argv[])
 		remove_external(inner_cell_ids, grid);
 
 		grid.wait_remote_neighbor_copy_update_sends();
-		Cell_T::set_transfer_all(
+		Cell::set_transfer_all(
 			false,
 			pamhd::particle::Particles_External()
 		);
