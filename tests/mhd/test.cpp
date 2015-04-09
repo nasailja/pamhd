@@ -946,17 +946,17 @@ int main(int argc, char* argv[])
 				temp[P] = value_boundaries.get_data(P, bdy_id, cell_center, simulation_time);
 				temp[B] = value_boundaries.get_data(B, bdy_id, cell_center, simulation_time);
 
-				auto& state = (*cell_data)[pamhd::mhd::MHD_State_Conservative()];
-				state = pamhd::mhd::get_conservative<
-					pamhd::mhd::MHD_Conservative,
-					pamhd::mhd::MHD_Primitive,
-					pamhd::mhd::Momentum_Density,
-					pamhd::mhd::Total_Energy_Density,
-					pamhd::mhd::Mass_Density,
-					pamhd::mhd::Velocity,
-					pamhd::mhd::Pressure,
-					pamhd::mhd::Magnetic_Field
-				>(temp, adiabatic_index, vacuum_permeability);
+				(*cell_data)[pamhd::mhd::MHD_State_Conservative()]
+					= pamhd::mhd::get_conservative<
+						pamhd::mhd::MHD_Conservative,
+						pamhd::mhd::MHD_Primitive,
+						pamhd::mhd::Momentum_Density,
+						pamhd::mhd::Total_Energy_Density,
+						pamhd::mhd::Mass_Density,
+						pamhd::mhd::Velocity,
+						pamhd::mhd::Pressure,
+						pamhd::mhd::Magnetic_Field
+					>(temp, adiabatic_index, vacuum_permeability);
 			}
 		}
 		profiler.stop("Applying value boundaries");
