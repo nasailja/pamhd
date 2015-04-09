@@ -364,7 +364,8 @@ int main(int argc, char* argv[])
 	double
 		r_mag_start = 0,
 		r_mag_end = inf,
-		boltzmann = 1.3806488e-23;
+		boltzmann = 1.3806488e-23,
+		charge = 1.602176565e-19;
 	Eigen::Vector3d
 		r_start{-inf, -inf, -inf},
 		r_end{inf, inf, inf};
@@ -431,6 +432,10 @@ int main(int argc, char* argv[])
 			boost::program_options::value<>(&r_end[2])
 				->default_value(r_end[2]),
 			"Select particles with z coordinate of position < arg")
+		("species-charge",
+			boost::program_options::value<>(&charge)
+				->default_value(charge),
+			"Assume every particle has a charge arg")
 		("boltzmann",
 			boost::program_options::value<>(&boltzmann)
 				->default_value(boltzmann),
@@ -676,20 +681,19 @@ int main(int argc, char* argv[])
 			get<1>(plot_data[bin_i]) = V.norm();
 
 			if (vertical_variable != "V") {
-				constexpr double species_charge = 1.602176565e-19;
 				double P = 0;
 				for (const auto& bin_data: binned_data[bin_i]) {
 					const double species_mass
-						= fabs(species_charge / get<1>(bin_data.second));
+						= fabs(charge / get<1>(bin_data.second));
 					P += species_mass * (V - get<0>(bin_data.second)).squaredNorm();
 				}
-				get<1>(plot_data[bin_i]) = P;
+				get<1>(plot_data[bin_i]) = P / binned_data[bin_i].size();
 
 				if (
 					vertical_variable == "T"
 					and binned_data[bin_i].size() > 0
 				) {
-					get<1>(plot_data[bin_i]) /= boltzmann * binned_data[bin_i].size();
+					get<1>(plot_data[bin_i]) /= boltzmann;
 				}
 			}
 		}
