@@ -33,11 +33,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef PAMHD_MHD_SAVE_HPP
 #define PAMHD_MHD_SAVE_HPP
 
+
 #include "iomanip"
 
+#include "dccrg.hpp"
 #include "gensimcell.hpp"
 
 #include "mhd/variables.hpp"
+
 
 namespace pamhd {
 namespace mhd {
