@@ -1137,8 +1137,9 @@ int main(int argc, char* argv[])
 
 			if (
 				not pamhd::mhd::Save::save<
-					Grid,
-					Cell
+					pamhd::mhd::MHD_State_Conservative,
+					pamhd::mhd::MHD_Flux_Conservative,
+					pamhd::mhd::Electric_Current_Density
 				>(
 					output_directory,
 					grid,

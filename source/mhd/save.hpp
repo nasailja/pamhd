@@ -70,16 +70,17 @@ public:
 	transfer of all first level variables is switched off.
 	Transfer of variables in MHD_T must be switched on.
 
-	Grid_T is assumed to provide the dccrg API.
-
 	Return true on success, false otherwise.
 	*/
 	template <
-		class Grid_T,
-		class Cell_T
+		class MHD_State_Conservative_T,
+		class MHD_Flux_Conservative_T,
+		class Electric_Current_Density_T,
+		class Cell,
+		class Geometry
 	> static bool save(
 		const std::string& file_name_prefix,
-		Grid_T& grid,
+		dccrg::Dccrg<Cell, Geometry>& grid,
 		const double simulation_time,
 		const double adiabatic_index,
 		const double proton_mass,
@@ -89,7 +90,7 @@ public:
 		std::string header_string(get_header_string_template());
 		if (save_fluxes) {
 			header_string += "y\n";
-			Cell_T::set_transfer_all(true, MHD_Flux_Conservative());
+			Cell::set_transfer_all(true, MHD_Flux_Conservative());
 		} else {
 			header_string += "n\n";
 		}
@@ -151,10 +152,10 @@ public:
 			<< std::setprecision(3)
 			<< simulation_time;
 
-		Cell_T::set_transfer_all(
+		Cell::set_transfer_all(
 			true,
-			MHD_State_Conservative(),
-			Electric_Current_Density()
+			MHD_State_Conservative_T(),
+			Electric_Current_Density_T()
 		);
 		const bool ret_val = grid.save_grid_data(
 			file_name_prefix + "mhd_" + time_string.str() + "_s.dc",
@@ -162,12 +163,12 @@ public:
 			header
 		);
 		if (save_fluxes) {
-			Cell_T::set_transfer_all(false, MHD_Flux_Conservative());
+			Cell::set_transfer_all(false, MHD_Flux_Conservative_T());
 		}
-		Cell_T::set_transfer_all(
+		Cell::set_transfer_all(
 			false,
-			MHD_State_Conservative(),
-			Electric_Current_Density()
+			MHD_State_Conservative_T(),
+			Electric_Current_Density_T()
 		);
 
 		return ret_val;
