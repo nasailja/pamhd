@@ -1113,6 +1113,14 @@ int main(int argc, char* argv[])
 			Mag_Getter,
 			Current_Getter
 		);
+		for (const auto& cell: cells) {
+			auto* const cell_data = grid[cell];
+			if (cell_data == nullptr) {
+				std::cerr <<  __FILE__ << "(" << __LINE__ << ")" << std::endl;
+				abort();
+			}
+			Current_Getter(*cell_data) /= vacuum_permeability;
+		}
 		profiler.stop("Calculating current density", cells.size(), "cells");
 
 
