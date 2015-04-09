@@ -605,21 +605,59 @@ template <
 
 
 /*!
+Function call signature of all MHD flux functions.
+
+Input:
+    - Conservative MHD variables in two cells that share
+      a face and are neighbors in the x dimension
+    - Area shared between given cells
+    - Length of time step for which to calculate flux
+
+state_neg represents the MHD variables in the cell in the
+negative x direction from the shared face, state_pos in
+the cell in positive x direction from the face.
+
+Output:
+    - Flux of conservative MHD variables over time dt
+      through area shared_area
+    - Absolute value of maximum signal speed from shared face
+
+See for example hll_athena.hpp for an implementation.
+*/
+template <
+	class MHD_T,
+	class MHD_Flux_T
+> using solver_t = std::function<
+	std::pair<
+		typename MHD_Flux_T::data_type,
+		double
+	>(
+		typename MHD_T::data_type /* state_neg */,
+		typename MHD_T::data_type /* state_pos */,
+		const double /* shared_area */,
+		const double /* dt */,
+		const double /* adiabatic_index */,
+		const double /* vacuum_permeability */
+	)
+>;
+
+
+/*!
 Positive flux adds to given cell multiplied with given factor.
 
 Throws std::domain_error if new state has
 non-positive mass density of pressure.
 */
 template <
-	class Cell_T,
 	class MHD_T,
 	class MHD_Flux_T,
 	class Mass_Density_T,
 	class Momentum_Density_T,
 	class Total_Energy_Density_T,
-	class Magnetic_Field_T
+	class Magnetic_Field_T,
+	class Cell
 > void apply_fluxes(
-	Cell_T& cell_data,
+	Cell& cell_data,
 	const double factor,
 	const double adiabatic_index,
 	const double vacuum_permeability
@@ -661,13 +699,13 @@ template <
 Zeroes fluxes of given variables.
 */
 template <
-	class Cell_T,
 	class MHD_Flux_T,
 	class Mass_Density_T,
 	class Momentum_Density_T,
 	class Total_Energy_Density_T,
-	class Magnetic_Field_T
-> void zero_fluxes(Cell_T& cell_data)
+	class Magnetic_Field_T,
+	class Cell
+> void zero_fluxes(Cell& cell_data)
 {
 	auto& flux = cell_data[MHD_Flux_T()];
 	flux[Mass_Density_T()]         =

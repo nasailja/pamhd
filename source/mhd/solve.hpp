@@ -33,52 +33,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef PAMHD_MHD_SOLVE_HPP
 #define PAMHD_MHD_SOLVE_HPP
 
+
 #include "cmath"
 #include "functional"
 #include "limits"
 #include "vector"
 
+#include "dccrg.hpp"
+
 
 namespace pamhd {
 namespace mhd {
-
-
-/*!
-Function call signature of all MHD flux functions.
-
-Input:
-    - Conservative MHD variables in two cells that share
-      a face and are neighbors in the x dimension
-    - Area shared between given cells
-    - Length of time step for which to calculate flux
-
-state_neg represents the MHD variables in the cell in the
-negative x direction from the shared face, state_pos in
-the cell in positive x direction from the face.
-
-Output:
-    - Flux of conservative MHD variables over time dt
-      through area shared_area
-    - Absolute value of maximum signal speed from shared face
-
-See for example hll_athena.hpp for an implementation.
-*/
-template <
-	class MHD_T,
-	class MHD_Flux_T
-> using solver_t = std::function<
-	std::pair<
-		typename MHD_Flux_T::data_type,
-		double
-	>(
-		typename MHD_T::data_type /* state_neg */,
-		typename MHD_T::data_type /* state_pos */,
-		const double /* shared_area */,
-		const double /* dt */,
-		const double /* adiabatic_index */,
-		const double /* vacuum_permeability */
-	)
->;
 
 
 /*!
@@ -87,17 +52,18 @@ Advances MHD solution for one time step of length dt with given solver.
 Returns the maximum allowed length of time step for the next step on this process.
 */
 template <
-	class Grid_T,
 	class MHD_T,
 	class MHD_Flux_T,
 	class Mass_Density_T,
 	class Momentum_Density_T,
 	class Total_Energy_Density_T,
-	class Magnetic_Field_T
+	class Magnetic_Field_T,
+	class Cell,
+	class Geometry
 > double solve(
 	const solver_t<MHD_T, MHD_Flux_T>& solver,
-	Grid_T& grid,
 	const std::vector<uint64_t>& cells,
+	dccrg::Dccrg<Cell, Geometry>& grid,
 	const double dt,
 	const double adiabatic_index,
 	const double vacuum_permeability
@@ -341,17 +307,17 @@ template <
 Applies the MHD solution to given cells.
 */
 template <
-	class Grid_T,
-	class Cell_T,
 	class MHD_T,
 	class MHD_Flux_T,
 	class Mass_Density_T,
 	class Momentum_Density_T,
 	class Total_Energy_Density_T,
-	class Magnetic_Field_T
+	class Magnetic_Field_T,
+	class Cell,
+	class Geometry
 > void apply_fluxes(
-	Grid_T& grid,
 	const std::vector<uint64_t>& cells,
+	dccrg::Dccrg<Cell, Geometry>& grid,
 	const double adiabatic_index,
 	const double vacuum_permeability
 ) {
@@ -376,7 +342,6 @@ template <
 		const auto& flux = (*cell_data)[MHD_Flux_T()];
 		try {
 			apply_fluxes<
-				Cell_T,
 				MHD_T,
 				MHD_Flux_T,
 				Mass_Density_T,
@@ -428,21 +393,19 @@ template <
 }
 
 /*!
-Applies the MHD solution to given cells.
-
-Zeros fluxes.
+Zeros fluxes in given cells.
 */
 template <
-	class Grid_T,
-	class Cell_T,
 	class MHD_Flux_T,
 	class Mass_Density_T,
 	class Momentum_Density_T,
 	class Total_Energy_Density_T,
-	class Magnetic_Field_T
+	class Magnetic_Field_T,
+	class Cell,
+	class Geometry
 > void zero_fluxes(
-	Grid_T& grid,
-	const std::vector<uint64_t>& cells
+	const std::vector<uint64_t>& cells,
+	dccrg::Dccrg<Cell, Geometry>& grid
 ) {
 	for (const auto& cell_id: cells) {
 		auto* const cell_data = grid[cell_id];
@@ -454,7 +417,6 @@ template <
 		}
 
 		zero_fluxes<
-			Cell_T,
 			MHD_Flux_T,
 			Mass_Density_T,
 			Momentum_Density_T,

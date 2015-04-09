@@ -670,21 +670,18 @@ int main(int argc, char* argv[])
 
 		profiler.start("Zeroing fluxes");
 		pamhd::mhd::zero_fluxes<
-			Grid,
-			Cell,
 			pamhd::mhd::MHD_Flux_Conservative,
 			pamhd::mhd::Mass_Density,
 			pamhd::mhd::Momentum_Density,
 			pamhd::mhd::Total_Energy_Density,
 			pamhd::mhd::Magnetic_Field
-		>(grid, cells);
+		>(cells, grid);
 		profiler.stop("Zeroing fluxes", cells.size(), "cells");
 
 		profiler.start("Solving inner cells");
 		max_dt = min(
 			max_dt,
 			pamhd::mhd::solve<
-				Grid,
 				pamhd::mhd::MHD_State_Conservative,
 				pamhd::mhd::MHD_Flux_Conservative,
 				pamhd::mhd::Mass_Density,
@@ -693,8 +690,8 @@ int main(int argc, char* argv[])
 				pamhd::mhd::Magnetic_Field
 			>(
 				mhd_solver,
-				grid,
 				inner_cells,
+				grid,
 				time_step,
 				adiabatic_index,
 				vacuum_permeability
@@ -710,7 +707,6 @@ int main(int argc, char* argv[])
 		max_dt = min(
 			max_dt,
 			pamhd::mhd::solve<
-				Grid,
 				pamhd::mhd::MHD_State_Conservative,
 				pamhd::mhd::MHD_Flux_Conservative,
 				pamhd::mhd::Mass_Density,
@@ -719,8 +715,8 @@ int main(int argc, char* argv[])
 				pamhd::mhd::Magnetic_Field
 			>(
 				mhd_solver,
-				grid,
 				outer_cells,
+				grid,
 				time_step,
 				adiabatic_index,
 				vacuum_permeability
@@ -730,8 +726,6 @@ int main(int argc, char* argv[])
 
 		profiler.start("Applying inner fluxes");
 		pamhd::mhd::apply_fluxes<
-			Grid,
-			Cell,
 			pamhd::mhd::MHD_State_Conservative,
 			pamhd::mhd::MHD_Flux_Conservative,
 			pamhd::mhd::Mass_Density,
@@ -739,8 +733,8 @@ int main(int argc, char* argv[])
 			pamhd::mhd::Total_Energy_Density,
 			pamhd::mhd::Magnetic_Field
 		>(
-			grid,
 			inner_cells,
+			grid,
 			adiabatic_index,
 			vacuum_permeability
 		);
@@ -753,8 +747,6 @@ int main(int argc, char* argv[])
 
 		profiler.start("Applying outer fluxes");
 		pamhd::mhd::apply_fluxes<
-			Grid,
-			Cell,
 			pamhd::mhd::MHD_State_Conservative,
 			pamhd::mhd::MHD_Flux_Conservative,
 			pamhd::mhd::Mass_Density,
@@ -762,8 +754,8 @@ int main(int argc, char* argv[])
 			pamhd::mhd::Total_Energy_Density,
 			pamhd::mhd::Magnetic_Field
 		>(
-			grid,
 			outer_cells,
+			grid,
 			adiabatic_index,
 			vacuum_permeability
 		);

@@ -39,7 +39,6 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "mhd/hll_athena.hpp"
 #include "mhd/hlld_athena.hpp"
 #include "mhd/roe_athena.hpp"
-#include "mhd/solve.hpp"
 #include "mhd/variables.hpp"
 
 using namespace std;
@@ -284,7 +283,6 @@ template <
 
 	for (auto& cell: grid) {
 		pamhd::mhd::apply_fluxes<
-			Grid_T::value_type,
 			MHD_T,
 			MHD_Flux_T,
 			Mass_Density_T,
@@ -299,7 +297,6 @@ template <
 		);
 
 		pamhd::mhd::zero_fluxes<
-			Grid_T::value_type,
 			MHD_Flux_T,
 			Mass_Density_T,
 			Momentum_Density_T,
