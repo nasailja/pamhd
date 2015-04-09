@@ -551,8 +551,7 @@ int main(int argc, char* argv[])
 	std::vector<uint64_t>
 		cells = grid.get_cells(),
 		inner_cells = grid.get_local_cells_not_on_process_boundary(),
-		outer_cells = grid.get_local_cells_on_process_boundary(),
-		boundary_cells;
+		outer_cells = grid.get_local_cells_on_process_boundary();
 
 	// initialize MHD
 	if (verbose and rank == 0) {
@@ -797,7 +796,7 @@ int main(int argc, char* argv[])
 			const auto div_before
 				= pamhd::divergence::remove(
 					cells,
-					boundary_cells,
+					{},
 					{},
 					grid,
 					Mag_Getter,
