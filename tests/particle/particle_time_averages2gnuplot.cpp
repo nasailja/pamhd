@@ -363,7 +363,8 @@ int main(int argc, char* argv[])
 	constexpr double inf = std::numeric_limits<double>::infinity();
 	double
 		r_mag_start = 0,
-		r_mag_end = inf;
+		r_mag_end = inf,
+		boltzmann = 1.3806488e-23;
 	Eigen::Vector3d
 		r_start{-inf, -inf, -inf},
 		r_end{inf, inf, inf};
@@ -429,7 +430,11 @@ int main(int argc, char* argv[])
 		("rz-end",
 			boost::program_options::value<>(&r_end[2])
 				->default_value(r_end[2]),
-			"Select particles with z coordinate of position < arg");
+			"Select particles with z coordinate of position < arg")
+		("boltzmann",
+			boost::program_options::value<>(&boltzmann)
+				->default_value(boltzmann),
+			"Assume Boltzmann constant has value arg");
 
 	boost::program_options::positional_options_description positional_options;
 	positional_options.add("input-file", -1);
@@ -684,7 +689,6 @@ int main(int argc, char* argv[])
 					vertical_variable == "T"
 					and binned_data[bin_i].size() > 0
 				) {
-					constexpr double boltzmann = 1.3806488e-23;
 					get<1>(plot_data[bin_i]) /= boltzmann * binned_data[bin_i].size();
 				}
 			}
