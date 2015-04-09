@@ -522,7 +522,7 @@ Returns total divergence of vector variable
 (from get_divergence()) before removing divergence.
 
 Solves phi from div(grad(phi)) = div(vector) and assigns
-vector = vector - grad(phi) after which div(vector) == 0.
+vector = vector - grad(phi) after which div(vector) -> 0.
 
 Vector variable must have been updated between processes
 before calling this function.
