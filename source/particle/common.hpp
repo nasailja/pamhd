@@ -118,10 +118,12 @@ template<class Vector> std::pair<double, double> get_minmax_step(
 	const double cell_length,
 	const double charge_to_mass_ratio,
 	const Vector& velocity,
-	const Vector& magnetic_field
+	const Vector& magnetic_field,
+	const Vector& electric_field
 ) {
 	using std::make_pair;
 	using std::min;
+	using std::sqrt;
 
 	const auto gyro_info
 		= get_gyro_info(
@@ -130,11 +132,18 @@ template<class Vector> std::pair<double, double> get_minmax_step(
 			magnetic_field
 		);
 
-	const auto max_step
-		= min(
-			cell_length / velocity.norm(),
-			gyro_period_fraction / gyro_info.second
+	const auto displacement // max allowed, due to electric field
+		= sqrt(
+			2 * cell_length
+			/ charge_to_mass_ratio
+			/ electric_field.norm()
 		);
+
+	const auto max_step =
+		min(cell_length / velocity.norm(),
+		min(displacement,
+		    gyro_period_fraction / gyro_info.second
+		));
 
 	return make_pair(max_step_fraction * max_step, max_step);
 }

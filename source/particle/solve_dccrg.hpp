@@ -269,7 +269,8 @@ template<
 					cell_length[0] / 2.0,
 					particle[C2M],
 					particle[Vel],
-					(*cell_data)[Mag]
+					(*cell_data)[Mag],
+					(*cell_data)[Ele]
 				).second
 			);
 
