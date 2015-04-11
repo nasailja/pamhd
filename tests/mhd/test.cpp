@@ -667,7 +667,7 @@ int main(int argc, char* argv[])
 		grid.start_remote_neighbor_copy_updates();
 		profiler.stop("Starting updates");
 
-		profiler.start("Zeroing fluxes");
+		profiler.start("Zeroing MHD fluxes");
 		pamhd::mhd::zero_fluxes<
 			pamhd::mhd::MHD_Flux_Conservative,
 			pamhd::mhd::Mass_Density,
@@ -675,7 +675,24 @@ int main(int argc, char* argv[])
 			pamhd::mhd::Total_Energy_Density,
 			pamhd::mhd::Magnetic_Field
 		>(cells, grid);
-		profiler.stop("Zeroing fluxes", cells.size(), "cells");
+		profiler.stop("Zeroing MHD fluxes", cells.size(), "cells");
+
+		profiler.start("Calculating current density in inner cells");
+		pamhd::divergence::get_curl(
+			inner_cells,
+			grid,
+			Mag_Getter,
+			Current_Getter
+		);
+		for (const auto& cell: inner_cells) {
+			auto* const cell_data = grid[cell];
+			if (cell_data == nullptr) {
+				std::cerr <<  __FILE__ << "(" << __LINE__ << ")" << std::endl;
+				abort();
+			}
+			Current_Getter(*cell_data) /= vacuum_permeability;
+		}
+		profiler.stop("Calculating current density in inner cells", inner_cells.size(), "cells");
 
 		profiler.start("Solving inner cells");
 		max_dt = min(
@@ -698,9 +715,27 @@ int main(int argc, char* argv[])
 		);
 		profiler.stop("Solving inner cells", inner_cells.size(), "cells");
 
+
 		profiler.start("Waiting for receives");
 		grid.wait_remote_neighbor_copy_update_receives();
 		profiler.stop("Waiting for receives");
+
+		profiler.start("Calculating current density in outer cells");
+		pamhd::divergence::get_curl(
+			outer_cells,
+			grid,
+			Mag_Getter,
+			Current_Getter
+		);
+		for (const auto& cell: outer_cells) {
+			auto* const cell_data = grid[cell];
+			if (cell_data == nullptr) {
+				std::cerr <<  __FILE__ << "(" << __LINE__ << ")" << std::endl;
+				abort();
+			}
+			Current_Getter(*cell_data) /= vacuum_permeability;
+		}
+		profiler.stop("Calculating current density in outer cells", outer_cells.size(), "cells");
 
 		profiler.start("Solving outer cells");
 		max_dt = min(
@@ -1102,26 +1137,6 @@ int main(int argc, char* argv[])
 		profiler.stop("Applying copy boundaries");
 
 		profiler.stop("Applying boundary conditions");
-
-		/*
-		Calculate current density
-		*/
-		profiler.start("Calculating current density");
-		pamhd::divergence::get_curl(
-			cells,
-			grid,
-			Mag_Getter,
-			Current_Getter
-		);
-		for (const auto& cell: cells) {
-			auto* const cell_data = grid[cell];
-			if (cell_data == nullptr) {
-				std::cerr <<  __FILE__ << "(" << __LINE__ << ")" << std::endl;
-				abort();
-			}
-			Current_Getter(*cell_data) /= vacuum_permeability;
-		}
-		profiler.stop("Calculating current density", cells.size(), "cells");
 
 
 		/*
