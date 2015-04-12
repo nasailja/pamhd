@@ -118,8 +118,8 @@ template<class Vector> std::pair<double, double> get_minmax_step(
 	const double cell_length,
 	const double charge_to_mass_ratio,
 	const Vector& velocity,
-	const Vector& magnetic_field,
-	const Vector& electric_field
+	const Vector& electric_field,
+	const Vector& magnetic_field
 ) {
 	using std::make_pair;
 	using std::min;
@@ -133,11 +133,18 @@ template<class Vector> std::pair<double, double> get_minmax_step(
 		);
 
 	const auto displacement // max allowed, due to electric field
-		= sqrt(
-			2 * cell_length
-			/ charge_to_mass_ratio
-			/ electric_field.norm()
-		);
+		= [&](){
+			const auto E_mag = electric_field.norm();
+			if (E_mag > 0) {
+				return sqrt(
+					2 * cell_length
+					/ charge_to_mass_ratio
+					/ E_mag
+				);
+			} else {
+				return std::numeric_limits<double>::max();
+			}
+		}();
 
 	const auto max_step =
 		min(cell_length / velocity.norm(),

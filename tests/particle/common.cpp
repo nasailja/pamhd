@@ -100,6 +100,7 @@ int main()
 			cell_length,
 			particle[C2M],
 			particle[Vel],
+			electric_field,
 			magnetic_field
 		).second; 
 
@@ -117,6 +118,7 @@ int main()
 		cell_length,
 		particle[C2M],
 		particle[Vel],
+		electric_field,
 		magnetic_field
 	).second;
 
