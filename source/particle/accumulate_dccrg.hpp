@@ -56,7 +56,6 @@ remote neighbors is stored in local cells' accumulation list.
 Updates the number of remote accumulated values.
 */
 template<
-	class Cell_T,
 	class Accumulation_Item_T,
 	class Accumulation_Target_T,
 	class Bulk_Value_T,
@@ -65,10 +64,11 @@ template<
 	class Particle_Value_Getter,
 	class Bulk_Value_Getter,
 	class Accumulation_List_Length_Getter,
-	class Accumulation_List_Getter
+	class Accumulation_List_Getter,
+	class Cell
 > void accumulate(
 	const std::vector<uint64_t>& cell_ids,
-	dccrg::Dccrg<Cell_T, dccrg::Cartesian_Geometry>& grid,
+	dccrg::Dccrg<Cell, dccrg::Cartesian_Geometry>& grid,
 	Particles_Getter Part,
 	Particle_Position_Getter Part_Pos,
 	Particle_Value_Getter Part_Val,

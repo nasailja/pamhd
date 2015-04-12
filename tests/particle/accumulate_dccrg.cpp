@@ -351,7 +351,6 @@ int main(int argc, char* argv[])
 				Grid& grid
 			) {
 				pamhd::particle::accumulate<
-					Cell,
 					pamhd::particle::Accumulated_To_Cell,
 					pamhd::particle::Target,
 					pamhd::particle::Count
