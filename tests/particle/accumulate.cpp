@@ -83,7 +83,7 @@ double f(const double x)
 int main()
 {
 	double value = 0;
-	Eigen::Vector3d
+	Vector3d
 		value_min(0, 0, 0),
 		value_max(0, 0, 0),
 		cell_min(0, 0, 0),
@@ -128,6 +128,25 @@ int main()
 		abort();
 	} catch(std::out_of_range e) {}
 
+	// test vector accumulation
+	const auto vec_accu
+		= get_accumulated_value(
+			Vector3d{1, 2, 3},
+			Vector3d{0, 0, 0},
+			Vector3d{1, 1, 1},
+			Vector3d{0, 0, 0},
+			Vector3d{1, 1, 1}
+		);
+	if (
+		fabs(vec_accu[0] - 1) > 1e-10
+		or fabs(vec_accu[1] - 2) > 1e-10
+		or fabs(vec_accu[2] - 3) > 1e-10
+	) {
+		std::cerr <<  __FILE__ << " (" << __LINE__ << "): "
+			<< "Difference for accumulated vector too large from correct."
+			<< std::endl;
+		abort();
+	}
 
 	constexpr size_t
 		nr_of_values = 10000,

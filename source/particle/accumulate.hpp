@@ -79,12 +79,21 @@ template<class Scalar, class Vector> Scalar get_accumulated_value(
 			min(value_max[2], cell_max[2])
 		},
 		intersection{
-			max(Scalar(0), interval_max[0] - interval_min[0]),
-			max(Scalar(0), interval_max[1] - interval_min[1]),
-			max(Scalar(0), interval_max[2] - interval_min[2])
+			max(
+				decltype(interval_max[0] - interval_min[0]){0},
+				interval_max[0] - interval_min[0]
+			),
+			max(
+				decltype(interval_max[1] - interval_min[1]){0},
+				interval_max[1] - interval_min[1]
+			),
+			max(
+				decltype(interval_max[2] - interval_min[2]){0},
+				interval_max[2] - interval_min[2]
+			)
 		};
 
-	const Scalar
+	const auto
 		value_vol
 			= (value_max[0] - value_min[0])
 			* (value_max[1] - value_min[1])
