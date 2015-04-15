@@ -339,7 +339,7 @@ std::tuple<Eigen::MatrixXd, double, double, double, double> prepare_plot_data(
 		std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
 			<< "Invalid resolution or data range."
 			<< std::endl;
-		return {plot_data, horiz_min, horiz_max, vert_min, vert_max};
+		return std::make_tuple(plot_data, horiz_min, horiz_max, vert_min, vert_max);
 	}
 
 	if (
@@ -359,7 +359,7 @@ std::tuple<Eigen::MatrixXd, double, double, double, double> prepare_plot_data(
 		std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
 			<< "Unsupported plot variable."
 			<< std::endl;
-		return {plot_data, horiz_min, horiz_max, vert_min, vert_max};
+		return std::make_tuple(plot_data, horiz_min, horiz_max, vert_min, vert_max);
 	}
 
 	// cap r_* at grid boundaries unless capped by user
