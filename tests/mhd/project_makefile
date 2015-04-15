@@ -81,13 +81,19 @@ tests/mhd/mhd2gnuplot.exe: \
   $(TEST_MHD_COMMON_DEPS)
 	@printf "MPICXX $<\n" && $(MPICXX) $(TEST_MHD_COMPILE_COMMOM) \
 	  $(DCCRG_CPPFLAGS) \
-	  $(PRETTYPRINT_CPPFLAGS)
+	  $(PRETTYPRINT_CPPFLAGS) \
+	  $(ZOLTAN_CPPFLAGS) \
+	  $(ZOLTAN_LDFLAGS) \
+	  $(ZOLTAN_LIBS)
 
 tests/mhd/mhd2vtk.exe: \
   tests/mhd/mhd2vtk.cpp \
   $(TEST_MHD_COMMON_DEPS)
 	@printf "MPICXX $<\n" && $(MPICXX) $(TEST_MHD_COMPILE_COMMOM) \
-	  $(DCCRG_CPPFLAGS)
+	  $(DCCRG_CPPFLAGS) \
+	  $(ZOLTAN_CPPFLAGS) \
+	  $(ZOLTAN_LDFLAGS) \
+	  $(ZOLTAN_LIBS)
 
 tests/mhd/test.exe: \
   tests/mhd/test.cpp \
