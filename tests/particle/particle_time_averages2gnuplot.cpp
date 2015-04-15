@@ -340,6 +340,8 @@ int plot(
 
 int main(int argc, char* argv[])
 {
+	using std::isinf;
+
 	if (MPI_Init(&argc, &argv) != MPI_SUCCESS) {
 		cerr << "Coudln't initialize MPI." << endl;
 		abort();
