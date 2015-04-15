@@ -319,6 +319,8 @@ std::tuple<Eigen::MatrixXd, double, double, double, double> prepare_plot_data(
 		"IEC 559 / IEEE 754 required"
 	);
 
+	using std::isinf;
+
 	Eigen::MatrixXd plot_data
 		= Eigen::MatrixXd::Zero(vertical_resolution, horizontal_resolution);
 	double horiz_max = -1, horiz_min = 1, vert_max = -1, vert_min = 1;
