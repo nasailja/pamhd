@@ -58,14 +58,21 @@ Eigen::Vector3d f(const Eigen::Vector3d& r)
 	};
 }
 
+//! average number of particles in a cell
+struct Count {
+	using data_type = double;
+};
+
+using Accumulated_To_Cell = pamhd::particle::Accumulated_To_Cell_T<Count>;
+using Accumulated_To_Cells = pamhd::particle::Accumulated_To_Cells_T<Accumulated_To_Cell>;
 
 using Cell = gensimcell::Cell<
 	gensimcell::Optional_Transfer,
 	pamhd::particle::Particles_Internal,
-	pamhd::particle::Count,
+	Count,
 	// only following two are transferred between processes
 	pamhd::particle::Nr_Accumulated_To_Cells,
-	pamhd::particle::Accumulated_To_Cells
+	Accumulated_To_Cells
 >;
 using Grid = dccrg::Dccrg<Cell, dccrg::Cartesian_Geometry>;
 
@@ -120,8 +127,8 @@ void create_particles(
 
 // returns a reference to data accumulated from particles in given cell
 const auto bulk_value_getter
-	= [](Cell& cell_data)->pamhd::particle::Count::data_type&{
-		return cell_data[pamhd::particle::Count()];
+	= [](Cell& cell_data)->Count::data_type&{
+		return cell_data[Count()];
 	};
 
 /*
@@ -129,8 +136,8 @@ Returns a reference to given cell's list of data accumulated
 from particles in given cell into other cells
 */
 const auto accumulation_list_getter
-	= [](Cell& cell_data)->pamhd::particle::Accumulated_To_Cells::data_type&{
-		return cell_data[pamhd::particle::Accumulated_To_Cells()];
+	= [](Cell& cell_data)->Accumulated_To_Cells::data_type&{
+		return cell_data[Accumulated_To_Cells()];
 	};
 
 // returns a reference to length of list above incoming from other processes
@@ -143,7 +150,7 @@ const auto accumulate_from_remote_neighbors
 	= [](Grid& grid){
 		pamhd::particle::accumulate_from_remote_neighbors<
 			pamhd::particle::Target,
-			pamhd::particle::Count
+			Count
 		>(
 			grid,
 			bulk_value_getter,
@@ -187,7 +194,7 @@ double get_norm(
 			= std::max(
 				norm_local,
 				std::fabs(
-					(*cell_data)[pamhd::particle::Count()]
+					(*cell_data)[Count()]
 					- f(cell_center)[dimension]
 				)
 			);
@@ -351,9 +358,9 @@ int main(int argc, char* argv[])
 				Grid& grid
 			) {
 				pamhd::particle::accumulate<
-					pamhd::particle::Accumulated_To_Cell,
+					Accumulated_To_Cell,
 					pamhd::particle::Target,
-					pamhd::particle::Count
+					Count
 				>(
 					cell_ids,
 					grid,
@@ -401,14 +408,14 @@ int main(int argc, char* argv[])
 		allocate_accumulation_lists(grid_z_np);
 
 		// transfer accumulated values between processes
-		Cell::set_transfer_all(true, pamhd::particle::Accumulated_To_Cells());
+		Cell::set_transfer_all(true, Accumulated_To_Cells());
 		grid_x.update_copies_of_remote_neighbors();
 		grid_x_np.update_copies_of_remote_neighbors();
 		grid_y.update_copies_of_remote_neighbors();
 		grid_y_np.update_copies_of_remote_neighbors();
 		grid_z.update_copies_of_remote_neighbors();
 		grid_z_np.update_copies_of_remote_neighbors();
-		Cell::set_transfer_all(false, pamhd::particle::Accumulated_To_Cells());
+		Cell::set_transfer_all(false, Accumulated_To_Cells());
 
 		accumulate_from_remote_neighbors(grid_x);
 		accumulate_from_remote_neighbors(grid_x_np);
