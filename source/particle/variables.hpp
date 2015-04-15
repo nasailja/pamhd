@@ -41,6 +41,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Eigen/Core" // must be included before gensimcell.hpp
 #include "gensimcell.hpp"
 
+#include "particle/accumulation_variables.hpp"
+
 
 namespace pamhd {
 namespace particle {
@@ -148,6 +150,53 @@ struct Magnetic_Field {
 };
 
 
+struct Bulk_Mass {
+	using data_type = double;
+	static const std::string get_name() { return {"bulk mass"}; }
+	static const std::string get_option_name() { return {"bulk-mass"}; }
+	static const std::string get_option_help() { return {"Mass of particles (kg)"}; }
+};
+
+struct Bulk_Momentum {
+	using data_type = Eigen::Vector3d;
+	static const std::string get_name() { return {"bulk momentum"}; }
+	static const std::string get_option_name() { return {"bulk-momentum"}; }
+	static const std::string get_option_help() { return {"Momnetum of particles (kg * m / s)"}; }
+};
+
+struct Bulk_Velocity {
+	using data_type = Eigen::Vector3d;
+	static const std::string get_name() { return {"bulk velocity"}; }
+	static const std::string get_option_name() { return {"bulk-velocity"}; }
+	static const std::string get_option_help() { return {"Particle velocity (m / s)"}; }
+};
+
+using Accumulated_To_Cell = Accumulated_To_Cell_T<Bulk_Mass, Bulk_Momentum>;
+using Accumulated_To_Cells = Accumulated_To_Cells_T<Accumulated_To_Cell>;
+
+
+struct Magnetic_Field_Divergence {
+	using data_type = double;
+	static const std::string get_name() { return {"magnetic field divergence"}; }
+	static const std::string get_option_name() { return {"magnetic-field-divergence"}; }
+	static const std::string get_option_help() { return {"Divergence of plasma magnetic field (T/m)"}; }
+};
+
+struct Scalar_Potential_Gradient {
+	using data_type = Eigen::Vector3d;
+	static const std::string get_name() { return {"scalar potential gradient"}; }
+	static const std::string get_option_name() { return {"scalar-potential-gradient"}; }
+	static const std::string get_option_help() { return {"Gradient of scalar potential from Poisson's equation"}; }
+};
+
+struct Electric_Current_Density {
+	using data_type = Eigen::Vector3d;
+	static const std::string get_name() { return {"current density"}; }
+	static const std::string get_option_name() { return {"current-density"}; }
+	static const std::string get_option_help() { return {"Density of electric current"}; }
+};
+
+
 /*!
 Cell type for particle model of PAMHD.
 
@@ -159,12 +208,20 @@ dccrg uses to save the file.
 */
 using Cell = gensimcell::Cell<
 	gensimcell::Optional_Transfer,
+	Bulk_Mass,
+	Bulk_Momentum,
+	Bulk_Velocity,
 	Electric_Field,
 	Magnetic_Field,
+	Magnetic_Field_Divergence,
+	Scalar_Potential_Gradient,
+	Electric_Current_Density,
 	Nr_Particles_Internal,
 	Nr_Particles_External,
+	Nr_Accumulated_To_Cells,
 	Particles_Internal,
-	Particles_External
+	Particles_External,
+	Accumulated_To_Cells
 >;
 
 

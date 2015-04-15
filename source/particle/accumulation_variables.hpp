@@ -1,5 +1,5 @@
 /*
-Variables used in particle accumulation part of PAMHD.
+Variables used in particle accumulation test of PAMHD.
 
 Copyright 2015 Ilja Honkonen
 All rights reserved.
@@ -44,42 +44,31 @@ namespace pamhd {
 namespace particle {
 
 
-//! average number of particles in a cell
-struct Count {
-	using data_type = double;
-};
-
 //! cell id when accumulating to cells of other processes
 struct Target {
 	using data_type = unsigned long long int;
 };
 
-//! particle data accumulated to one cell of another process
-using Accumulated_To_Cell = gensimcell::Cell<
+/*!
+Template for particle data consisting of given variables
+accumulated to one cell of another process.
+*/
+template<class... Variables> using Accumulated_To_Cell_T = gensimcell::Cell<
 	gensimcell::Always_Transfer,
 	Target,
-	Count
+	Variables...
 >;
 
-//! particle data accumulated to remote neighbors of local cell
-struct Accumulated_To_Cells {
-	using data_type = std::vector<Accumulated_To_Cell>;
+
+//! template for particle data accumulated to remote neighbor(s) of local cell
+template<class Accumulation_Item> struct Accumulated_To_Cells_T {
+	using data_type = std::vector<Accumulation_Item>;
 };
 
-//! number of cell into which particle data has been accumulated
+//! number of cells into which particle data has been accumulated
 struct Nr_Accumulated_To_Cells {
 	using data_type = unsigned long long int;
 };
-
-//! Example cell type for the accumulation model without particles
-using Accumulation_Cell = gensimcell::Cell<
-	gensimcell::Optional_Transfer,
-	// values accumulated to cell itself
-	Count,
-	// values accumulated to cell's neighbors
-	Nr_Accumulated_To_Cells,
-	Accumulated_To_Cells
->;
 
 
 }} // namespaces

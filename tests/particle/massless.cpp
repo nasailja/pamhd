@@ -77,12 +77,6 @@ struct Temperature {
 	static std::string get_option_name() { return std::string("bulk-temperature"); }
 	static std::string get_option_help() { return std::string(""); }
 };
-struct Bulk_Velocity {
-	using data_type = Eigen::Vector3d;
-	static std::string get_name() { return std::string("Bulk velocity"); }
-	static std::string get_option_name() { return std::string("bulk-velocity"); }
-	static std::string get_option_help() { return std::string(""); }
-};
 struct Species_Mass {
 	using data_type = double;
 	static std::string get_name() { return std::string("Species mass"); }
@@ -350,7 +344,7 @@ int main(int argc, char* argv[])
 		std::array<double, 3>,
 		Mass_Density,
 		Temperature,
-		Bulk_Velocity,
+		pamhd::particle::Bulk_Velocity,
 		Nr_Particles_In_Cell,
 		Charge_Mass_Ratio,
 		Species_Mass
@@ -372,7 +366,7 @@ int main(int argc, char* argv[])
 		std::array<double, 3>,
 		Mass_Density,
 		Temperature,
-		Bulk_Velocity,
+		pamhd::particle::Bulk_Velocity,
 		Nr_Particles_In_Cell,
 		Charge_Mass_Ratio,
 		Species_Mass
@@ -677,7 +671,7 @@ int main(int argc, char* argv[])
 		Temperature,
 		Charge_Mass_Ratio,
 		Species_Mass,
-		Bulk_Velocity,
+		pamhd::particle::Bulk_Velocity,
 		Nr_Particles_In_Cell,
 		Particles_Internal,
 		Particle_Internal,
@@ -713,7 +707,7 @@ int main(int argc, char* argv[])
 		double
 			// don't step over the final simulation time
 			until_end = end_time - simulation_time,
-			local_time_step = std::min(std::min(0.5 * max_dt, until_end), max_time_step),
+			local_time_step = std::min(std::min(time_step_factor * max_dt, until_end), max_time_step),
 			time_step = -1;
 
 		if (
@@ -904,7 +898,7 @@ int main(int argc, char* argv[])
 						);
 				const auto bulk_velocity
 					= particles_value_bdy.get_data(
-						Bulk_Velocity(), bdy_id, cell_center, simulation_time
+						pamhd::particle::Bulk_Velocity(), bdy_id, cell_center, simulation_time
 					);
 				const auto nr_particles
 					= particles_value_bdy.get_data(

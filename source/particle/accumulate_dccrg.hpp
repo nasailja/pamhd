@@ -50,6 +50,8 @@ namespace particle {
 /*!
 Accumulates particle data in given cells to those cells and their neighbors.
 
+Accumulated data from particles in the same cell is not zeroed before accumulating.
+
 Accumulated data is written to local cells directly, accumulated data to
 remote neighbors is stored in local cells' accumulation list.
 
@@ -76,16 +78,6 @@ template<
 	Accumulation_List_Length_Getter List_Len,
 	Accumulation_List_Getter Accu_List
 ) {
-	// initialize to 0
-	for (const auto& cell_id: cell_ids) {
-		auto* const cell_data = grid[cell_id];
-		if (cell_data == nullptr) {
-			std::cerr << __FILE__ << "(" << __LINE__ << ")" << std::endl;
-			abort();
-		}
-		Bulk_Val(*cell_data) = 0;
-	}
-
 	for (const auto& cell_id: cell_ids) {
 		const auto
 			cell_min_tmp = grid.geometry.get_min(cell_id),
@@ -103,6 +95,8 @@ template<
 			std::cerr << __FILE__ << "(" << __LINE__ << ")" << std::endl;
 			abort();
 		}
+
+		Accu_List(*cell_data).clear();
 
 		// cache required neighbor data
 		std::vector<bool> is_locals;
