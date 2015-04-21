@@ -515,6 +515,7 @@ try:
 	subprocess.check_output([mpiexec, '-n', str(processes), pamhd_mhd, '--config', config_name], universal_newlines = True)
 except subprocess.CalledProcessError as error:
 	print 'failed, with output:<br>', error.output
+	exit()
 
 print 'done.<br> Running visualization... '
 try:
@@ -522,4 +523,5 @@ try:
 	subprocess.check_output([mpiexec, '-n', str(processes), mhd2gnuplot] + files, universal_newlines = True)
 except subprocess.CalledProcessError as error:
 	print 'failed, with output:<br>', error.output
+	exit()
 print 'done.<br>'
