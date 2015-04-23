@@ -261,6 +261,8 @@ template <
 /*!
 Returns average velocity of given particles.
 
+Each dimension is averaged separately.
+
 Each particles' velocity is weighted by mass.
 
 Without particles returns 0 and if all particles
@@ -285,8 +287,8 @@ template <
 	// in case all particles massless
 	typename Velocity_T::data_type massless{0, 0, 0};
 	for (const auto& particle: particles) {
-		const auto mass = particle[Mass_T()];
-		const auto velocity = particle[Velocity_T()];
+		const auto& mass = particle[Mass_T()];
+		const auto& velocity = particle[Velocity_T()];
 
 		if (mass != 0) {
 			total_mass += mass;
