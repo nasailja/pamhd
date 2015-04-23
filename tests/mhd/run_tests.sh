@@ -14,6 +14,43 @@ echo
 echo Running tests...
 echo
 
+# magnetic field advection with resistivity
+echo magnetic_field_advection 1d +x roe_athena
+$RUN ./test.exe \
+    --output-directory results/magnetohydrodynamic/magnetic_field_advection/1d/+x/ \
+    --config-file config_files/magnetohydrodynamic/magnetic_field_advection/1d/+x/config.cfg
+$RUN ./mhd2gnuplot.exe results/magnetohydrodynamic/magnetic_field_advection/1d/+x/*dc
+
+echo magnetic_field_advection 1d -x roe_athena
+$RUN ./test.exe \
+    --output-directory results/magnetohydrodynamic/magnetic_field_advection/1d/-x/ \
+    --config-file config_files/magnetohydrodynamic/magnetic_field_advection/1d/-x/config.cfg
+$RUN ./mhd2gnuplot.exe results/magnetohydrodynamic/magnetic_field_advection/1d/-x/*dc
+
+echo magnetic_field_advection 1d +y roe_athena
+$RUN ./test.exe \
+    --output-directory results/magnetohydrodynamic/magnetic_field_advection/1d/+y/ \
+    --config-file config_files/magnetohydrodynamic/magnetic_field_advection/1d/+y/config.cfg
+$RUN ./mhd2gnuplot.exe results/magnetohydrodynamic/magnetic_field_advection/1d/+y/*dc
+
+echo magnetic_field_advection 1d -y roe_athena
+$RUN ./test.exe \
+    --output-directory results/magnetohydrodynamic/magnetic_field_advection/1d/-y/ \
+    --config-file config_files/magnetohydrodynamic/magnetic_field_advection/1d/-y/config.cfg
+$RUN ./mhd2gnuplot.exe results/magnetohydrodynamic/magnetic_field_advection/1d/-y/*dc
+
+echo magnetic_field_advection 1d +z roe_athena
+$RUN ./test.exe \
+    --output-directory results/magnetohydrodynamic/magnetic_field_advection/1d/+z/ \
+    --config-file config_files/magnetohydrodynamic/magnetic_field_advection/1d/+z/config.cfg
+$RUN ./mhd2gnuplot.exe results/magnetohydrodynamic/magnetic_field_advection/1d/+z/*dc
+
+echo magnetic_field_advection 1d -z roe_athena
+$RUN ./test.exe \
+    --output-directory results/magnetohydrodynamic/magnetic_field_advection/1d/-z/ \
+    --config-file config_files/magnetohydrodynamic/magnetic_field_advection/1d/-z/config.cfg
+$RUN ./mhd2gnuplot.exe results/magnetohydrodynamic/magnetic_field_advection/1d/-z/*dc
+
 # shock tube
 echo shock_tube mhd 1d +x hll_athena
 $RUN ./test.exe \
