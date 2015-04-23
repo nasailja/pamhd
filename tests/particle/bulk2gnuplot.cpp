@@ -65,7 +65,7 @@ Fills out grid info and simulation data withing given volume.
 
 On success returns vacuum permeability.
 */
-boost::optional<double> read_data(
+boost::optional<std::array<double, 5>> read_data(
 	dccrg::Mapping& cell_id_mapping,
 	dccrg::Grid_Topology& topology,
 	dccrg::Cartesian_Geometry& geometry,
@@ -86,22 +86,22 @@ boost::optional<double> read_data(
 		cerr << "Process " << mpi_rank
 			<< " couldn't open file " << file_name
 			<< endl;
-		return boost::optional<double>();
+		return boost::optional<std::array<double, 5>>();
 	}
 
 	MPI_Offset offset = 0;
 
 	// read physical constants
-	double vacuum_permeability;
+	std::array<double, 5> metadata;
 	MPI_File_read_at(
 		file,
 		offset,
-		&vacuum_permeability,
-		1,
+		(void*) metadata.data(),
+		metadata.size(),
 		MPI_DOUBLE,
 		MPI_STATUS_IGNORE
 	);
-	offset += sizeof(double);
+	offset += sizeof(double) * metadata.size();
 
 	// skip endianness check data
 	offset += sizeof(uint64_t);
@@ -110,7 +110,7 @@ boost::optional<double> read_data(
 		cerr << "Process " << mpi_rank
 			<< " couldn't set cell id mapping from file " << file_name
 			<< endl;
-		return boost::optional<double>();
+		return boost::optional<std::array<double, 5>>();
 	}
 
 	offset
@@ -122,7 +122,7 @@ boost::optional<double> read_data(
 		cerr << "Process " << mpi_rank
 			<< " couldn't read geometry from file " << file_name
 			<< endl;
-		return boost::optional<double>();
+		return boost::optional<std::array<double, 5>>();
 	}
 	offset += geometry.data_size();
 
@@ -140,7 +140,7 @@ boost::optional<double> read_data(
 
 	if (total_cells == 0) {
 		MPI_File_close(&file);
-		return boost::optional<double>(vacuum_permeability);
+		return boost::optional<std::array<double, 5>>(metadata);
 	}
 
 	// read cell ids and data offsets
@@ -215,7 +215,7 @@ boost::optional<double> read_data(
 
 	MPI_File_close(&file);
 
-	return boost::optional<double>(vacuum_permeability);
+	return boost::optional<std::array<double, 5>>(metadata);
 }
 
 
@@ -406,7 +406,7 @@ int main(int argc, char* argv[])
 		dccrg::Cartesian_Geometry geometry(cell_id_mapping.length, cell_id_mapping, topology);
 		unordered_map<uint64_t, Cell> simulation_data;
 
-		boost::optional<double> vacuum_permeability = read_data(
+		boost::optional<std::array<double, 5>> metadata = read_data(
 			cell_id_mapping,
 			topology,
 			geometry,
@@ -414,7 +414,7 @@ int main(int argc, char* argv[])
 			input_files[i],
 			rank
 		);
-		if (not vacuum_permeability) {
+		if (not metadata) {
 			std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
 				<< "Couldn't read simulation data from file " << input_files[i]
 				<< std::endl;
