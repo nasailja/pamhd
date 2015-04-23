@@ -77,12 +77,6 @@ struct Temperature {
 	static std::string get_option_name() { return std::string("bulk-temperature"); }
 	static std::string get_option_help() { return std::string(""); }
 };
-struct Species_Mass {
-	using data_type = double;
-	static std::string get_name() { return std::string("Species mass"); }
-	static std::string get_option_name() { return std::string("species-mass"); }
-	static std::string get_option_help() { return std::string("Mass of individual constituents of particle species"); }
-};
 // number of macroparticles / simulation cell
 struct Nr_Particles_In_Cell {
 	using data_type = double;
@@ -668,7 +662,6 @@ int main(int argc, char* argv[])
 		Mass_Density,
 		Temperature,
 		Charge_Mass_Ratio,
-		Species_Mass,
 		pamhd::particle::Bulk_Velocity,
 		Nr_Particles_In_Cell,
 		Particles_Internal,
@@ -677,7 +670,8 @@ int main(int argc, char* argv[])
 		Charge_Mass_Ratio,
 		Position,
 		Velocity,
-		Particle_ID
+		Particle_ID,
+		Species_Mass
 	>(
 		initial_particles,
 		0,
@@ -919,7 +913,7 @@ int main(int argc, char* argv[])
 						Position,
 						Velocity,
 						Particle_ID,
-						std::mt19937
+						Species_Mass
 					>(
 						bulk_velocity,
 						Eigen::Vector3d{cell_start[0], cell_start[1], cell_start[2]},

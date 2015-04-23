@@ -74,6 +74,14 @@ struct Mass {
 	static const std::string get_option_help() { return {"Particle mass)"}; }
 };
 
+//! Mass of particle's species
+struct Species_Mass {
+	using data_type = double;
+	static const std::string get_name() { return {"species mass"}; }
+	static const std::string get_option_name() { return {"species-mass"}; }
+	static const std::string get_option_help() { return {"Mass of particle's species)"}; }
+};
+
 //! Represents the ratio of particle mass and particle charge
 struct Charge_Mass_Ratio {
 	using data_type = double;
@@ -94,6 +102,7 @@ template<
 	Position,
 	Velocity,
 	Mass,
+	Species_Mass,
 	Charge_Mass_Ratio,
 	Extra_Variables...
 >;

@@ -67,7 +67,7 @@ Fills out grid info and simulation data withing given volume.
 
 On success returns vacuum permeability and Boltzmann constant.
 */
-boost::optional<std::array<double, 2>> read_data(
+boost::optional<std::array<double, 5>> read_data(
 	const Eigen::Vector3d& volume_start,
 	const Eigen::Vector3d& volume_end,
 	dccrg::Mapping& cell_id_mapping,
@@ -90,22 +90,22 @@ boost::optional<std::array<double, 2>> read_data(
 		cerr << "Process " << mpi_rank
 			<< " couldn't open file " << file_name
 			<< endl;
-		return boost::optional<std::array<double, 2>>();
+		return boost::optional<std::array<double, 5>>();
 	}
 
 	MPI_Offset offset = 0;
 
-	// read physical constants
-	double vacuum_permeability;
+	// read simulation parameters
+	std::array<double, 5> metadata;
 	MPI_File_read_at(
 		file,
 		offset,
-		&vacuum_permeability,
-		1,
+		(void*) metadata.data(),
+		metadata.size(),
 		MPI_DOUBLE,
 		MPI_STATUS_IGNORE
 	);
-	offset += sizeof(double);
+	offset += sizeof(double) * metadata.size();
 
 	// skip endianness check data
 	offset += sizeof(uint64_t);
@@ -114,7 +114,7 @@ boost::optional<std::array<double, 2>> read_data(
 		cerr << "Process " << mpi_rank
 			<< " couldn't set cell id mapping from file " << file_name
 			<< endl;
-		return boost::optional<std::array<double, 2>>();
+		return boost::optional<std::array<double, 5>>();
 	}
 
 	offset
@@ -126,7 +126,7 @@ boost::optional<std::array<double, 2>> read_data(
 		cerr << "Process " << mpi_rank
 			<< " couldn't read geometry from file " << file_name
 			<< endl;
-		return boost::optional<std::array<double, 2>>();
+		return boost::optional<std::array<double, 5>>();
 	}
 	offset += geometry.data_size();
 
@@ -144,9 +144,7 @@ boost::optional<std::array<double, 2>> read_data(
 
 	if (total_cells == 0) {
 		MPI_File_close(&file);
-		return boost::optional<std::array<double, 2>>(
-			std::array<double, 2>{{vacuum_permeability, 0}}
-		);
+		return boost::optional<std::array<double, 5>>(metadata);
 	}
 
 	// read cell ids and data offsets
@@ -284,9 +282,7 @@ boost::optional<std::array<double, 2>> read_data(
 
 	MPI_File_close(&file);
 
-	return boost::optional<std::array<double, 2>>(
-		std::array<double, 2>{{vacuum_permeability, 0}}
-	);
+	return boost::optional<std::array<double, 5>>(metadata);
 }
 
 
@@ -521,7 +517,7 @@ int main(int argc, char* argv[])
 		topology
 	);
 	unordered_map<uint64_t, Cell> simulation_data;
-	boost::optional<std::array<double, 2>> header = read_data(
+	boost::optional<std::array<double, 5>> metadata = read_data(
 		r_start,
 		r_end,
 		cell_id_mapping,
@@ -590,10 +586,7 @@ int main(int argc, char* argv[])
 	std::vector<
 		std::unordered_map<
 			Particle_ID::data_type, // id of particle contributing to this bin
-			std::tuple<
-				Eigen::Vector3d, // particle velocity
-				double // particle charge to mass ratio
-			>
+			Particle_Internal
 		>
 	> binned_data(horizontal_resolution);
 
@@ -601,7 +594,7 @@ int main(int argc, char* argv[])
 	for (size_t i = 0; i < input_files.size(); i++) {
 		if (i > 0) {
 			simulation_data.clear();
-			boost::optional<std::array<double, 2>> header = read_data(
+			boost::optional<std::array<double, 5>> metadata = read_data(
 				r_start,
 				r_end,
 				cell_id_mapping,
@@ -611,7 +604,7 @@ int main(int argc, char* argv[])
 				input_files[i],
 				rank
 			);
-			if (not header) {
+			if (not metadata) {
 				std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
 					<< "Couldn't read simulation data from file " << input_files[i]
 					<< std::endl;
@@ -642,17 +635,10 @@ int main(int argc, char* argv[])
 				);
 
 				const auto& id = particle[Particle_ID()];
-				const auto& vel = particle[Velocity()];
 				if (binned_data[bin_i].count(id) == 0) {
-					binned_data[bin_i].emplace(
-						id,
-						std::forward_as_tuple(
-							vel,
-							particle[Charge_Mass_Ratio()]
-						)
-					);
+					binned_data[bin_i][id] = particle;
 				}
-				// TODO: replace existing particle if this one closer to
+				// TODO: replace existing particle if one closer to
 				// center of bin, or calculate an average, or...
 			}
 		}
@@ -666,12 +652,15 @@ int main(int argc, char* argv[])
 		>
 	> plot_data(horizontal_resolution);
 	for (size_t bin_i = 0; bin_i < binned_data.size(); bin_i++) {
+
+		// copy binned particles into a vector for processing
 		std::vector<Particle_Internal> particles;
+		typename Species_Mass::data_type species_mass = 0;
 		for (const auto& bin_data: binned_data[bin_i]) {
-			Particle_Internal particle;
-			particle[Velocity()] = get<0>(bin_data.second);
-			particles.push_back(particle);
+			particles.push_back(bin_data.second);
+			species_mass += bin_data.second[Species_Mass()];
 		}
+		species_mass /= particles.size();
 
 		get<0>(plot_data[bin_i]) = bin_start + bin_length * (bin_i + 0.5);
 		get<2>(plot_data[bin_i]) = particles.size();
@@ -685,7 +674,8 @@ int main(int argc, char* argv[])
 			get<1>(plot_data[bin_i])
 				= get_temperature<Mass, Velocity>(
 					particles,
-					1.672621777e-27, (*header)[1]
+					species_mass,
+					(*metadata)[4]
 				);
 		}
 	}

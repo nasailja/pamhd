@@ -81,7 +81,8 @@ int main()
 			Charge_Mass_Ratio,
 			Position,
 			Velocity,
-			Particle_ID
+			Particle_ID,
+			Species_Mass
 		>(
 			bulk_velocity_ref,
 			volume_min_ref,
@@ -159,7 +160,8 @@ int main()
 			Charge_Mass_Ratio,
 			Position,
 			Velocity,
-			Particle_ID
+			Particle_ID,
+			Species_Mass
 		>(
 			bulk_velocity_ref,
 			volume_min_ref,

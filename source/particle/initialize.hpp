@@ -74,7 +74,6 @@ template<
 	class Mass_Density_T,
 	class Temperature_T,
 	class Charge_Mass_Ratio_T,
-	class Species_Mass_T,
 	class Bulk_Velocity_T,
 	class Nr_Particles_In_Cell_T,
 	class Particles_T,
@@ -84,6 +83,7 @@ template<
 	class Particle_Position_T,
 	class Particle_Velocity_T,
 	class Particle_ID_T,
+	class Particle_Species_Mass_T,
 	class Init_Cond,
 	class Grid
 > void initialize(
@@ -147,7 +147,7 @@ template<
 				),
 			species_mass
 				= init_cond.default_data.get_data(
-					Species_Mass_T(),
+					Particle_Species_Mass_T(),
 					cell_center,
 					simulation_time
 				);
@@ -172,7 +172,7 @@ template<
 				Particle_Position_T,
 				Particle_Velocity_T,
 				Particle_ID_T,
-				std::mt19937
+				Particle_Species_Mass_T
 			>(
 				bulk_velocity,
 				Eigen::Vector3d{cell_start[0], cell_start[1], cell_start[2]},
@@ -227,7 +227,7 @@ template<
 					),
 				species_mass
 					= init_cond.get_data(
-						Species_Mass_T(),
+						Particle_Species_Mass_T(),
 						bdy_id,
 						cell_center,
 						simulation_time
@@ -263,7 +263,7 @@ template<
 					Particle_Position_T,
 					Particle_Velocity_T,
 					Particle_ID_T,
-					std::mt19937
+					Particle_Species_Mass_T
 				>(
 					bulk_velocity,
 					Eigen::Vector3d{cell_start[0], cell_start[1], cell_start[2]},

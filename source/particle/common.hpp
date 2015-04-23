@@ -186,6 +186,7 @@ template <
 	class Position_T,
 	class Velocity_T,
 	class Particle_ID_T,
+	class Species_Mass_T,
 	class Random_Source
 > std::vector<Particle> create_particles(
 	const typename Velocity_T::data_type bulk_velocity,
@@ -195,7 +196,7 @@ template <
 	const size_t nr_of_particles,
 	const double charge_mass_ratio,
 	const double total_mass,
-	const double species_mass,
+	const typename Species_Mass_T::data_type species_mass,
 	const double particle_temp_nrj_ratio,
 	Random_Source& random_source,
 	const typename Particle_ID_T::data_type first_id = 0,
@@ -208,6 +209,7 @@ template <
 	const Velocity_T Vel{};
 	const Charge_Mass_Ratio_T C2M{};
 	const Particle_ID_T Id{};
+	const Species_Mass_T Spe{};
 
 	const double particle_mass = total_mass / nr_of_particles;
 
@@ -235,6 +237,7 @@ template <
 			Particle p;
 			p[Mas] = particle_mass;
 			p[C2M] = charge_mass_ratio;
+			p[Spe] = species_mass;
 			p[Pos][0] = position_generator_x(random_source);
 			p[Pos][1] = position_generator_y(random_source);
 			p[Pos][2] = position_generator_z(random_source);
