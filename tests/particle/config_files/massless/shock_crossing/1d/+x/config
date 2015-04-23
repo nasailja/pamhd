@@ -1,0 +1,39 @@
+# injects particles into a stationary strong
+# perpendicular shock ramp from positive x direction
+
+output-directory = results/massless/shock_crossing/1d/+x/
+time-start = 0
+time-length = 1
+time-step-factor = 0.5
+save-particle-n = 0.001
+boltzmann = 1
+
+[grid]
+nr-cells = {10 + 1, 1, 1}
+volume = {1 * (1 + 1.0/10), 1, 1}
+start = {0, 0, 0}
+periodic = {false, true, true}
+
+[initial-particles]
+default.bulk-mass-density = 0
+default.bulk-temperature = 0
+default.bulk-velocity = {0, 0, 0}
+default.nr-particles-in-cell = 0
+default.charge-mass-ratio = 0
+default.species-mass = 0
+nr-boxes = 1
+box1.start = {1, -99, -99}
+box1.end = {99, 99, 99}
+# adiabatic index == 5/3 => sound speed sqrt(5/3)
+box1.bulk-mass-density = 0
+box1.bulk-temperature = 1
+box1.bulk-velocity = {-10, 0, 0}
+box1.nr-particles-in-cell = 200
+box1.charge-mass-ratio = 1000
+box1.species-mass = 1
+
+[initial-fields]
+# E = -VxB = -{Vy*Bz - Vz*By, Vz*Bx - Vx*Bz, Vx*By - Vy*Bx} = {0, 0, -Vx*By}
+# upstream Vx = -10, By = 1, downstream Vx = -2.5, By = 4
+default.electric-field = {0, 0, 10}
+default.magnetic-field = {0, (r[0] > 0.5) ? 1 : 4, 0}
