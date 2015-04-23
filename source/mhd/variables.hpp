@@ -72,12 +72,20 @@ struct Magnetic_Field {
 	static const std::string get_option_help() { return {"Plasma magnetic field (T)"}; }
 };
 
-//! stores B before divergence removal in case that fails
+//! stores B before divergence removal so B can be restored after failed removal
 struct Magnetic_Field_Temp {
 	using data_type = Eigen::Vector3d;
 	static const std::string get_name() { return {"temporary magnetic field"}; }
 	static const std::string get_option_name() { return {"temporary-magnetic-field"}; }
 	static const std::string get_option_help() { return {"Temporary value of magnetic field in plasma (T)"}; }
+};
+
+//! stores change in B due to resistivity
+struct Magnetic_Field_Resistive {
+	using data_type = Eigen::Vector3d;
+	static const std::string get_name() { return {"resistive magnetic field"}; }
+	static const std::string get_option_name() { return {"resistive-magnetic-field"}; }
+	static const std::string get_option_help() { return {"Change in magnetic field due to resistivity"}; }
 };
 
 struct Velocity {
@@ -179,12 +187,13 @@ struct MHD_Flux_Conservative {
 using Cell = gensimcell::Cell<
 	gensimcell::Optional_Transfer,
 	MHD_State_Conservative,
+	Electric_Current_Density,
 	Cell_Type,
 	MPI_Rank,
+	Magnetic_Field_Resistive,
 	Magnetic_Field_Temp,
 	Magnetic_Field_Divergence,
 	Scalar_Potential_Gradient,
-	Electric_Current_Density,
 	MHD_Flux_Conservative
 >;
 

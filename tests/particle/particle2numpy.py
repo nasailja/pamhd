@@ -65,6 +65,13 @@ Adds particle data produced by massless.exe of PAMHD
 from given file into given dictionary.
 
 Already existing particles' data is appended to from given file.
+
+Returns the following in a numpy array:
+simulation time,
+adiabatic index,
+proton mass,
+vacuum permeability,
+ratio of particle temperature to energy (Boltzmann constant).
 '''
 def load(file_name, particle_data):
 	import binascii
@@ -75,7 +82,7 @@ def load(file_name, particle_data):
 	infile = open(file_name, 'rb')
 
 	# read simulation header
-	vacuum_permeability = numpy.fromfile(infile, dtype = numpy.float64, count = 1)[0]
+	header = numpy.fromfile(infile, dtype = '5float64', count = 1)
 
 	# check file endiannes
 	endianness = numpy.fromfile(infile, dtype = 'uint64', count = 1)[0]
@@ -140,13 +147,11 @@ def load(file_name, particle_data):
 				= particle[0], particle[1], particle[2], particle[3], particle[4]
 
 			if particle_id in particle_data:
-				particle_data[particle_id].append(
-					(position, velocity)
-				)
+				particle_data[particle_id].append((position, velocity))
 			else:
-				particle_data[particle_id] = [
-					(position, velocity)
-				]
+				particle_data[particle_id] = [(position, velocity)]
+
+	return header
 
 
 if __name__ == '__main__':

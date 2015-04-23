@@ -258,6 +258,124 @@ template <
 }
 
 
+/*!
+Returns average velocity of given particles.
+
+Each particles' velocity is weighted by mass.
+
+Without particles returns 0 and if all particles
+have 0 mass a weight of 1 is used instead.
+
+Velocity_T and Mass_T are used to access corresponding
+variable in each particles' data via operator [].
+*/
+template <
+	class Mass_T,
+	class Velocity_T,
+	class Particle
+> typename Velocity_T::data_type get_bulk_velocity(
+	const std::vector<Particle>& particles
+) {
+	typename Velocity_T::data_type V{0, 0, 0};
+	if (particles.size() == 0) {
+		return V;
+	}
+
+	typename Mass_T::data_type total_mass = 0;
+	// in case all particles massless
+	typename Velocity_T::data_type massless{0, 0, 0};
+	for (const auto& particle: particles) {
+		const auto mass = particle[Mass_T()];
+		const auto velocity = particle[Velocity_T()];
+
+		if (mass != 0) {
+			total_mass += mass;
+			V[0] += mass * velocity[0];
+			V[1] += mass * velocity[1];
+			V[2] += mass * velocity[2];
+		} else {
+			massless[0] += velocity[0];
+			massless[1] += velocity[1];
+			massless[2] += velocity[2];
+		}
+	}
+
+	if (total_mass != 0) {
+		V[0] /= total_mass;
+		V[1] /= total_mass;
+		V[2] /= total_mass;
+		return V;
+	} else {
+		massless[0] /= particles.size();
+		massless[1] /= particles.size();
+		massless[2] /= particles.size();
+		return massless;
+	}
+}
+
+
+template <
+	class Mass_T,
+	class Velocity_T,
+	class Particle
+> double get_temperature(
+	const std::vector<Particle>& particles,
+	const double species_mass,
+	const double particle_temp_nrj_ratio
+) {
+	using std::pow;
+
+	if (particles.size() == 0) {
+		return 0;
+	}
+
+	const auto bulk_velocity = get_bulk_velocity<Mass_T, Velocity_T>(particles);
+
+	typename Mass_T::data_type total_mass = 0;
+	double temperature = 0, massless = 0;
+	for (const auto& particle: particles) {
+		const auto& mass = particle[Mass_T()];
+		const auto& velocity = particle[Velocity_T()];
+
+		const auto tmp
+			= pow(velocity[0] - bulk_velocity[0], 2)
+			+ pow(velocity[1] - bulk_velocity[1], 2)
+			+ pow(velocity[2] - bulk_velocity[2], 2);
+		if (mass != 0) {
+			total_mass += mass;
+			temperature += mass * tmp;
+		} else {
+			massless += tmp;
+		}
+	}
+
+	if (total_mass != 0) {
+		temperature /= 3 * particle_temp_nrj_ratio * total_mass / species_mass;
+		return temperature;
+	} else {
+		massless /= 3 * particle_temp_nrj_ratio * particles.size() / species_mass;
+		return massless;
+	}
+}
+
+
+template <
+	class Mass_T,
+	class Velocity_T,
+	class Particle
+> double get_pressure(
+	const std::vector<Particle>& particles,
+	const double species_mass,
+	const double particle_temp_nrj_ratio,
+	const double volume
+) {
+	const auto temperature
+		= get_temperature<Mass_T, Velocity_T>(particles, volume, species_mass);
+
+	return temperature * particle_temp_nrj_ratio * particles.size() / volume;
+}
+
+
 }} // namespaces
 
 

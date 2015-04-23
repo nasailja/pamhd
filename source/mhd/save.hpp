@@ -60,7 +60,7 @@ public:
 		return get_header_string_template().size() + 2;
 	}
 
-	static constexpr size_t nr_header_doubles = 3;
+	static constexpr size_t nr_header_doubles = 4;
 
 
 	/*!
@@ -107,6 +107,7 @@ public:
 
 		// write physical constants
 		const std::array<double, nr_header_doubles> header_doubles{{
+			simulation_time,
 			adiabatic_index,
 			proton_mass,
 			vacuum_permeability

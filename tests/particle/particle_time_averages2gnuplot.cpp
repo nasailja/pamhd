@@ -53,6 +53,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "gensimcell.hpp"
 #include "prettyprint.hpp"
 
+#include "particle/common.hpp"
 #include "particle/save.hpp"
 #include "particle/variables.hpp"
 
@@ -64,9 +65,9 @@ Reads simulation data from given file.
 
 Fills out grid info and simulation data withing given volume.
 
-On success returns vacuum permeability.
+On success returns vacuum permeability and Boltzmann constant.
 */
-boost::optional<double> read_data(
+boost::optional<std::array<double, 2>> read_data(
 	const Eigen::Vector3d& volume_start,
 	const Eigen::Vector3d& volume_end,
 	dccrg::Mapping& cell_id_mapping,
@@ -89,7 +90,7 @@ boost::optional<double> read_data(
 		cerr << "Process " << mpi_rank
 			<< " couldn't open file " << file_name
 			<< endl;
-		return boost::optional<double>();
+		return boost::optional<std::array<double, 2>>();
 	}
 
 	MPI_Offset offset = 0;
@@ -113,7 +114,7 @@ boost::optional<double> read_data(
 		cerr << "Process " << mpi_rank
 			<< " couldn't set cell id mapping from file " << file_name
 			<< endl;
-		return boost::optional<double>();
+		return boost::optional<std::array<double, 2>>();
 	}
 
 	offset
@@ -125,7 +126,7 @@ boost::optional<double> read_data(
 		cerr << "Process " << mpi_rank
 			<< " couldn't read geometry from file " << file_name
 			<< endl;
-		return boost::optional<double>();
+		return boost::optional<std::array<double, 2>>();
 	}
 	offset += geometry.data_size();
 
@@ -143,7 +144,9 @@ boost::optional<double> read_data(
 
 	if (total_cells == 0) {
 		MPI_File_close(&file);
-		return boost::optional<double>(vacuum_permeability);
+		return boost::optional<std::array<double, 2>>(
+			std::array<double, 2>{{vacuum_permeability, 0}}
+		);
 	}
 
 	// read cell ids and data offsets
@@ -281,7 +284,9 @@ boost::optional<double> read_data(
 
 	MPI_File_close(&file);
 
-	return boost::optional<double>(vacuum_permeability);
+	return boost::optional<std::array<double, 2>>(
+		std::array<double, 2>{{vacuum_permeability, 0}}
+	);
 }
 
 
@@ -516,7 +521,7 @@ int main(int argc, char* argv[])
 		topology
 	);
 	unordered_map<uint64_t, Cell> simulation_data;
-	boost::optional<double> vacuum_permeability = read_data(
+	boost::optional<std::array<double, 2>> header = read_data(
 		r_start,
 		r_end,
 		cell_id_mapping,
@@ -596,7 +601,7 @@ int main(int argc, char* argv[])
 	for (size_t i = 0; i < input_files.size(); i++) {
 		if (i > 0) {
 			simulation_data.clear();
-			boost::optional<double> vacuum_permeability = read_data(
+			boost::optional<std::array<double, 2>> header = read_data(
 				r_start,
 				r_end,
 				cell_id_mapping,
@@ -606,7 +611,7 @@ int main(int argc, char* argv[])
 				input_files[i],
 				rank
 			);
-			if (not vacuum_permeability) {
+			if (not header) {
 				std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
 					<< "Couldn't read simulation data from file " << input_files[i]
 					<< std::endl;
@@ -661,43 +666,27 @@ int main(int argc, char* argv[])
 		>
 	> plot_data(horizontal_resolution);
 	for (size_t bin_i = 0; bin_i < binned_data.size(); bin_i++) {
+		std::vector<Particle_Internal> particles;
+		for (const auto& bin_data: binned_data[bin_i]) {
+			Particle_Internal particle;
+			particle[Velocity()] = get<0>(bin_data.second);
+			particles.push_back(particle);
+		}
+
 		get<0>(plot_data[bin_i]) = bin_start + bin_length * (bin_i + 0.5);
-		get<2>(plot_data[bin_i]) = binned_data[bin_i].size();
+		get<2>(plot_data[bin_i]) = particles.size();
 
 		if (vertical_variable == "N") {
-
-			get<1>(plot_data[bin_i]) = double(get<2>(plot_data[bin_i]));
-
-		} else if (
-			vertical_variable == "V"
-			or vertical_variable == "P"
-			or vertical_variable == "T"
-		) {
-			Eigen::Vector3d V{0.0, 0.0, 0.0};
-			for (const auto& bin_data: binned_data[bin_i]) {
-				V += get<0>(bin_data.second);
-			}
-			if (binned_data[bin_i].size() > 0) {
-				V.array() /= binned_data[bin_i].size();
-			}
-			get<1>(plot_data[bin_i]) = V.norm();
-
-			if (vertical_variable != "V") {
-				double P = 0;
-				for (const auto& bin_data: binned_data[bin_i]) {
-					const double species_mass
-						= fabs(charge / get<1>(bin_data.second));
-					P += species_mass * (V - get<0>(bin_data.second)).squaredNorm();
-				}
-				get<1>(plot_data[bin_i]) = P / binned_data[bin_i].size();
-
-				if (
-					vertical_variable == "T"
-					and binned_data[bin_i].size() > 0
-				) {
-					get<1>(plot_data[bin_i]) /= boltzmann;
-				}
-			}
+			get<1>(plot_data[bin_i]) = particles.size();
+		} else if (vertical_variable == "V") {
+			const auto vel = get_bulk_velocity<Mass, Velocity>(particles);
+			get<1>(plot_data[bin_i]) = vel.norm();
+		} else if (vertical_variable == "T") {
+			get<1>(plot_data[bin_i])
+				= get_temperature<Mass, Velocity>(
+					particles,
+					1.672621777e-27, (*header)[1]
+				);
 		}
 	}
 

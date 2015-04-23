@@ -395,8 +395,6 @@ int main(int argc, char* argv[])
 		start_time = 0,
 		end_time = 1,
 		time_step_factor = 0.5,
-		adiabatic_index = 5.0 / 3.0,    
-		vacuum_permeability = 4e-7 * M_PI,
 		particle_temp_nrj_ratio = 1.3806488e-23;
 
 	std::string
@@ -988,7 +986,10 @@ int main(int argc, char* argv[])
 					output_directory,
 					grid,
 					simulation_time,
-					vacuum_permeability
+					0,
+					0,
+					0,
+					particle_temp_nrj_ratio
 				)
 			) {
 				std::cerr <<  __FILE__ << "(" << __LINE__ << "): "

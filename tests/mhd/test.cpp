@@ -164,6 +164,7 @@ int main(int argc, char* argv[])
 		start_time = 0,
 		end_time = 1,
 		time_step_factor = 0.5,
+		resistivity = 0,
 		remove_div_B_n = 0.1,
 		poisson_norm_stop = 1e-10,
 		poisson_norm_increase_max = 10,
@@ -228,6 +229,10 @@ int main(int argc, char* argv[])
 			boost::program_options::value<double>(&vacuum_permeability)
 				->default_value(vacuum_permeability),
 			"https://en.wikipedia.org/wiki/Vacuum_permeability in V*s/(A*m)")
+		("resistivity",
+			boost::program_options::value<double>(&resistivity)
+				->default_value(resistivity),
+			"Use arg as plasma resistivity (V*m/A, E += arg * J")
 		("adiabatic-index",
 			boost::program_options::value<double>(&adiabatic_index)
 				->default_value(adiabatic_index),
@@ -602,6 +607,13 @@ int main(int argc, char* argv[])
 				];
 			};
 
+		auto Mag_Res_Getter
+			= [](Cell& cell_data)
+				-> pamhd::mhd::Magnetic_Field_Resistive::data_type&
+			{
+				return cell_data[pamhd::mhd::Magnetic_Field_Resistive()];
+			};
+
 		auto Div_Getter
 			= [](Cell& cell_data)
 				-> pamhd::mhd::Magnetic_Field_Divergence::data_type&
@@ -619,6 +631,7 @@ int main(int argc, char* argv[])
 
 		// shorthand notation for referring to variables
 		const pamhd::mhd::MHD_State_Conservative MHD{};
+		const pamhd::mhd::MHD_Flux_Conservative MHDF{};
 		const pamhd::mhd::Cell_Type Cell_Type{};
 
 		/*
@@ -662,10 +675,8 @@ int main(int argc, char* argv[])
 		}
 
 		profiler.start("Solving MHD");
-		profiler.start("Starting updates");
 		Cell::set_transfer_all(true, MHD, Cell_Type);
 		grid.start_remote_neighbor_copy_updates();
-		profiler.stop("Starting updates");
 
 		profiler.start("Zeroing MHD fluxes");
 		pamhd::mhd::zero_fluxes<
@@ -715,27 +726,7 @@ int main(int argc, char* argv[])
 		);
 		profiler.stop("Solving inner cells", inner_cells.size(), "cells");
 
-
-		profiler.start("Waiting for receives");
 		grid.wait_remote_neighbor_copy_update_receives();
-		profiler.stop("Waiting for receives");
-
-		profiler.start("Calculating current density in outer cells");
-		pamhd::divergence::get_curl(
-			outer_cells,
-			grid,
-			Mag_Getter,
-			Current_Getter
-		);
-		for (const auto& cell: outer_cells) {
-			auto* const cell_data = grid[cell];
-			if (cell_data == nullptr) {
-				std::cerr <<  __FILE__ << "(" << __LINE__ << ")" << std::endl;
-				abort();
-			}
-			Current_Getter(*cell_data) /= vacuum_permeability;
-		}
-		profiler.stop("Calculating current density in outer cells", outer_cells.size(), "cells");
 
 		profiler.start("Solving outer cells");
 		max_dt = min(
@@ -758,6 +749,65 @@ int main(int argc, char* argv[])
 		);
 		profiler.stop("Solving outer cells", outer_cells.size(), "cells");
 
+		profiler.start("Calculating current density in outer cells");
+		pamhd::divergence::get_curl(
+			outer_cells,
+			grid,
+			Mag_Getter,
+			Current_Getter
+		);
+		for (const auto& cell: outer_cells) {
+			auto* const cell_data = grid[cell];
+			if (cell_data == nullptr) {
+				std::cerr <<  __FILE__ << "(" << __LINE__ << ")" << std::endl;
+				abort();
+			}
+			Current_Getter(*cell_data) /= vacuum_permeability;
+		}
+		profiler.stop("Calculating current density in outer cells", outer_cells.size(), "cells");
+
+		grid.wait_remote_neighbor_copy_update_sends();
+		Cell::set_transfer_all(false, MHD, Cell_Type);
+
+		// transfer J for calculating additional contributions to B
+		Cell::set_transfer_all(true, pamhd::mhd::Electric_Current_Density());
+		grid.start_remote_neighbor_copy_updates();
+
+		// add contribution to change of B from resistivity
+		pamhd::divergence::get_curl(
+			inner_cells,
+			grid,
+			Current_Getter,
+			Mag_Res_Getter
+		);
+		for (const auto& cell: inner_cells) {
+			auto* const cell_data = grid[cell];
+			if (cell_data == nullptr) {
+				std::cerr <<  __FILE__ << "(" << __LINE__ << ")" << std::endl;
+				abort();
+			}
+			Mag_Res_Getter(*cell_data) *= -resistivity;
+			(*cell_data)[MHDF][Mag] += Mag_Res_Getter(*cell_data);
+		}
+
+		grid.wait_remote_neighbor_copy_update_receives();
+
+		pamhd::divergence::get_curl(
+			outer_cells,
+			grid,
+			Current_Getter,
+			Mag_Res_Getter
+		);
+		for (const auto& cell: outer_cells) {
+			auto* const cell_data = grid[cell];
+			if (cell_data == nullptr) {
+				std::cerr <<  __FILE__ << "(" << __LINE__ << ")" << std::endl;
+				abort();
+			}
+			Mag_Res_Getter(*cell_data) *= -resistivity;
+			(*cell_data)[MHDF][Mag] += Mag_Res_Getter(*cell_data);
+		}
+
 		profiler.start("Applying inner fluxes");
 		pamhd::mhd::apply_fluxes<
 			pamhd::mhd::MHD_State_Conservative,
@@ -774,10 +824,8 @@ int main(int argc, char* argv[])
 		);
 		profiler.stop("Applying inner fluxes", inner_cells.size(), "cells");
 
-		profiler.start("Waiting for sends");
 		grid.wait_remote_neighbor_copy_update_sends();
-		Cell::set_transfer_all(false, MHD, Cell_Type);
-		profiler.stop("Waiting for sends");
+		Cell::set_transfer_all(false, pamhd::mhd::Electric_Current_Density());
 
 		profiler.start("Applying outer fluxes");
 		pamhd::mhd::apply_fluxes<
@@ -814,7 +862,7 @@ int main(int argc, char* argv[])
 				cout.flush();
 			}
 
-			// save old value of B in case div removal fails
+			// save old B in case div removal fails
 			for (const auto& cell: cells) {
 				auto* const cell_data = grid[cell];
 				if (cell_data == nullptr) {

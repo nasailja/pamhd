@@ -45,9 +45,7 @@ int main(int argc, char* argv[])
 	using Cell_T = pamhd::particle::Cell;
 	using Grid = dccrg::Dccrg<Cell_T, dccrg::Cartesian_Geometry>;
 
-	constexpr double
-		Re = 6.371e6, // radius of earth
-		vacuum_permeability = 1.256637061e-6;
+	constexpr double Re = 6.371e6; // radius of earth
 
 	/*
 	Initialize MPI
@@ -376,7 +374,10 @@ int main(int argc, char* argv[])
 					"",
 					grid,
 					simulation_time,
-					vacuum_permeability
+					0,
+					0,
+					0,
+					0
 				)
 			) {
 				std::cerr <<  __FILE__ << "(" << __LINE__ << "): "

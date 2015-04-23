@@ -73,7 +73,7 @@ on failure returns an uninitialized value.
 boost::optional<
 	std::tuple<
 		bool,
-		std::array<double, 3>
+		std::array<double, 4>
 	>
 > read_data(
 	dccrg::Mapping& cell_id_mapping,
@@ -96,7 +96,7 @@ boost::optional<
 		cerr << "Process " << mpi_rank
 			<< " couldn't open file " << file_name
 			<< endl;
-		return boost::optional<std::tuple<bool, std::array<double, 3>>>();
+		return boost::optional<std::tuple<bool, std::array<double, 4>>>();
 	}
 
 	MPI_Offset offset = 0;
@@ -123,15 +123,15 @@ boost::optional<
 			<< " Invalid header in file " << file_name
 			<< ": " << header_data
 			<< endl;
-		return boost::optional<std::tuple<bool, std::array<double, 3>>>();
+		return boost::optional<std::tuple<bool, std::array<double, 4>>>();
 	}
 
 	// read physical constants
-	std::array<double, Save::nr_header_doubles> phys_consts;
+	std::array<double, Save::nr_header_doubles> metadata;
 	MPI_File_read_at(
 		file,
 		offset,
-		phys_consts.data(),
+		metadata.data(),
 		Save::nr_header_doubles,
 		MPI_DOUBLE,
 		MPI_STATUS_IGNORE
@@ -155,7 +155,7 @@ boost::optional<
 		cerr << "Process " << mpi_rank
 			<< " couldn't set cell id mapping from file " << file_name
 			<< endl;
-		return boost::optional<std::tuple<bool, std::array<double, 3>>>();
+		return boost::optional<std::tuple<bool, std::array<double, 4>>>();
 	}
 
 	offset
@@ -167,7 +167,7 @@ boost::optional<
 		cerr << "Process " << mpi_rank
 			<< " couldn't read geometry from file " << file_name
 			<< endl;
-		return boost::optional<std::tuple<bool, std::array<double, 3>>>();
+		return boost::optional<std::tuple<bool, std::array<double, 4>>>();
 	}
 	offset += geometry.data_size();
 
@@ -185,10 +185,10 @@ boost::optional<
 
 	if (total_cells == 0) {
 		MPI_File_close(&file);
-		return boost::optional<std::tuple<bool, std::array<double, 3>>>(
+		return boost::optional<std::tuple<bool, std::array<double, 4>>>(
 			std::make_tuple(
 				have_fluxes,
-				phys_consts
+				metadata
 			)
 		);
 	}
@@ -262,7 +262,7 @@ boost::optional<
 	return boost::optional<std::tuple<bool, std::array<double, 3>>>(
 		std::make_tuple(
 			have_fluxes,
-			phys_consts
+			metadata
 		)
 	);
 }
@@ -786,7 +786,7 @@ int main(int argc, char* argv[])
 		boost::optional<
 			std::tuple<
 				bool,
-				std::array<double, 3>
+				std::array<double, 4>
 			>
 		> header = read_data(
 			cell_id_mapping,
@@ -813,8 +813,8 @@ int main(int argc, char* argv[])
 			geometry,
 			simulation_data,
 			output_prefix,
-			std::get<1>(*header)[0],
-			std::get<1>(*header)[2],
+			std::get<1>(*header)[1],
+			std::get<1>(*header)[3],
 			std::get<0>(*header)
 		);
 	}

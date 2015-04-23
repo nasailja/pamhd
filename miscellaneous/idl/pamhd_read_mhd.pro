@@ -83,11 +83,12 @@ function pamhd_read_mhd, filename, variable_names = variable_names, variable_des
 	endif
 
 
-	; physical constants
+	; metadata
+	simulation_time = double(-1)
 	adiabatic_index = double(-1)
 	proton_mass = double(-1)
 	vacuum_permeability = double(-1)
-	readu, in_file, adiabatic_index, proton_mass, vacuum_permeability, transfer_count = items_read
+	readu, in_file, simulation_time, adiabatic_index, proton_mass, vacuum_permeability, transfer_count = items_read
 	if (items_read ne 1) then begin
 		close, in_file
 		free_lun, in_file
@@ -95,10 +96,11 @@ function pamhd_read_mhd, filename, variable_names = variable_names, variable_des
 		return, 3
 	endif
 
-	meta_data = make_array(3, /double)
-	meta_data[0] = adiabatic_index
-	meta_data[1] = proton_mass
-	meta_data[2] = vacuum_permeability
+	meta_data = make_array(4, /double)
+	meta_data[0] = simulation_time
+	meta_data[1] = adiabatic_index
+	meta_data[2] = proton_mass
+	meta_data[3] = vacuum_permeability
 
 
 	; endianness check
