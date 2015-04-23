@@ -298,7 +298,9 @@ int plot_1d(
 	gnuplot_file
 		<< "set term png enhanced\nset output '"
 		<< output_file_name_prefix + ".png"
-		<< "'\nset xlabel 'Dimension 1 (m)'\nset xrange ["
+		<< "'\nset xlabel 'Dimension "
+		<< boost::lexical_cast<std::string>(tube_dim + 1)
+		<< "'\nset xrange ["
 		<< boost::lexical_cast<std::string>(tube_start)
 		<< " : " << boost::lexical_cast<std::string>(tube_end)
 		<< "]\nset ylabel 'Mass density (kg m^{-3})'\n"
@@ -1144,8 +1146,8 @@ int main(int argc, char* argv[])
 				simulation_data,
 				cells,
 				input_files[i].substr(0, input_files[i].size() - 3),
-				std::get<1>(*header)[0],
-				std::get<1>(*header)[2],
+				std::get<1>(*header)[1],
+				std::get<1>(*header)[3],
 				std::get<0>(*header)
 			);
 			break;
