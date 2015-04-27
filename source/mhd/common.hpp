@@ -175,13 +175,29 @@ template <
 	const MHD_Primitive_T& state,
 	const double adiabatic_index,
 	const double vacuum_permeability
-) throw(std::domain_error) {
+) {
 	if (state[Mass_Density_T()] <= 0) {
 		throw std::domain_error(
 			std::string("Non-positive mass density given to ")
 			+ __func__
 			+ std::string(": ")
 			+ boost::lexical_cast<std::string>(state[Mass_Density_T()])
+		);
+	}
+
+	if (adiabatic_index <= 1) {
+		throw std::domain_error(
+			__func__
+			+ std::string("Adiabatic index must be > 1: ")
+			+ boost::lexical_cast<std::string>(adiabatic_index)
+		);
+	}
+
+	if (vacuum_permeability <= 0) {
+		throw std::domain_error(
+			__func__
+			+ std::string("Vacuum permeability must be > 0: ")
+			+ boost::lexical_cast<std::string>(adiabatic_index)
 		);
 	}
 
