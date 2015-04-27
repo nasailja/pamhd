@@ -371,7 +371,7 @@ int main(int argc, char* argv[])
 					Nr_Particles_Internal,
 					Particles_Internal
 				>(
-					"",
+					"tests/particle/",
 					grid,
 					simulation_time,
 					0,
@@ -381,7 +381,8 @@ int main(int argc, char* argv[])
 				)
 			) {
 				std::cerr <<  __FILE__ << "(" << __LINE__ << "): "
-					"Couldn't save particle result."
+					"Couldn't save particle result, did you run this "
+					"from the root pamhd directory?"
 					<< std::endl;
 				abort();
 			}
