@@ -45,6 +45,7 @@ def print_form_data(form_data):
 		print key, '=', form_data.getfirst(key), '<br>'
 
 
+from sys import stdout
 import cgi
 import cgitb
 import glob
@@ -54,10 +55,12 @@ import subprocess
 
 print 'Content-type: text/html'
 print
+stdout.flush()
 
 cgitb.enable(display = 0, logdir = log_dir)
 
 print 'Preparing configuration file... '
+stdout.flush()
 
 if not os.path.exists(log_dir):
 	os.makedirs(log_dir)
@@ -505,12 +508,14 @@ for copy_sphere in range(1, copy_spheres + 1):
 config.close()
 
 print 'done.<br>'
+stdout.flush()
 
 '''
 Run simulation and plot results
 '''
 
 print 'Running simulation... '
+stdout.flush()
 try:
 	subprocess.check_output([mpiexec, '-n', str(processes), pamhd_mhd, '--config', config_name], universal_newlines = True)
 except subprocess.CalledProcessError as error:
@@ -518,6 +523,7 @@ except subprocess.CalledProcessError as error:
 	exit()
 
 print 'done.<br> Running visualization... '
+stdout.flush()
 try:
 	files = glob.glob(run_dir + '*.dc')
 	subprocess.check_output([mpiexec, '-n', str(processes), mhd2gnuplot] + files, universal_newlines = True)
@@ -525,3 +531,4 @@ except subprocess.CalledProcessError as error:
 	print 'failed, with output:<br>', error.output
 	exit()
 print 'done.<br>'
+stdout.flush()
