@@ -1192,7 +1192,7 @@ int main(int argc, char* argv[])
 		*/
 
 		if (
-			(save_mhd_n >= 0 and (simulation_time == 0 or simulation_time >= end_time))
+			(save_mhd_n >= 0 and (simulation_time == start_time or simulation_time >= end_time))
 			or (save_mhd_n > 0 and simulation_time >= next_mhd_save)
 		) {
 			profiler.start("Saving results");
