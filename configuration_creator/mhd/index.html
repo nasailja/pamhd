@@ -145,7 +145,7 @@ function make_boundary(shape, id_prefix, boundary_number) {
 	//! users cannot set MHD state of copy boundaries
 	if (id_string.lastIndexOf("copy") == 0) {
 	} else {
-		fieldset.appendChild(document.createTextNode("Mass density "));
+		fieldset.appendChild(document.createTextNode("Number density "));
 		fieldset.appendChild(make_boundary_variable(id_string + "_mass"));
 		fieldset.appendChild(document.createElement("br"));
 
@@ -933,7 +933,7 @@ Expressions for values of MHD variables can refer to the x, y and z coordinates 
 	</fieldset>
 	<fieldset id="default_initial_condition">
 		<legend>Default initial condition of the simulation</legend>
-		Mass density (> 0)
+		Number density (> 0)
 		<input type="text" id="init_default_mass" name="init_default_mass"><br>
 		Thermal pressure (> 0)
 		<input type="text" id="init_default_pressure" name="init_default_pressure"><br>
