@@ -51,6 +51,7 @@ import cgitb
 import glob
 import os
 import subprocess
+import time
 
 
 print 'Content-type: text/html'
@@ -514,21 +515,38 @@ stdout.flush()
 Run simulation and plot results
 '''
 
-print 'Running simulation... '
+print 'Running simulation...'
 stdout.flush()
+
+proc = None
 try:
-	subprocess.check_output([mpiexec, '-n', str(processes), pamhd_mhd, '--config', config_name], universal_newlines = True)
-except subprocess.CalledProcessError as error:
-	print 'failed, with output:<br>', error.output
+	proc = subprocess.Popen( \
+		[mpiexec, '-n', str(processes), pamhd_mhd, '--config', config_name], \
+		universal_newlines = True, \
+		stdout = subprocess.PIPE, \
+		stderr = subprocess.PIPE \
+	)
+except:
+	print 'error starting simulation.<br>'
+	stdout.flush()
 	exit()
 
-print 'done.<br> Running visualization... '
+while proc.poll() == None:
+	time.sleep(5)
+	stdout.write('.')
+	stdout.flush()
+if proc.poll() != 0:
+	print ' failed.<br>'
+	stdout.flush()
+	exit()
+
+print 'done.<br>Running visualization... '
 stdout.flush()
 try:
 	files = glob.glob(run_dir + '*.dc')
 	subprocess.check_output([mpiexec, '-n', str(processes), mhd2gnuplot] + files, universal_newlines = True)
 except subprocess.CalledProcessError as error:
-	print 'failed, with output:<br>', error.output
+	print 'failed.<br>'
 	exit()
 print 'done.<br>'
 stdout.flush()
