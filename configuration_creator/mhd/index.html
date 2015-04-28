@@ -70,11 +70,12 @@ var
 	bow_shock_maker = document.getElementById("make_bow_shock");
 
 
-//! returns a text input element with given id
+//! returns a text input element with given id and identical name
 function make_boundary_variable(id_string) {
 	var input = document.createElement("input");
 	input.setAttribute("type", "text");
 	input.setAttribute("id", id_string);
+	input.setAttribute("name", id_string);
 	return input;
 }
 
@@ -490,7 +491,7 @@ function remove_boundaries() {
 
 clearer.addEventListener("click", function() {
 	remove_boundaries();
-	document.getElementById("solver_mhd").value = "";
+	document.getElementById("solver_mhd").selectedIndex = "0";
 	document.getElementById("time_start").value = "";
 	document.getElementById("time_length").value = "";
 	document.getElementById("save_mhd_n").value = "";
@@ -531,7 +532,7 @@ clearer.addEventListener("click", function() {
 //! buttons for example simulations
 shock_tube_maker.addEventListener("click", function() {
 	remove_boundaries();
-	document.getElementById("solver_mhd").value = "roe_athena";
+	document.getElementById("solver_mhd").selectedIndex = "2";
 	document.getElementById("time_start").value = "0";
 	document.getElementById("time_length").value = "1";
 	document.getElementById("save_mhd_n").value = "0.1";
@@ -598,7 +599,7 @@ shock_tube_maker.addEventListener("click", function() {
 
 kelvin_helmholtz_maker.addEventListener("click", function() {
 	remove_boundaries();
-	document.getElementById("solver_mhd").value = "roe_athena";
+	document.getElementById("solver_mhd").selectedIndex = "2";
 	document.getElementById("time_start").value = "0";
 	document.getElementById("time_length").value = "12";
 	document.getElementById("save_mhd_n").value = "1";
@@ -634,7 +635,7 @@ kelvin_helmholtz_maker.addEventListener("click", function() {
 
 reconnection_maker.addEventListener("click", function() {
 	remove_boundaries();
-	document.getElementById("solver_mhd").value = "roe_athena";
+	document.getElementById("solver_mhd").selectedIndex = "2";
 	document.getElementById("time_start").value = "0";
 	document.getElementById("time_length").value = "20";
 	document.getElementById("save_mhd_n").value = "1";
@@ -686,7 +687,7 @@ reconnection_maker.addEventListener("click", function() {
 
 orszag_tang_maker.addEventListener("click", function() {
 	remove_boundaries();
-	document.getElementById("solver_mhd").value = "roe_athena";
+	document.getElementById("solver_mhd").selectedIndex = "2";
 	document.getElementById("time_start").value = "0";
 	document.getElementById("time_length").value = "5";
 	document.getElementById("save_mhd_n").value = "0.5";
@@ -721,7 +722,7 @@ orszag_tang_maker.addEventListener("click", function() {
 
 bow_shock_maker.addEventListener("click", function() {
 	remove_boundaries();
-	document.getElementById("solver_mhd").value = "hlld_athena";
+	document.getElementById("solver_mhd").selectedIndex = "1";
 	document.getElementById("time_start").value = "0";
 	document.getElementById("time_length").value = "10";
 	document.getElementById("save_mhd_n").value = "1";
@@ -815,7 +816,7 @@ bow_shock_maker.addEventListener("click", function() {
 <h2>Presets</h2>
 <p>
 Use these buttons to automatically fill the forms below to create configuration files for some example simulations.
-The corresponding configuration file will appear at the bottom of the page which you can copy &amp; paste into a local file and give to pamhd/tests/mhd/test.exe via its command line argument --config.
+The corresponding configuration file will appear at the bottom of the page which you can copy &amp; paste into a local file and give to pamhd/tests/mhd/test.exe via its command line argument --config.<br>
 <button id="make_shock_tube" type="button">Shock tube</button>
 <button id="make_kelvin_helmholtz" type="button">Kelvin-Helmholtz</button>
 <button id="make_reconnection" type="button">Reconnection</button>
@@ -883,63 +884,67 @@ Expressions for values of MHD variables can refer to the x, y and z coordinates 
 <button id="clear" type="button">Clear</button>
 
 <form method="get" id="form">
-	<!--input type="submit" value="Submit run"><br-->
-	<fieldset id="grid">
+	<input type="submit" value="Submit run"><br>
+	<fieldset id="simulation">
 		<legend>General simulation parameteres</legend>
 		Solver to use
-		<input type="text" id="solver_mhd"><br>
+		<select id="solver_mhd" name="solver_mhd" required>
+			<option value="hll_athena">hll_athena</option>
+			<option value="hlld_athena">hlld_athena</option>
+			<option value="roe_athena" selected>roe_athena</option>
+		</select><br>
 		Start time of simulation
-		<input type="text" id="time_start"><br>
+		<input type="text" id="time_start" name="time_start"><br>
 		Duration of simulation (> 0)
-		<input type="text" id="time_length"><br>
+		<input type="text" id="time_length" name="time_length"><br>
 		Time interval for saving simulation results (< 0 skips saving)
-		<input type="text" id="save_mhd_n"><br>
+		<input type="text" id="save_mhd_n" name="save_mhd_n"><br>
 		Time interval for removing divergence of magnetic field (< 0 skips removal)
-		<input type="text" id="remove_div_b_n"><br>
+		<input type="text" id="remove_div_b_n" name="remove_div_b_n"><br>
 		Value of adiabatic index (> 0)
-		<input type="text" id="adiabatic_index"><br>
+		<input type="text" id="adiabatic_index" name="adiabatic_index"><br>
 		Value of vacuum permeability (> 0)
-		<input type="text" id="vacuum_permeability"><br>
+		<input type="text" id="vacuum_permeability" name="vacuum_permeability"><br>
 		Value of proton mass (> 0)
-		<input type="text" id="proton_mass"><br>
+		<input type="text" id="proton_mass" name="proton_mass"><br>
 		Fraction of maximum allowed time step to use (> 0, < 1)
-		<input type="text" id="time_step_factor"><br>
+		<input type="text" id="time_step_factor" name="time_step_factor"><br>
 		Output directory for results relative to current directory
-		<input type="text" id="output_directory"><br>
+		<input type="text" id="output_directory" name="output_directory"><br>
 	</fieldset>
 	<fieldset id="grid">
 		<legend>Parameters of simulation grid</legend>
 		Periodicity in x, y and z dimensions (true or false)
-		<input type="text" id="periodic_x">
-		<input type="text" id="periodic_y">
-		<input type="text" id="periodic_z"><br>
+		<input type="text" id="periodic_x" name="periodic_x">
+		<input type="text" id="periodic_y" name="periodic_y">
+		<input type="text" id="periodic_z" name="periodic_z"><br>
 		Number of cells in x, y and z dimensions (> 0)
-		<input type="text" id="cells_x">
-		<input type="text" id="cells_y">
-		<input type="text" id="cells_z"><br>
+		<input type="text" id="cells_x" name="cells_x">
+		<input type="text" id="cells_y" name="cells_y">
+		<input type="text" id="cells_z" name="cells_z"><br>
 		Volume in x, y and z dimensions (> 0)
-		<input type="text" id="volume_x">
-		<input type="text" id="volume_y">
-		<input type="text" id="volume_z"><br>
+		<input type="text" id="volume_x" name="volume_x">
+		<input type="text" id="volume_y" name="volume_y">
+		<input type="text" id="volume_z" name="volume_z"><br>
 		Starting coordinate in x, y and z dimensions
-		<input type="text" id="start_x">
-		<input type="text" id="start_y">
-		<input type="text" id="start_z"><br>
+		<input type="text" id="start_x" name="start_x">
+		<input type="text" id="start_y" name="start_y">
+		<input type="text" id="start_z" name="start_z"><br>
 	</fieldset>
 	<fieldset id="default_initial_condition">
 		<legend>Default initial condition of the simulation</legend>
 		Mass density (> 0)
-		<input type="text" id="init_default_mass"><br>
+		<input type="text" id="init_default_mass" name="init_default_mass"><br>
 		Thermal pressure (> 0)
-		<input type="text" id="init_default_pressure"><br>
+		<input type="text" id="init_default_pressure" name="init_default_pressure"><br>
 		Velocity components (x, y, z)
-		<input type="text" id="init_default_vx">
-		<input type="text" id="init_default_vy">
-		<input type="text" id="init_default_vz"><br>
+		<input type="text" id="init_default_vx" name="init_default_vx">
+		<input type="text" id="init_default_vy" name="init_default_vy">
+		<input type="text" id="init_default_vz" name="init_default_vz"><br>
 		Magnetic field components (x, y, z)
-		<input type="text" id="init_default_Bx">
-		<input type="text" id="init_default_By">
-		<input type="text" id="init_default_Bz"><br>
+		<input type="text" id="init_default_Bx" name="init_default_Bx">
+		<input type="text" id="init_default_By" name="init_default_By">
+		<input type="text" id="init_default_Bz" name="init_default_Bz"><br>
 	</fieldset>
 </form>
 <button id="update_config_text" type="button">Update config file contents</button> 
