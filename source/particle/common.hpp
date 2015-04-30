@@ -375,7 +375,11 @@ template <
 	const double volume
 ) {
 	const auto temperature
-		= get_temperature<Mass_T, Velocity_T>(particles, volume, species_mass);
+		= get_temperature<Mass_T, Velocity_T>(
+			particles,
+			species_mass,
+			particle_temp_nrj_ratio
+		);
 
 	return temperature * particle_temp_nrj_ratio * particles.size() / volume;
 }
