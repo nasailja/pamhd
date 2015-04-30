@@ -479,11 +479,22 @@ int main(int argc, char* argv[])
 	if (
 		vertical_variable != "N"
 		and vertical_variable != "V"
-		and vertical_variable != "P"
 		and vertical_variable != "T"
+		and vertical_variable != "P"
 	) {
 		if (rank == 0) {
-			std::cerr << "Unsupported plot vertical variable: " << vertical_variable << std::endl;
+			std::cerr << "Unsupported vertical variable for plot: " << vertical_variable << std::endl;
+		}
+		MPI_Finalize();
+		return EXIT_FAILURE;
+	}
+	if (
+		vertical_variable == "P"
+		and horizontal_variable == "r"
+	) {
+		if (rank == 0) {
+			std::cerr << "Pressure is not supported as a vertical variable when plotting as a function of r"
+				<< std::endl;
 		}
 		MPI_Finalize();
 		return EXIT_FAILURE;
@@ -527,10 +538,24 @@ int main(int argc, char* argv[])
 		input_files[0],
 		rank
 	);
+	if (not metadata) {
+		std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
+			<< "Couldn't read simulation data from file " << input_files[0]
+			<< std::endl;
+		MPI_Finalize();
+		return EXIT_FAILURE;
+	}
 
 	const auto
 		grid_start = geometry.get_start(),
 		grid_end = geometry.get_end();
+	decltype(grid_start)
+		grid_length{
+			grid_end[0] - grid_start[0],
+			grid_end[1] - grid_start[1],
+			grid_end[2] - grid_start[2]
+		};
+
 	if (isinf(r_start[0])) {
 		r_start[0] = grid_start[0];
 	}
@@ -676,6 +701,20 @@ int main(int argc, char* argv[])
 					particles,
 					species_mass,
 					(*metadata)[4]
+				);
+		} else if (vertical_variable == "P") {
+			const auto volume
+				= grid_length[0]
+				* grid_length[1]
+				* grid_length[2]
+				/ horizontal_resolution;
+
+			get<1>(plot_data[bin_i])
+				= get_pressure<Mass, Velocity>(
+					particles,
+					species_mass,
+					(*metadata)[4],
+					volume
 				);
 		}
 	}
