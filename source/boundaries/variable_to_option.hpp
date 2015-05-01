@@ -36,9 +36,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "array"
 #include "cstddef"
+#include "stdexcept"
 #include "type_traits"
 
 #include "boost/program_options.hpp"
+#include "prettyprint.hpp"
 #include "mpParser.h"
 
 #include "boundaries/common.hpp"
@@ -96,15 +98,32 @@ public:
 	) {
 		this->parser.SetExpr(this->expression);
 
-		return this->get_parsed_value<
-			typename Current_Variable::data_type
-		>(given_position, given_time);
+		try {
+			return this->get_parsed_value<
+				typename Current_Variable::data_type
+			>(given_position, given_time);
+		} catch (mup::ParserError& error) {
+			std::cerr << "Couldn't get parsed value for variable "
+				<< Current_Variable::get_name()
+				<< " at position " << given_position
+				<< " and time " << given_time
+				<< std::endl;
+			throw;
+		}
 	}
 
 	typename Current_Variable::data_type get_data(
 		const Current_Variable& variable
 	) {
-		return this->get_data(variable, {{0, 0, 0}}, 0);
+		try {
+			return this->get_data(variable, {{0, 0, 0}}, 0);
+		} catch (mup::ParserError& error) {
+			std::cerr << "Couldn't get parsed value for variable "
+				<< Current_Variable::get_name()
+				<< " at position (0, 0, 0) and time 0"
+				<< std::endl;
+			throw;
+		}
 	}
 
 
@@ -169,11 +188,11 @@ private:
 				and evaluated.GetType() != 'i'
 				and evaluated.GetType() != 'f'
 			) {
-				std::cerr <<  __FILE__ << "(" << __LINE__<< ") "
-					<< "Could not evaluate expression "
-					<< this->parser.GetExpr() << " as a boolean."
-					<< std::endl;
-				abort();
+				throw std::invalid_argument(
+					std::string("Expression ")
+					+ this->parser.GetExpr()
+					+ std::string(" is not one of: boolean, integer, floating point.")
+				);
 			}
 
 			return evaluated.GetBool();
@@ -183,7 +202,7 @@ private:
 				<< "Could not evaluate expression "
 				<< this->parser.GetExpr() << " as a boolean."
 				<< std::endl;
-			abort();
+			throw;
 		}
 	}
 
@@ -208,11 +227,11 @@ private:
 				and evaluated.GetType() != 'i'
 				and evaluated.GetType() != 'f'
 			) {
-				std::cerr <<  __FILE__ << "(" << __LINE__<< ") "
-					<< "Could not evaluate expression "
-					<< this->parser.GetExpr() << " as an integer."
-					<< std::endl;
-				abort();
+				throw std::invalid_argument(
+					std::string("Expression ")
+					+ this->parser.GetExpr()
+					+ std::string(" is not one of: boolean, integer, floating point.")
+				);
 			}
 
 			return evaluated.GetInteger();
@@ -222,7 +241,7 @@ private:
 				<< "Could not evaluate expression "
 				<< this->parser.GetExpr() << " as an integer."
 				<< std::endl;
-			abort();
+			throw;
 		}
 	}
 
@@ -247,11 +266,11 @@ private:
 				and evaluated.GetType() != 'i'
 				and evaluated.GetType() != 'f'
 			) {
-				std::cerr <<  __FILE__ << "(" << __LINE__<< ") "
-					<< "Could not evaluate expression "
-					<< this->parser.GetExpr() << " as a double."
-					<< std::endl;
-				abort();
+				throw std::invalid_argument(
+					std::string("Expression ")
+					+ this->parser.GetExpr()
+					+ std::string(" is not one of: boolean, integer, floating point.")
+				);
 			}
 
 			return evaluated.GetFloat();
@@ -261,7 +280,7 @@ private:
 				<< "Could not evaluate expression "
 				<< this->parser.GetExpr() << " as a double."
 				<< std::endl;
-			abort();
+			throw;
 		}
 	}
 
@@ -284,11 +303,11 @@ private:
 
 					const auto& temp = this->parser.Eval();
 					if (temp.GetType() != 'm') {
-						std::cerr <<  __FILE__ << "(" << __LINE__<< ") "
-							<< "Could not evaluate expression "
-							<< this->parser.GetExpr() << " as an array."
-							<< std::endl;
-						abort();
+						throw std::invalid_argument(
+							std::string("Expression ")
+							+ this->parser.GetExpr()
+							+ std::string(" is not an array.")
+						);
 					}
 
 					return temp.GetArray();
@@ -299,28 +318,36 @@ private:
 						<< this->parser.GetExpr() << ": " << error.GetMsg()
 						<< " of variable " << Current_Variable::get_name()
 						<< std::endl;
-					abort();
+					throw;
 				}
 			}();
 
 		if (evaluated.GetRows() != 1) {
-			std::cerr <<  __FILE__ << "(" << __LINE__<< ") "
-				<< "Invalid number of rows in expression " << parser.GetExpr()
-				<< " for variable " << Current_Variable::get_name()
-				<< ": " << evaluated.GetRows() << ", should be 1"
-				<< std::endl;
-			abort();
+			throw std::invalid_argument(
+				std::string("Invalid number of rows in expression ")
+				+ parser.GetExpr()
+				+ std::string(" for variable ")
+				+ Current_Variable::get_name()
+				+ std::string(": ")
+				+ boost::lexical_cast<std::string>(evaluated.GetRows())
+				+ std::string(", should be 1\n")
+			);
 		}
 
 		constexpr size_t N = std::tuple_size<Out_T>::value;
 
 		if (evaluated.GetCols() != N) {
-			std::cerr <<  __FILE__ << "(" << __LINE__<< ") "
-				<< "Invalid number of columns in expression " << parser.GetExpr()
-				<< " for variable " << Current_Variable::get_name()
-				<< ": " << evaluated.GetCols() << ", should be " << N
-				<< std::endl;
-			abort();
+			throw std::invalid_argument(
+				std::string("Invalid number of columns in expression ")
+				+ parser.GetExpr()
+				+ std::string(" for variable ")
+				+ Current_Variable::get_name()
+				+ std::string(": ")
+				+ boost::lexical_cast<std::string>(evaluated.GetCols())
+				+ std::string(", should be ")
+				+ boost::lexical_cast<std::string>(N)
+				+ std::string("\n")
+			);
 		}
 
 		std::array<double, N> ret_val;
@@ -350,11 +377,11 @@ private:
 
 					const auto& temp = this->parser.Eval();
 					if (temp.GetType() != 'm') {
-						std::cerr <<  __FILE__ << "(" << __LINE__<< ") "
-							<< "Could not evaluate expression "
-							<< this->parser.GetExpr() << " as an array."
-							<< std::endl;
-						abort();
+						throw std::invalid_argument(
+							std::string("Expression ")
+							+ this->parser.GetExpr()
+							+ std::string(" is not an array.")
+						);
 					}
 
 					return temp.GetArray();
@@ -365,28 +392,36 @@ private:
 						<< this->parser.GetExpr() << ": " << error.GetMsg()
 						<< " of variable " << Current_Variable::get_name()
 						<< std::endl;
-					abort();
+					throw;
 				}
 			}();
 
 		if (evaluated.GetRows() != 1) {
-			std::cerr <<  __FILE__ << "(" << __LINE__<< ") "
-				<< "Invalid number of rows in expression " << parser.GetExpr()
-				<< " for variable " << Current_Variable::get_name()
-				<< ": " << evaluated.GetRows() << ", should be 1"
-				<< std::endl;
-			abort();
+			throw std::invalid_argument(
+				std::string("Invalid number of rows in expression ")
+				+ parser.GetExpr()
+				+ std::string(" for variable ")
+				+ Current_Variable::get_name()
+				+ std::string(": ")
+				+ boost::lexical_cast<std::string>(evaluated.GetRows())
+				+ std::string(", should be 1\n")
+			);
 		}
 
 		constexpr size_t N = std::tuple_size<Out_T>::value;
 
 		if (evaluated.GetCols() != N) {
-			std::cerr <<  __FILE__ << "(" << __LINE__<< ") "
-				<< "Invalid number of columns in expression " << parser.GetExpr()
-				<< " for variable " << Current_Variable::get_name()
-				<< ": " << evaluated.GetCols() << ", should be " << N
-				<< std::endl;
-			abort();
+			throw std::invalid_argument(
+				std::string("Invalid number of columns in expression ")
+				+ parser.GetExpr()
+				+ std::string(" for variable ")
+				+ Current_Variable::get_name()
+				+ std::string(": ")
+				+ boost::lexical_cast<std::string>(evaluated.GetCols())
+				+ std::string(", should be ")
+				+ boost::lexical_cast<std::string>(N)
+				+ std::string("\n")
+			);
 		}
 
 		std::array<int, N> ret_val;
@@ -416,11 +451,11 @@ private:
 
 					const auto& temp = this->parser.Eval();
 					if (temp.GetType() != 'm') {
-						std::cerr <<  __FILE__ << "(" << __LINE__<< ") "
-							<< "Could not evaluate expression "
-							<< this->parser.GetExpr() << " as an array."
-							<< std::endl;
-						abort();
+						throw std::invalid_argument(
+							std::string("Expression ")
+							+ this->parser.GetExpr()
+							+ std::string(" is not an array.")
+						);
 					}
 
 					return temp.GetArray();
@@ -431,28 +466,36 @@ private:
 						<< this->parser.GetExpr() << ": " << error.GetMsg()
 						<< " of variable " << Current_Variable::get_name()
 						<< std::endl;
-					abort();
+					throw;
 				}
 			}();
 
 		if (evaluated.GetRows() != 1) {
-			std::cerr <<  __FILE__ << "(" << __LINE__<< ") "
-				<< "Invalid number of rows in expression " << parser.GetExpr()
-				<< " for variable " << Current_Variable::get_name()
-				<< ": " << evaluated.GetRows() << ", should be 1"
-				<< std::endl;
-			abort();
+			throw std::invalid_argument(
+				std::string("Invalid number of rows in expression ")
+				+ parser.GetExpr()
+				+ std::string(" for variable ")
+				+ Current_Variable::get_name()
+				+ std::string(": ")
+				+ boost::lexical_cast<std::string>(evaluated.GetRows())
+				+ std::string(", should be 1\n")
+			);
 		}
 
 		constexpr size_t N = std::tuple_size<Out_T>::value;
 
 		if (evaluated.GetCols() != N) {
-			std::cerr <<  __FILE__ << "(" << __LINE__<< ") "
-				<< "Invalid number of columns in expression " << parser.GetExpr()
-				<< " for variable " << Current_Variable::get_name()
-				<< ": " << evaluated.GetCols() << ", should be " << N
-				<< std::endl;
-			abort();
+			throw std::invalid_argument(
+				std::string("Invalid number of columns in expression ")
+				+ parser.GetExpr()
+				+ std::string(" for variable ")
+				+ Current_Variable::get_name()
+				+ std::string(": ")
+				+ boost::lexical_cast<std::string>(evaluated.GetCols())
+				+ std::string(", should be ")
+				+ boost::lexical_cast<std::string>(N)
+				+ std::string("\n")
+			);
 		}
 
 		std::array<bool, N> ret_val;
@@ -470,7 +513,6 @@ private:
 	template<
 		class Out_T
 	> typename std::enable_if<
-		//detail::is_eigen_vector_double<Out_T>::value,
 		std::is_same<Out_T, Eigen::Matrix<double, 3, 1>>::value,
 		Out_T
 	>::type get_parsed_value(
@@ -485,11 +527,11 @@ private:
 
 					const auto& temp = this->parser.Eval();
 					if (temp.GetType() != 'm') {
-						std::cerr <<  __FILE__ << "(" << __LINE__<< ") "
-							<< "Could not evaluate expression "
-							<< this->parser.GetExpr() << " as an array."
-							<< std::endl;
-						abort();
+						throw std::invalid_argument(
+							std::string("Expression ")
+							+ this->parser.GetExpr()
+							+ std::string(" is not an array.")
+						);
 					}
 
 					return temp.GetArray();
@@ -500,28 +542,36 @@ private:
 						<< this->parser.GetExpr() << ": " << error.GetMsg()
 						<< " of variable " << Current_Variable::get_name()
 						<< std::endl;
-					abort();
+					throw;
 				}
 			}();
 
 		if (evaluated.GetRows() != 1) {
-			std::cerr <<  __FILE__ << "(" << __LINE__<< ") "
-				<< "Invalid number of rows in expression " << parser.GetExpr()
-				<< " for variable " << Current_Variable::get_name()
-				<< ": " << evaluated.GetRows() << ", should be 1"
-				<< std::endl;
-			abort();
+			throw std::invalid_argument(
+				std::string("Invalid number of rows in expression ")
+				+ parser.GetExpr()
+				+ std::string(" for variable ")
+				+ Current_Variable::get_name()
+				+ std::string(": ")
+				+ boost::lexical_cast<std::string>(evaluated.GetRows())
+				+ std::string(", should be 1\n")
+			);
 		}
 
 		constexpr size_t N = Out_T::RowsAtCompileTime;
 
 		if (evaluated.GetCols() != N) {
-			std::cerr <<  __FILE__ << "(" << __LINE__<< ") "
-				<< "Invalid number of columns in expression " << parser.GetExpr()
-				<< " for variable " << Current_Variable::get_name()
-				<< ": " << evaluated.GetCols() << ", should be " << N
-				<< std::endl;
-			abort();
+			throw std::invalid_argument(
+				std::string("Invalid number of columns in expression ")
+				+ parser.GetExpr()
+				+ std::string(" for variable ")
+				+ Current_Variable::get_name()
+				+ std::string(": ")
+				+ boost::lexical_cast<std::string>(evaluated.GetCols())
+				+ std::string(", should be ")
+				+ boost::lexical_cast<std::string>(N)
+				+ std::string("\n")
+			);
 		}
 
 		Eigen::Matrix<double, N, 1> ret_val;
@@ -642,11 +692,11 @@ private:
 				and evaluated.GetType() != 'i'
 				and evaluated.GetType() != 'f'
 			) {
-				std::cerr <<  __FILE__ << "(" << __LINE__<< ") "
-					<< "Could not evaluate expression "
-					<< this->parser.GetExpr() << " as a boolean."
-					<< std::endl;
-				abort();
+				throw std::invalid_argument(
+					std::string("Expression ")
+					+ this->parser.GetExpr()
+					+ std::string(" is not one of: boolean, integer, floating point.")
+				);
 			}
 
 			return evaluated.GetBool();
@@ -656,7 +706,7 @@ private:
 				<< "Could not evaluate expression "
 				<< this->parser.GetExpr() << ": " << error.GetMsg()
 				<< std::endl;
-			abort();
+			throw;
 		}
 	}
 
@@ -681,11 +731,11 @@ private:
 				and evaluated.GetType() != 'i'
 				and evaluated.GetType() != 'f'
 			) {
-				std::cerr <<  __FILE__ << "(" << __LINE__<< ") "
-					<< "Could not evaluate expression "
-					<< this->parser.GetExpr() << " as an integer."
-					<< std::endl;
-				abort();
+				throw std::invalid_argument(
+					std::string("Expression ")
+					+ this->parser.GetExpr()
+					+ std::string(" is not one of: boolean, integer, floating point.")
+				);
 			}
 
 			return evaluated.GetInteger();
@@ -695,7 +745,7 @@ private:
 				<< "Could not evaluate expression "
 				<< this->parser.GetExpr() << ": " << error.GetMsg()
 				<< std::endl;
-			abort();
+			throw;
 		}
 	}
 
@@ -720,11 +770,11 @@ private:
 				and evaluated.GetType() != 'i'
 				and evaluated.GetType() != 'f'
 			) {
-				std::cerr <<  __FILE__ << "(" << __LINE__<< ") "
-					<< "Could not evaluate expression "
-					<< this->parser.GetExpr() << " as a floating point."
-					<< std::endl;
-				abort();
+				throw std::invalid_argument(
+					std::string("Expression ")
+					+ this->parser.GetExpr()
+					+ std::string(" is not one of: boolean, integer, floating point.")
+				);
 			}
 
 			return evaluated.GetFloat();
@@ -735,7 +785,7 @@ private:
 				<< this->parser.GetExpr() << ": " << error.GetMsg()
 				<< " for variable " << Last_Variable::get_name()
 				<< std::endl;
-			abort();
+			throw;
 		}
 	}
 
@@ -757,11 +807,11 @@ private:
 
 					const auto& temp = this->parser.Eval();
 					if (temp.GetType() != 'm') {
-						std::cerr <<  __FILE__ << "(" << __LINE__<< ") "
-							<< "Could not evaluate expression "
-							<< this->parser.GetExpr() << " as an array."
-							<< std::endl;
-						abort();
+						throw std::invalid_argument(
+							std::string("Expression ")
+							+ this->parser.GetExpr()
+							+ std::string(" is not an array.")
+						);
 					}
 
 					return temp.GetArray();
@@ -772,28 +822,36 @@ private:
 						<< this->parser.GetExpr() << ": " << error.GetMsg()
 						<< " for variable " << Last_Variable::get_name()
 						<< std::endl;
-					abort();
+					throw;
 				}
 			}();
 
 		if (evaluated.GetRows() != 1) {
-			std::cerr <<  __FILE__ << "(" << __LINE__<< ") "
-				<< "Invalid number of rows in expression " << parser.GetExpr()
-				<< " of variable " << Last_Variable::get_name()
-				<< ": " << evaluated.GetRows() << ", should be 1"
-				<< std::endl;
-			abort();
+			throw std::invalid_argument(
+				std::string("Invalid number of rows in expression ")
+				+ parser.GetExpr()
+				+ std::string(" for variable ")
+				+ Last_Variable::get_name()
+				+ std::string(": ")
+				+ boost::lexical_cast<std::string>(evaluated.GetRows())
+				+ std::string(", should be 1\n")
+			);
 		}
 
 		constexpr size_t N = std::tuple_size<Out_T>::value;
 
 		if (evaluated.GetCols() != N) {
-			std::cerr <<  __FILE__ << "(" << __LINE__<< ") "
-				<< "Invalid number of columns in expression " << parser.GetExpr()
-				<< " of variable " << Last_Variable::get_name()
-				<< ": " << evaluated.GetCols() << ", should be " << N
-				<< std::endl;
-			abort();
+			throw std::invalid_argument(
+				std::string("Invalid number of columns in expression ")
+				+ parser.GetExpr()
+				+ std::string(" for variable ")
+				+ Last_Variable::get_name()
+				+ std::string(": ")
+				+ boost::lexical_cast<std::string>(evaluated.GetCols())
+				+ std::string(", should be ")
+				+ boost::lexical_cast<std::string>(N)
+				+ std::string("\n")
+			);
 		}
 
 		std::array<double, N> ret_val;
@@ -823,11 +881,11 @@ private:
 
 					const auto& temp = this->parser.Eval();
 					if (temp.GetType() != 'm') {
-						std::cerr <<  __FILE__ << "(" << __LINE__<< ") "
-							<< "Could not evaluate expression "
-							<< this->parser.GetExpr() << " as an array."
-							<< std::endl;
-						abort();
+						throw std::invalid_argument(
+							std::string("Expression ")
+							+ this->parser.GetExpr()
+							+ std::string(" is not an array.")
+						);
 					}
 
 					return temp.GetArray();
@@ -838,28 +896,36 @@ private:
 						<< this->parser.GetExpr() << ": " << error.GetMsg()
 						<< " for variable " << Last_Variable::get_name()
 						<< std::endl;
-					abort();
+					throw;
 				}
 			}();
 
 		if (evaluated.GetRows() != 1) {
-			std::cerr <<  __FILE__ << "(" << __LINE__<< ") "
-				<< "Invalid number of rows in expression " << parser.GetExpr()
-				<< " of variable " << Last_Variable::get_name()
-				<< ": " << evaluated.GetRows() << ", should be 1"
-				<< std::endl;
-			abort();
+			throw std::invalid_argument(
+				std::string("Invalid number of rows in expression ")
+				+ parser.GetExpr()
+				+ std::string(" for variable ")
+				+ Last_Variable::get_name()
+				+ std::string(": ")
+				+ boost::lexical_cast<std::string>(evaluated.GetRows())
+				+ std::string(", should be 1\n")
+			);
 		}
 
 		constexpr size_t N = std::tuple_size<Out_T>::value;
 
 		if (evaluated.GetCols() != N) {
-			std::cerr <<  __FILE__ << "(" << __LINE__<< ") "
-				<< "Invalid number of columns in expression " << parser.GetExpr()
-				<< " of variable " << Last_Variable::get_name()
-				<< ": " << evaluated.GetCols() << ", should be " << N
-				<< std::endl;
-			abort();
+			throw std::invalid_argument(
+				std::string("Invalid number of columns in expression ")
+				+ parser.GetExpr()
+				+ std::string(" for variable ")
+				+ Last_Variable::get_name()
+				+ std::string(": ")
+				+ boost::lexical_cast<std::string>(evaluated.GetCols())
+				+ std::string(", should be ")
+				+ boost::lexical_cast<std::string>(N)
+				+ std::string("\n")
+			);
 		}
 
 		std::array<int, N> ret_val;
@@ -889,11 +955,11 @@ private:
 
 					const auto& temp = this->parser.Eval();
 					if (temp.GetType() != 'm') {
-						std::cerr <<  __FILE__ << "(" << __LINE__<< ") "
-							<< "Could not evaluate expression "
-							<< this->parser.GetExpr() << " as an array."
-							<< std::endl;
-						abort();
+						throw std::invalid_argument(
+							std::string("Expression ")
+							+ this->parser.GetExpr()
+							+ std::string(" is not an array.")
+						);
 					}
 
 					return temp.GetArray();
@@ -904,28 +970,36 @@ private:
 						<< this->parser.GetExpr() << ": " << error.GetMsg()
 						<< " for variable " << Last_Variable::get_name()
 						<< std::endl;
-					abort();
+					throw;
 				}
 			}();
 
 		if (evaluated.GetRows() != 1) {
-			std::cerr <<  __FILE__ << "(" << __LINE__<< ") "
-				<< "Invalid number of rows in expression " << parser.GetExpr()
-				<< " of variable " << Last_Variable::get_name()
-				<< ": " << evaluated.GetRows() << ", should be 1"
-				<< std::endl;
-			abort();
+			throw std::invalid_argument(
+				std::string("Invalid number of rows in expression ")
+				+ parser.GetExpr()
+				+ std::string(" for variable ")
+				+ Last_Variable::get_name()
+				+ std::string(": ")
+				+ boost::lexical_cast<std::string>(evaluated.GetRows())
+				+ std::string(", should be 1\n")
+			);
 		}
 
 		constexpr size_t N = std::tuple_size<Out_T>::value;
 
 		if (evaluated.GetCols() != N) {
-			std::cerr <<  __FILE__ << "(" << __LINE__<< ") "
-				<< "Invalid number of columns in expression " << parser.GetExpr()
-				<< " of variable " << Last_Variable::get_name()
-				<< ": " << evaluated.GetCols() << ", should be " << N
-				<< std::endl;
-			abort();
+			throw std::invalid_argument(
+				std::string("Invalid number of columns in expression ")
+				+ parser.GetExpr()
+				+ std::string(" for variable ")
+				+ Last_Variable::get_name()
+				+ std::string(": ")
+				+ boost::lexical_cast<std::string>(evaluated.GetCols())
+				+ std::string(", should be ")
+				+ boost::lexical_cast<std::string>(N)
+				+ std::string("\n")
+			);
 		}
 
 		std::array<bool, N> ret_val;
@@ -939,7 +1013,7 @@ private:
 
 	#ifdef EIGEN_WORLD_VERSION
 
-	//! Used if Current_Variable::data_type is Eigen::Matrix<double, N, 1>
+	//! Used if Last_Variable::data_type is Eigen::Matrix<double, N, 1>
 	template<
 		class Out_T
 	> typename std::enable_if<
@@ -958,11 +1032,11 @@ private:
 
 					const auto& temp = this->parser.Eval();
 					if (temp.GetType() != 'm') {
-						std::cerr <<  __FILE__ << "(" << __LINE__<< ") "
-							<< "Could not evaluate expression "
-							<< this->parser.GetExpr() << " as an array."
-							<< std::endl;
-						abort();
+						throw std::invalid_argument(
+							std::string("Expression ")
+							+ this->parser.GetExpr()
+							+ std::string(" is not an array.")
+						);
 					}
 
 					return temp.GetArray();
@@ -973,28 +1047,36 @@ private:
 						<< this->parser.GetExpr() << ": " << error.GetMsg()
 						<< " of variable " << Last_Variable::get_name()
 						<< std::endl;
-					abort();
+					throw;
 				}
 			}();
 
 		if (evaluated.GetRows() != 1) {
-			std::cerr <<  __FILE__ << "(" << __LINE__<< ") "
-				<< "Invalid number of rows in expression " << parser.GetExpr()
-				<< " for variable " << Last_Variable::get_name()
-				<< ": " << evaluated.GetRows() << ", should be 1"
-				<< std::endl;
-			abort();
+			throw std::invalid_argument(
+				std::string("Invalid number of rows in expression ")
+				+ parser.GetExpr()
+				+ std::string(" for variable ")
+				+ Last_Variable::get_name()
+				+ std::string(": ")
+				+ boost::lexical_cast<std::string>(evaluated.GetRows())
+				+ std::string(", should be 1\n")
+			);
 		}
 
 		constexpr size_t N = Out_T::RowsAtCompileTime;
 
 		if (evaluated.GetCols() != N) {
-			std::cerr <<  __FILE__ << "(" << __LINE__<< ") "
-				<< "Invalid number of columns in expression " << parser.GetExpr()
-				<< " for variable " << Last_Variable::get_name()
-				<< ": " << evaluated.GetCols() << ", should be " << N
-				<< std::endl;
-			abort();
+			throw std::invalid_argument(
+				std::string("Invalid number of columns in expression ")
+				+ parser.GetExpr()
+				+ std::string(" for variable ")
+				+ Last_Variable::get_name()
+				+ std::string(": ")
+				+ boost::lexical_cast<std::string>(evaluated.GetCols())
+				+ std::string(", should be ")
+				+ boost::lexical_cast<std::string>(N)
+				+ std::string("\n")
+			);
 		}
 
 		Eigen::Matrix<double, N, 1> ret_val;

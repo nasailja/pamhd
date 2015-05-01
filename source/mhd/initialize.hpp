@@ -133,10 +133,32 @@ template <
 
 		// set default state
 		MHD_Primitive temp;
-		temp[Rho] = init_cond.default_data.get_data(N, cell_center, time) * proton_mass;
-		temp[V] = init_cond.default_data.get_data(V, cell_center, time);
-		temp[P] = init_cond.default_data.get_data(P, cell_center, time);
-		temp[B] = init_cond.default_data.get_data(B, cell_center, time);
+		try {
+			temp[Rho]
+				= init_cond.default_data.get_data(N, cell_center, time)
+				* proton_mass;
+		} catch (mup::ParserError& e) {
+			std::cout << "Couldn't get number density for default initial condition." << std::endl;
+			throw;
+		}
+		try {
+			temp[V] = init_cond.default_data.get_data(V, cell_center, time);
+		} catch (mup::ParserError& e) {
+			std::cout << "Couldn't get velocity for default initial condition." << std::endl;
+			throw;
+		}
+		try {
+			temp[P] = init_cond.default_data.get_data(P, cell_center, time);
+		} catch (mup::ParserError& e) {
+			std::cout << "Couldn't get pressure for default initial condition." << std::endl;
+			throw;
+		}
+		try {
+			temp[B] = init_cond.default_data.get_data(B, cell_center, time);
+		} catch (mup::ParserError& e) {
+			std::cout << "Couldn't get magnetic field for default initial condition." << std::endl;
+			throw;
+		}
 
 		auto& state = (*cell_data)[MHD_T()];
 		state = get_conservative<
@@ -171,10 +193,32 @@ template <
 			}
 
 			pamhd::mhd::MHD_Primitive temp;
-			temp[Rho] = init_cond.get_data(N, bdy_i, cell_center, time) * proton_mass;
-			temp[V] = init_cond.get_data(V, bdy_i, cell_center, time);
-			temp[P] = init_cond.get_data(P, bdy_i, cell_center, time);
-			temp[B] = init_cond.get_data(B, bdy_i, cell_center, time);
+			try {
+				temp[Rho]
+					= init_cond.get_data(N, bdy_i, cell_center, time)
+					* proton_mass;
+			} catch (mup::ParserError& e) {
+				std::cout << "Couldn't get density for initial condition geometry " << bdy_i << std::endl;
+				throw;
+			}
+			try {
+				temp[V] = init_cond.get_data(V, bdy_i, cell_center, time);
+			} catch (mup::ParserError& e) {
+				std::cout << "Couldn't get velocity for initial condition geometry " << bdy_i << std::endl;
+				throw;
+			}
+			try {
+				temp[P] = init_cond.get_data(P, bdy_i, cell_center, time);
+			} catch (mup::ParserError& e) {
+				std::cout << "Couldn't get pressure for initial condition geometry " << bdy_i << std::endl;
+				throw;
+			}
+			try {
+				temp[B] = init_cond.get_data(B, bdy_i, cell_center, time);
+			} catch (mup::ParserError& e) {
+				std::cout << "Couldn't get magnetic field for initial condition geometry " << bdy_i << std::endl;
+				throw;
+			}
 
 			auto& state = (*cell_data)[MHD_T()];
 			state = get_conservative<

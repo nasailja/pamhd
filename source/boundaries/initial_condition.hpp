@@ -33,6 +33,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef PAMHD_BOUNDARIES_INITIAL_CONDITION_HPP
 #define PAMHD_BOUNDARIES_INITIAL_CONDITION_HPP
 
+#include "stdexcept"
 #include "string"
 #include "utility"
 
@@ -199,12 +200,13 @@ public:
 			return this->spheres[boundary_index].get_cells();
 		}
 
-		std::cerr <<  __FILE__ << "(" << __LINE__<< ") "
-			<< "Too large boundary index given: " << boundary_index
-			<< ", should be at most: "
-			<< this->boxes.size() + this->spheres.size() - 1
-			<< std::endl;
-		abort();
+		throw std::out_of_range(
+			std::string("Too large boundary index given to get_cells(): ")
+			+ boost::lexical_cast<std::string>(boundary_index)
+			+ std::string(", should be at most: ")
+			+ boost::lexical_cast<std::string>(this->boxes.size() + this->spheres.size() - 1)
+			+ std::string("\n")
+		);
 	}
 
 
@@ -228,28 +230,45 @@ public:
 		const double given_time
 	) {
 		if (boundary_index < this->boxes.size()) {
-			return this->boxes[boundary_index].boundary_data.get_data(
-				variable,
-				given_position,
-				given_time
-			);
+			try {
+				return this->boxes[boundary_index].boundary_data.get_data(
+					variable,
+					given_position,
+					given_time
+				);
+			} catch (std::exception& error) {
+				std::cerr <<  __FILE__ << "(" << __LINE__<< ") "
+					<< "Couldn't get data for initial condition box "
+					<< boundary_index
+					<< std::endl;
+				throw;
+			}
 		}
 		boundary_index -= this->boxes.size();
 
 		if (boundary_index < this->spheres.size()) {
-			return this->spheres[boundary_index].boundary_data.get_data(
-				variable,
-				given_position,
-				given_time
-			);
+			try {
+				return this->spheres[boundary_index].boundary_data.get_data(
+					variable,
+					given_position,
+					given_time
+				);
+			} catch (std::exception& error) {
+				std::cerr <<  __FILE__ << "(" << __LINE__<< ") "
+					<< "Couldn't get data for initial condition sphere "
+					<< boundary_index
+					<< std::endl;
+				throw;
+			}
 		}
 
-		std::cerr <<  __FILE__ << "(" << __LINE__<< ") "
-			<< "Too large boundary index given: " << boundary_index
-			<< ", should be at most: "
-			<< this->boxes.size() + this->spheres.size() - 1
-			<< std::endl;
-		abort();
+		throw std::out_of_range(
+			std::string("Too large boundary index given to get_data(): ")
+			+ boost::lexical_cast<std::string>(boundary_index)
+			+ std::string(", should be at most: ")
+			+ boost::lexical_cast<std::string>(this->boxes.size() + this->spheres.size() - 1)
+			+ std::string("\n")
+		);
 	}
 
 
@@ -280,12 +299,13 @@ public:
 			return;
 		}
 
-		std::cerr <<  __FILE__ << "(" << __LINE__<< ") "
-			<< "Too large boundary index given: " << boundary_index
-			<< ", should be at most: "
-			<< this->boxes.size() + this->spheres.size() - 1
-			<< std::endl;
-		abort();
+		throw std::out_of_range(
+			std::string("Too large boundary index given to set_expression: ")
+			+ boost::lexical_cast<std::string>(boundary_index)
+			+ std::string(", should be at most: ")
+			+ boost::lexical_cast<std::string>(this->boxes.size() + this->spheres.size() - 1)
+			+ std::string("\n")
+		);
 	}
 
 
