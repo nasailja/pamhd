@@ -613,6 +613,10 @@ template <
 			+ __func__
 			+ std::string(": ")
 			+ boost::lexical_cast<std::string>(pressure_neg)
+			+ " with adiabatic index "
+			+ boost::lexical_cast<std::string>(adiabatic_index)
+			+ " and vacuum permeability "
+			+ boost::lexical_cast<std::string>(vacuum_permeability)
 		);
 	}
 
@@ -630,6 +634,10 @@ template <
 			+ __func__
 			+ std::string(": ")
 			+ boost::lexical_cast<std::string>(pressure_pos)
+			+ " with adiabatic index "
+			+ boost::lexical_cast<std::string>(adiabatic_index)
+			+ " and vacuum permeability "
+			+ boost::lexical_cast<std::string>(vacuum_permeability)
 		);
 	}
 
