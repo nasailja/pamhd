@@ -697,9 +697,12 @@ int main(int argc, char* argv[])
 			get<1>(plot_data[bin_i]) = vel.norm();
 		} else if (vertical_variable == "T") {
 			get<1>(plot_data[bin_i])
-				= get_temperature<Mass, Velocity>(
+				= get_temperature<
+					Mass,
+					Velocity,
+					Species_Mass
+				>(
 					particles,
-					species_mass,
 					(*metadata)[4]
 				);
 		} else if (vertical_variable == "P") {
@@ -710,9 +713,12 @@ int main(int argc, char* argv[])
 				/ horizontal_resolution;
 
 			get<1>(plot_data[bin_i])
-				= get_pressure<Mass, Velocity>(
+				= get_pressure<
+					Mass,
+					Velocity,
+					Species_Mass
+				>(
 					particles,
-					species_mass,
 					(*metadata)[4],
 					volume
 				);

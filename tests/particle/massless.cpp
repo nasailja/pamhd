@@ -681,6 +681,7 @@ int main(int argc, char* argv[])
 		particle_temp_nrj_ratio,
 		next_particle_id,
 		grid.get_comm_size(),
+		true,
 		verbose
 	);
 

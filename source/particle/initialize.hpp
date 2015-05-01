@@ -47,6 +47,8 @@ namespace particle {
 /*!
 Creates particles in given cells as defined by given initial conditions.
 
+Returns the total number of particles created.
+
 \param [Init_Cond] Compatible with pamhd::boundaries::Initial_Condition
 \param [Grid] Compatible with DCCRG (github.com/fmihpc/dccrg)
 \param [Mass_Density_T] Used to access particle mass density in init_cond
@@ -67,8 +69,8 @@ Creates particles in given cells as defined by given initial conditions.
 \param [cells] Cells into which to create particles
 \param [random_source] Source to use when creating particle distributions
 \param [particle_temp_nrj_ratio] https://en.wikipedia.org/wiki/Boltzmann_constant
+\param [replace] Whether to replace/add particles in/to given cells
 \param [verbose] Whether to print what is being done to stdout on MPI rank 0
-\param [vacuum_permeability] https://en.wikipedia.org/wiki/Vacuum_permeability
 */
 template<
 	class Mass_Density_T,
@@ -86,7 +88,7 @@ template<
 	class Particle_Species_Mass_T,
 	class Init_Cond,
 	class Grid
-> void initialize(
+> size_t initialize(
 	Init_Cond& init_cond,
 	const double simulation_time,
 	const std::vector<uint64_t>& cells,
@@ -95,6 +97,7 @@ template<
 	const double particle_temp_nrj_ratio,
 	const unsigned long long int first_particle_id,
 	const unsigned long long int particle_id_increase,
+	const bool replace,
 	const bool verbose
 ) {
 	if (verbose && grid.get_rank() == 0) {
@@ -102,6 +105,7 @@ template<
 		std::cout.flush();
 	}
 
+	size_t nr_particles_created = 0;
 	auto current_id_start = first_particle_id;
 	for (const auto cell_id: cells) {
 		const auto
@@ -164,7 +168,7 @@ template<
 				simulation_time
 			);
 
-		(*cell_data)[Particles_T()]
+		auto new_particles
 			= create_particles<
 				Particle,
 				Particle_Mass_T,
@@ -187,7 +191,19 @@ template<
 				current_id_start,
 				particle_id_increase
 			);
-		current_id_start += nr_particles * grid.get_comm_size();
+		nr_particles_created += nr_particles;
+
+		if (replace) {
+			(*cell_data)[Particles_T()] = std::move(new_particles);
+		} else {
+			(*cell_data)[Particles_T()].insert(
+				(*cell_data)[Particles_T()].end(),
+				new_particles.begin(),
+				new_particles.end()
+			);
+		}
+
+		current_id_start += nr_particles * particle_id_increase;
 	}
 
 	// set non-default initial conditions
@@ -255,7 +271,7 @@ template<
 				abort();
 			}
 
-			(*cell_data)[Particles_T()]
+			auto new_particles
 				= create_particles<
 					Particle,
 					Particle_Mass_T,
@@ -278,12 +294,26 @@ template<
 					current_id_start,
 					particle_id_increase
 				);
-			current_id_start += nr_particles * grid.get_comm_size();
+			nr_particles_created += nr_particles;
+
+			if (replace) {
+				(*cell_data)[Particles_T()] = std::move(new_particles);
+			} else {
+				(*cell_data)[Particles_T()].insert(
+					(*cell_data)[Particles_T()].end(),
+					new_particles.begin(),
+					new_particles.end()
+				);
+			}
+
+			current_id_start += nr_particles * particle_id_increase;
 		}
 	}
 	if (verbose && grid.get_rank() == 0) {
 		std::cout << "done" << std::endl;
 	}
+
+	return nr_particles_created;
 }
 
 }} // namespaces

@@ -54,12 +54,17 @@ int main()
 	using std::pow;
 	using std::sqrt;
 
+	size_t nr_particles = 10000;
 	Vector3d
 		bulk_velocity_ref(0, -3, 8),
 		volume_min_ref(-2, 4, 9),
 		volume_max_ref(-1, 200, 9.5),
 		temperature_ref(3, 2 * M_PI, 42);
 	double
+		volume
+			= (volume_max_ref[0] - volume_min_ref[0])
+			* (volume_max_ref[1] - volume_min_ref[1])
+			* (volume_max_ref[2] - volume_min_ref[2]),
 		total_mass_ref = 0,
 		species_mass = 1.25,
 		particle_temp_nrj_ratio = 0.25,
@@ -74,6 +79,11 @@ int main()
 	random_source.seed(997);
 
 	// massless particles
+	double pressure_ref
+		= nr_particles // of mass species_mass
+		/ volume
+		* particle_temp_nrj_ratio
+		* scalar_temp_ref;
 	auto particles
 		= create_particles<
 			Particle_Internal,
@@ -88,7 +98,7 @@ int main()
 			volume_min_ref,
 			volume_max_ref,
 			temperature_ref,
-			10000,
+			nr_particles,
 			10,
 			total_mass_ref,
 			species_mass,
@@ -96,11 +106,7 @@ int main()
 			random_source
 		);
 
-	Vector3d
-		bulk_velocity(0, 0, 0),
-		temperature(0, 0, 0);
-
-	Matrix3d non_gyrotropic_temperature(Matrix3d::Zero());
+	Vector3d bulk_velocity(0, 0, 0);
 
 	bulk_velocity
 		= get_bulk_velocity<
@@ -133,10 +139,10 @@ int main()
 	auto scalar_temperature
 		= get_temperature<
 			Mass,
-			Velocity
+			Velocity,
+			Species_Mass
 		>(
 			particles,
-			species_mass,
 			particle_temp_nrj_ratio
 		);
 
@@ -148,6 +154,24 @@ int main()
 		abort();
 	}
 
+	auto pressure
+		= get_pressure<
+			Mass,
+			Velocity,
+			Species_Mass
+		>(
+			particles,
+			particle_temp_nrj_ratio,
+			volume
+		);
+
+	if (fabs(pressure - pressure_ref) > 4) {
+		std::cerr <<  __FILE__ << " (" << __LINE__ << "): "
+			<< "Incorrect pressure for particles: "
+			<< pressure << ", should be " << pressure_ref
+			<< endl;
+		abort();
+	}
 
 	total_mass_ref = 314;
 	species_mass = 0.1;
@@ -167,7 +191,7 @@ int main()
 			volume_min_ref,
 			volume_max_ref,
 			temperature_ref,
-			10000,
+			nr_particles,
 			10,
 			total_mass_ref,
 			species_mass,
@@ -206,17 +230,115 @@ int main()
 	scalar_temperature
 		= get_temperature<
 			Mass,
-			Velocity
+			Velocity,
+			Species_Mass
 		>(
 			particles,
-			species_mass,
 			particle_temp_nrj_ratio
 		);
 
-	if (fabs(scalar_temperature - scalar_temp_ref) > 0.1) {
+	if (fabs(scalar_temperature - scalar_temp_ref) > 0.5) {
 		std::cerr <<  __FILE__ << " (" << __LINE__ << "): "
 			<< "Incorrect scalar temperature for particles: "
 			<< scalar_temperature << ", should be " << scalar_temp_ref
+			<< endl;
+		abort();
+	}
+
+	pressure_ref
+		= total_mass_ref / species_mass
+		/ volume
+		* particle_temp_nrj_ratio
+		* scalar_temp_ref;
+	pressure
+		= get_pressure<
+			Mass,
+			Velocity,
+			Species_Mass
+		>(
+			particles,
+			particle_temp_nrj_ratio,
+			volume
+		);
+	if (fabs(pressure - pressure_ref) > 4) {
+		std::cerr <<  __FILE__ << " (" << __LINE__ << "): "
+			<< "Incorrect pressure for particles: "
+			<< pressure << ", should be " << pressure_ref
+			<< endl;
+		abort();
+	}
+
+
+	// test that regardless of volume into which particles are created
+	volume_min_ref[0] = -1000;
+	volume_min_ref[1] = -1000;
+	volume_min_ref[2] = -1000;
+	volume_max_ref[0] = 1000;
+	volume_max_ref[1] = 1000;
+	volume_max_ref[2] = 1000;
+	volume
+		= (volume_max_ref[0] - volume_min_ref[0])
+		* (volume_max_ref[1] - volume_min_ref[1])
+		* (volume_max_ref[2] - volume_min_ref[2]);
+	particles
+		= create_particles<
+			Particle_Internal,
+			Mass,
+			Charge_Mass_Ratio,
+			Position,
+			Velocity,
+			Particle_ID,
+			Species_Mass
+		>(
+			bulk_velocity_ref,
+			volume_min_ref,
+			volume_max_ref,
+			temperature_ref,
+			nr_particles,
+			10,
+			total_mass_ref,
+			species_mass,
+			particle_temp_nrj_ratio,
+			random_source
+		);
+
+	scalar_temperature
+		= get_temperature<
+			Mass,
+			Velocity,
+			Species_Mass
+		>(
+			particles,
+			particle_temp_nrj_ratio
+		);
+
+	if (fabs(scalar_temperature - scalar_temp_ref) > 0.5) {
+		std::cerr <<  __FILE__ << " (" << __LINE__ << "): "
+			<< "Incorrect scalar temperature for particles: "
+			<< scalar_temperature << ", should be " << scalar_temp_ref
+			<< endl;
+		abort();
+	}
+
+	pressure_ref
+		= total_mass_ref / species_mass
+		/ volume
+		* particle_temp_nrj_ratio
+		* scalar_temp_ref;
+	pressure
+		= get_pressure<
+			Mass,
+			Velocity,
+			Species_Mass
+		>(
+			particles,
+			particle_temp_nrj_ratio,
+			volume
+		);
+	if (fabs(pressure - pressure_ref) > 4) {
+		std::cerr <<  __FILE__ << " (" << __LINE__ << "): "
+			<< "Incorrect pressure for particles: "
+			<< pressure << ", should be " << pressure_ref
 			<< endl;
 		abort();
 	}

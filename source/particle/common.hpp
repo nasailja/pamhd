@@ -322,10 +322,10 @@ template <
 template <
 	class Mass_T,
 	class Velocity_T,
+	class Species_Mass_T,
 	class Particle
 > double get_temperature(
 	const std::vector<Particle>& particles,
-	const double species_mass,
 	const double particle_temp_nrj_ratio
 ) {
 	using std::pow;
@@ -341,11 +341,15 @@ template <
 	for (const auto& particle: particles) {
 		const auto& mass = particle[Mass_T()];
 		const auto& velocity = particle[Velocity_T()];
+		const auto& species_mass = particle[Species_Mass_T()];
 
 		const auto tmp
-			= pow(velocity[0] - bulk_velocity[0], 2)
-			+ pow(velocity[1] - bulk_velocity[1], 2)
-			+ pow(velocity[2] - bulk_velocity[2], 2);
+			= species_mass
+			* (
+				pow(velocity[0] - bulk_velocity[0], 2)
+				+ pow(velocity[1] - bulk_velocity[1], 2)
+				+ pow(velocity[2] - bulk_velocity[2], 2)
+			);
 		if (mass != 0) {
 			total_mass += mass;
 			temperature += mass * tmp;
@@ -355,10 +359,10 @@ template <
 	}
 
 	if (total_mass != 0) {
-		temperature /= 3 * particle_temp_nrj_ratio * total_mass / species_mass;
+		temperature /= 3 * particle_temp_nrj_ratio * total_mass;
 		return temperature;
 	} else {
-		massless /= 3 * particle_temp_nrj_ratio * particles.size() / species_mass;
+		massless /= 3 * particle_temp_nrj_ratio * particles.size();
 		return massless;
 	}
 }
@@ -367,21 +371,35 @@ template <
 template <
 	class Mass_T,
 	class Velocity_T,
+	class Species_Mass_T,
 	class Particle
 > double get_pressure(
 	const std::vector<Particle>& particles,
-	const double species_mass,
 	const double particle_temp_nrj_ratio,
 	const double volume
 ) {
 	const auto temperature
-		= get_temperature<Mass_T, Velocity_T>(
+		= get_temperature<
+			Mass_T,
+			Velocity_T,
+			Species_Mass_T
+		>(
 			particles,
-			species_mass,
 			particle_temp_nrj_ratio
 		);
 
-	return temperature * particle_temp_nrj_ratio * particles.size() / volume;
+	double nr_particles = 0; // in particles of mass species_mass
+	for (const auto& particle: particles) {
+		const auto& mass = particle[Mass_T()];
+		if (mass != 0) {
+			nr_particles += mass / particle[Species_Mass_T()];
+		}
+	}
+	if (nr_particles == 0) {
+		nr_particles = double(particles.size());
+	}
+
+	return temperature * particle_temp_nrj_ratio * nr_particles / volume;
 }
 
 
