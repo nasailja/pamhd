@@ -32,13 +32,22 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 '''
 
-mpiexec = 'mpiexec'
-processes = 4
-pamhd_mhd = '../../tests/mhd/test.exe'
-mhd2gnuplot = '../../tests/mhd/mhd2gnuplot.exe'
-run_dir = '../../tests/mhd/run/'
-log_dir = '../../tests/mhd/run/'
+# Edit the following to correspond to your configuration,
+# example values are given as comments
+mpiexec = None # 'mpiexec'
+processes = None # 4
+pamhd_mhd = None # '../../tests/mhd/test.exe'
+mhd2gnuplot = None # '../../tests/mhd/mhd2gnuplot.exe'
+run_dir = None # '../../tests/mhd/run/'
+log_dir = None # '../../tests/mhd/run/'
 
+# you shouldn't have to edit the rest of the file
+# but if you do consider forking the code on github
+# and submitting a pull request for the changes
+
+from time import sleep
+# prevent users from spamming this too often
+sleep(0.2)
 
 def print_form_data(form_data):
 	for key in form_data:
@@ -51,7 +60,6 @@ import cgitb
 import glob
 import os
 import subprocess
-import time
 
 
 print 'Content-type: text/html'
@@ -532,7 +540,7 @@ except:
 	exit()
 
 while proc.poll() == None:
-	time.sleep(5)
+	sleep(5)
 	stdout.write('.')
 	stdout.flush()
 if proc.poll() != 0:
