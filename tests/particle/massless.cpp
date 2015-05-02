@@ -919,7 +919,7 @@ int main(int argc, char* argv[])
 						bulk_velocity,
 						Eigen::Vector3d{cell_start[0], cell_start[1], cell_start[2]},
 						Eigen::Vector3d{cell_end[0], cell_end[1], cell_end[2]},
-						Eigen::Vector3d{temperature / 3, temperature / 3, temperature / 3},
+						Eigen::Vector3d{temperature, temperature, temperature},
 						nr_particles,
 						charge_mass_ratio,
 						mass_density * cell_length[0] * cell_length[1] * cell_length[2],
