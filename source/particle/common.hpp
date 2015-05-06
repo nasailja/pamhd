@@ -121,6 +121,7 @@ template<class Vector> std::pair<double, double> get_minmax_step(
 	const Vector& electric_field,
 	const Vector& magnetic_field
 ) {
+	using std::isnan;
 	using std::make_pair;
 	using std::min;
 	using std::sqrt;
@@ -131,6 +132,8 @@ template<class Vector> std::pair<double, double> get_minmax_step(
 			velocity,
 			magnetic_field
 		);
+
+	auto max_step = std::numeric_limits<double>::max();
 
 	const auto displacement // max allowed, due to electric field
 		= [&](){
@@ -145,12 +148,19 @@ template<class Vector> std::pair<double, double> get_minmax_step(
 				return std::numeric_limits<double>::max();
 			}
 		}();
+	if (not isnan(displacement)) {
+		max_step = min(max_step, displacement);
+	}
 
-	const auto max_step =
-		min(cell_length / velocity.norm(),
-		min(displacement,
-		    gyro_period_fraction / gyro_info.second
-		));
+	const auto travel_time = cell_length / velocity.norm();
+	if (not isnan(travel_time)) {
+		max_step = min(max_step, travel_time);
+	}
+
+	const auto gyro_time = gyro_period_fraction / gyro_info.second;
+	if (not isnan(gyro_time)) {
+		max_step = min(max_step, gyro_time);
+	}
 
 	return make_pair(max_step_fraction * max_step, max_step);
 }

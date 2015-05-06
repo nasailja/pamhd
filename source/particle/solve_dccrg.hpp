@@ -358,8 +358,13 @@ template<
 				} else {
 					std::cerr << __FILE__ << "(" << __LINE__ << "): "
 						<< " No destination found for particle at " << real_pos
+						<< " propagated from " << particle[Pos]
+						<< " with dt " << dt
 						<< " in cell " << cell_id
+						<< " of length " << cell_length
 						<< " at " << cell_center
+						<< " with E " << (*cell_data)[Ele]
+						<< " and B " << (*cell_data)[Mag]
 						<< " from neighbors ";
 					for (const auto& neighbor_id: *neighbor_ids) {
 						std::cerr << neighbor_id << " ";
