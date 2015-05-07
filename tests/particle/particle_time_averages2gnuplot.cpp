@@ -314,7 +314,8 @@ int plot(
 		<< "\nset output '" << output_file_name
 		<< "'\nset title '..." << plot_title
 		<< "' noenhanced\nset xlabel '" << xlabel
-		<< "'\nset ylabel '" << ylabel
+		<< "'\nset format x '%1.2e'\nset format y '%1.2e'\nset format y2 '%1.2e'"
+		<< "\nset ylabel '" << ylabel
 		<< "\nset y2label 'Number of particles'\n"
 			"set y2tics\nset ytics nomirror\nset y2tics nomirror\n"
 			"plot '-' using 1:2 with lines title '', "
