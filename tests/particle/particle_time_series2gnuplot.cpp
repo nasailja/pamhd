@@ -309,6 +309,7 @@ int plot(
 	}
 	gnuplot_file << "\n";
 
+	gnuplot_file.precision(20);
 	for (const auto& item: plot_data) {
 		for (const auto& value: item.second) {
 			gnuplot_file << value.first << " " << value.second << "\n";
