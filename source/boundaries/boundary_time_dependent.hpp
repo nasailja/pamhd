@@ -37,6 +37,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "cstdlib"
 #include "iostream"
+#include "stdexcept"
 #include "string"
 #include "utility"
 
@@ -101,7 +102,17 @@ public:
 			abort();
 		}
 
-		const size_t index = this->get_index(double(given_time));
+		const size_t index
+			= [&given_time, this](){
+				try {
+					return this->get_index(double(given_time));
+				} catch (std::exception& e) {
+					std::cerr << "Couldn't get data index for variable "
+						<< Variable::get_name() << " at time " << given_time
+						<< std::endl;
+					throw;
+				}
+			}();
 
 		return this->boundary_data.get_data(
 			variable,
@@ -127,7 +138,15 @@ public:
 		const Cell_T& cell,
 		Geometry_Parameters&&... geometry_parameters
 	) {
-		const size_t index = this->get_index(time);
+		const size_t index
+			= [&time, this](){
+				try {
+					return this->get_index(time);
+				} catch (std::exception& e) {
+					std::cerr << "Couldn't get data index for time " << time << std::endl;
+					throw;
+				}
+			}();
 
 		if (
 			this->geometries.overlaps(
@@ -161,10 +180,10 @@ public:
 	size_t get_index(const Time_T& given_time)
 	{
 		if (this->time_stamps.size() == 0) {
-			std::cerr <<  __FILE__ << "(" << __LINE__<< ") "
-				<< "No time stamps set using set_time_stamp()."
-				<< std::endl;
-			abort();
+			throw std::out_of_range(
+				"No time stamps set using set_time_stamp() "
+				"in time dependent boundary."
+			);
 		}
 
 		if (this->time_stamps.size() == 1) {
