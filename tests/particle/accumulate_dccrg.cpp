@@ -131,6 +131,18 @@ const auto bulk_value_getter
 		return cell_data[Count()];
 	};
 
+// returns a reference to data accumulated from particles in accumulation list
+const auto list_bulk_value_getter
+	= [](Accumulated_To_Cell& accu_item)->Count::data_type&{
+		return accu_item[Count()];
+	};
+
+// returns a reference to target of accumulated values in accumulation list
+const auto list_target_getter
+	= [](Accumulated_To_Cell& accu_item)->pamhd::particle::Target::data_type&{
+		return accu_item[pamhd::particle::Target()];
+	};
+
 /*
 Returns a reference to given cell's list of data accumulated
 from particles in given cell into other cells
@@ -357,11 +369,7 @@ int main(int argc, char* argv[])
 				const std::vector<uint64_t>& cell_ids,
 				Grid& grid
 			) {
-				pamhd::particle::accumulate<
-					Accumulated_To_Cell,
-					pamhd::particle::Target,
-					Count
-				>(
+				pamhd::particle::accumulate(
 					cell_ids,
 					grid,
 					[](Cell& cell)->pamhd::particle::Particles_Internal::data_type&{
@@ -378,6 +386,8 @@ int main(int argc, char* argv[])
 						return particle[pamhd::particle::Mass()];
 					},
 					bulk_value_getter,
+					list_bulk_value_getter,
+					list_target_getter,
 					accumulation_list_length_getter,
 					accumulation_list_getter
 				);

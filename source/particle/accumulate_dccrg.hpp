@@ -58,13 +58,12 @@ remote neighbors is stored in local cells' accumulation list.
 Updates the number of remote accumulated values.
 */
 template<
-	class Accumulation_Item_T,
-	class Accumulation_Target_T,
-	class Bulk_Value_T,
 	class Particles_Getter,
 	class Particle_Position_Getter,
 	class Particle_Value_Getter,
 	class Bulk_Value_Getter,
+	class Bulk_Value_In_List_Getter,
+	class Target_In_List_Getter,
 	class Accumulation_List_Length_Getter,
 	class Accumulation_List_Getter,
 	class Cell
@@ -75,6 +74,8 @@ template<
 	Particle_Position_Getter Part_Pos,
 	Particle_Value_Getter Part_Val,
 	Bulk_Value_Getter Bulk_Val,
+	Bulk_Value_In_List_Getter List_Bulk_Val,
+	Target_In_List_Getter List_Target,
 	Accumulation_List_Length_Getter List_Len,
 	Accumulation_List_Getter Accu_List
 ) {
@@ -241,10 +242,10 @@ template<
 						= std::find_if(
 							Accu_List(*cell_data).begin(),
 							Accu_List(*cell_data).end(),
-							[&neighbor_id](
-								const Accumulation_Item_T& candidate_item
+							[&neighbor_id, &List_Target](
+								const decltype(*Accu_List(*cell_data).begin()) candidate_item
 							) {
-								if (candidate_item[Accumulation_Target_T()] == neighbor_id) {
+								if (List_Target(candidate_item) == neighbor_id) {
 									return true;
 								} else {
 									return false;
@@ -254,13 +255,14 @@ template<
 
 					// found
 					if (iter != Accu_List(*cell_data).end()) {
-						(*iter)[Bulk_Value_T()] += accumulated_value;
+						List_Bulk_Val(*iter) += accumulated_value;
 					// create the item
 					} else {
-						Accumulation_Item_T new_item;
-						new_item[Accumulation_Target_T()] = neighbor_id;
-						new_item[Bulk_Value_T()] = accumulated_value;
-						Accu_List(*cell_data).push_back(new_item);
+						const auto old_size = Accu_List(*cell_data).size();
+						Accu_List(*cell_data).resize(old_size + 1);
+						auto& new_item = Accu_List(*cell_data)[old_size];
+						List_Target(new_item) = neighbor_id;
+						List_Bulk_Val(new_item) = accumulated_value;
 					}
 				}
 			}
