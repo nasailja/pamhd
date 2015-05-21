@@ -17,6 +17,7 @@ TESTS_PARTICLE_EXECUTABLES = \
   tests/particle/particle2vtk.exe \
   tests/particle/accumulate_dccrg.exe \
   tests/particle/massless.exe \
+  tests/particle/test.exe \
   tests/particle/bulk2gnuplot.exe \
   tests/particle/particle2gnuplot.exe \
   tests/particle/particle_time_series2gnuplot.exe \
@@ -66,6 +67,7 @@ CLEAN += tests/particle_clean
 
 TEST_PARTICLE_COMMON_DEPS = \
   source/particle/variables.hpp \
+  source/particle/common.hpp \
   tests/particle/project_makefile \
   $(ENVIRONMENT_MAKEFILE) \
   Makefile
@@ -100,14 +102,12 @@ tests/particle/solve1.exe: \
 
 tests/particle/common.exe: \
   tests/particle/common.cpp \
-  $(TEST_PARTICLE_COMMON_DEPS) \
-  source/particle/common.hpp
+  $(TEST_PARTICLE_COMMON_DEPS)
 	@printf "MPICXX $<\n" && $(MPICXX) $(TEST_PARTICLE_COMMON_COMPILE)
 
 tests/particle/odeint.exe: \
   tests/particle/odeint.cpp \
-  $(TEST_PARTICLE_COMMON_DEPS) \
-  source/particle/common.hpp
+  $(TEST_PARTICLE_COMMON_DEPS)
 	@printf "MPICXX $<\n" && $(MPICXX) $(TEST_PARTICLE_COMMON_COMPILE) \
 	  $(BOOST_LDFLAGS) \
 	  $(BOOST_LIBS) \
@@ -132,14 +132,12 @@ tests/particle/dipole_odeint.exe: \
 
 tests/particle/create_particles.exe: \
   tests/particle/create_particles.cpp \
-  $(TEST_PARTICLE_COMMON_DEPS) \
-  source/particle/common.hpp
+  $(TEST_PARTICLE_COMMON_DEPS)
 	@printf "MPICXX $<\n" && $(MPICXX) $(TEST_PARTICLE_COMMON_COMPILE)
 
 tests/particle/calculate_moments.exe: \
   tests/particle/calculate_moments.cpp \
-  $(TEST_PARTICLE_COMMON_DEPS) \
-  source/particle/common.hpp
+  $(TEST_PARTICLE_COMMON_DEPS)
 	@printf "MPICXX $<\n" && $(MPICXX) $(TEST_PARTICLE_COMMON_COMPILE)
 
 tests/particle/accumulate.exe: \
@@ -151,7 +149,6 @@ tests/particle/accumulate.exe: \
 tests/particle/reference.exe: \
   tests/particle/reference.cpp \
   $(TEST_PARTICLE_COMMON_DEPS) \
-  source/particle/common.hpp \
   source/particle/solve.hpp
 	@printf "CXX $<\n" && $(CXX) \
 	  $(TEST_PARTICLE_COMMON_COMPILE) \
@@ -223,7 +220,23 @@ tests/particle/massless.exe: \
   tests/particle/massless.cpp \
   $(TEST_PARTICLE_COMMON_DEPS) \
   source/particle/solve_dccrg.hpp \
-  source/particle/save.hpp
+  source/particle/save.hpp \
+  source/particle/initialize.hpp
+	@printf "MPICXX $<\n" && $(MPICXX) \
+	  $(TEST_PARTICLE_SOLVE_COMPILE) \
+	  $(MUPARSERX_CPPFLAGS) \
+	  $(MUPARSERX_LDFLAGS) \
+	  $(MUPARSERX_LIBS) \
+	  $(PHIPROF_CPPFLAGS)
+
+tests/particle/test.exe: \
+  tests/particle/test.cpp \
+  $(TEST_PARTICLE_COMMON_DEPS) \
+  source/particle/solve_dccrg.hpp \
+  source/particle/save.hpp \
+  source/particle/initialize.hpp \
+  source/particle/accumulate_dccrg.hpp \
+  source/particle/accumulation_variables.hpp
 	@printf "MPICXX $<\n" && $(MPICXX) \
 	  $(TEST_PARTICLE_SOLVE_COMPILE) \
 	  $(MUPARSERX_CPPFLAGS) \

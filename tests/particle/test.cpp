@@ -1,5 +1,5 @@
 /*
-
+Hybrid PIC program of PAMHD that uses an ideal MHD solver for magnetic field.
 
 Copyright 2015 Ilja Honkonen
 All rights reserved.
@@ -140,10 +140,7 @@ template<
 
 		std::vector<
 			// r, B
-			std::array<
-				Eigen::Vector3d,
-				2
-			>
+			std::array<Eigen::Vector3d, 2>
 		> file_data;
 		file_data.reserve(cell_ids.size()); // guess
 
@@ -285,7 +282,7 @@ template<
 	}
 }
 
-
+// cell class used by this program
 using Cell = gensimcell::Cell<
 	gensimcell::Optional_Transfer,
 	pamhd::mhd::MHD_State_Conservative,
@@ -312,26 +309,6 @@ using Grid = dccrg::Dccrg<Cell, dccrg::Cartesian_Geometry>;
 
 
 // returns a reference to MHD magnetic field in given cell
-const auto MHD_B_Getter
-	= [](Cell& cell_data)
-		// TODO: switch to -> auto& of C++14
-		-> pamhd::mhd::Magnetic_Field::data_type&
-	{
-		return cell_data[
-			pamhd::mhd::MHD_State_Conservative()
-		][
-			pamhd::mhd::Magnetic_Field()
-		];
-	};
-
-// reference to divergence of MHD magnetic field in given cell
-const auto MHD_Div_B_Getter
-	= [](Cell& cell_data)
-		-> pamhd::mhd::Magnetic_Field_Divergence::data_type&
-	{
-		return cell_data[pamhd::mhd::Magnetic_Field_Divergence()];
-	};
-
 const auto Current_Getter
 	= [](Cell& cell_data)
 		-> pamhd::mhd::Electric_Current_Density::data_type&
@@ -348,14 +325,16 @@ const auto Ele_Getter
 
 // particle list of given cell
 const auto Particle_List_Getter
-	= [](Cell& cell)->pamhd::particle::Particles_Internal::data_type&{
+	= [](Cell& cell)
+		-> pamhd::particle::Particles_Internal::data_type&
+	{
 		return cell[pamhd::particle::Particles_Internal()];
 	};
 
 // reference to position of given particle
 const auto Particle_Position_Getter
 	= [](pamhd::particle::Particle_Internal& particle)
-		->pamhd::particle::Position::data_type&
+		-> pamhd::particle::Position::data_type&
 	{
 		return particle[pamhd::particle::Position()];
 	};
@@ -363,51 +342,61 @@ const auto Particle_Position_Getter
 // mass of given particle
 const auto Particle_Mass_Getter
 	= [](pamhd::particle::Particle_Internal& particle)
-		->pamhd::particle::Mass::data_type&
+		-> pamhd::particle::Mass::data_type&
 	{
 		return particle[pamhd::particle::Mass()];
 	};
 
 const auto Particle_Momentum_Getter
 	= [](pamhd::particle::Particle_Internal& particle)
-		->pamhd::particle::Velocity::data_type
+		-> pamhd::particle::Velocity::data_type
 	{
 		return particle[pamhd::particle::Mass()] * particle[pamhd::particle::Velocity()];
 	};
 
 // accumulated mass of particles in given cell
 const auto Bulk_Mass_Getter
-	= [](Cell& cell_data)->pamhd::particle::Bulk_Mass::data_type&{
+	= [](Cell& cell_data)
+		-> pamhd::particle::Bulk_Mass::data_type&
+	{
 		return cell_data[pamhd::particle::Bulk_Mass()];
 	};
 
 const auto Bulk_Momentum_Getter
-	= [](Cell& cell_data)->pamhd::particle::Bulk_Momentum::data_type&{
+	= [](Cell& cell_data)
+		-> pamhd::particle::Bulk_Momentum::data_type&
+	{
 		return cell_data[pamhd::particle::Bulk_Momentum()];
 	};
 
 // accumulated momentum / accumulated velocity of particles in given cell
 const auto Bulk_Velocity_Getter
-	= [](Cell& cell_data)->pamhd::particle::Bulk_Velocity::data_type&{
+	= [](Cell& cell_data)
+		-> pamhd::particle::Bulk_Velocity::data_type&
+	{
 		return cell_data[pamhd::particle::Bulk_Velocity()];
 	};
 
 // list of items (variables above) accumulated from particles in given cell
 const auto Accu_List_Getter
-	= [](Cell& cell_data)->pamhd::particle::Accumulated_To_Cells::data_type&{
+	= [](Cell& cell_data)
+		-> pamhd::particle::Accumulated_To_Cells::data_type&
+	{
 		return cell_data[pamhd::particle::Accumulated_To_Cells()];
 	};
 
 // reference to length of list above incoming from other processes
 const auto Accu_List_Length_Getter
-	= [](Cell& cell_data)->pamhd::particle::Nr_Accumulated_To_Cells::data_type&{
+	= [](Cell& cell_data)
+		-> pamhd::particle::Nr_Accumulated_To_Cells::data_type&
+	{
 		return cell_data[pamhd::particle::Nr_Accumulated_To_Cells()];
 	};
 
 // target cell of accumulated particle values in an accumulation list item
 const auto Accu_List_Target_Getter
 	= [](pamhd::particle::Accumulated_To_Cell& accu_item)
-		->pamhd::particle::Target::data_type&
+		-> pamhd::particle::Target::data_type&
 	{
 		return accu_item[pamhd::particle::Target()];
 	};
@@ -415,7 +404,7 @@ const auto Accu_List_Target_Getter
 // accumulated mass of particles in an accumulation list item
 const auto Accu_List_Bulk_Mass_Getter
 	= [](pamhd::particle::Accumulated_To_Cell& accu_item)
-		->pamhd::particle::Bulk_Mass::data_type&
+		-> pamhd::particle::Bulk_Mass::data_type&
 	{
 		return accu_item[pamhd::particle::Bulk_Mass()];
 	};
@@ -423,11 +412,14 @@ const auto Accu_List_Bulk_Mass_Getter
 // accumulated momentum of particles in an accumulation list item
 const auto Accu_List_Bulk_Momentum_Getter
 	= [](pamhd::particle::Accumulated_To_Cell& accu_item)
-		->pamhd::particle::Bulk_Momentum::data_type&
+		-> pamhd::particle::Bulk_Momentum::data_type&
 	{
 		return accu_item[pamhd::particle::Bulk_Momentum()];
 	};
 
+/*
+MHD variable getters
+*/
 const auto MHD_Mass_Getter
 	= [](Cell& cell_data)
 		-> pamhd::mhd::Mass_Density::data_type&
@@ -447,6 +439,25 @@ const auto MHD_Energy_Getter
 		-> pamhd::mhd::Total_Energy_Density::data_type&
 	{
 		return cell_data[pamhd::mhd::MHD_State_Conservative()][pamhd::mhd::Total_Energy_Density()];
+	};
+
+const auto MHD_B_Getter
+	= [](Cell& cell_data)
+		-> pamhd::mhd::Magnetic_Field::data_type&
+	{
+		return cell_data[
+			pamhd::mhd::MHD_State_Conservative()
+		][
+			pamhd::mhd::Magnetic_Field()
+		];
+	};
+
+// reference to divergence of MHD magnetic field in given cell
+const auto MHD_Div_B_Getter
+	= [](Cell& cell_data)
+		-> pamhd::mhd::Magnetic_Field_Divergence::data_type&
+	{
+		return cell_data[pamhd::mhd::Magnetic_Field_Divergence()];
 	};
 
 
@@ -568,21 +579,11 @@ int main(int argc, char* argv[])
 		output_directory("./");
 
 	boost::program_options::options_description
-		general_options(
-			"Usage: program_name [options], where options are"
-		),
-		initial_field_options(
-			""
-		),
-		initial_particle_options(
-			""
-		),
-		value_boundary_options(
-			""
-		),
-		copy_boundary_options(
-			""
-		);
+		general_options("Usage: program_name [options], where options are"),
+		initial_field_options(""),
+		initial_particle_options(""),
+		value_boundary_options(""),
+		copy_boundary_options("");
 
 	// handle general options
 	general_options.add_options()
@@ -632,10 +633,6 @@ int main(int argc, char* argv[])
 			boost::program_options::value<double>(&adiabatic_index)
 				->default_value(adiabatic_index),
 			"https://en.wikipedia.org/wiki/Heat_capacity_ratio")
-		("proton-mass",
-			boost::program_options::value<double>(&proton_mass)
-				->default_value(proton_mass),
-			"Mass of a proton in kg")
 		("load-balancer",
 			boost::program_options::value<std::string>(&lb_name)
 				->default_value(lb_name),
