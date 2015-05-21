@@ -983,7 +983,6 @@ int main(int argc, char* argv[])
 					simulation_time,
 					0,
 					0,
-					0,
 					particle_temp_nrj_ratio
 				)
 			) {

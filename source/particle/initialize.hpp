@@ -51,7 +51,7 @@ Returns the total number of particles created.
 
 \param [Init_Cond] Compatible with pamhd::boundaries::Initial_Condition
 \param [Grid] Compatible with DCCRG (github.com/fmihpc/dccrg)
-\param [Mass_Density_T] Used to access particle mass density in init_cond
+\param [Number_Density_T] Used to access particle number density in init_cond
 \param [Temperature_T] ...access bulk particle temperature in init_cond
 \param [Charge_Mass_Ratio_T] ...charge to mass ratio of particles in init_cond
 \param [Species_Mass_T] ...mass of particle species in init_cond to create
@@ -73,7 +73,7 @@ Returns the total number of particles created.
 \param [verbose] Whether to print what is being done to stdout on MPI rank 0
 */
 template<
-	class Mass_Density_T,
+	class Number_Density_T,
 	class Temperature_T,
 	class Charge_Mass_Ratio_T,
 	class Bulk_Velocity_T,
@@ -131,9 +131,9 @@ template<
 
 		// set default state
 		const auto
-			mass_density
+			number_density
 				= init_cond.default_data.get_data(
-					Mass_Density_T(),
+					Number_Density_T(),
 					cell_center,
 					simulation_time
 				),
@@ -184,7 +184,7 @@ template<
 				Eigen::Vector3d{temperature, temperature, temperature},
 				nr_particles,
 				charge_mass_ratio,
-				mass_density * cell_length[0] * cell_length[1] * cell_length[2],
+				species_mass * number_density * cell_length[0] * cell_length[1] * cell_length[2],
 				species_mass,
 				particle_temp_nrj_ratio,
 				random_source,
@@ -220,9 +220,9 @@ template<
 				cell_center = grid.geometry.get_center(cell_id);
 
 			const auto
-				mass_density
+				number_density
 					= init_cond.get_data(
-						Mass_Density_T(),
+						Number_Density_T(),
 						bdy_id,
 						cell_center,
 						simulation_time
@@ -287,7 +287,7 @@ template<
 					Eigen::Vector3d{temperature, temperature, temperature},
 					nr_particles,
 					charge_mass_ratio,
-					mass_density * cell_length[0] * cell_length[1] * cell_length[2],
+					species_mass * number_density * cell_length[0] * cell_length[1] * cell_length[2],
 					species_mass,
 					particle_temp_nrj_ratio,
 					random_source,

@@ -65,7 +65,7 @@ Fills out grid info and simulation data withing given volume.
 
 On success returns vacuum permeability.
 */
-boost::optional<std::array<double, 5>> read_data(
+boost::optional<std::array<double, 4>> read_data(
 	const Eigen::Vector3d& volume_start,
 	const Eigen::Vector3d& volume_end,
 	dccrg::Mapping& cell_id_mapping,
@@ -88,13 +88,13 @@ boost::optional<std::array<double, 5>> read_data(
 		cerr << "Process " << mpi_rank
 			<< " couldn't open file " << file_name
 			<< endl;
-		return boost::optional<std::array<double, 5>>();
+		return boost::optional<std::array<double, 4>>();
 	}
 
 	MPI_Offset offset = 0;
 
 	// read physical constants
-	std::array<double, 5> metadata;
+	std::array<double, 4> metadata;
 	MPI_File_read_at(
 		file,
 		offset,
@@ -112,7 +112,7 @@ boost::optional<std::array<double, 5>> read_data(
 		cerr << "Process " << mpi_rank
 			<< " couldn't set cell id mapping from file " << file_name
 			<< endl;
-		return boost::optional<std::array<double, 5>>();
+		return boost::optional<std::array<double, 4>>();
 	}
 
 	offset
@@ -124,7 +124,7 @@ boost::optional<std::array<double, 5>> read_data(
 		cerr << "Process " << mpi_rank
 			<< " couldn't read geometry from file " << file_name
 			<< endl;
-		return boost::optional<std::array<double, 5>>();
+		return boost::optional<std::array<double, 4>>();
 	}
 	offset += geometry.data_size();
 
@@ -142,7 +142,7 @@ boost::optional<std::array<double, 5>> read_data(
 
 	if (total_cells == 0) {
 		MPI_File_close(&file);
-		return boost::optional<std::array<double, 5>>(metadata);
+		return boost::optional<std::array<double, 4>>(metadata);
 	}
 
 	// read cell ids and data offsets
@@ -280,7 +280,7 @@ boost::optional<std::array<double, 5>> read_data(
 
 	MPI_File_close(&file);
 
-	return boost::optional<std::array<double, 5>>(metadata);
+	return boost::optional<std::array<double, 4>>(metadata);
 }
 
 
@@ -906,7 +906,7 @@ int main(int argc, char* argv[])
 		dccrg::Cartesian_Geometry geometry(cell_id_mapping.length, cell_id_mapping, topology);
 		unordered_map<uint64_t, Cell> simulation_data;
 
-		boost::optional<std::array<double, 5>> metadata
+		boost::optional<std::array<double, 4>> metadata
 			= read_data(
 				r_start,
 				r_end,

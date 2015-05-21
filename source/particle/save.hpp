@@ -71,14 +71,12 @@ template <
 	dccrg::Dccrg<Cell, Geometry>& grid,
 	const double simulation_time,
 	const double adiabatic_index,
-	const double proton_mass,
 	const double vacuum_permeability,
 	const double particle_temp_nrj_ratio
 ) {
-	std::array<double, 5> header_data{{
+	std::array<double, 4> header_data{{
 		simulation_time,
 		adiabatic_index,
-		proton_mass,
 		vacuum_permeability,
 		particle_temp_nrj_ratio
 	}};
