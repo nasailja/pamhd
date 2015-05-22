@@ -644,7 +644,8 @@ template <
 	class MHD_T,
 	class MHD_Flux_T
 > using solver_t = std::function<
-	std::pair<
+	std::tuple<
+		typename MHD_Flux_T::data_type,
 		typename MHD_Flux_T::data_type,
 		double
 	>(

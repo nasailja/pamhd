@@ -25,6 +25,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 #include "cmath"
 #include "limits"
+#include "tuple"
 
 #include "gensimcell.hpp"
 
@@ -53,14 +54,14 @@ Journal of Computational Physics, 208, 315-344, 2005.
 \param [dt] Length of time for which flux is calculated
 */
 template <
-	class MHD_T,
+	class MHD,
 	class Mass_Density_T,
 	class Momentum_Density_T,
 	class Total_Energy_Density_T,
 	class Magnetic_Field_T
-> std::pair<MHD_T, double> get_flux_hlld(
-	MHD_T state_neg,
-	MHD_T state_pos,
+> std::tuple<MHD, MHD, double> get_flux_hlld(
+	MHD state_neg,
+	MHD state_pos,
 	const double area,
 	const double dt,
 	const double adiabatic_index,
@@ -91,7 +92,7 @@ template <
 
 	const auto pressure_neg
 		= get_pressure<
-			MHD_T,
+			MHD,
 			Mass_Density_T,
 			Momentum_Density_T,
 			Total_Energy_Density_T,
@@ -108,7 +109,7 @@ template <
 
 	const auto pressure_pos
 		= get_pressure<
-			MHD_T,
+			MHD,
 			Mass_Density_T,
 			Momentum_Density_T,
 			Total_Energy_Density_T,
@@ -163,7 +164,7 @@ template <
 
 		fast_magnetosonic_neg
 			= get_fast_magnetosonic_speed<
-				MHD_T,
+				MHD,
 				Mass_Density_T,
 				Momentum_Density_T,
 				Total_Energy_Density_T,
@@ -172,7 +173,7 @@ template <
 
 		fast_magnetosonic_pos
 			= get_fast_magnetosonic_speed<
-				MHD_T,
+				MHD,
 				Mass_Density_T,
 				Momentum_Density_T,
 				Total_Energy_Density_T,
@@ -201,10 +202,10 @@ template <
 			? flow_v_pos[0] + max_signal
 			: flow_v_neg[0] + max_signal;
 
-	const MHD_T
+	const MHD
 		flux_neg
 			= get_flux<
-				MHD_T,
+				MHD,
 				Mass_Density_T,
 				Momentum_Density_T,
 				Total_Energy_Density_T,
@@ -213,7 +214,7 @@ template <
 
 		flux_pos
 			= get_flux<
-				MHD_T,
+				MHD,
 				Mass_Density_T,
 				Momentum_Density_T,
 				Total_Energy_Density_T,
@@ -221,10 +222,19 @@ template <
 			>(state_pos, adiabatic_index, vacuum_permeability);
 
 	// return upwind flux if flow is supermagnetosonic
+	MHD empty;
+	empty[Mas]    =
+	empty[Mom][0] =
+	empty[Mom][1] =
+	empty[Mom][2] =
+	empty[Nrj]    =
+	empty[Mag][0] =
+	empty[Mag][1] =
+	empty[Mag][2] = 0;
 	if (max_signal_neg >= 0.0) {
-		return std::make_pair(flux_neg * area * dt, std::fabs(max_signal_pos));
+		return std::make_tuple(flux_neg * area * dt, empty, std::fabs(max_signal_pos));
 	} else if (max_signal_pos <= 0.0) {
-		return std::make_pair(flux_pos * area * dt, std::fabs(max_signal_neg));
+		return std::make_tuple(flux_pos * area * dt, empty, std::fabs(max_signal_neg));
 	}
 
 	const auto
@@ -284,7 +294,7 @@ template <
 				* signal_flow_diff_neg
 				* (signal_middle - flow_v_neg[0]);
 
-	MHD_T state_s_neg;
+	MHD state_s_neg;
 	const auto tmp_neg
 		= state_neg[Mas] * signal_flow_diff_neg * signal_max_middle_diff_neg
 		- interface_Bx2 * inv_permeability;
@@ -326,7 +336,7 @@ template <
 				* (flow_v_neg.dot(state_neg[Mag]) - v_dot_b_s_neg)
 		) / signal_max_middle_diff_neg;
 
-	MHD_T state_s_pos;
+	MHD state_s_pos;
 	const auto tmp_pos
 		= state_pos[Mas] * signal_flow_diff_pos * signal_max_middle_diff_pos
 		- interface_Bx2 * inv_permeability;
@@ -369,7 +379,7 @@ template <
 		flow_v_s_neg = state_s_neg[Mom] / density_s_neg,
 		flow_v_s_pos = state_s_pos[Mom] / density_s_pos;
 
-	MHD_T state_s2_neg, state_s2_pos;
+	MHD state_s2_neg, state_s2_pos;
 	if (interface_Bx2 / 2 < epsilon * ptst) {
 		state_s2_neg = state_s_neg;
 		state_s2_pos = state_s_pos;
@@ -382,20 +392,21 @@ template <
 		state_s2_neg[Mas] = state_s_neg[Mas];
 		state_s2_pos[Mas] = state_s_pos[Mas];
 
-		const auto flow_v_s2 = [&](){
-			typename Momentum_Density_T::data_type temp
-				= inv_sum_density_sqrt
-				* (
-					density_s_sqrt_neg * flow_v_s_neg
-					+ density_s_sqrt_pos * flow_v_s_pos
-					+ Bx_sign * inv_permeability_sqrt
-						* (state_s_pos[Mag] - state_s_neg[Mag])
-				);
+		const auto flow_v_s2
+			= [&](){
+				typename Momentum_Density_T::data_type temp
+					= inv_sum_density_sqrt
+					* (
+						density_s_sqrt_neg * flow_v_s_neg
+						+ density_s_sqrt_pos * flow_v_s_pos
+						+ Bx_sign * inv_permeability_sqrt
+							* (state_s_pos[Mag] - state_s_neg[Mag])
+					);
 
-			temp[0] = signal_middle;
+				temp[0] = signal_middle;
 
-			return temp;
-		}();
+				return temp;
+			}();
 
 		// eqs 59 & 60
 		state_s2_neg[Mom] = state_s_neg[Mas] * flow_v_s2;
@@ -436,7 +447,7 @@ template <
 				* inv_permeability_sqrt;
 	}
 
-	MHD_T flux;
+	MHD flux;
 	if (signal_s_neg >= 0) {
 
 		flux = flux_neg + (state_s_neg - state_neg) * max_signal_neg;
@@ -466,8 +477,9 @@ template <
 
 	flux *= area * dt;
 
-	return std::make_pair(
+	return std::make_tuple(
 		flux,
+		empty,
 		std::max(
 			std::fabs(max_signal_neg),
 			std::fabs(max_signal_pos)

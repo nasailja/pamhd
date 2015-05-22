@@ -224,11 +224,12 @@ template <
 					}();
 
 
-			typename MHD_Flux_T::data_type flux;
+			typename MHD_Flux_T::data_type flux_neg, flux_pos;
 			double max_vel;
 			try {
 				std::tie(
-					flux,
+					flux_neg,
+					flux_pos,
 					max_vel
 				) = solver(
 					state_neg,
@@ -262,32 +263,39 @@ template <
 			max_dt = std::min(max_dt, cell_length[neighbor_dim] / max_vel);
 
 			// rotate flux back
-			flux = get_rotated_state<
+			flux_neg = get_rotated_state<
 				MHD_T,
 				Mass_Density_T,
 				Momentum_Density_T,
 				Total_Energy_Density_T,
 				Magnetic_Field_T
-			>(flux, -abs(neighbor_dir));
+			>(flux_neg, -abs(neighbor_dir));
+			flux_pos = get_rotated_state<
+				MHD_T,
+				Mass_Density_T,
+				Momentum_Density_T,
+				Total_Energy_Density_T,
+				Magnetic_Field_T
+			>(flux_pos, -abs(neighbor_dir));
 
 			const MHD_Flux_T Flux{};
 			if (neighbor_dir > 0) {
-				(*cell_data)[Flux][Rho] -= flux[Rho];
-				(*cell_data)[Flux][M] -= flux[M];
-				(*cell_data)[Flux][E] -= flux[E];
-				(*cell_data)[Flux][B] -= flux[B];
+				(*cell_data)[Flux][Rho] -= flux_neg[Rho] + flux_pos[Rho];
+				(*cell_data)[Flux][M] -= flux_neg[M] + flux_pos[M];
+				(*cell_data)[Flux][E] -= flux_neg[E] + flux_pos[E];
+				(*cell_data)[Flux][B] -= flux_neg[B] + flux_pos[B];
 
 				if (grid.is_local(neighbor_id)) {
-					(*neighbor_data)[Flux][Rho] += flux[Rho];
-					(*neighbor_data)[Flux][M] += flux[M];
-					(*neighbor_data)[Flux][E] += flux[E];
-					(*neighbor_data)[Flux][B] += flux[B];
+					(*neighbor_data)[Flux][Rho] += flux_neg[Rho] + flux_pos[Rho];
+					(*neighbor_data)[Flux][M] += flux_neg[M] + flux_pos[M];
+					(*neighbor_data)[Flux][E] += flux_neg[E] + flux_pos[E];
+					(*neighbor_data)[Flux][B] += flux_neg[B] + flux_pos[B];
 				}
 			} else {
-				(*cell_data)[Flux][Rho] += flux[Rho];
-				(*cell_data)[Flux][M] += flux[M];
-				(*cell_data)[Flux][E] += flux[E];
-				(*cell_data)[Flux][B] += flux[B];
+				(*cell_data)[Flux][Rho] += flux_neg[Rho] + flux_pos[Rho];
+				(*cell_data)[Flux][M] += flux_neg[M] + flux_pos[M];
+				(*cell_data)[Flux][E] += flux_neg[E] + flux_pos[E];
+				(*cell_data)[Flux][B] += flux_neg[B] + flux_pos[B];
 
 				if (grid.is_local(neighbor_id)) {
 					std::cerr <<  __FILE__ << "(" << __LINE__ << ") "

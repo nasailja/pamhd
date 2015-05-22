@@ -28,6 +28,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "cmath"
 #include "exception"
 #include "limits"
+#include "tuple"
 
 #include "gensimcell.hpp"
 
@@ -558,16 +559,18 @@ Cons1DS athena_roe_fluxes(
 }
 
 
-
+/*!
+See get_flux_hll() in hll_athena.hpp
+*/
 template <
-	class MHD_T,
+	class MHD,
 	class Mass_Density_T,
 	class Momentum_Density_T,
 	class Total_Energy_Density_T,
 	class Magnetic_Field_T
-> std::pair<MHD_T, double> get_flux_roe(
-	MHD_T state_neg,
-	MHD_T state_pos,
+> std::tuple<MHD, MHD, double> get_flux_roe(
+	MHD state_neg,
+	MHD state_pos,
 	const double area,
 	const double dt,
 	const double adiabatic_index,
@@ -601,7 +604,7 @@ template <
 
 	const auto pressure_neg
 		= get_pressure<
-			MHD_T,
+			MHD,
 			Mass_Density_T,
 			Momentum_Density_T,
 			Total_Energy_Density_T,
@@ -622,7 +625,7 @@ template <
 
 	const auto pressure_pos
 		= get_pressure<
-			MHD_T,
+			MHD,
 			Mass_Density_T,
 			Momentum_Density_T,
 			Total_Energy_Density_T,
@@ -670,7 +673,7 @@ template <
 			MHD_Primitive,
 			Velocity,
 			Pressure,
-			MHD_T,
+			MHD,
 			Mass_Density_T,
 			Momentum_Density_T,
 			Total_Energy_Density_T,
@@ -684,7 +687,7 @@ template <
 			MHD_Primitive,
 			Velocity,
 			Pressure,
-			MHD_T,
+			MHD,
 			Mass_Density_T,
 			Momentum_Density_T,
 			Total_Energy_Density_T,
@@ -725,7 +728,7 @@ template <
 			adiabatic_index
 		);
 
-	MHD_T flux;
+	MHD flux, empty;
 	flux[Mas] = flux_temp.d;
 	flux[Mom][0] = flux_temp.Mx;
 	flux[Mom][1] = flux_temp.My;
@@ -734,6 +737,14 @@ template <
 	flux[Mag][0] = 0;
 	flux[Mag][1] = flux_temp.By * std::sqrt(vacuum_permeability);
 	flux[Mag][2] = flux_temp.Bz * std::sqrt(vacuum_permeability);
+	empty[Mas] = 0;
+	empty[Mom][0] = 0;
+	empty[Mom][1] = 0;
+	empty[Mom][2] = 0;
+	empty[Nrj] = 0;
+	empty[Mag][0] = 0;
+	empty[Mag][1] = 0;
+	empty[Mag][2] = 0;
 
 	flux *= area * dt;
 
@@ -741,7 +752,7 @@ template <
 	const auto
 		fast_magnetosonic_neg
 			= get_fast_magnetosonic_speed<
-				MHD_T,
+				MHD,
 				Mass_Density_T,
 				Momentum_Density_T,
 				Total_Energy_Density_T,
@@ -750,7 +761,7 @@ template <
 
 		fast_magnetosonic_pos
 			= get_fast_magnetosonic_speed<
-				MHD_T,
+				MHD,
 				Mass_Density_T,
 				Momentum_Density_T,
 				Total_Energy_Density_T,
@@ -792,7 +803,7 @@ template <
 			);
 	}
 
-	return std::make_pair(flux, ret_signal_speed);
+	return std::make_tuple(flux, empty, ret_signal_speed);
 }
 
 }}} // namespaces

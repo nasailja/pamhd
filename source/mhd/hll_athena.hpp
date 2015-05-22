@@ -25,6 +25,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 #include "cmath"
 #include "limits"
+#include "tuple"
 
 #include "boost/lexical_cast.hpp"
 #include "gensimcell.hpp"
@@ -47,14 +48,14 @@ Returns the flux between states and maximum signal speed from cells' shared face
 \param [dt] Length of time for which flux is calculated
 */
 template <
-	class MHD_T,
+	class MHD,
 	class Mass_Density_T,
 	class Momentum_Density_T,
 	class Total_Energy_Density_T,
 	class Magnetic_Field_T
-> std::pair<MHD_T, double> get_flux_hll(
-	MHD_T state_neg,
-	MHD_T state_pos,
+> std::tuple<MHD, MHD, double> get_flux_hll(
+	MHD state_neg,
+	MHD state_pos,
 	const double area,
 	const double dt,
 	const double adiabatic_index,
@@ -70,7 +71,7 @@ template <
 	const Magnetic_Field_T Mag{};
 
 	check_state<
-		MHD_T,
+		MHD,
 		Mass_Density_T,
 		Momentum_Density_T,
 		Total_Energy_Density_T,
@@ -78,7 +79,7 @@ template <
 	>(state_neg);
 
 	check_state<
-		MHD_T,
+		MHD,
 		Mass_Density_T,
 		Momentum_Density_T,
 		Total_Energy_Density_T,
@@ -93,7 +94,7 @@ template <
 	const auto
 		pressure_thermal_neg
 			= get_pressure<
-				MHD_T,
+				MHD,
 				Mass_Density_T,
 				Momentum_Density_T,
 				Total_Energy_Density_T,
@@ -102,7 +103,7 @@ template <
 
 		pressure_thermal_pos
 			= get_pressure<
-				MHD_T,
+				MHD,
 				Mass_Density_T,
 				Momentum_Density_T,
 				Total_Energy_Density_T,
@@ -117,7 +118,7 @@ template <
 
 		fast_magnetosonic_neg
 			= get_fast_magnetosonic_speed<
-				MHD_T,
+				MHD,
 				Mass_Density_T,
 				Momentum_Density_T,
 				Total_Energy_Density_T,
@@ -126,7 +127,7 @@ template <
 
 		fast_magnetosonic_pos
 			= get_fast_magnetosonic_speed<
-				MHD_T,
+				MHD,
 				Mass_Density_T,
 				Momentum_Density_T,
 				Total_Energy_Density_T,
@@ -187,7 +188,7 @@ template <
 	}
 
 	if (not isnormal(bp - bm) or bp - bm < 0) {
-		MHD_T flux;
+		MHD flux;
 
 		flux[Rho]    =
 		flux[Mom][0] =
@@ -198,11 +199,11 @@ template <
 		flux[Mag][1] =
 		flux[Mag][2] = 0;
 
-		return std::make_pair(flux, 0);
+		return std::make_tuple(flux, flux, 0);
 	}
 
 
-	MHD_T flux_neg, flux_pos;
+	MHD flux_neg, flux_pos;
 
 	// compute L/R fluxes along the lines bm/bp: F_{L}-S_{L}U_{L}; F_{R}-S_{R}U_{R}
 	flux_neg[Rho]
@@ -266,22 +267,28 @@ template <
 	flux_pos[Mag][0] =
 	flux_neg[Mag][0] = 0;
 
-
-	MHD_T flux
-		= (flux_neg + flux_pos) / 2
-		+ (flux_neg - flux_pos) * (bp + bm) / (bp - bm) / 2.0;
+	flux_neg *= bp / (bp - bm);
+	flux_pos *= bm / (bm - bp);
 
 	check_flux<
-		MHD_T,
+		MHD,
 		Mass_Density_T,
 		Momentum_Density_T,
 		Total_Energy_Density_T,
 		Magnetic_Field_T
-	>(flux);
+	>(flux_neg);
+	check_flux<
+		MHD,
+		Mass_Density_T,
+		Momentum_Density_T,
+		Total_Energy_Density_T,
+		Magnetic_Field_T
+	>(flux_pos);
 
-	flux *= area * dt;
+	flux_neg *= area * dt;
+	flux_pos *= area * dt;
 
-	return std::make_pair(flux, std::max(std::fabs(bp), std::fabs(bm)));
+	return std::make_tuple(flux_neg, flux_pos, std::max(std::fabs(bp), std::fabs(bm)));
 }
 
 

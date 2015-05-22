@@ -32,6 +32,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "limits"
 #include "sstream"
 #include "string"
+#include "tuple"
 #include "type_traits"
 
 #include "gensimcell.hpp"
@@ -254,9 +255,10 @@ template <
 			&neighbor = grid[cell_i + 1];
 
 		double max_vel = -1;
-		typename MHD_Flux_T::data_type flux;
+		typename MHD_Flux_T::data_type flux_neg, flux_pos;
 		std::tie(
-			flux,
+			flux_neg,
+			flux_pos,
 			max_vel
 		) = solver(
 			cell[MHD_T()],
@@ -271,10 +273,10 @@ template <
 
 		if (cell_i > 0) {
 			// positive flux flows neg->pos, i.e. out of current cell
-			cell[MHD_Flux_T()] -= flux;
+			cell[MHD_Flux_T()] -= flux_neg + flux_pos;
 		}
 		if (cell_i < std::tuple_size<Grid_T>::value - 2) {
-			neighbor[MHD_Flux_T()] += flux;
+			neighbor[MHD_Flux_T()] += flux_neg + flux_pos;
 		}
 	}
 
