@@ -54,61 +54,45 @@ template <
 	class Total_Energy_Density_T,
 	class Magnetic_Field_T
 > std::tuple<MHD, MHD, double> get_flux_hll(
-	MHD state_neg,
-	MHD state_pos,
-	const double area,
-	const double dt,
-	const double adiabatic_index,
-	const double vacuum_permeability
+	const MHD& state_neg,
+	const MHD& state_pos,
+	const double& area,
+	const double& dt,
+	const double& adiabatic_index,
+	const double& vacuum_permeability
 ) {
 	using std::isnormal;
 	using std::isfinite;
 
-	// shorthand for referring to variables
-	const Mass_Density_T Rho{};
+	const Mass_Density_T Mas{};
 	const Momentum_Density_T Mom{};
 	const Total_Energy_Density_T Nrj{};
 	const Magnetic_Field_T Mag{};
 
-	check_state<
-		MHD,
-		Mass_Density_T,
-		Momentum_Density_T,
-		Total_Energy_Density_T,
-		Magnetic_Field_T
-	>(state_neg);
-
-	check_state<
-		MHD,
-		Mass_Density_T,
-		Momentum_Density_T,
-		Total_Energy_Density_T,
-		Magnetic_Field_T
-	>(state_pos);
-
-
 	const auto
-		flow_v_neg(state_neg[Mom] / state_neg[Rho]),
-		flow_v_pos(state_pos[Mom] / state_pos[Rho]);
+		flow_v_neg(state_neg[Mom] / state_neg[Mas]),
+		flow_v_pos(state_pos[Mom] / state_pos[Mas]);
 
 	const auto
 		pressure_thermal_neg
-			= get_pressure<
-				MHD,
-				Mass_Density_T,
-				Momentum_Density_T,
-				Total_Energy_Density_T,
-				Magnetic_Field_T
-			>(state_neg, adiabatic_index, vacuum_permeability),
+			= get_pressure(
+				state_neg[Mas],
+				state_neg[Mom],
+				state_neg[Nrj],
+				state_neg[Mag],
+				adiabatic_index,
+				vacuum_permeability
+			),
 
 		pressure_thermal_pos
-			= get_pressure<
-				MHD,
-				Mass_Density_T,
-				Momentum_Density_T,
-				Total_Energy_Density_T,
-				Magnetic_Field_T
-			>(state_pos, adiabatic_index, vacuum_permeability),
+			= get_pressure(
+				state_pos[Mas],
+				state_pos[Mom],
+				state_pos[Nrj],
+				state_pos[Mag],
+				adiabatic_index,
+				vacuum_permeability
+			),
 
 		pressure_magnetic_neg
 			= state_neg[Mag].squaredNorm() / (2 * vacuum_permeability),
@@ -117,22 +101,24 @@ template <
 			= state_pos[Mag].squaredNorm() / (2 * vacuum_permeability),
 
 		fast_magnetosonic_neg
-			= get_fast_magnetosonic_speed<
-				MHD,
-				Mass_Density_T,
-				Momentum_Density_T,
-				Total_Energy_Density_T,
-				Magnetic_Field_T
-			>(state_neg, adiabatic_index, vacuum_permeability),
+			= get_fast_magnetosonic_speed(
+				state_neg[Mas],
+				state_neg[Mom],
+				state_neg[Nrj],
+				state_neg[Mag],
+				adiabatic_index,
+				vacuum_permeability
+			),
 
 		fast_magnetosonic_pos
-			= get_fast_magnetosonic_speed<
-				MHD,
-				Mass_Density_T,
-				Momentum_Density_T,
-				Total_Energy_Density_T,
-				Magnetic_Field_T
-			>(state_pos, adiabatic_index, vacuum_permeability),
+			= get_fast_magnetosonic_speed(
+				state_pos[Mas],
+				state_pos[Mom],
+				state_pos[Nrj],
+				state_pos[Mag],
+				adiabatic_index,
+				vacuum_permeability
+			),
 
 		max_signal = std::max(fast_magnetosonic_neg, fast_magnetosonic_pos),
 
@@ -190,7 +176,7 @@ template <
 	if (not isnormal(bp - bm) or bp - bm < 0) {
 		MHD flux;
 
-		flux[Rho]    =
+		flux[Mas]    =
 		flux[Mom][0] =
 		flux[Mom][1] =
 		flux[Mom][2] =
@@ -206,13 +192,13 @@ template <
 	MHD flux_neg, flux_pos;
 
 	// compute L/R fluxes along the lines bm/bp: F_{L}-S_{L}U_{L}; F_{R}-S_{R}U_{R}
-	flux_neg[Rho]
+	flux_neg[Mas]
 		= state_neg[Mom][0]
-		- bm * state_neg[Rho];
+		- bm * state_neg[Mas];
 
-	flux_pos[Rho]
+	flux_pos[Mas]
 		= state_pos[Mom][0]
-		- bp * state_pos[Rho];
+		- bp * state_pos[Mas];
 
 	flux_neg[Mom]
 		= state_neg[Mom]
@@ -267,26 +253,8 @@ template <
 	flux_pos[Mag][0] =
 	flux_neg[Mag][0] = 0;
 
-	flux_neg *= bp / (bp - bm);
-	flux_pos *= bm / (bm - bp);
-
-	check_flux<
-		MHD,
-		Mass_Density_T,
-		Momentum_Density_T,
-		Total_Energy_Density_T,
-		Magnetic_Field_T
-	>(flux_neg);
-	check_flux<
-		MHD,
-		Mass_Density_T,
-		Momentum_Density_T,
-		Total_Energy_Density_T,
-		Magnetic_Field_T
-	>(flux_pos);
-
-	flux_neg *= area * dt;
-	flux_pos *= area * dt;
+	flux_neg *= bp / (bp - bm) * area * dt;
+	flux_pos *= bm / (bm - bp) * area * dt;
 
 	return std::make_tuple(flux_neg, flux_pos, std::max(std::fabs(bp), std::fabs(bm)));
 }

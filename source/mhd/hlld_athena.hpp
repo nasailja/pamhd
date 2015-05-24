@@ -60,14 +60,14 @@ template <
 	class Total_Energy_Density_T,
 	class Magnetic_Field_T
 > std::tuple<MHD, MHD, double> get_flux_hlld(
-	MHD state_neg,
-	MHD state_pos,
-	const double area,
-	const double dt,
-	const double adiabatic_index,
-	const double vacuum_permeability
+	const MHD& state_neg,
+	const MHD& state_pos,
+	const double& area,
+	const double& dt,
+	const double& adiabatic_index,
+	const double& vacuum_permeability
 ) throw(std::domain_error) {
-	// shorthand notation for simulation variables
+	// shorthand notation for accessing required variables
 	const Mass_Density_T Mas{};
 	const Momentum_Density_T Mom{};
 	const Total_Energy_Density_T Nrj{};
@@ -90,14 +90,33 @@ template <
 		);
 	}
 
+	// getter functions for required variables
+	const auto Mas_g
+		= [](MHD& data)->typename Mass_Density_T::data_type&{
+			return data[Mass_Density_T()];
+		};
+	const auto Mom_g
+		= [](MHD& data)->typename Momentum_Density_T::data_type&{
+			return data[Momentum_Density_T()];
+		};
+	const auto Nrj_g
+		= [](MHD& data)->typename Total_Energy_Density_T::data_type&{
+			return data[Total_Energy_Density_T()];
+		};
+	const auto Mag_g
+		= [](MHD& data)->typename Magnetic_Field_T::data_type&{
+			return data[Magnetic_Field_T()];
+		};
+
 	const auto pressure_neg
-		= get_pressure<
-			MHD,
-			Mass_Density_T,
-			Momentum_Density_T,
-			Total_Energy_Density_T,
-			Magnetic_Field_T
-		>(state_neg, adiabatic_index, vacuum_permeability);
+		= get_pressure(
+			state_neg[Mas],
+			state_neg[Mom],
+			state_neg[Nrj],
+			state_neg[Mag],
+			adiabatic_index,
+			vacuum_permeability
+		);
 	if (pressure_neg <= 0) {
 		throw std::domain_error(
 			std::string("Non-positive pressure on negative side given to ")
@@ -108,13 +127,14 @@ template <
 	}
 
 	const auto pressure_pos
-		= get_pressure<
-			MHD,
-			Mass_Density_T,
-			Momentum_Density_T,
-			Total_Energy_Density_T,
-			Magnetic_Field_T
-		>(state_pos, adiabatic_index, vacuum_permeability);
+		= get_pressure(
+			state_pos[Mas],
+			state_pos[Mom],
+			state_pos[Nrj],
+			state_pos[Mag],
+			adiabatic_index,
+			vacuum_permeability
+		);
 	if (pressure_pos <= 0) {
 		throw std::domain_error(
 			std::string("Non-positive pressure on positive side given to ")
@@ -163,22 +183,24 @@ template <
 		interface_Bx2 = std::pow(interface_Bx, 2),
 
 		fast_magnetosonic_neg
-			= get_fast_magnetosonic_speed<
-				MHD,
-				Mass_Density_T,
-				Momentum_Density_T,
-				Total_Energy_Density_T,
-				Magnetic_Field_T
-			>(state_neg, adiabatic_index, vacuum_permeability),
+			= get_fast_magnetosonic_speed(
+				state_neg[Mas],
+				state_neg[Mom],
+				state_neg[Nrj],
+				state_neg[Mag],
+				adiabatic_index,
+				vacuum_permeability
+			),
 
 		fast_magnetosonic_pos
-			= get_fast_magnetosonic_speed<
-				MHD,
-				Mass_Density_T,
-				Momentum_Density_T,
-				Total_Energy_Density_T,
-				Magnetic_Field_T
-			>(state_pos, adiabatic_index, vacuum_permeability),
+			= get_fast_magnetosonic_speed(
+				state_pos[Mas],
+				state_pos[Mom],
+				state_pos[Nrj],
+				state_pos[Mag],
+				adiabatic_index,
+				vacuum_permeability
+			),
 
 		max_signal = std::max(fast_magnetosonic_neg, fast_magnetosonic_pos);
 
@@ -204,22 +226,20 @@ template <
 
 	const MHD
 		flux_neg
-			= get_flux<
-				MHD,
-				Mass_Density_T,
-				Momentum_Density_T,
-				Total_Energy_Density_T,
-				Magnetic_Field_T
-			>(state_neg, adiabatic_index, vacuum_permeability),
+			= get_flux(
+				state_neg,
+				adiabatic_index,
+				vacuum_permeability,
+				Mas_g, Mom_g, Nrj_g, Mag_g
+			),
 
 		flux_pos
-			= get_flux<
-				MHD,
-				Mass_Density_T,
-				Momentum_Density_T,
-				Total_Energy_Density_T,
-				Magnetic_Field_T
-			>(state_pos, adiabatic_index, vacuum_permeability);
+			= get_flux(
+				state_pos,
+				adiabatic_index,
+				vacuum_permeability,
+				Mas_g, Mom_g, Nrj_g, Mag_g
+			);
 
 	// return upwind flux if flow is supermagnetosonic
 	MHD empty;

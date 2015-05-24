@@ -321,14 +321,11 @@ void convert(
 		}
 
 		const auto pressure
-			= get_pressure<
-				MHD_State_Conservative::data_type,
-				Mass_Density,
-				Momentum_Density,
-				Total_Energy_Density,
-				Magnetic_Field
-			>(
-				mhd_data,
+			= get_pressure(
+				mhd_data[Mass_Density()],
+				mhd_data[Momentum_Density()],
+				mhd_data[Total_Energy_Density()],
+				mhd_data[Magnetic_Field()],
 				adiabatic_index,
 				vacuum_permeability
 			);

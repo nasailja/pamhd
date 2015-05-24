@@ -445,19 +445,43 @@ const auto MHD_B_Getter
 	= [](Cell& cell_data)
 		-> pamhd::mhd::Magnetic_Field::data_type&
 	{
-		return cell_data[
-			pamhd::mhd::MHD_State_Conservative()
-		][
-			pamhd::mhd::Magnetic_Field()
-		];
+		return cell_data[pamhd::mhd::MHD_State_Conservative()][pamhd::mhd::Magnetic_Field()];
 	};
 
-// reference to divergence of MHD magnetic field in given cell
 const auto MHD_Div_B_Getter
 	= [](Cell& cell_data)
 		-> pamhd::mhd::Magnetic_Field_Divergence::data_type&
 	{
 		return cell_data[pamhd::mhd::Magnetic_Field_Divergence()];
+	};
+
+
+const auto MHD_Mass_Flux_Getter
+	= [](Cell& cell_data)
+		-> pamhd::mhd::Mass_Density::data_type&
+	{
+		return cell_data[pamhd::mhd::MHD_Flux_Conservative()][pamhd::mhd::Mass_Density()];
+	};
+
+const auto MHD_Momentum_Flux_Getter
+	= [](Cell& cell_data)
+		-> pamhd::mhd::Momentum_Density::data_type&
+	{
+		return cell_data[pamhd::mhd::MHD_Flux_Conservative()][pamhd::mhd::Momentum_Density()];
+	};
+
+const auto MHD_Energy_Flux_Getter
+	= [](Cell& cell_data)
+		-> pamhd::mhd::Total_Energy_Density::data_type&
+	{
+		return cell_data[pamhd::mhd::MHD_Flux_Conservative()][pamhd::mhd::Total_Energy_Density()];
+	};
+
+const auto MHD_B_Flux_Getter
+	= [](Cell& cell_data)
+		-> pamhd::mhd::Magnetic_Field::data_type&
+	{
+		return cell_data[pamhd::mhd::MHD_Flux_Conservative()][pamhd::mhd::Magnetic_Field()];
 	};
 
 
@@ -1460,31 +1484,33 @@ int main(int argc, char* argv[])
 		);
 		grid.start_remote_neighbor_copy_updates();
 
-		pamhd::mhd::zero_fluxes<
-			pamhd::mhd::MHD_Flux_Conservative,
-			pamhd::mhd::Mass_Density,
-			pamhd::mhd::Momentum_Density,
-			pamhd::mhd::Total_Energy_Density,
-			pamhd::mhd::Magnetic_Field
-		>(cell_ids, grid);
+		pamhd::mhd::zero_fluxes(
+			cell_ids,
+			grid,
+			MHD_Mass_Flux_Getter,
+			MHD_Momentum_Flux_Getter,
+			MHD_Energy_Flux_Getter,
+			MHD_B_Flux_Getter
+		);
 
 		// inner MHD
 		max_dt = min(
 			max_dt,
-			pamhd::mhd::solve<
-				pamhd::mhd::MHD_State_Conservative,
-				pamhd::mhd::MHD_Flux_Conservative,
-				pamhd::mhd::Mass_Density,
-				pamhd::mhd::Momentum_Density,
-				pamhd::mhd::Total_Energy_Density,
-				pamhd::mhd::Magnetic_Field
-			>(
+			pamhd::mhd::solve(
 				mhd_solver,
 				mhd_inner_cell_ids,
 				grid,
 				time_step,
 				adiabatic_index,
-				vacuum_permeability
+				vacuum_permeability,
+				MHD_Mass_Getter,
+				MHD_Momentum_Getter,
+				MHD_Energy_Getter,
+				MHD_B_Getter,
+				MHD_Mass_Flux_Getter,
+				MHD_Momentum_Flux_Getter,
+				MHD_Energy_Flux_Getter,
+				MHD_B_Flux_Getter
 			)
 		);
 
@@ -1511,35 +1537,37 @@ int main(int argc, char* argv[])
 		// outer MHD
 		max_dt = min(
 			max_dt,
-			pamhd::mhd::solve<
-				pamhd::mhd::MHD_State_Conservative,
-				pamhd::mhd::MHD_Flux_Conservative,
-				pamhd::mhd::Mass_Density,
-				pamhd::mhd::Momentum_Density,
-				pamhd::mhd::Total_Energy_Density,
-				pamhd::mhd::Magnetic_Field
-			>(
+			pamhd::mhd::solve(
 				mhd_solver,
 				mhd_outer_cell_ids,
 				grid,
 				time_step,
 				adiabatic_index,
-				vacuum_permeability
+				vacuum_permeability,
+				MHD_Mass_Getter,
+				MHD_Momentum_Getter,
+				MHD_Energy_Getter,
+				MHD_B_Getter,
+				MHD_Mass_Flux_Getter,
+				MHD_Momentum_Flux_Getter,
+				MHD_Energy_Flux_Getter,
+				MHD_B_Flux_Getter
 			)
 		);
 
-		pamhd::mhd::apply_fluxes<
-			pamhd::mhd::MHD_State_Conservative,
-			pamhd::mhd::MHD_Flux_Conservative,
-			pamhd::mhd::Mass_Density,
-			pamhd::mhd::Momentum_Density,
-			pamhd::mhd::Total_Energy_Density,
-			pamhd::mhd::Magnetic_Field
-		>(
+		pamhd::mhd::apply_fluxes(
 			mhd_inner_cell_ids,
 			grid,
 			adiabatic_index,
-			vacuum_permeability
+			vacuum_permeability,
+			MHD_Mass_Getter,
+			MHD_Momentum_Getter,
+			MHD_Energy_Getter,
+			MHD_B_Getter,
+			MHD_Mass_Flux_Getter,
+			MHD_Momentum_Flux_Getter,
+			MHD_Energy_Flux_Getter,
+			MHD_B_Flux_Getter
 		);
 
 		pamhd::particle::resize_receiving_containers<
@@ -1562,18 +1590,19 @@ int main(int argc, char* argv[])
 		);
 		grid.start_remote_neighbor_copy_updates();
 
-		pamhd::mhd::apply_fluxes<
-			pamhd::mhd::MHD_State_Conservative,
-			pamhd::mhd::MHD_Flux_Conservative,
-			pamhd::mhd::Mass_Density,
-			pamhd::mhd::Momentum_Density,
-			pamhd::mhd::Total_Energy_Density,
-			pamhd::mhd::Magnetic_Field
-		>(
+		pamhd::mhd::apply_fluxes(
 			mhd_outer_cell_ids,
 			grid,
 			adiabatic_index,
-			vacuum_permeability
+			vacuum_permeability,
+			MHD_Mass_Getter,
+			MHD_Momentum_Getter,
+			MHD_Energy_Getter,
+			MHD_B_Getter,
+			MHD_Mass_Flux_Getter,
+			MHD_Momentum_Flux_Getter,
+			MHD_Energy_Flux_Getter,
+			MHD_B_Flux_Getter
 		);
 
 		pamhd::particle::incorporate_external_particles<

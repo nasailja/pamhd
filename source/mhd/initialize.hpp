@@ -51,7 +51,7 @@ namespace mhd {
 /*!
 Sets the initial state of MHD simulation and zeroes fluxes.
 
-\param [Grid_T] Assumed to provide a dccrg API
+\param [Init_Cond] 
 \param [MHD_T] Used to access the MHD state in grid cells
 \param [MHD_Flux_T] Used to access the change in MHD state for next step
 \param [Mass_Density_T] Used to access mass density in MHD_T and MHD_Flux_T
@@ -64,15 +64,17 @@ Sets the initial state of MHD simulation and zeroes fluxes.
 \param [vacuum_permeability] https://en.wikipedia.org/wiki/Vacuum_permeability
 */
 template <
-	class MHD_T,
-	class MHD_Flux_T,
-	class Mass_Density_T,
-	class Momentum_Density_T,
-	class Total_Energy_Density_T,
-	class Magnetic_Field_T,
 	class Init_Cond,
 	class Cell,
-	class Geometry
+	class Geometry,
+	class Mass_Density_Getter,
+	class Momentum_Density_Getter,
+	class Total_Energy_Density_Getter,
+	class Magnetic_Field_Getter,
+	class Mass_Density_Flux_Getter,
+	class Momentum_Density_Flux_Getter,
+	class Total_Energy_Density_Flux_Getter,
+	class Magnetic_Field_Flux_Getter
 > void initialize(
 	Init_Cond& init_cond,
 	dccrg::Dccrg<Cell, Geometry>& grid,
@@ -81,25 +83,21 @@ template <
 	const double adiabatic_index,
 	const double vacuum_permeability,
 	const double proton_mass,
-	const bool verbose
+	const bool verbose,
+	const Mass_Density_Getter Mas,
+	const Momentum_Density_Getter Mom,
+	const Total_Energy_Density_Getter Nrj,
+	const Magnetic_Field_Getter Mag,
+	const Mass_Density_Flux_Getter Mas_f,
+	const Momentum_Density_Flux_Getter Mom_f,
+	const Total_Energy_Density_Flux_Getter Nrj_f,
+	const Magnetic_Field_Flux_Getter Mag_f
 ) {
-	static_assert(
-		std::is_same<typename MHD_T::data_type, typename MHD_Flux_T::data_type>::value,
-		"The data types of variables MHD_T and MHD_Flux_T must be equal"
-	);
-
-	const Mass_Density_T Rho{};
-	const Momentum_Density_T M{};
-	const Total_Energy_Density_T E{};
-	const Magnetic_Field_T B{};
-	const Velocity V{};
-	const Pressure P{};
-	const Number_Density N{};
-
 	if (verbose and grid.get_rank() == 0) {
 		std::cout << "Setting default MHD state... ";
 		std::cout.flush();
 	}
+	// set default state
 	for (const auto cell_id: cells) {
 		const auto
 			cell_start = grid.geometry.get_min(cell_id),
@@ -112,7 +110,7 @@ template <
 			cell_end
 		);
 
-		auto* cell_data = grid[cell_id];
+		auto* const cell_data = grid[cell_id];
 		if (cell_data == NULL) {
 			std::cerr <<  __FILE__ << "(" << __LINE__ << ") No data for cell: "
 				<< cell_id
@@ -121,56 +119,64 @@ template <
 		}
 
 		// zero fluxes
-		auto& flux = (*cell_data)[MHD_Flux_T()];
-		flux[Rho]  =
-		flux[E]    =
-		flux[M][0] =
-		flux[M][1] =
-		flux[M][2] =
-		flux[B][0] =
-		flux[B][1] =
-		flux[B][2] = 0;
+		Mas_f(*cell_data)    =
+		Nrj_f(*cell_data)    =
+		Mom_f(*cell_data)[0] =
+		Mom_f(*cell_data)[1] =
+		Mom_f(*cell_data)[2] =
+		Mag_f(*cell_data)[0] =
+		Mag_f(*cell_data)[1] =
+		Mag_f(*cell_data)[2] = 0;
 
-		// set default state
-		MHD_Primitive temp;
-		try {
-			temp[Rho]
-				= init_cond.default_data.get_data(N, cell_center, time)
-				* proton_mass;
-		} catch (mup::ParserError& e) {
-			std::cout << "Couldn't get number density for default initial condition." << std::endl;
-			throw;
-		}
-		try {
-			temp[V] = init_cond.default_data.get_data(V, cell_center, time);
-		} catch (mup::ParserError& e) {
-			std::cout << "Couldn't get velocity for default initial condition." << std::endl;
-			throw;
-		}
-		try {
-			temp[P] = init_cond.default_data.get_data(P, cell_center, time);
-		} catch (mup::ParserError& e) {
-			std::cout << "Couldn't get pressure for default initial condition." << std::endl;
-			throw;
-		}
-		try {
-			temp[B] = init_cond.default_data.get_data(B, cell_center, time);
-		} catch (mup::ParserError& e) {
-			std::cout << "Couldn't get magnetic field for default initial condition." << std::endl;
-			throw;
-		}
+		const auto mass_density
+			= proton_mass
+			* [&](){
+				try {
+					return init_cond.default_data.get_data(Number_Density(), cell_center, time);
+				} catch (mup::ParserError& e) {
+					std::cout << "Couldn't get number density for default initial condition." << std::endl;
+					throw;
+				}
+			}();
+		const auto velocity
+			= [&](){
+				try {
+					return init_cond.default_data.get_data(Velocity(), cell_center, time);
+				} catch (mup::ParserError& e) {
+					std::cout << "Couldn't get velocity for default initial condition." << std::endl;
+					throw;
+				}
+			}();
+		const auto pressure
+			= [&](){
+				try {
+					return init_cond.default_data.get_data(Pressure(), cell_center, time);
+				} catch (mup::ParserError& e) {
+					std::cout << "Couldn't get pressure for default initial condition." << std::endl;
+					throw;
+				}
+			}();
+		const auto magnetic_field
+			= [&](){
+				try {
+					return init_cond.default_data.get_data(Magnetic_Field(), cell_center, time);
+				} catch (mup::ParserError& e) {
+					std::cout << "Couldn't get magnetic field for default initial condition." << std::endl;
+				throw;
+				}
+			}();
 
-		auto& state = (*cell_data)[MHD_T()];
-		state = get_conservative<
-			typename MHD_T::data_type,
-			MHD_Primitive,
-			Momentum_Density_T,
-			Total_Energy_Density_T,
-			Mass_Density_T,
-			Velocity,
-			Pressure,
-			Magnetic_Field_T
-		>(temp, adiabatic_index, vacuum_permeability);
+		Mas(*cell_data) = mass_density;
+		Mom(*cell_data) = mass_density * velocity;
+		Mag(*cell_data) = magnetic_field;
+		Nrj(*cell_data) = get_total_energy_density(
+			mass_density,
+			velocity,
+			pressure,
+			magnetic_field,
+			adiabatic_index,
+			vacuum_permeability
+		);
 	}
 
 	// set non-default initial conditions
@@ -184,7 +190,7 @@ template <
 		for (const auto& cell_id: boundary_cells) {
 			const auto cell_center = grid.geometry.get_center(cell_id);
 
-			auto* cell_data = grid[cell_id];
+			auto* const cell_data = grid[cell_id];
 			if (cell_data == NULL) {
 				std::cerr <<  __FILE__ << "(" << __LINE__ << ") No data for cell: "
 					<< cell_id
@@ -192,45 +198,55 @@ template <
 				abort();
 			}
 
-			pamhd::mhd::MHD_Primitive temp;
-			try {
-				temp[Rho]
-					= init_cond.get_data(N, bdy_i, cell_center, time)
-					* proton_mass;
-			} catch (mup::ParserError& e) {
-				std::cout << "Couldn't get density for initial condition geometry " << bdy_i << std::endl;
-				throw;
-			}
-			try {
-				temp[V] = init_cond.get_data(V, bdy_i, cell_center, time);
-			} catch (mup::ParserError& e) {
-				std::cout << "Couldn't get velocity for initial condition geometry " << bdy_i << std::endl;
-				throw;
-			}
-			try {
-				temp[P] = init_cond.get_data(P, bdy_i, cell_center, time);
-			} catch (mup::ParserError& e) {
-				std::cout << "Couldn't get pressure for initial condition geometry " << bdy_i << std::endl;
-				throw;
-			}
-			try {
-				temp[B] = init_cond.get_data(B, bdy_i, cell_center, time);
-			} catch (mup::ParserError& e) {
-				std::cout << "Couldn't get magnetic field for initial condition geometry " << bdy_i << std::endl;
-				throw;
-			}
+			const auto mass_density
+				= proton_mass
+				* [&](){
+					try {
+						return init_cond.get_data(Number_Density(), bdy_i, cell_center, time);
+					} catch (mup::ParserError& e) {
+						std::cout << "Couldn't get density for initial condition geometry " << bdy_i << std::endl;
+						throw;
+					}
+				}();
+			const auto velocity
+				= [&](){
+					try {
+						return init_cond.get_data(Velocity(), bdy_i, cell_center, time);
+					} catch (mup::ParserError& e) {
+						std::cout << "Couldn't get velocity for initial condition geometry " << bdy_i << std::endl;
+						throw;
+					}
+				}();
+			const auto pressure
+				= [&](){
+					try {
+						return init_cond.get_data(Pressure(), bdy_i, cell_center, time);
+					} catch (mup::ParserError& e) {
+						std::cout << "Couldn't get pressure for initial condition geometry " << bdy_i << std::endl;
+						throw;
+					}
+				}();
+			const auto magnetic_field
+				= [&](){
+					try {
+						return init_cond.get_data(Magnetic_Field(), bdy_i, cell_center, time);
+					} catch (mup::ParserError& e) {
+						std::cout << "Couldn't get magnetic field for initial condition geometry " << bdy_i << std::endl;
+					throw;
+					}
+				}();
 
-			auto& state = (*cell_data)[MHD_T()];
-			state = get_conservative<
-				typename MHD_T::data_type,
-				MHD_Primitive,
-				Momentum_Density_T,
-				Total_Energy_Density_T,
-				Mass_Density_T,
-				Velocity,
-				Pressure,
-				Magnetic_Field_T
-			>(temp, adiabatic_index, vacuum_permeability);
+			Mas(*cell_data) = mass_density;
+			Mom(*cell_data) = mass_density * velocity;
+			Mag(*cell_data) = magnetic_field;
+			Nrj(*cell_data) = get_total_energy_density(
+				mass_density,
+				velocity,
+				pressure,
+				magnetic_field,
+				adiabatic_index,
+				vacuum_permeability
+			);
 		}
 	}
 	if (verbose and grid.get_rank() == 0) {

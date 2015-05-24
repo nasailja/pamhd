@@ -58,6 +58,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using namespace std;
 using namespace pamhd::mhd;
 
+
 /*
 Reads simulation data from given file.
 
@@ -323,19 +324,18 @@ int plot_1d(
 	gnuplot_file << "end\n";
 
 	for (const auto& cell_id: cells) {
-		const auto& mhd_data
-			= simulation_data.at(cell_id)[MHD_State_Conservative()];
+		auto& mhd_data = simulation_data.at(cell_id)[MHD_State_Conservative()];
 		const double x = geometry.get_center(cell_id)[tube_dim];
 		gnuplot_file
 			<< x << " "
-			<< get_pressure<
-				MHD_State_Conservative::data_type,
-				Mass_Density,
-				Momentum_Density,
-				Total_Energy_Density,
-				Magnetic_Field
-			>(mhd_data, adiabatic_index, vacuum_permeability)
-			<< "\n";
+			<< get_pressure(
+				mhd_data[Mass_Density()],
+				mhd_data[Momentum_Density()],
+				mhd_data[Total_Energy_Density()],
+				mhd_data[Magnetic_Field()],
+				adiabatic_index,
+				vacuum_permeability
+			) << "\n";
 	}
 	gnuplot_file << "end\n";
 
@@ -366,14 +366,14 @@ int plot_1d(
 			const double x = geometry.get_center(cell_id)[tube_dim];
 			gnuplot_file
 				<< x << " "
-				<< get_pressure<
-					MHD_State_Conservative::data_type,
-					Mass_Density,
-					Momentum_Density,
-					Total_Energy_Density,
-					Magnetic_Field
-				>(mhd_data, adiabatic_index, vacuum_permeability)
-				<< "\n";
+				<< get_pressure(
+					mhd_data[Mass_Density()],
+					mhd_data[Momentum_Density()],
+					mhd_data[Total_Energy_Density()],
+					mhd_data[Magnetic_Field()],
+					adiabatic_index,
+					vacuum_permeability
+				) << "\n";
 		}
 		gnuplot_file << "end\n";
 	}
@@ -671,9 +671,6 @@ int plot_2d(
 	const std::string& magnetic_field_cmd,
 	const std::string& current_density_cmd
 ) {
-	const MHD_State_Conservative MHD{};
-	const Magnetic_Field Mag{};
-
 	const auto& grid_size = geometry.length.get();
 
 	// indices of dimensions with more than one cell
@@ -745,14 +742,11 @@ int plot_2d(
 			"P",
 			"\n" + pressure_cmd + "\n",
 			[&](const Cell& cell_data){
-				return get_pressure<
-					MHD_State_Conservative::data_type,
-					Mass_Density,
-					Momentum_Density,
-					Total_Energy_Density,
-					Magnetic_Field
-				>(
-					cell_data[MHD_State_Conservative()],
+				return get_pressure(
+					cell_data[MHD_State_Conservative()][Mass_Density()],
+					cell_data[MHD_State_Conservative()][Momentum_Density()],
+					cell_data[MHD_State_Conservative()][Total_Energy_Density()],
+					cell_data[MHD_State_Conservative()][Magnetic_Field()],
 					adiabatic_index,
 					vacuum_permeability
 				);
@@ -864,7 +858,7 @@ int plot_2d(
 	double max_v = 0, max_B = 0;
 	for (size_t i = 0; i < cells.size(); i++) {
 		const auto& mhd_data
-			= simulation_data.at(cells[i])[MHD];
+			= simulation_data.at(cells[i])[MHD_State_Conservative()];
 
 		const auto rho = mhd_data[Mass_Density()];
 		if (rho > 0) {
@@ -877,7 +871,7 @@ int plot_2d(
 			}
 		}
 
-		const double B = mhd_data[Mag].norm();
+		const double B = mhd_data[Magnetic_Field()].norm();
 		if (max_B < B) {
 			max_B = B;
 		}
@@ -917,7 +911,7 @@ int plot_2d(
 		}
 
 		const auto& mhd_data
-			= simulation_data.at(cells[i])[MHD];
+			= simulation_data.at(cells[i])[MHD_State_Conservative()];
 
 		const auto& m = mhd_data[Momentum_Density()];
 		const auto& rho = mhd_data[Mass_Density()];
@@ -951,9 +945,9 @@ int plot_2d(
 		}
 
 		const auto& mhd_data
-			= simulation_data.at(cells[i])[MHD];
+			= simulation_data.at(cells[i])[MHD_State_Conservative()];
 
-		const auto& B = mhd_data[Mag];
+		const auto& B = mhd_data[Magnetic_Field()];
 		const auto cell_center = geometry.get_center(cells[i]);
 		gnuplot_file
 			<< cell_center[dimensions[0]] << " "

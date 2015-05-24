@@ -54,12 +54,60 @@ constexpr double
 // 1 boundary cell in each direction
 constexpr size_t grid_length = 1000 + 2;
 
-using Cell_T = gensimcell::Cell<
+using Cell = gensimcell::Cell<
 	gensimcell::Never_Transfer,
 	pamhd::mhd::MHD_State_Conservative,
 	pamhd::mhd::MHD_Flux_Conservative
 >;
-using Grid_T = std::array<Cell_T, grid_length>;
+using Grid = std::array<Cell, grid_length>;
+
+/*
+Accessors to simulation variables.
+
+Return a reference to data of corresponding variable in given simulation cell.
+*/
+
+// conservative MHD variables
+const auto Mas
+	= [](Cell& cell_data)->typename pamhd::mhd::Mass_Density::data_type&{
+		return cell_data[pamhd::mhd::MHD_State_Conservative()][pamhd::mhd::Mass_Density()];
+	};
+
+const auto Mom
+	= [](Cell& cell_data)->typename pamhd::mhd::Momentum_Density::data_type&{
+		return cell_data[pamhd::mhd::MHD_State_Conservative()][pamhd::mhd::Momentum_Density()];
+	};
+
+const auto Nrj
+	= [](Cell& cell_data)->typename pamhd::mhd::Total_Energy_Density::data_type&{
+		return cell_data[pamhd::mhd::MHD_State_Conservative()][pamhd::mhd::Total_Energy_Density()];
+	};
+
+const auto Mag
+	= [](Cell& cell_data)->typename pamhd::mhd::Magnetic_Field::data_type&{
+		return cell_data[pamhd::mhd::MHD_State_Conservative()][pamhd::mhd::Magnetic_Field()];
+	};
+
+// fluxes of conservative MHD variables
+const auto Mas_f
+	= [](Cell& cell_data)->typename pamhd::mhd::Mass_Density::data_type&{
+		return cell_data[pamhd::mhd::MHD_Flux_Conservative()][pamhd::mhd::Mass_Density()];
+	};
+
+const auto Mom_f
+	= [](Cell& cell_data)->typename pamhd::mhd::Momentum_Density::data_type&{
+		return cell_data[pamhd::mhd::MHD_Flux_Conservative()][pamhd::mhd::Momentum_Density()];
+	};
+
+const auto Nrj_f
+	= [](Cell& cell_data)->typename pamhd::mhd::Total_Energy_Density::data_type&{
+		return cell_data[pamhd::mhd::MHD_Flux_Conservative()][pamhd::mhd::Total_Energy_Density()];
+	};
+
+const auto Mag_f
+	= [](Cell& cell_data)->typename pamhd::mhd::Magnetic_Field::data_type&{
+		return cell_data[pamhd::mhd::MHD_Flux_Conservative()][pamhd::mhd::Magnetic_Field()];
+	};
 
 
 /*!
@@ -85,10 +133,10 @@ Returns the size of a grid cell.
 constexpr double get_cell_size()
 {
 	static_assert(
-		std::tuple_size<Grid_T>::value > 0,
+		std::tuple_size<Grid>::value > 0,
 		"Grid must have at least one cell"
 	);
-	return (get_grid_end() - get_grid_start()) / std::tuple_size<Grid_T>::value;
+	return (get_grid_end() - get_grid_start()) / std::tuple_size<Grid>::value;
 }
 
 
@@ -101,11 +149,11 @@ Returns a quiet NaN in case of error.
 double get_cell_center(const size_t index)
 {
 	static_assert(
-		std::tuple_size<Grid_T>::value > 0,
+		std::tuple_size<Grid>::value > 0,
 		"Grid must have at least one cell"
 	);
 
-	if (index >= std::tuple_size<Grid_T>::value) {
+	if (index >= std::tuple_size<Grid>::value) {
 		return std::numeric_limits<double>::quiet_NaN();
 	}
 
@@ -115,96 +163,69 @@ double get_cell_center(const size_t index)
 
 //! Sets the initial state of simulation, zeroes fluxes
 template <
-	class MHD_T,
-	class MHD_Flux_T,
-	class Mass_Density_T,
-	class Momentum_Density_T,
-	class Total_Energy_Density_T,
-	class Magnetic_Field_T
+	class Mass_Density_Getter,
+	class Momentum_Density_Getter,
+	class Total_Energy_Density_Getter,
+	class Magnetic_Field_Getter,
+	class Mass_Density_Flux_Getter,
+	class Momentum_Density_Flux_Getter,
+	class Total_Energy_Density_Flux_Getter,
+	class Magnetic_Field_Flux_Getter
 > void initialize_mhd(
-	Grid_T& grid,
+	Grid& grid,
 	const double adiabatic_index,
-	const double vacuum_permeability
+	const double vacuum_permeability,
+	const Mass_Density_Getter Mas,
+	const Momentum_Density_Getter Mom,
+	const Total_Energy_Density_Getter Nrj,
+	const Magnetic_Field_Getter Mag,
+	const Mass_Density_Flux_Getter Mas_f,
+	const Momentum_Density_Flux_Getter Mom_f,
+	const Total_Energy_Density_Flux_Getter Nrj_f,
+	const Magnetic_Field_Flux_Getter Mag_f
 ) {
 	static_assert(
-		std::tuple_size<Grid_T>::value > 0,
+		std::tuple_size<Grid>::value > 0,
 		"Grid must have at least one cell"
 	);
 
-	static_assert(
-		std::is_same<typename MHD_T::data_type, typename MHD_Flux_T::data_type>::value,
-		"The data types of variables MHD_T and MHD_Flux_T must be equal"
-	);
-
-	// shorthand for referring to variables
-	const Mass_Density_T Rho{};
-	const Momentum_Density_T M{};
-	const Total_Energy_Density_T E{};
-	const Magnetic_Field_T B{};
-	const pamhd::mhd::Velocity V{};
-	const pamhd::mhd::Pressure P{};
-
 	for (size_t cell_i = 0; cell_i < grid.size(); cell_i++) {
+		auto& cell_data = grid[cell_i];
 
-		auto
-			&state = grid[cell_i][MHD_T()],
-			&flux = grid[cell_i][MHD_Flux_T()];
+		Mas_f(cell_data)    =
+		Nrj_f(cell_data)    =
+		Mom_f(cell_data)[0] =
+		Mom_f(cell_data)[1] =
+		Mom_f(cell_data)[2] =
+		Mag_f(cell_data)[0] =
+		Mag_f(cell_data)[1] =
+		Mag_f(cell_data)[2] = 0;
 
-		flux[Rho]  =
-		flux[E]    =
-		flux[M][0] =
-		flux[M][1] =
-		flux[M][2] =
-		flux[B][0] =
-		flux[B][1] =
-		flux[B][2] = 0;
+		Mom(cell_data)[0] =
+		Mom(cell_data)[1] =
+		Mom(cell_data)[2] =
+		Mag(cell_data)[2] = 0;
 
-		// specify initial state in primitive variables
-		pamhd::mhd::MHD_Primitive temp;
-
-		state[M][0] =
-		state[M][1] =
-		state[M][2] =
-		temp[V][0]  =
-		temp[V][1]  =
-		temp[V][2]  = 0;
-
-		state[B][0] =
-		temp[B][0]  = 1.5e-9;
-
-		state[B][2] =
-		temp[B][2]  = 0;
+		Mag(cell_data)[0] = 1.5e-9;
 
 		const double center = get_cell_center(cell_i);
+		double pressure = -1;
 		if (center < (get_grid_end() - get_grid_start()) / 2) {
-			state[Rho] =
-			temp[Rho]  = proton_mass * 3e6;
-
-			state[B][1] =
-			temp[B][1]  = 1e-9;
-
-			temp[P] = 3e-12;
-
+			Mas(cell_data) = proton_mass * 3e6;
+			Mag(cell_data)[1] = 1e-9;
+			pressure = 3e-12;
 		} else {
-
-			state[Rho] =
-			temp[Rho]  = proton_mass * 1e6;
-
-			state[B][1] =
-			temp[B][1]  = -1e-9;
-
-			temp[P] = 1e-12;
+			Mas(cell_data) = proton_mass * 1e6;
+			Mag(cell_data)[1] = -1e-9;
+			pressure = 1e-12;
 		}
 
-		state[E]
-			= pamhd::mhd::get_total_energy_density<
-				pamhd::mhd::MHD_Primitive,
-				Mass_Density_T,
-				pamhd::mhd::Velocity,
-				pamhd::mhd::Pressure,
-				Magnetic_Field_T
-			>(
-				temp,
+		Nrj(cell_data)
+			= pamhd::mhd::get_total_energy_density(
+				Mas(cell_data),
+				Mom(cell_data),
+				pressure,
+				Mag(cell_data),
 				adiabatic_index,
 				vacuum_permeability
 			);
@@ -218,28 +239,40 @@ Returns the maximum allowed length of time step for the
 next step.
 */
 template <
-	class MHD_T,
-	class MHD_Flux_T,
-	class Mass_Density_T,
-	class Momentum_Density_T,
-	class Total_Energy_Density_T,
-	class Magnetic_Field_T
+	class Solver,
+	class Mass_Density_Getter,
+	class Momentum_Density_Getter,
+	class Total_Energy_Density_Getter,
+	class Magnetic_Field_Getter,
+	class Mass_Density_Flux_Getter,
+	class Momentum_Density_Flux_Getter,
+	class Total_Energy_Density_Flux_Getter,
+	class Magnetic_Field_Flux_Getter
 > double solve_mhd(
-	const pamhd::mhd::solver_t<MHD_T, MHD_Flux_T>& solver,
-	Grid_T& grid,
+	const Solver solver,
+	Grid& grid,
 	const double dt,
 	const double adiabatic_index,
-	const double vacuum_permeability
+	const double vacuum_permeability,
+	const Mass_Density_Getter Mas,
+	const Momentum_Density_Getter Mom,
+	const Total_Energy_Density_Getter Nrj,
+	const Magnetic_Field_Getter Mag,
+	const Mass_Density_Flux_Getter Mas_f,
+	const Momentum_Density_Flux_Getter Mom_f,
+	const Total_Energy_Density_Flux_Getter Nrj_f,
+	const Magnetic_Field_Flux_Getter Mag_f
 ) {
 	static_assert(
-		std::tuple_size<Grid_T>::value >= 3,
+		std::tuple_size<Grid>::value >= 3,
 		"Grid must have at least three cells"
 	);
 
-	static_assert(
-		std::is_same<typename MHD_T::data_type, typename MHD_Flux_T::data_type>::value,
-		"The data types of variables MHD_T and MHD_Flux_T must be equal"
-	);
+	// shorthand notation for variable used internally
+	const pamhd::mhd::Mass_Density mas{};
+	const pamhd::mhd::Momentum_Density mom{};
+	const pamhd::mhd::Total_Energy_Density nrj{};
+	const pamhd::mhd::Magnetic_Field mag{};
 
 	const double
 		cell_size = get_cell_size(),
@@ -248,21 +281,30 @@ template <
 	double max_dt = std::numeric_limits<double>::max();
 
 	// calculate fluxes
-	for (size_t cell_i = 0; cell_i < std::tuple_size<Grid_T>::value - 1; cell_i++) {
+	for (size_t cell_i = 0; cell_i < std::tuple_size<Grid>::value - 1; cell_i++) {
 
-		Cell_T
+		Cell
 			&cell = grid[cell_i],
 			&neighbor = grid[cell_i + 1];
 
 		double max_vel = -1;
-		typename MHD_Flux_T::data_type flux_neg, flux_pos;
+		pamhd::mhd::MHD_Conservative state_neg, state_pos, flux_neg, flux_pos;
+		state_neg[mas] = Mas(cell);
+		state_neg[mom] = Mom(cell);
+		state_neg[nrj] = Nrj(cell);
+		state_neg[mag] = Mag(cell);
+		state_pos[mas] = Mas(neighbor);
+		state_pos[mom] = Mom(neighbor);
+		state_pos[nrj] = Nrj(neighbor);
+		state_pos[mag] = Mag(neighbor);
+
 		std::tie(
 			flux_neg,
 			flux_pos,
 			max_vel
 		) = solver(
-			cell[MHD_T()],
-			neighbor[MHD_T()],
+			state_neg,
+			state_pos,
 			face_area,
 			dt,
 			adiabatic_index,
@@ -273,10 +315,16 @@ template <
 
 		if (cell_i > 0) {
 			// positive flux flows neg->pos, i.e. out of current cell
-			cell[MHD_Flux_T()] -= flux_neg + flux_pos;
+			Mas_f(cell) -= flux_neg[mas] + flux_pos[mas];
+			Mom_f(cell) -= flux_neg[mom] + flux_pos[mom];
+			Nrj_f(cell) -= flux_neg[nrj] + flux_pos[nrj];
+			Mag_f(cell) -= flux_neg[mag] + flux_pos[mag];
 		}
-		if (cell_i < std::tuple_size<Grid_T>::value - 2) {
-			neighbor[MHD_Flux_T()] += flux_neg + flux_pos;
+		if (cell_i < std::tuple_size<Grid>::value - 2) {
+			Mas_f(neighbor) += flux_neg[mas] + flux_pos[mas];
+			Mom_f(neighbor) += flux_neg[mom] + flux_pos[mom];
+			Nrj_f(neighbor) += flux_neg[nrj] + flux_pos[nrj];
+			Mag_f(neighbor) += flux_neg[mag] + flux_pos[mag];
 		}
 	}
 
@@ -284,27 +332,23 @@ template <
 	const double inverse_volume = 1.0 / (face_area * cell_size);
 
 	for (auto& cell: grid) {
-		pamhd::mhd::apply_fluxes<
-			MHD_T,
-			MHD_Flux_T,
-			Mass_Density_T,
-			Momentum_Density_T,
-			Total_Energy_Density_T,
-			Magnetic_Field_T
-		>(
+		pamhd::mhd::apply_fluxes(
 			cell,
 			inverse_volume,
 			adiabatic_index,
-			vacuum_permeability
+			vacuum_permeability,
+			Mas, Mom, Nrj, Mag,
+			Mas_f, Mom_f, Nrj_f, Mag_f
 		);
 
-		pamhd::mhd::zero_fluxes<
-			MHD_Flux_T,
-			Mass_Density_T,
-			Momentum_Density_T,
-			Total_Energy_Density_T,
-			Magnetic_Field_T
-		>(cell);
+		Mas_f(cell)    =
+		Mom_f(cell)[0] =
+		Mom_f(cell)[1] =
+		Mom_f(cell)[2] =
+		Nrj_f(cell)    =
+		Mag_f(cell)[0] =
+		Mag_f(cell)[1] =
+		Mag_f(cell)[2] = 0;
 	}
 
 	return max_dt;
@@ -323,7 +367,7 @@ template <
 	class Total_Energy_Density_T,
 	class Magnetic_Field_T
 > std::string plot_mhd(
-	const Grid_T& grid,
+	const Grid& grid,
 	const double simulation_time,
 	const double adiabatic_index,
 	const double vacuum_permeability
@@ -363,7 +407,7 @@ template <
 	for (auto& range: ranges) {
 		range = 0;
 	}
-	for (size_t cell_i = 0; cell_i < std::tuple_size<Grid_T>::value; cell_i++) {
+	for (size_t cell_i = 0; cell_i < std::tuple_size<Grid>::value; cell_i++) {
 		const auto& cell_data = grid[cell_i];
 		const auto& state = cell_data[MHD_T()];
 		const auto& mass = state[Mass_Density_T()];
@@ -371,13 +415,14 @@ template <
 		const auto& mag = state[Magnetic_Field_T()];
 		const auto vel(mom / mass);
 		const double p
-			= pamhd::mhd::get_pressure<
-				typename MHD_T::data_type,
-				Mass_Density_T,
-				Momentum_Density_T,
-				Total_Energy_Density_T,
-				Magnetic_Field_T
-			>(state, adiabatic_index, vacuum_permeability);
+			= pamhd::mhd::get_pressure(
+				mass,
+				mom,
+				state[Total_Energy_Density_T()],
+				mag,
+				adiabatic_index,
+				vacuum_permeability
+			);
 
 		if (ranges[0] < mass) ranges[0] = mass;
 		if (ranges[1] < std::fabs(vel[0])) ranges[1] = std::fabs(vel[0]);
@@ -408,7 +453,7 @@ template <
 		     ;
 
 	// mass density
-	for (size_t cell_i = 0; cell_i < std::tuple_size<Grid_T>::value; cell_i++) {
+	for (size_t cell_i = 0; cell_i < std::tuple_size<Grid>::value; cell_i++) {
 		const auto& cell = grid[cell_i];
 		const double x
 			= get_cell_center(cell_i)
@@ -418,20 +463,20 @@ template <
 	}
 	gnuplot_file << "end\n";
 	// pressure
-	for (size_t cell_i = 0; cell_i < std::tuple_size<Grid_T>::value; cell_i++) {
+	for (size_t cell_i = 0; cell_i < std::tuple_size<Grid>::value; cell_i++) {
 		const auto& cell_data = grid[cell_i];
 		const auto& state = cell_data[MHD_T()];
 		const double x = get_cell_center(cell_i) / (get_grid_end() - get_grid_start());
 		gnuplot_file
 			<< x << " "
-			<< pamhd::mhd::get_pressure<
-				typename MHD_T::data_type,
-				Mass_Density_T,
-				Momentum_Density_T,
-				Total_Energy_Density_T,
-				Magnetic_Field_T
-			>(state, adiabatic_index, vacuum_permeability)
-			/ ranges[3]
+			<< pamhd::mhd::get_pressure(
+				state[Mass_Density_T()],
+				state[Momentum_Density_T()],
+				state[Total_Energy_Density_T()],
+				state[Magnetic_Field_T()],
+				adiabatic_index,
+				vacuum_permeability
+			) / ranges[3]
 			<< "\n";
 	}
 	gnuplot_file << "end\n";
@@ -453,7 +498,7 @@ template <
 		     "'-' u 1:2 w l lw 2 t 'v_z'\n"
 		;
 	// vx
-	for (size_t cell_i = 0; cell_i < std::tuple_size<Grid_T>::value; cell_i++) {
+	for (size_t cell_i = 0; cell_i < std::tuple_size<Grid>::value; cell_i++) {
 		const auto& cell_data = grid[cell_i];
 		const auto& state = cell_data[MHD_T()];
 		const auto& m = state[Momentum_Density_T()];
@@ -465,7 +510,7 @@ template <
 	}
 	gnuplot_file << "end\n";
 	// vy
-	for (size_t cell_i = 0; cell_i < std::tuple_size<Grid_T>::value; cell_i++) {
+	for (size_t cell_i = 0; cell_i < std::tuple_size<Grid>::value; cell_i++) {
 		const auto& cell_data = grid[cell_i];
 		const auto& state = cell_data[MHD_T()];
 		const auto& m = state[Momentum_Density_T()];
@@ -477,7 +522,7 @@ template <
 	}
 	gnuplot_file << "end\n";
 	// vz
-	for (size_t cell_i = 0; cell_i < std::tuple_size<Grid_T>::value; cell_i++) {
+	for (size_t cell_i = 0; cell_i < std::tuple_size<Grid>::value; cell_i++) {
 		const auto& cell_data = grid[cell_i];
 		const auto& state = cell_data[MHD_T()];
 		const auto& m = state[Momentum_Density_T()];
@@ -507,7 +552,7 @@ template <
 		     "'-' u 1:2 w l lw 2 t 'B_z'\n"
 		     ;
 	// Bx
-	for (size_t cell_i = 0; cell_i < std::tuple_size<Grid_T>::value; cell_i++) {
+	for (size_t cell_i = 0; cell_i < std::tuple_size<Grid>::value; cell_i++) {
 		const double x
 			= get_cell_center(cell_i)
 			/ (get_grid_end() - get_grid_start());
@@ -516,7 +561,7 @@ template <
 	}
 	gnuplot_file << "end\n";
 	// By
-	for (size_t cell_i = 0; cell_i < std::tuple_size<Grid_T>::value; cell_i++) {
+	for (size_t cell_i = 0; cell_i < std::tuple_size<Grid>::value; cell_i++) {
 		const double x
 			= get_cell_center(cell_i)
 			/ (get_grid_end() - get_grid_start());
@@ -525,7 +570,7 @@ template <
 	}
 	gnuplot_file << "end\n";
 	// Bz
-	for (size_t cell_i = 0; cell_i < std::tuple_size<Grid_T>::value; cell_i++) {
+	for (size_t cell_i = 0; cell_i < std::tuple_size<Grid>::value; cell_i++) {
 		const double x
 			= get_cell_center(cell_i)
 			/ (get_grid_end() - get_grid_start());
@@ -551,7 +596,7 @@ template <
 	class Magnetic_Field_T
 > void save_mhd(
 	const std::string& solver,
-	const Grid_T& grid
+	const Grid& grid
 ) {
 	const std::string file_name("mhd_" + solver + ".dat");
 
@@ -591,7 +636,7 @@ template <
 	class Total_Energy_Density_T,
 	class Magnetic_Field_T
 > void verify_mhd(
-	const Grid_T& grid,
+	const Grid& grid,
 	const std::string& file_name
 ) {
 	std::ifstream infile(file_name);
@@ -613,7 +658,7 @@ template <
 		// values smaller than this are assumed correct
 		min_value = 1e-25;
 
-	for (size_t cell_i = 0; cell_i < std::tuple_size<Grid_T>::value; cell_i++) {
+	for (size_t cell_i = 0; cell_i < std::tuple_size<Grid>::value; cell_i++) {
 		typename Mass_Density_T::data_type ref_rho;
 		typename Momentum_Density_T::data_type ref_mom;
 		typename Total_Energy_Density_T::data_type ref_nrj;
@@ -808,19 +853,18 @@ int main(int argc, char* argv[])
 			}
 		}();
 
-	Grid_T grid;
+	Grid grid;
 
 	if (verbose) {
 		cout << "Initializing MHD" << endl;
 	}
-	initialize_mhd<
-		pamhd::mhd::MHD_State_Conservative,
-		pamhd::mhd::MHD_Flux_Conservative,
-		pamhd::mhd::Mass_Density,
-		pamhd::mhd::Momentum_Density,
-		pamhd::mhd::Total_Energy_Density,
-		pamhd::mhd::Magnetic_Field
-	>(grid, adiabatic_index, vacuum_permeability);
+	initialize_mhd(
+		grid,
+		adiabatic_index,
+		vacuum_permeability,
+		Mas, Mom, Nrj, Mag,
+		Mas_f, Mom_f, Nrj_f, Mag_f
+	);
 
 	if (plot) {
 		const std::string mhd_gnuplot_file_name
@@ -861,19 +905,14 @@ int main(int argc, char* argv[])
 
 		max_dt = std::min(
 			max_dt,
-			solve_mhd<
-				pamhd::mhd::MHD_State_Conservative,
-				pamhd::mhd::MHD_Flux_Conservative,
-				pamhd::mhd::Mass_Density,
-				pamhd::mhd::Momentum_Density,
-				pamhd::mhd::Total_Energy_Density,
-				pamhd::mhd::Magnetic_Field
-			>(
+			solve_mhd(
 				solver,
 				grid,
 				time_step,
 				adiabatic_index,
-				vacuum_permeability
+				vacuum_permeability,
+				Mas, Mom, Nrj, Mag,
+				Mas_f, Mom_f, Nrj_f, Mag_f
 			)
 		);
 

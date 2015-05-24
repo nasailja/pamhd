@@ -32,6 +32,7 @@ CLEAN += tests/mhd_clean
 
 
 TEST_MHD_COMMON_DEPS = \
+  source/mhd/common.hpp \
   source/mhd/variables.hpp \
   source/mhd/hll_athena.hpp \
   source/mhd/hlld_athena.hpp \

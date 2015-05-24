@@ -41,6 +41,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "dccrg.hpp"
 
+#include "mhd/variables.hpp"
+
 
 namespace pamhd {
 namespace mhd {
@@ -52,27 +54,33 @@ Advances MHD solution for one time step of length dt with given solver.
 Returns the maximum allowed length of time step for the next step on this process.
 */
 template <
-	class MHD_T,
-	class MHD_Flux_T,
-	class Mass_Density_T,
-	class Momentum_Density_T,
-	class Total_Energy_Density_T,
-	class Magnetic_Field_T,
+	class Solver,
 	class Cell,
-	class Geometry
+	class Geometry,
+	class Mass_Density_Getter,
+	class Momentum_Density_Getter,
+	class Total_Energy_Density_Getter,
+	class Magnetic_Field_Getter,
+	class Mass_Density_Flux_Getter,
+	class Momentum_Density_Flux_Getter,
+	class Total_Energy_Density_Flux_Getter,
+	class Magnetic_Field_Flux_Getter
 > double solve(
-	const solver_t<MHD_T, MHD_Flux_T>& solver,
+	const Solver solver,
 	const std::vector<uint64_t>& cells,
 	dccrg::Dccrg<Cell, Geometry>& grid,
 	const double dt,
 	const double adiabatic_index,
-	const double vacuum_permeability
+	const double vacuum_permeability,
+	const Mass_Density_Getter Mas,
+	const Momentum_Density_Getter Mom,
+	const Total_Energy_Density_Getter Nrj,
+	const Magnetic_Field_Getter Mag,
+	const Mass_Density_Flux_Getter Mas_f,
+	const Momentum_Density_Flux_Getter Mom_f,
+	const Total_Energy_Density_Flux_Getter Nrj_f,
+	const Magnetic_Field_Flux_Getter Mag_f
 ) {
-	static_assert(
-		std::is_same<typename MHD_T::data_type, typename MHD_Flux_T::data_type>::value,
-		"The data types of variables MHD_T and MHD_Flux_T must be equal"
-	);
-
 	if (not std::isfinite(dt) or dt < 0) {
 		throw std::domain_error(
 			"Invalid time step: "
@@ -80,10 +88,11 @@ template <
 		);
 	}
 
-	const Mass_Density_T Rho{};
-	const Momentum_Density_T M{};
-	const Total_Energy_Density_T E{};
-	const Magnetic_Field_T B{};
+	// shorthand for referring to variables of internal MHD data type
+	const Mass_Density mas_int{};
+	const Momentum_Density mom_int{};
+	const Total_Energy_Density nrj_int{};
+	const Magnetic_Field mag_int{};
 
 	// maximum allowed next time step for cells of this process
 	double max_dt = std::numeric_limits<double>::max();
@@ -168,63 +177,30 @@ template <
 			}
 
 			// take into account direction of neighbor from cell
-			const typename MHD_T::data_type
-				state_neg
-					= [&](){
-						if (neighbor_dir > 0) {
-							return get_rotated_state<
-								MHD_T,
-								Mass_Density_T,
-								Momentum_Density_T,
-								Total_Energy_Density_T,
-								Magnetic_Field_T
-							>(
-								(*cell_data)[MHD_T()],
-								abs(neighbor_dir)
-							);
-						} else {
-							return get_rotated_state<
-								MHD_T,
-								Mass_Density_T,
-								Momentum_Density_T,
-								Total_Energy_Density_T,
-								Magnetic_Field_T
-							>(
-								(*neighbor_data)[MHD_T()],
-								abs(neighbor_dir)
-							);
-						}
-					}(),
+			MHD_Conservative state_neg, state_pos;
+			if (neighbor_dir > 0) {
+				state_neg[mas_int] = Mas(*cell_data);
+				state_neg[mom_int] = get_rotated_vector(Mom(*cell_data), abs(neighbor_dir));
+				state_neg[Total_Energy_Density()] = Nrj(*cell_data);
+				state_neg[mag_int] = get_rotated_vector(Mag(*cell_data), abs(neighbor_dir));
 
-				state_pos
-					= [&](){
-						if (neighbor_dir > 0) {
-							return get_rotated_state<
-								MHD_T,
-								Mass_Density_T,
-								Momentum_Density_T,
-								Total_Energy_Density_T,
-								Magnetic_Field_T
-							>(
-								(*neighbor_data)[MHD_T()],
-								abs(neighbor_dir)
-							);
-						} else {
-							return get_rotated_state<
-								MHD_T,
-								Mass_Density_T,
-								Momentum_Density_T,
-								Total_Energy_Density_T,
-								Magnetic_Field_T
-							>(
-								(*cell_data)[MHD_T()],
-								abs(neighbor_dir)
-							);
-						}
-					}();
+				state_pos[mas_int] = Mas(*neighbor_data);
+				state_pos[mom_int] = get_rotated_vector(Mom(*neighbor_data), abs(neighbor_dir));
+				state_pos[Total_Energy_Density()] = Nrj(*neighbor_data);
+				state_pos[mag_int] = get_rotated_vector(Mag(*neighbor_data), abs(neighbor_dir));
+			} else {
+				state_pos[mas_int] = Mas(*cell_data);
+				state_pos[mom_int] = get_rotated_vector(Mom(*cell_data), abs(neighbor_dir));
+				state_pos[Total_Energy_Density()] = Nrj(*cell_data);
+				state_pos[mag_int] = get_rotated_vector(Mag(*cell_data), abs(neighbor_dir));
 
+				state_neg[mas_int] = Mas(*neighbor_data);
+				state_neg[mom_int] = get_rotated_vector(Mom(*neighbor_data), abs(neighbor_dir));
+				state_neg[Total_Energy_Density()] = Nrj(*neighbor_data);
+				state_neg[mag_int] = get_rotated_vector(Mag(*neighbor_data), abs(neighbor_dir));
+			}
 
-			typename MHD_Flux_T::data_type flux_neg, flux_pos;
+			MHD_Conservative flux_neg, flux_pos;
 			double max_vel;
 			try {
 				std::tie(
@@ -247,14 +223,14 @@ template <
 					<< " and " << grid.geometry.get_center(neighbor_id)
 					<< " in direction " << neighbor_dir
 					<< " with states (mass, momentum, total energy, magnetic field): "
-					<< (*cell_data)[MHD_T()][Mass_Density_T()] << ", "
-					<< (*cell_data)[MHD_T()][Momentum_Density_T()] << ", "
-					<< (*cell_data)[MHD_T()][Total_Energy_Density_T()] << ", "
-					<< (*cell_data)[MHD_T()][Magnetic_Field_T()] << " and "
-					<< (*neighbor_data)[MHD_T()][Mass_Density_T()] << ", "
-					<< (*neighbor_data)[MHD_T()][Momentum_Density_T()] << ", "
-					<< (*neighbor_data)[MHD_T()][Total_Energy_Density_T()] << ", "
-					<< (*neighbor_data)[MHD_T()][Magnetic_Field_T()]
+					<< Mas(*cell_data) << ", "
+					<< Mom(*cell_data) << ", "
+					<< Nrj(*cell_data) << ", "
+					<< Mag(*cell_data) << " and "
+					<< Mas(*neighbor_data) << ", "
+					<< Mom(*neighbor_data) << ", "
+					<< Nrj(*neighbor_data) << ", "
+					<< Mag(*neighbor_data)
 					<< " because: " << error.what()
 					<< std::endl;
 				abort();
@@ -263,39 +239,28 @@ template <
 			max_dt = std::min(max_dt, cell_length[neighbor_dim] / max_vel);
 
 			// rotate flux back
-			flux_neg = get_rotated_state<
-				MHD_T,
-				Mass_Density_T,
-				Momentum_Density_T,
-				Total_Energy_Density_T,
-				Magnetic_Field_T
-			>(flux_neg, -abs(neighbor_dir));
-			flux_pos = get_rotated_state<
-				MHD_T,
-				Mass_Density_T,
-				Momentum_Density_T,
-				Total_Energy_Density_T,
-				Magnetic_Field_T
-			>(flux_pos, -abs(neighbor_dir));
+			flux_neg[mom_int] = get_rotated_vector(flux_neg[mom_int], -abs(neighbor_dir));
+			flux_neg[mag_int] = get_rotated_vector(flux_neg[mag_int], -abs(neighbor_dir));
+			flux_pos[mom_int] = get_rotated_vector(flux_pos[mom_int], -abs(neighbor_dir));
+			flux_pos[mag_int] = get_rotated_vector(flux_pos[mag_int], -abs(neighbor_dir));
 
-			const MHD_Flux_T Flux{};
 			if (neighbor_dir > 0) {
-				(*cell_data)[Flux][Rho] -= flux_neg[Rho] + flux_pos[Rho];
-				(*cell_data)[Flux][M] -= flux_neg[M] + flux_pos[M];
-				(*cell_data)[Flux][E] -= flux_neg[E] + flux_pos[E];
-				(*cell_data)[Flux][B] -= flux_neg[B] + flux_pos[B];
+				Mas_f(*cell_data) -= flux_neg[mas_int] + flux_pos[mas_int];
+				Mom_f(*cell_data) -= flux_neg[mom_int] + flux_pos[mom_int];
+				Nrj_f(*cell_data) -= flux_neg[nrj_int] + flux_pos[nrj_int];
+				Mag_f(*cell_data) -= flux_neg[mag_int] + flux_pos[mag_int];
 
 				if (grid.is_local(neighbor_id)) {
-					(*neighbor_data)[Flux][Rho] += flux_neg[Rho] + flux_pos[Rho];
-					(*neighbor_data)[Flux][M] += flux_neg[M] + flux_pos[M];
-					(*neighbor_data)[Flux][E] += flux_neg[E] + flux_pos[E];
-					(*neighbor_data)[Flux][B] += flux_neg[B] + flux_pos[B];
+					Mas_f(*neighbor_data) += flux_neg[mas_int] + flux_pos[mas_int];
+					Mom_f(*neighbor_data) += flux_neg[mom_int] + flux_pos[mom_int];
+					Nrj_f(*neighbor_data) += flux_neg[nrj_int] + flux_pos[nrj_int];
+					Mag_f(*neighbor_data) += flux_neg[mag_int] + flux_pos[mag_int];
 				}
 			} else {
-				(*cell_data)[Flux][Rho] += flux_neg[Rho] + flux_pos[Rho];
-				(*cell_data)[Flux][M] += flux_neg[M] + flux_pos[M];
-				(*cell_data)[Flux][E] += flux_neg[E] + flux_pos[E];
-				(*cell_data)[Flux][B] += flux_neg[B] + flux_pos[B];
+				Mas_f(*cell_data) += flux_neg[mas_int] + flux_pos[mas_int];
+				Mom_f(*cell_data) += flux_neg[mom_int] + flux_pos[mom_int];
+				Nrj_f(*cell_data) += flux_neg[nrj_int] + flux_pos[nrj_int];
+				Mag_f(*cell_data) += flux_neg[mag_int] + flux_pos[mag_int];
 
 				if (grid.is_local(neighbor_id)) {
 					std::cerr <<  __FILE__ << "(" << __LINE__ << ") "
@@ -315,25 +280,30 @@ template <
 Applies the MHD solution to given cells.
 */
 template <
-	class MHD_T,
-	class MHD_Flux_T,
-	class Mass_Density_T,
-	class Momentum_Density_T,
-	class Total_Energy_Density_T,
-	class Magnetic_Field_T,
 	class Cell,
-	class Geometry
+	class Geometry,
+	class Mass_Density_Getter,
+	class Momentum_Density_Getter,
+	class Total_Energy_Density_Getter,
+	class Magnetic_Field_Getter,
+	class Mass_Density_Flux_Getter,
+	class Momentum_Density_Flux_Getter,
+	class Total_Energy_Density_Flux_Getter,
+	class Magnetic_Field_Flux_Getter
 > void apply_fluxes(
 	const std::vector<uint64_t>& cells,
 	dccrg::Dccrg<Cell, Geometry>& grid,
 	const double adiabatic_index,
-	const double vacuum_permeability
+	const double vacuum_permeability,
+	const Mass_Density_Getter Mas,
+	const Momentum_Density_Getter Mom,
+	const Total_Energy_Density_Getter Nrj,
+	const Magnetic_Field_Getter Mag,
+	const Mass_Density_Flux_Getter Mas_f,
+	const Momentum_Density_Flux_Getter Mom_f,
+	const Total_Energy_Density_Flux_Getter Nrj_f,
+	const Magnetic_Field_Flux_Getter Mag_f
 ) {
-	static_assert(
-		std::is_same<typename MHD_T::data_type, typename MHD_Flux_T::data_type>::value,
-		"The data types of variables MHD_T and MHD_Flux_T must be equal"
-	);
-
 	for (const auto& cell_id: cells) {
 		auto* const cell_data = grid[cell_id];
 		if (cell_data == NULL) {
@@ -346,51 +316,36 @@ template <
 		const auto length = grid.geometry.get_length(cell_id);
 		const double inverse_volume = 1.0 / (length[0] * length[1] * length[2]);
 
-		const auto previous_state = (*cell_data)[MHD_T()];
-		const auto& flux = (*cell_data)[MHD_Flux_T()];
 		try {
-			apply_fluxes<
-				MHD_T,
-				MHD_Flux_T,
-				Mass_Density_T,
-				Momentum_Density_T,
-				Total_Energy_Density_T,
-				Magnetic_Field_T
-			>(
+			apply_fluxes(
 				*cell_data,
 				inverse_volume,
 				adiabatic_index,
-				vacuum_permeability
+				vacuum_permeability,
+				Mas, Mom, Nrj, Mag,
+				Mas_f, Mom_f, Nrj_f, Mag_f
 			);
 		} catch (const std::domain_error& error) {
 			std::cerr <<  __FILE__ << "(" << __LINE__
 				<< ") New MHD state for cell " << cell_id
 				<< " at " << grid.geometry.get_center(cell_id)
 				<< " would be unphysical because (" << error.what()
-				<< ") with old state:\n"
-				<< previous_state[Mass_Density_T()] << ", "
-				<< previous_state[Momentum_Density_T()] << ", "
-				<< previous_state[Total_Energy_Density_T()] << ", "
-				<< previous_state[Magnetic_Field_T()]
-				<< "\nand flux * " << inverse_volume << ":\n"
-				<< flux[Mass_Density_T()] * inverse_volume << ", "
-				<< flux[Momentum_Density_T()] * inverse_volume << ", "
-				<< flux[Total_Energy_Density_T()] * inverse_volume << ", "
-				<< flux[Magnetic_Field_T()] * inverse_volume
+				<< ") with flux (* " << inverse_volume << "):\n"
+				<< Mas_f(*cell_data) * inverse_volume << ", "
+				<< Mom_f(*cell_data) * inverse_volume << ", "
+				<< Nrj_f(*cell_data) * inverse_volume << ", "
+				<< Mag_f(*cell_data) * inverse_volume
 				<< "\ngiving:\n"
-				<< (*cell_data)[MHD_T()][Mass_Density_T()] << ", "
-				<< (*cell_data)[MHD_T()][Momentum_Density_T()] << ", "
-				<< (*cell_data)[MHD_T()][Total_Energy_Density_T()] << ", "
-				<< (*cell_data)[MHD_T()][Magnetic_Field_T()]
+				<< Mas(*cell_data) << ", "
+				<< Mom(*cell_data) << ", "
+				<< Nrj(*cell_data) << ", "
+				<< Mag(*cell_data)
 				<< "\nwith pressure: "
-				<< get_pressure<
-					typename MHD_T::data_type,
-					Mass_Density_T,
-					Momentum_Density_T,
-					Total_Energy_Density_T,
-					Magnetic_Field_T
-				>(
-					(*cell_data)[MHD_T()],
+				<< get_pressure(
+					Mas(*cell_data),
+					Mom(*cell_data),
+					Nrj(*cell_data),
+					Mag(*cell_data),
 					adiabatic_index,
 					vacuum_permeability
 				)
@@ -404,16 +359,19 @@ template <
 Zeros fluxes in given cells.
 */
 template <
-	class MHD_Flux_T,
-	class Mass_Density_T,
-	class Momentum_Density_T,
-	class Total_Energy_Density_T,
-	class Magnetic_Field_T,
 	class Cell,
-	class Geometry
+	class Geometry,
+	class Mass_Density_Getter,
+	class Momentum_Density_Getter,
+	class Total_Energy_Density_Getter,
+	class Magnetic_Field_Getter
 > void zero_fluxes(
 	const std::vector<uint64_t>& cells,
-	dccrg::Dccrg<Cell, Geometry>& grid
+	dccrg::Dccrg<Cell, Geometry>& grid,
+	Mass_Density_Getter Mas,
+	Momentum_Density_Getter Mom,
+	Total_Energy_Density_Getter Nrj,
+	Magnetic_Field_Getter Mag
 ) {
 	for (const auto& cell_id: cells) {
 		auto* const cell_data = grid[cell_id];
@@ -424,13 +382,14 @@ template <
 			abort();
 		}
 
-		zero_fluxes<
-			MHD_Flux_T,
-			Mass_Density_T,
-			Momentum_Density_T,
-			Total_Energy_Density_T,
-			Magnetic_Field_T
-		>(*cell_data);
+		Mas(*cell_data)    =
+		Mom(*cell_data)[0] =
+		Mom(*cell_data)[1] =
+		Mom(*cell_data)[2] =
+		Nrj(*cell_data)    =
+		Mag(*cell_data)[0] =
+		Mag(*cell_data)[1] =
+		Mag(*cell_data)[2] = 0;
 	}
 }
 

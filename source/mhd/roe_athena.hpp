@@ -569,14 +569,13 @@ template <
 	class Total_Energy_Density_T,
 	class Magnetic_Field_T
 > std::tuple<MHD, MHD, double> get_flux_roe(
-	MHD state_neg,
-	MHD state_pos,
-	const double area,
-	const double dt,
-	const double adiabatic_index,
-	const double vacuum_permeability
-) throw(std::domain_error) {
-
+	const MHD& state_neg,
+	const MHD& state_pos,
+	const double& area,
+	const double& dt,
+	const double& adiabatic_index,
+	const double& vacuum_permeability
+) {
 	// shorthand notation for simulation variables
 	const Mass_Density_T Mas{};
 	const Momentum_Density_T Mom{};
@@ -584,6 +583,40 @@ template <
 	const Magnetic_Field_T Mag{};
 	const Velocity Vel{};
 	const Pressure Pre{};
+
+	// getter functions for required variables
+	const auto Mas_g
+		= [](MHD& data)->typename Mass_Density_T::data_type&{
+			return data[Mass_Density_T()];
+		};
+	const auto Mom_g
+		= [](MHD& data)->typename Momentum_Density_T::data_type&{
+			return data[Momentum_Density_T()];
+		};
+	const auto Nrj_g
+		= [](MHD& data)->typename Total_Energy_Density_T::data_type&{
+			return data[Total_Energy_Density_T()];
+		};
+	const auto Mag_g
+		= [](MHD& data)->typename Magnetic_Field_T::data_type&{
+			return data[Magnetic_Field_T()];
+		};
+	const auto Mas_g_p
+		= [](MHD_Primitive& data)->typename Mass_Density_T::data_type&{
+			return data[Mass_Density_T()];
+		};
+	const auto Vel_g
+		= [](MHD_Primitive& data)->typename Velocity::data_type&{
+			return data[Velocity()];
+		};
+	const auto Pre_g
+		= [](MHD_Primitive& data)->typename Pressure::data_type&{
+			return data[Pressure()];
+		};
+	const auto Mag_g_p
+		= [](MHD_Primitive& data)->typename Magnetic_Field_T::data_type&{
+			return data[Magnetic_Field_T()];
+		};
 
 	if (state_neg[Mas] <= 0) {
 		throw std::domain_error(
@@ -603,13 +636,14 @@ template <
 	}
 
 	const auto pressure_neg
-		= get_pressure<
-			MHD,
-			Mass_Density_T,
-			Momentum_Density_T,
-			Total_Energy_Density_T,
-			Magnetic_Field_T
-		>(state_neg, adiabatic_index, vacuum_permeability);
+		= get_pressure(
+			state_neg[Mas],
+			state_neg[Mom],
+			state_neg[Nrj],
+			state_neg[Mag],
+			adiabatic_index,
+			vacuum_permeability
+		);
 	if (pressure_neg <= 0) {
 		throw std::domain_error(
 			std::string("Non-positive pressure on negative side given to ")
@@ -624,13 +658,14 @@ template <
 	}
 
 	const auto pressure_pos
-		= get_pressure<
-			MHD,
-			Mass_Density_T,
-			Momentum_Density_T,
-			Total_Energy_Density_T,
-			Magnetic_Field_T
-		>(state_pos, adiabatic_index, vacuum_permeability);
+		= get_pressure(
+			state_pos[Mas],
+			state_pos[Mom],
+			state_pos[Nrj],
+			state_pos[Mag],
+			adiabatic_index,
+			vacuum_permeability
+		);
 	if (pressure_pos <= 0) {
 		throw std::domain_error(
 			std::string("Non-positive pressure on positive side given to ")
@@ -669,33 +704,19 @@ template <
 		};
 
 	const auto
-		prim_neg_temp = get_primitive<
-			MHD_Primitive,
-			Velocity,
-			Pressure,
-			MHD,
-			Mass_Density_T,
-			Momentum_Density_T,
-			Total_Energy_Density_T,
-			Magnetic_Field_T
-		>(
+		prim_neg_temp = get_primitive<MHD_Primitive>(
 			state_neg,
 			adiabatic_index,
-			1.0
+			1.0,
+			Mas_g_p, Vel_g, Pre_g, Mag_g_p,
+			Mas_g, Mom_g, Nrj_g, Mag_g
 		),
-		prim_pos_temp = get_primitive<
-			MHD_Primitive,
-			Velocity,
-			Pressure,
-			MHD,
-			Mass_Density_T,
-			Momentum_Density_T,
-			Total_Energy_Density_T,
-			Magnetic_Field_T
-		>(
+		prim_pos_temp = get_primitive<MHD_Primitive>(
 			state_pos,
 			adiabatic_index,
-			1.0
+			1.0,
+			Mas_g_p, Vel_g, Pre_g, Mag_g_p,
+			Mas_g, Mom_g, Nrj_g, Mag_g
 		);
 
 	const Prim1DS
@@ -751,22 +772,24 @@ template <
 	// get maximum signal speed
 	const auto
 		fast_magnetosonic_neg
-			= get_fast_magnetosonic_speed<
-				MHD,
-				Mass_Density_T,
-				Momentum_Density_T,
-				Total_Energy_Density_T,
-				Magnetic_Field_T
-			>(state_neg, adiabatic_index, vacuum_permeability),
+			= get_fast_magnetosonic_speed(
+				state_neg[Mas],
+				state_neg[Mom],
+				state_neg[Nrj],
+				state_neg[Mag],
+				adiabatic_index,
+				vacuum_permeability
+			),
 
 		fast_magnetosonic_pos
-			= get_fast_magnetosonic_speed<
-				MHD,
-				Mass_Density_T,
-				Momentum_Density_T,
-				Total_Energy_Density_T,
-				Magnetic_Field_T
-			>(state_pos, adiabatic_index, vacuum_permeability),
+			= get_fast_magnetosonic_speed(
+				state_pos[Mas],
+				state_pos[Mom],
+				state_pos[Nrj],
+				state_pos[Mag],
+				adiabatic_index,
+				vacuum_permeability
+			),
 
 		max_signal = std::max(fast_magnetosonic_neg, fast_magnetosonic_pos);
 

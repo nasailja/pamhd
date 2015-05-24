@@ -329,14 +329,11 @@ void convert(
 	vtk_file << "SCALARS pressure float 1\nlookup_table default\n";
 	for (const auto& cell: cells) {
 		const auto pressure
-			= get_pressure<
-				MHD_State_Conservative::data_type,
-				Mass_Density,
-				Momentum_Density,
-				Total_Energy_Density,
-				Magnetic_Field
-			>(
-				simulation_data.at(cell)[MHD],
+			= get_pressure(
+				simulation_data.at(cell)[MHD][Mas],
+				simulation_data.at(cell)[MHD][Momentum_Density()],
+				simulation_data.at(cell)[MHD][Total_Energy_Density()],
+				simulation_data.at(cell)[MHD][Magnetic_Field()],
 				adiabatic_index,
 				vacuum_permeability
 			);
