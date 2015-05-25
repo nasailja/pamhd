@@ -253,7 +253,7 @@ void initialize_mhd(
 		cell_data[MHD][Mag][0] = 1.5e-9;
 
 		const double center = get_cell_center(cell_i);
-		if (center > (get_grid_end() - get_grid_start()) / 2) {
+		if (center < (get_grid_end() - get_grid_start()) / 2) {
 			cell_data[HD1()][Mas] = proton_mass * 3e6;
 			cell_data[MHD][Mag][1] = 1e-9;
 			cell_data[HD1()][Nrj] = pamhd::mhd::get_total_energy_density(
@@ -749,7 +749,7 @@ template <
 
 int main(int argc, char* argv[])
 {
-	bool save = false, plot = false, no_verify = true, verbose = false;
+	bool save = false, plot = false, no_verify = false, verbose = false;
 	std::string solver_str("hll_athena");
 	boost::program_options::options_description options(
 		"Usage: program_name [options], where options are:"
