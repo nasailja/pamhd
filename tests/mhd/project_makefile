@@ -1,5 +1,6 @@
 TESTS_MHD_EXECUTABLES = \
   tests/mhd/reference.exe \
+  tests/mhd/two_reference.exe \
   tests/mhd/mhd2ascii.exe \
   tests/mhd/mhd2gnuplot.exe \
   tests/mhd/mhd2vtk.exe \
@@ -75,6 +76,11 @@ TEST_MHD_COMPILE_COMMOM = \
 
 tests/mhd/reference.exe: \
   tests/mhd/reference.cpp \
+  $(TEST_MHD_COMMON_DEPS)
+	@printf "CXX $<\n" && $(CXX) $(TEST_MHD_COMPILE_COMMOM)
+
+tests/mhd/two_reference.exe: \
+  tests/mhd/two_reference.cpp \
   $(TEST_MHD_COMMON_DEPS)
 	@printf "CXX $<\n" && $(CXX) $(TEST_MHD_COMPILE_COMMOM)
 
