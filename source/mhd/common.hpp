@@ -513,8 +513,8 @@ template <
 /*!
 Positive flux adds to given cell multiplied with given factor.
 
-Throws std::domain_error if new state has
-non-positive mass density or pressure.
+Throws std::domain_error if new state has non-positive
+mass density or pressure check_new_state == true.
 */
 template <
 	class Container,
@@ -538,16 +538,21 @@ template <
 	const Mass_Density_Flux_Getter Mas_f,
 	const Momentum_Density_Flux_Getter Mom_f,
 	const Total_Energy_Density_Flux_Getter Nrj_f,
-	const Magnetic_Field_Flux_Getter Mag_f
+	const Magnetic_Field_Flux_Getter Mag_f,
+	const bool check_new_state = true
 ) {
 	Mas(data) += Mas_f(data) * factor;
 	Mom(data) += Mom_f(data) * factor;
 	Nrj(data) += Nrj_f(data) * factor;
 	Mag(data) += Mag_f(data) * factor;
 
+	if (not check_new_state) {
+		return;
+	}
+
 	if (Mas(data) <= 0) {
 		throw std::domain_error(
-			"New state has non-positive mass density: "
+			"New state has negative mass density: "
 			+ boost::lexical_cast<std::string>(Mas(data))
 		);
 	}
@@ -563,7 +568,7 @@ template <
 		);
 	if (pressure <= 0) {
 		throw std::domain_error(
-			"New state has non-positive pressure: "
+			"New state has negative pressure: "
 			+ boost::lexical_cast<std::string>(pressure)
 		);
 	}
