@@ -691,10 +691,6 @@ int main(int argc, char* argv[])
 		);
 		grid.start_remote_neighbor_copy_updates();
 
-		profiler.start("Zeroing MHD fluxes");
-		pamhd::mhd::zero_fluxes(cells, grid, Mas_f, Mom_f, Nrj_f, Mag_f);
-		profiler.stop("Zeroing MHD fluxes", cells.size(), "cells");
-
 		profiler.start("Calculating current density in inner cells");
 		pamhd::divergence::get_curl(
 			inner_cells,

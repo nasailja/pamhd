@@ -51,13 +51,9 @@ namespace mhd {
 /*!
 Sets the initial state of MHD simulation and zeroes fluxes.
 
-\param [Init_Cond] 
-\param [MHD_T] Used to access the MHD state in grid cells
-\param [MHD_Flux_T] Used to access the change in MHD state for next step
-\param [Mass_Density_T] Used to access mass density in MHD_T and MHD_Flux_T
-\param [Momentum_Density_T] Used to access momentum density
-\param [Total_Energy_Density_T] Used to access total energy density
-\param [Magnetic_Field_T] Used to access magnetic field
+Getters should return a reference to data of corresponding variable
+when given a simulation cell's data.
+\param [Init_Cond] Initial condition class defined in MHD test program
 \param [grid] Grid storing the cells to initialize
 \param [cells] List of cells to initialize
 \param [adiabatic_index] https://en.wikipedia.org/wiki/Heat_capacity_ratio
