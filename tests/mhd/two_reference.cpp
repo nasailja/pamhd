@@ -252,6 +252,7 @@ void initialize_mhd(
 
 		cell_data[MHD][Mag][0] = 1.5e-9;
 
+		// in every cell all mass must be in one of the fluids
 		const double center = get_cell_center(cell_i);
 		if (center < (get_grid_end() - get_grid_start()) / 2) {
 			cell_data[HD1()][Mas] = proton_mass * 3e6;
@@ -360,6 +361,7 @@ template <
 
 		max_dt = std::min(max_dt, cell_size / max_vel);
 
+		// assumes all mass is in one of the fluids in every cell
 		if (cell_i > 0) {
 			// positive flux flows neg->pos, i.e. out of current cell
 			Mas_f(cell) -= flux_neg[mas] + flux_pos[mas];
