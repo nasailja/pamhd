@@ -66,7 +66,7 @@ public:
 	/*!
 	Saves the MHD solution into a file with name derived from simulation time.
 
-	file_name_prefix is added to the beginning of the file name.
+	path_name_prefix is added to the beginning of the file name.
 
 	The transfer of all first level variables must be switched
 	off before this function is called. After save returns the
@@ -76,27 +76,19 @@ public:
 	Return true on success, false otherwise.
 	*/
 	template <
-		class MHD_State_Conservative_T,
-		class MHD_Flux_Conservative_T,
-		class Electric_Current_Density_T,
 		class Cell,
-		class Geometry
+		class Geometry,
+		class... Variables
 	> static bool save(
-		const std::string& file_name_prefix,
+		const std::string& path_name_prefix,
 		dccrg::Dccrg<Cell, Geometry>& grid,
 		const double simulation_time,
 		const double adiabatic_index,
 		const double proton_mass,
 		const double vacuum_permeability,
-		const bool save_fluxes
+		const Variables&... variables
 	) {
-		std::string header_string(get_header_string_template());
-		if (save_fluxes) {
-			header_string += "y\n";
-			Cell::set_transfer_all(true, MHD_Flux_Conservative());
-		} else {
-			header_string += "n\n";
-		}
+		std::string header_string(get_header_string_template() + "n\n");
 		if (header_string.size() != get_header_string_size()) {
 			std::cerr << __FILE__ << ":" << __LINE__
 				<< ": Invalid size for header: " << header_string.size()
@@ -156,24 +148,13 @@ public:
 			<< std::setprecision(3)
 			<< simulation_time;
 
-		Cell::set_transfer_all(
-			true,
-			MHD_State_Conservative_T(),
-			Electric_Current_Density_T()
-		);
+		Cell::set_transfer_all(true, variables...);
 		const bool ret_val = grid.save_grid_data(
-			file_name_prefix + "mhd_" + time_string.str() + "_s.dc",
+			path_name_prefix + time_string.str() + "_s.dc",
 			0,
 			header
 		);
-		if (save_fluxes) {
-			Cell::set_transfer_all(false, MHD_Flux_Conservative_T());
-		}
-		Cell::set_transfer_all(
-			false,
-			MHD_State_Conservative_T(),
-			Electric_Current_Density_T()
-		);
+		Cell::set_transfer_all(false, variables...);
 
 		return ret_val;
 	}

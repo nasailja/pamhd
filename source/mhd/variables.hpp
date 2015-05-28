@@ -197,6 +197,20 @@ using Cell = gensimcell::Cell<
 	MHD_Flux_Conservative
 >;
 
+
+// hydrodynamic type and variables for multifluid test program
+using HD_Conservative = gensimcell::Cell<
+	gensimcell::Always_Transfer,
+	pamhd::mhd::Mass_Density,
+	pamhd::mhd::Momentum_Density,
+	pamhd::mhd::Total_Energy_Density
+>;
+struct HD1_State { using data_type = HD_Conservative; };
+struct HD2_State { using data_type = HD_Conservative; };
+struct HD1_Flux { using data_type = HD_Conservative; };
+struct HD2_Flux { using data_type = HD_Conservative; };
+
+
 }} // namespaces
 
 #endif // ifndef PAMHD_MHD_VARIABLES_HPP

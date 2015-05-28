@@ -129,7 +129,8 @@ template <
 	const Mass_Density_Flux_Getter Mas_f,
 	const Momentum_Density_Flux_Getter Mom_f,
 	const Total_Energy_Density_Flux_Getter Nrj_f,
-	const Magnetic_Field_Flux_Getter Mag_f
+	const Magnetic_Field_Flux_Getter Mag_f,
+	const bool check_new_state = true
 ) {
 	for (const auto& cell_id: cells) {
 		auto* const cell_data = grid[cell_id];
@@ -150,7 +151,8 @@ template <
 				adiabatic_index,
 				vacuum_permeability,
 				Mas, Mom, Nrj, Mag,
-				Mas_f, Mom_f, Nrj_f, Mag_f
+				Mas_f, Mom_f, Nrj_f, Mag_f,
+				check_new_state
 			);
 		} catch (const std::domain_error& error) {
 			std::cerr <<  __FILE__ << "(" << __LINE__
@@ -180,11 +182,11 @@ template <
 			abort();
 		}
 
-		Mas_f(*cell_data) =
+		Mas_f(*cell_data)    =
 		Mom_f(*cell_data)[0] =
 		Mom_f(*cell_data)[1] =
 		Mom_f(*cell_data)[2] =
-		Nrj_f(*cell_data) =
+		Nrj_f(*cell_data)    =
 		Mag_f(*cell_data)[0] =
 		Mag_f(*cell_data)[1] =
 		Mag_f(*cell_data)[2] = 0;

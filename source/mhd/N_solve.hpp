@@ -51,12 +51,15 @@ namespace mhd {
 Advances MHD solution for one time step of length dt with given solver.
 
 Returns the maximum allowed length of time step for the next step on this process.
+
+Fluid_Mass_Density_Getter must return the mass of fluid being solved,
+other getter must return the total from all fluids of respective variables.
 */
 template <
 	class Solver,
 	class Cell,
 	class Geometry,
-	class Total_Mass_Density_Getter,
+	class Fluid_Mass_Density_Getter,
 	class Mass_Density_Getter,
 	class Momentum_Density_Getter,
 	class Total_Energy_Density_Getter,
@@ -72,7 +75,7 @@ template <
 	const double dt,
 	const double adiabatic_index,
 	const double vacuum_permeability,
-	const Total_Mass_Density_Getter Tot_Mas,
+	const Fluid_Mass_Density_Getter Flu_Mas,
 	const Mass_Density_Getter Mas,
 	const Momentum_Density_Getter Mom,
 	const Total_Energy_Density_Getter Nrj,
@@ -247,8 +250,8 @@ template <
 
 			// mass fractions, current fluid to total
 			const auto
-				frac_neg = Mas(*cell_data) / Tot_Mas(*cell_data),
-				frac_pos = Mas(*neighbor_data) / Tot_Mas(*neighbor_data);
+				frac_neg = Flu_Mas(*cell_data) / Mas(*cell_data),
+				frac_pos = Flu_Mas(*neighbor_data) / Mas(*neighbor_data);
 			if (neighbor_dir > 0) {
 				Mas_f(*cell_data) -= frac_neg * flux_neg[mas_int] + frac_pos * flux_pos[mas_int];
 				Mom_f(*cell_data) -= frac_neg * flux_neg[mom_int] + frac_pos * flux_pos[mom_int];
@@ -262,10 +265,10 @@ template <
 					Mag_f(*neighbor_data) += frac_neg * flux_neg[mag_int] + frac_pos * flux_pos[mag_int];
 				}
 			} else {
-				Mas_f(*cell_data) += frac_neg * flux_neg[mas_int] + frac_pos * flux_pos[mas_int];
-				Mom_f(*cell_data) += frac_neg * flux_neg[mom_int] + frac_pos * flux_pos[mom_int];
-				Nrj_f(*cell_data) += frac_neg * flux_neg[nrj_int] + frac_pos * flux_pos[nrj_int];
-				Mag_f(*cell_data) += frac_neg * flux_neg[mag_int] + frac_pos * flux_pos[mag_int];
+				Mas_f(*cell_data) += frac_pos * flux_neg[mas_int] + frac_neg * flux_pos[mas_int];
+				Mom_f(*cell_data) += frac_pos * flux_neg[mom_int] + frac_neg * flux_pos[mom_int];
+				Nrj_f(*cell_data) += frac_pos * flux_neg[nrj_int] + frac_neg * flux_pos[nrj_int];
+				Mag_f(*cell_data) += frac_pos * flux_neg[mag_int] + frac_neg * flux_pos[mag_int];
 
 				if (grid.is_local(neighbor_id)) {
 					std::cerr <<  __FILE__ << "(" << __LINE__ << ") "
