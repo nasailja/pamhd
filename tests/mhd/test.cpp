@@ -42,6 +42,9 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "mpi.h" // must be included before gensimcell.hpp
 #include "gensimcell.hpp"
 
+#include "boundaries/copy_boundary.hpp"
+#include "boundaries/initial_condition.hpp"
+#include "boundaries/value_boundaries.hpp"
 #include "divergence/remove.hpp"
 #include "grid_options.hpp"
 #include "mhd/common.hpp"
@@ -52,9 +55,6 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "mhd/hlld_athena.hpp"
 #include "mhd/roe_athena.hpp"
 #include "mhd/variables.hpp"
-#include "boundaries/copy_boundary.hpp"
-#include "boundaries/initial_condition.hpp"
-#include "boundaries/value_boundaries.hpp"
 
 
 using namespace std;
@@ -228,7 +228,7 @@ int main(int argc, char* argv[])
 		config_file_name(""),
 		boundary_file_name(""),
 		lb_name("RCB"),
-		output_directory("");
+		output_directory("./");
 
 	boost::program_options::options_description
 		options(
@@ -773,7 +773,7 @@ int main(int argc, char* argv[])
 		}
 
 		pamhd::mhd::apply_fluxes(
-			inner_cells,
+			cells,
 			grid,
 			adiabatic_index,
 			vacuum_permeability,
@@ -784,15 +784,6 @@ int main(int argc, char* argv[])
 		grid.wait_remote_neighbor_copy_update_sends();
 		Cell::set_transfer_all(false, pamhd::mhd::Electric_Current_Density());
 
-		pamhd::mhd::apply_fluxes(
-			outer_cells,
-			grid,
-			adiabatic_index,
-			vacuum_permeability,
-			Mas, Mom, Nrj, Mag,
-			Mas_f, Mom_f, Nrj_f, Mag_f
-		);
-
 		simulation_time += time_step;
 
 
@@ -801,7 +792,6 @@ int main(int argc, char* argv[])
 		*/
 
 		if (remove_div_B_n > 0 and simulation_time >= next_rem_div_B) {
-
 			next_rem_div_B += remove_div_B_n;
 
 			if (verbose and rank == 0) {

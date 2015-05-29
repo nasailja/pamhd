@@ -657,8 +657,7 @@ int main(int argc, char* argv[])
 	std::vector<uint64_t>
 		cells = grid.get_cells(),
 		inner_cells = grid.get_local_cells_not_on_process_boundary(),
-		outer_cells = grid.get_local_cells_on_process_boundary(),
-		remote_neighbors = grid.get_remote_cells_on_process_boundary();
+		outer_cells = grid.get_local_cells_on_process_boundary();
 
 	// initialize MHD
 	if (verbose and rank == 0) {
@@ -931,7 +930,7 @@ int main(int argc, char* argv[])
 		}
 
 		pamhd::mhd::apply_fluxes(
-			inner_cells,
+			cells,
 			grid,
 			adiabatic_index,
 			vacuum_permeability,
@@ -940,26 +939,7 @@ int main(int argc, char* argv[])
 			false
 		);
 		pamhd::mhd::apply_fluxes(
-			inner_cells,
-			grid,
-			adiabatic_index,
-			vacuum_permeability,
-			Mas2, Mom2, Nrj2, Mag,
-			Mas2_f, Mom2_f, Nrj2_f, Mag_f,
-			false
-		);
-
-		pamhd::mhd::apply_fluxes(
-			outer_cells,
-			grid,
-			adiabatic_index,
-			vacuum_permeability,
-			Mas1, Mom1, Nrj1, Mag,
-			Mas1_f, Mom1_f, Nrj1_f, Mag_f,
-			false
-		);
-		pamhd::mhd::apply_fluxes(
-			outer_cells,
+			cells,
 			grid,
 			adiabatic_index,
 			vacuum_permeability,
@@ -970,7 +950,6 @@ int main(int argc, char* argv[])
 
 		grid.wait_remote_neighbor_copy_update_sends();
 		Cell::set_transfer_all(false, pamhd::mhd::Electric_Current_Density());
-
 
 		simulation_time += time_step;
 
@@ -1057,8 +1036,32 @@ int main(int argc, char* argv[])
 					Mag(*cell_data) = Mag_tmp(*cell_data);
 				}
 			} else {
+
 				if (verbose and rank == 0) {
 					cout << div_before << " -> " << div_after << endl;
+				}
+
+				// keep pressure/temperature constant over div removal
+				for (auto& cell: cells) {
+					auto* const cell_data = grid[cell];
+					if (cell_data == nullptr) {
+						std::cerr <<  __FILE__ << "(" << __LINE__ << "): "
+							"No data for cell " << cell
+							<< std::endl;
+						abort();
+					}
+
+					const auto mag_nrj_diff
+						= (
+							Mag(*cell_data).squaredNorm()
+							- Mag_tmp(*cell_data).squaredNorm()
+						) / (2 * vacuum_permeability);
+
+					const auto
+						mass_frac1 = Mas1(*cell_data) / Mas(*cell_data),
+						mass_frac2 = Mas2(*cell_data) / Mas(*cell_data);
+					Nrj1(*cell_data) += mass_frac1 * mag_nrj_diff;
+					Nrj2(*cell_data) += mass_frac2 * mag_nrj_diff;
 				}
 			}
 		}
