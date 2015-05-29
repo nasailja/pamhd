@@ -41,7 +41,6 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "Eigen/Core" // must be included before gensimcell.hpp
 #include "mpi.h" // must be included before gensimcell.hpp
 #include "gensimcell.hpp"
-#include "phiprof.hpp"
 
 #include "divergence/remove.hpp"
 #include "grid_options.hpp"
@@ -156,10 +155,6 @@ int main(int argc, char* argv[])
 		std::cerr << "Couldn't obtain size of MPI communicator." << std::endl;
 		abort();
 	}
-
-	phiprof::Phiprof profiler;
-
-	profiler.start("Initializing");
 
 	// intialize Zoltan
 	float zoltan_version;
@@ -326,7 +321,6 @@ int main(int argc, char* argv[])
 
 	boost::program_options::variables_map option_variables;
 	try {
-		profiler.start("Parsing command line");
 		boost::program_options::store(
 			boost::program_options::command_line_parser(argc, argv)
 				.options(options)
@@ -334,7 +328,6 @@ int main(int argc, char* argv[])
 				.run(),
 			option_variables
 		);
-		profiler.stop("Parsing command line");
 	} catch (std::exception& e) {
 		if (rank == 0) {
 			std::cerr <<  __FILE__ << "(" << __LINE__ << "): "
@@ -363,7 +356,6 @@ int main(int argc, char* argv[])
 
 	if (config_file_name != "") {
 		try {
-			profiler.start("Parsing configuration file");
 			boost::program_options::store(
 				boost::program_options::parse_config_file<char>(
 					config_file_name.c_str(),
@@ -372,7 +364,6 @@ int main(int argc, char* argv[])
 				),
 				option_variables
 			);
-			profiler.stop("Parsing configuration file");
 		} catch (std::exception& e) {
 			if (rank == 0) {
 				std::cerr <<  __FILE__ << "(" << __LINE__ << "): "
@@ -394,7 +385,6 @@ int main(int argc, char* argv[])
 
 	// parse again to get boundaries' options
 	try {
-		profiler.start("Parsing command line");
 		boost::program_options::store(
 			boost::program_options::command_line_parser(argc, argv)
 				.options(options)
@@ -402,7 +392,6 @@ int main(int argc, char* argv[])
 				.run(),
 			option_variables
 		);
-		profiler.stop("Parsing command line");
 	} catch (std::exception& e) {
 		if (rank == 0) {
 			std::cerr <<  __FILE__ << "(" << __LINE__ << "): "
@@ -414,7 +403,6 @@ int main(int argc, char* argv[])
 
 	if (config_file_name != "") {
 		try {
-			profiler.start("Parsing configuration file");
 			boost::program_options::store(
 				boost::program_options::parse_config_file<char>(
 					config_file_name.c_str(),
@@ -423,7 +411,6 @@ int main(int argc, char* argv[])
 				),
 				option_variables
 			);
-			profiler.stop("Parsing configuration file");
 		} catch (std::exception& e) {
 			if (rank == 0) {
 				std::cerr <<  __FILE__ << "(" << __LINE__ << "): "
@@ -561,8 +548,6 @@ int main(int argc, char* argv[])
 	/*
 	Initialize simulation grid
 	*/
-	profiler.start("Initializing grid");
-
 	Grid grid;
 
 	const unsigned int neighborhood_size = 0;
@@ -597,8 +582,6 @@ int main(int argc, char* argv[])
 
 	grid.balance_load();
 
-	profiler.stop("Initializing grid");
-
 
 	/*
 	Simulate
@@ -619,7 +602,6 @@ int main(int argc, char* argv[])
 	if (verbose and rank == 0) {
 		cout << "Initializing MHD... " << endl;
 	}
-	profiler.start("Initializing MHD");
 	pamhd::mhd::initialize(
 		initial_condition,
 		grid,
@@ -632,13 +614,10 @@ int main(int argc, char* argv[])
 		Mas, Mom, Nrj, Mag,
 		Mas_f, Mom_f, Nrj_f, Mag_f
 	);
-	profiler.stop("Initializing MHD");
 	if (verbose and rank == 0) {
 		cout << "Done initializing MHD" << endl;
 	}
-	profiler.stop("Initializing");
 
-	profiler.start("Simulating");
 	size_t simulated_steps = 0;
 	while (simulation_time < end_time) {
 		simulated_steps++;
@@ -646,8 +625,6 @@ int main(int argc, char* argv[])
 		/*
 		Get maximum allowed time step
 		*/
-		profiler.start("Calculating maximum time step");
-
 		double
 			// don't step over the final simulation time
 			until_end = end_time - simulation_time,
@@ -669,7 +646,6 @@ int main(int argc, char* argv[])
 				<< std::endl;
 			abort();
 		}
-		profiler.stop("Calculating maximum time step");
 
 
 		/*
@@ -683,7 +659,6 @@ int main(int argc, char* argv[])
 				<< " s with time step " << time_step << " s" << endl;
 		}
 
-		profiler.start("Solving MHD");
 		Cell::set_transfer_all(
 			true,
 			pamhd::mhd::MHD_State_Conservative(),
@@ -691,7 +666,6 @@ int main(int argc, char* argv[])
 		);
 		grid.start_remote_neighbor_copy_updates();
 
-		profiler.start("Calculating current density in inner cells");
 		pamhd::divergence::get_curl(
 			inner_cells,
 			grid,
@@ -706,9 +680,7 @@ int main(int argc, char* argv[])
 			}
 			Cur(*cell_data) /= vacuum_permeability;
 		}
-		profiler.stop("Calculating current density in inner cells", inner_cells.size(), "cells");
 
-		profiler.start("Solving inner cells");
 		max_dt = min(
 			max_dt,
 			pamhd::mhd::solve(
@@ -722,11 +694,9 @@ int main(int argc, char* argv[])
 				Mas_f, Mom_f, Nrj_f, Mag_f
 			)
 		);
-		profiler.stop("Solving inner cells", inner_cells.size(), "cells");
 
 		grid.wait_remote_neighbor_copy_update_receives();
 
-		profiler.start("Solving outer cells");
 		max_dt = min(
 			max_dt,
 			pamhd::mhd::solve(
@@ -740,9 +710,7 @@ int main(int argc, char* argv[])
 				Mas_f, Mom_f, Nrj_f, Mag_f
 			)
 		);
-		profiler.stop("Solving outer cells", outer_cells.size(), "cells");
 
-		profiler.start("Calculating current density in outer cells");
 		pamhd::divergence::get_curl(
 			outer_cells,
 			grid,
@@ -757,7 +725,6 @@ int main(int argc, char* argv[])
 			}
 			Cur(*cell_data) /= vacuum_permeability;
 		}
-		profiler.stop("Calculating current density in outer cells", outer_cells.size(), "cells");
 
 		grid.wait_remote_neighbor_copy_update_sends();
 		Cell::set_transfer_all(
@@ -805,7 +772,6 @@ int main(int argc, char* argv[])
 			Mag_f(*cell_data) += Mag_res(*cell_data);
 		}
 
-		profiler.start("Applying inner fluxes");
 		pamhd::mhd::apply_fluxes(
 			inner_cells,
 			grid,
@@ -814,12 +780,10 @@ int main(int argc, char* argv[])
 			Mas, Mom, Nrj, Mag,
 			Mas_f, Mom_f, Nrj_f, Mag_f
 		);
-		profiler.stop("Applying inner fluxes", inner_cells.size(), "cells");
 
 		grid.wait_remote_neighbor_copy_update_sends();
 		Cell::set_transfer_all(false, pamhd::mhd::Electric_Current_Density());
 
-		profiler.start("Applying outer fluxes");
 		pamhd::mhd::apply_fluxes(
 			outer_cells,
 			grid,
@@ -828,8 +792,6 @@ int main(int argc, char* argv[])
 			Mas, Mom, Nrj, Mag,
 			Mas_f, Mom_f, Nrj_f, Mag_f
 		);
-		profiler.stop("Applying outer fluxes", outer_cells.size(), "cells");
-		profiler.stop("Solving MHD");
 
 		simulation_time += time_step;
 
@@ -839,7 +801,6 @@ int main(int argc, char* argv[])
 		*/
 
 		if (remove_div_B_n > 0 and simulation_time >= next_rem_div_B) {
-			profiler.start("Removing divergence of magnetic field");
 
 			next_rem_div_B += remove_div_B_n;
 
@@ -943,18 +904,12 @@ int main(int argc, char* argv[])
 					Nrj(*cell_data) += mag_nrj_diff;
 				}
 			}
-
-			profiler.stop("Removing divergence of magnetic field", cells.size(), "cells");
 		}
 
-
-		profiler.start("Applying boundary conditions");
 
 		/*
 		Apply value boundaries
 		*/
-		profiler.start("Applying value boundaries");
-
 		value_boundaries.clear_cells();
 
 		// classify cells
@@ -1034,14 +989,11 @@ int main(int argc, char* argv[])
 				);
 			}
 		}
-		profiler.stop("Applying value boundaries");
 
 
 		/*
 		Apply copy boundaries
 		*/
-		profiler.start("Applying copy boundaries");
-
 		copy_boundary.clear_cells();
 
 		// don't copy from other boundary cells
@@ -1182,9 +1134,6 @@ int main(int argc, char* argv[])
 			(*target_data)[pamhd::mhd::MHD_State_Conservative()]
 				= (*source_data)[pamhd::mhd::MHD_State_Conservative()];
 		}
-		profiler.stop("Applying copy boundaries");
-
-		profiler.stop("Applying boundary conditions");
 
 
 		/*
@@ -1195,8 +1144,6 @@ int main(int argc, char* argv[])
 			(save_mhd_n >= 0 and (simulation_time == start_time or simulation_time >= end_time))
 			or (save_mhd_n > 0 and simulation_time >= next_mhd_save)
 		) {
-			profiler.start("Saving results");
-
 			if (next_mhd_save <= simulation_time) {
 				next_mhd_save += save_mhd_n;
 			}
@@ -1222,13 +1169,9 @@ int main(int argc, char* argv[])
 					<< std::endl;
 				abort();
 			}
-
-			profiler.stop("Saving results", cells.size(), "cells");
 		}
 
 	}
-	profiler.stop("Simulating", simulated_steps, "time steps");
-	profiler.print(comm, "profile", 0.0);
 
 	if (verbose and rank == 0) {
 		cout << "Simulation finished at time " << simulation_time << endl;
