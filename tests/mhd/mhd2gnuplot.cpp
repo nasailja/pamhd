@@ -326,6 +326,7 @@ int plot_1d(
 		<< output_file_name_prefix + "_V.png"
 		<< "'\nset ylabel 'Velocity'\n"
 		   "set yrange [* : *]\n"
+		   "set key horizontal bottom outside\n"
 		   "unset y2label\n"
 		   "unset y2tics\n"
 		   "set ytics mirror\n"
