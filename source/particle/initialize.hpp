@@ -93,7 +93,7 @@ template<
 	const double simulation_time,
 	const std::vector<uint64_t>& cells,
 	Grid& grid,
-	std::mt19937& random_source,
+	std::mt19937_64& random_source,
 	const double particle_temp_nrj_ratio,
 	const unsigned long long int first_particle_id,
 	const unsigned long long int particle_id_increase,
@@ -108,6 +108,8 @@ template<
 	size_t nr_particles_created = 0;
 	auto current_id_start = first_particle_id;
 	for (const auto cell_id: cells) {
+		random_source.seed(cell_id);
+
 		const auto
 			cell_start = grid.geometry.get_min(cell_id),
 			cell_end = grid.geometry.get_max(cell_id),

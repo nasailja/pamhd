@@ -878,8 +878,7 @@ int main(int argc, char* argv[])
 	}
 
 	// set initial condition
-	std::mt19937 random_source;
-	random_source.seed(grid.get_rank());
+	std::mt19937_64 random_source;
 
 	if (verbose and rank == 0) {
 		cout << "Initializing particles... " << endl;
