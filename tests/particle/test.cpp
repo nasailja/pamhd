@@ -984,7 +984,7 @@ int main(int argc, char* argv[])
 		double
 			// don't step over the final simulation time
 			until_end = end_time - simulation_time,
-			local_time_step = min(min(0.5 * max_dt, until_end), max_time_step),
+			local_time_step = min(min(time_step_factor * max_dt, until_end), max_time_step),
 			time_step = -1;
 
 		if (
