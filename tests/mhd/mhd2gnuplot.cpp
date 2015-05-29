@@ -68,12 +68,7 @@ On success returns whether fluxes were saved into
 given file and physical constants used by the simulation,
 on failure returns an uninitialized value.
 */
-boost::optional<
-	std::tuple<
-		bool,
-		std::array<double, 4>
-	>
-> read_data(
+boost::optional<std::array<double, 4>> read_data(
 	dccrg::Mapping& cell_id_mapping,
 	dccrg::Grid_Topology& topology,
 	dccrg::Cartesian_Geometry& geometry,
@@ -94,7 +89,7 @@ boost::optional<
 		cerr << "Process " << mpi_rank
 			<< " couldn't open file " << file_name
 			<< endl;
-		return boost::optional<std::tuple<bool, std::array<double, 4>>>();
+		return boost::optional<std::array<double, 4>>();
 	}
 
 	MPI_Offset offset = 0;
@@ -111,17 +106,17 @@ boost::optional<
 	);
 	offset += Save::get_header_string_size();
 
-	bool have_fluxes;
 	if (header_data == Save::get_header_string_template() + "y\n")  {
-		have_fluxes = true;
-	} else if (header_data == Save::get_header_string_template() + "n\n") {
-		have_fluxes = false;
-	} else {
+		cerr << "Process " << mpi_rank
+			<< " Fluxes not supported in MHD data of file " << file_name
+			<< endl;
+		return boost::optional<std::array<double, 4>>();
+	} else if (header_data != Save::get_header_string_template() + "n\n") {
 		cerr << "Process " << mpi_rank
 			<< " Invalid header in file " << file_name
 			<< ": " << header_data
 			<< endl;
-		return boost::optional<std::tuple<bool, std::array<double, 4>>>();
+		return boost::optional<std::array<double, 4>>();
 	}
 
 	// read physical constants
@@ -142,9 +137,6 @@ boost::optional<
 		MHD_State_Conservative(),
 		Electric_Current_Density()
 	);
-	if (have_fluxes) {
-		Cell::set_transfer_all(true, MHD_Flux_Conservative());
-	}
 
 	// skip endianness check data
 	offset += sizeof(uint64_t);
@@ -153,7 +145,7 @@ boost::optional<
 		cerr << "Process " << mpi_rank
 			<< " couldn't set cell id mapping from file " << file_name
 			<< endl;
-		return boost::optional<std::tuple<bool, std::array<double, 4>>>();
+		return boost::optional<std::array<double, 4>>();
 	}
 
 	offset
@@ -165,7 +157,7 @@ boost::optional<
 		cerr << "Process " << mpi_rank
 			<< " couldn't read geometry from file " << file_name
 			<< endl;
-		return boost::optional<std::tuple<bool, std::array<double, 4>>>();
+		return boost::optional<std::array<double, 4>>();
 	}
 	offset += geometry.data_size();
 
@@ -183,12 +175,7 @@ boost::optional<
 
 	if (total_cells == 0) {
 		MPI_File_close(&file);
-		return boost::optional<std::tuple<bool, std::array<double, 4>>>(
-			std::make_tuple(
-				have_fluxes,
-				metadata
-			)
-		);
+		return boost::optional<std::array<double, 4>>(metadata);
 	}
 
 	// read cell ids and data offsets
@@ -257,12 +244,7 @@ boost::optional<
 
 	MPI_File_close(&file);
 
-	return boost::optional<std::tuple<bool, std::array<double, 4>>>(
-		std::make_tuple(
-			have_fluxes,
-			metadata
-		)
-	);
+	return boost::optional<std::array<double, 4>>(metadata);
 }
 
 
@@ -275,8 +257,7 @@ int plot_1d(
 	const std::vector<uint64_t>& cells,
 	const std::string& output_file_name_prefix,
 	const double adiabatic_index,
-	const double vacuum_permeability,
-	const bool have_fluxes
+	const double vacuum_permeability
 ) {
 	const string gnuplot_file_name(output_file_name_prefix + ".dat");
 	ofstream gnuplot_file(gnuplot_file_name);
@@ -304,16 +285,16 @@ int plot_1d(
 		<< "'\nset xrange ["
 		<< boost::lexical_cast<std::string>(tube_start)
 		<< " : " << boost::lexical_cast<std::string>(tube_end)
-		<< "]\nset ylabel 'Mass density (kg m^{-3})'\n"
-		   "set y2label 'Pressure (Pa)'\n"
-		   "set key horizontal outside bottom\n"
+		<< "]\nset ylabel 'Mass density' textcolor lt 1\n"
+		   "set y2label 'Pressure' textcolor lt 3\n"
+		   "unset key\n"
 		   "set ytics nomirror\n"
 		   "set yrange [0 : *]\n"
 		   "set y2range [0 : *]\n"
 		   "set y2tics auto\n"
 		   "plot "
 		     "'-' using 1:2 axes x1y1 with line linewidth 2 title 'density', "
-		     "'-' u 1:2 axes x1y2 w l lw 2 t 'pressure'\n";
+		     "'-' u 1:2 axes x1y2 w l lt 3 lw 2 t 'pressure'\n";
 
 	for (const auto& cell_id: cells) {
 		const auto& mhd_data
@@ -339,50 +320,11 @@ int plot_1d(
 	}
 	gnuplot_file << "end\n";
 
-	// flux of mass density & pressure
-	if (have_fluxes) {
-		gnuplot_file
-			<< "set output '"
-			<< output_file_name_prefix + "_flux.png"
-			<< "'\nset ylabel 'Mass density flux'\n"
-			   "set y2label 'Pressure flux'\n"
-			   "set yrange [* : *]\n"
-			   "set y2range [* : *]\n"
-			   "plot "
-			     "'-' using 1:2 axes x1y1 with line linewidth 2 title 'density', "
-			     "'-' u 1:2 axes x1y2 w l lw 2 t 'pressure'\n";
-
-		for (const auto& cell_id: cells) {
-			const auto& mhd_data
-				= simulation_data.at(cell_id)[MHD_Flux_Conservative()];
-			const double x = geometry.get_center(cell_id)[tube_dim];
-			gnuplot_file << x << " " << mhd_data[Mass_Density()] << "\n";
-		}
-		gnuplot_file << "end\n";
-
-		for (const auto& cell_id: cells) {
-			const auto& mhd_data
-				= simulation_data.at(cell_id)[MHD_Flux_Conservative()];
-			const double x = geometry.get_center(cell_id)[tube_dim];
-			gnuplot_file
-				<< x << " "
-				<< get_pressure(
-					mhd_data[Mass_Density()],
-					mhd_data[Momentum_Density()],
-					mhd_data[Total_Energy_Density()],
-					mhd_data[Magnetic_Field()],
-					adiabatic_index,
-					vacuum_permeability
-				) << "\n";
-		}
-		gnuplot_file << "end\n";
-	}
-
 	// velocity
 	gnuplot_file
 		<< "set term png enhanced\nset output '"
 		<< output_file_name_prefix + "_V.png"
-		<< "'\nset ylabel 'Velocity (m s^{-1})'\n"
+		<< "'\nset ylabel 'Velocity'\n"
 		   "set yrange [* : *]\n"
 		   "unset y2label\n"
 		   "unset y2tics\n"
@@ -434,54 +376,11 @@ int plot_1d(
 	}
 	gnuplot_file << "end\n";
 
-	// momentum flux
-	if (have_fluxes) {
-		gnuplot_file
-			<< "set term png enhanced\nset output '"
-			<< output_file_name_prefix + "_M_flux.png"
-			<< "'\nset ylabel 'Momentum'\n"
-			   "set yrange [* : *]\n"
-			   "unset y2label\n"
-			   "unset y2tics\n"
-			   "set ytics mirror\n"
-			   "plot "
-			     "'-' u 1:2 w l lw 2 t 'p_1 flux', "
-			     "'-' u 1:2 w l lw 2 t 'p_2 flux', "
-			     "'-' u 1:2 w l lw 2 t 'p_3 flux'\n";
-
-		for (const auto& cell_id: cells) {
-			const auto& mhd_data
-				= simulation_data.at(cell_id)[MHD_Flux_Conservative()];
-			const auto& m = mhd_data[Momentum_Density()];
-			const double x = geometry.get_center(cell_id)[tube_dim];
-			gnuplot_file << x << " " << m[0] << "\n";
-		}
-		gnuplot_file << "end\n";
-
-		for (const auto& cell_id: cells) {
-			const auto& mhd_data
-				= simulation_data.at(cell_id)[MHD_Flux_Conservative()];
-			const auto& m = mhd_data[Momentum_Density()];
-			const double x = geometry.get_center(cell_id)[tube_dim];
-			gnuplot_file << x << " " << m[1] << "\n";
-		}
-		gnuplot_file << "end\n";
-
-		for (const auto& cell_id: cells) {
-			const auto& mhd_data
-				= simulation_data.at(cell_id)[MHD_Flux_Conservative()];
-			const auto& m = mhd_data[Momentum_Density()];
-			const double x = geometry.get_center(cell_id)[tube_dim];
-			gnuplot_file << x << " " << m[2] << "\n";
-		}
-		gnuplot_file << "end\n";
-	}
-
 	// magnetic field
 	gnuplot_file
 		<< "set term png enhanced\nset output '"
 		<< output_file_name_prefix + "_B.png"
-		<< "'\nset ylabel 'Magnetic field (T)'\n"
+		<< "'\nset ylabel 'Magnetic field'\n"
 		   "plot "
 		     "'-' u 1:2 w l lw 2 t 'B_1', "
 		     "'-' u 1:2 w l lw 2 t 'B_2', "
@@ -513,45 +412,6 @@ int plot_1d(
 		gnuplot_file << x << " " << B[2] << "\n";
 	}
 	gnuplot_file << "end\n";
-
-	// magnetic field flux
-	if (have_fluxes) {
-		gnuplot_file
-			<< "set term png enhanced\nset output '"
-			<< output_file_name_prefix + "_B.png"
-			<< "'\nset ylabel 'Magnetic field (T)'\n"
-			   "plot "
-			     "'-' u 1:2 w l lw 2 t 'B_1 flux', "
-			     "'-' u 1:2 w l lw 2 t 'B_2 flux', "
-			     "'-' u 1:2 w l lw 2 t 'B_3 flux'\n";
-
-		for (const auto& cell_id: cells) {
-			const auto& mhd_data
-				= simulation_data.at(cell_id)[MHD_Flux_Conservative()];
-			const auto& B = mhd_data[Magnetic_Field()];
-			const double x = geometry.get_center(cell_id)[tube_dim];
-			gnuplot_file << x << " " << B[0] << "\n";
-		}
-		gnuplot_file << "end\n";
-
-		for (const auto& cell_id: cells) {
-			const auto& mhd_data
-				= simulation_data.at(cell_id)[MHD_Flux_Conservative()];
-			const auto& B = mhd_data[Magnetic_Field()];
-			const double x = geometry.get_center(cell_id)[tube_dim];
-			gnuplot_file << x << " " << B[1] << "\n";
-		}
-		gnuplot_file << "end\n";
-
-		for (const auto& cell_id: cells) {
-			const auto& mhd_data
-				= simulation_data.at(cell_id)[MHD_Flux_Conservative()];
-			const auto& B = mhd_data[Magnetic_Field()];
-			const double x = geometry.get_center(cell_id)[tube_dim];
-			gnuplot_file << x << " " << B[2] << "\n";
-		}
-		gnuplot_file << "end\n";
-	}
 
 	// current density
 	gnuplot_file
@@ -663,7 +523,6 @@ int plot_2d(
 	const std::string& output_file_name_suffix,
 	const double adiabatic_index,
 	const double vacuum_permeability,
-	const bool /*have_fluxes*/,
 	const std::string& common_cmd,
 	const std::string& mass_density_cmd,
 	const std::string& pressure_cmd,
@@ -1086,12 +945,7 @@ int main(int argc, char* argv[])
 		dccrg::Cartesian_Geometry geometry(cell_id_mapping.length, cell_id_mapping, topology);
 		unordered_map<uint64_t, Cell> simulation_data;
 
-		boost::optional<
-			std::tuple<
-				bool,
-				std::array<double, 4>
-			>
-		> header = read_data(
+		boost::optional<std::array<double, 4>> header = read_data(
 			cell_id_mapping,
 			topology,
 			geometry,
@@ -1140,9 +994,8 @@ int main(int argc, char* argv[])
 				simulation_data,
 				cells,
 				input_files[i].substr(0, input_files[i].size() - 3),
-				std::get<1>(*header)[1],
-				std::get<1>(*header)[3],
-				std::get<0>(*header)
+				(*header)[1],
+				(*header)[3]
 			);
 			break;
 		case 2:
@@ -1152,9 +1005,8 @@ int main(int argc, char* argv[])
 				cells,
 				input_files[i].substr(0, input_files[i].size() - 3),
 				"png",
-				std::get<1>(*header)[1],
-				std::get<1>(*header)[3],
-				std::get<0>(*header),
+				(*header)[1],
+				(*header)[3],
 				common_plot_2d,
 				mass_density_plot_2d,
 				pressure_plot_2d,

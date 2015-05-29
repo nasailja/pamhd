@@ -278,16 +278,16 @@ int plot_1d(
 		<< "'\nset xrange ["
 		<< boost::lexical_cast<std::string>(tube_start)
 		<< " : " << boost::lexical_cast<std::string>(tube_end)
-		<< "]\nset ylabel 'Mass density (kg m^{-3})'\n"
-		   "set y2label 'Pressure (Pa)'\n"
-		   "set key horizontal outside bottom\n"
+		<< "]\nset ylabel 'Mass density' textcolor lt 1\n"
+		   "set y2label 'Pressure' textcolor lt 3\n"
+		   "unset key\n"
 		   "set ytics nomirror\n"
 		   "set yrange [0 : *]\n"
 		   "set y2range [0 : *]\n"
 		   "set y2tics auto\n"
 		   "plot "
 		     "'-' using 1:2 axes x1y1 with line linewidth 2 title 'density', "
-		     "'-' u 1:2 axes x1y2 w l lw 2 t 'pressure'\n";
+		     "'-' u 1:2 axes x1y2 w l lt 3 lw 2 t 'pressure'\n";
 
 	for (const auto& cell_id: cells) {
 		const auto& data
@@ -321,7 +321,7 @@ int plot_1d(
 	gnuplot_file
 		<< "set term png enhanced\nset output '"
 		<< output_file_name_prefix + "_V.png"
-		<< "'\nset ylabel 'Velocity (m s^{-1})'\n"
+		<< "'\nset ylabel 'Velocity'\n"
 		   "set yrange [* : *]\n"
 		   "unset y2label\n"
 		   "unset y2tics\n"
