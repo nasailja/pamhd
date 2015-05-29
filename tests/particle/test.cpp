@@ -1484,15 +1484,6 @@ int main(int argc, char* argv[])
 		);
 		grid.start_remote_neighbor_copy_updates();
 
-		pamhd::mhd::zero_fluxes(
-			cell_ids,
-			grid,
-			MHD_Mass_Flux_Getter,
-			MHD_Momentum_Flux_Getter,
-			MHD_Energy_Flux_Getter,
-			MHD_B_Flux_Getter
-		);
-
 		// inner MHD
 		max_dt = min(
 			max_dt,
