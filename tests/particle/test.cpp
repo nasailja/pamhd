@@ -55,7 +55,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "particle/solve_dccrg.hpp"
 #include "particle/solve_fields.hpp"
 #include "particle/variables.hpp"
-//#include "pamhd/couplers.hpp"
+#include "pamhd/initialize.hpp"
 
 
 using namespace std;
@@ -94,193 +94,6 @@ struct Replace_Particles {
 	static std::string get_option_help() { return std::string("Whether to replace (> 0) or add (<= 0) particles with create_particles()"); }
 };
 
-
-/*
-Initializes magnetic field in given grid.
-
-B is initialized either from given file or from
-given options of given file == "".
-
-File format (ascii data):
-x, y and z coordinate of 1st B location in meters,
-x, y and z components of 1st magnetic field in tesla,
-x, y and z coordinates of 2nd B location in meters,
-...
-Each local cell in given grid is initialized from the closest value
-in given file.
-*/
-template<
-	class MHD_T,
-	class Magnetic_Field_T,
-	class Init_Cond,
-	class Cell,
-	class Geometry
-> void initialize_B(
-	Init_Cond& init_cond,
-	const double simulation_time,
-	const std::vector<uint64_t>& cell_ids,
-	dccrg::Dccrg<Cell, Geometry>& grid,
-	const std::string& field_file,
-	const bool verbose
-) {
-	using std::pow;
-
-	if (verbose && grid.get_rank() == 0) {
-		std::cout << "Setting initial electric and magnetic fields... ";
-		std::cout.flush();
-	}
-
-	// set initial fields from file
-	if (field_file != "") {
-		std::ifstream infile(field_file);
-
-		/*
-		Read in file data
-		*/
-
-		std::vector<
-			// r, B
-			std::array<Eigen::Vector3d, 2>
-		> file_data;
-		file_data.reserve(cell_ids.size()); // guess
-
-		while (infile) {
-			Eigen::Vector3d r, B;
-
-			infile >> r[0];
-
-			if (infile.eof()) {
-				break;
-			} else if (not infile.good()) {
-				std::cerr << "Couldn't extract first coordinate of location from "
-					<< field_file << " after " << file_data.size() << " items"
-					<< std::endl;
-				abort();
-			}
-
-			infile >> r[1] >> r[2];
-			if (not infile.good()) {
-				std::cerr << "Couldn't extract other coordinates from "
-					<< field_file << " after " << file_data.size() << " items"
-					<< std::endl;
-				abort();
-			}
-
-			infile >> B[0] >> B[1] >> B[2];
-			if (not infile.good()) {
-				std::cerr << "Couldn't extract magnetic field from "
-					<< field_file << " after " << file_data.size() << " items"
-					<< std::endl;
-				abort();
-			}
-
-			file_data.push_back({{r, B}});
-		}
-
-		// set field values in local cells
-		for (const auto& cell_id: cell_ids) {
-			const auto cell_center = grid.geometry.get_center(cell_id);
-
-			const auto closest_item = std::min_element(
-				file_data.cbegin(),
-				file_data.cend(),
-				[&cell_center](
-					const std::array<Eigen::Vector3d, 2>& a,
-					const std::array<Eigen::Vector3d, 2>& b
-				) {
-					const auto
-						a_distance2
-							= pow(a[0][0] - cell_center[0], 2)
-							+ pow(a[0][1] - cell_center[1], 2)
-							+ pow(a[0][2] - cell_center[2], 2),
-						b_distance2
-							= pow(b[0][0] - cell_center[0], 2)
-							+ pow(b[0][1] - cell_center[1], 2)
-							+ pow(b[0][2] - cell_center[2], 2);
-
-					return a_distance2 < b_distance2;
-				}
-			);
-
-			if (closest_item == file_data.cend()) {
-				std::cerr << "Couldn't find field data item closest to center of cell "
-					<< cell_id
-					<< std::endl;
-				abort();
-			}
-
-			auto* const cell_data = grid[cell_id];
-			if (cell_data == nullptr) {
-				std::cerr << __FILE__ << ":" << __LINE__ << std::endl;
-				abort();
-			}
-
-			(*cell_data)[MHD_T()][Magnetic_Field_T()] = (*closest_item)[1];
-		}
-
-	// set initial fields from command line
-	} else {
-
-		// set default state
-		for (const auto cell_id: cell_ids) {
-			const auto
-				cell_start = grid.geometry.get_min(cell_id),
-				cell_end = grid.geometry.get_max(cell_id),
-				cell_center = grid.geometry.get_center(cell_id);
-
-			// classify cells for the next loop
-			init_cond.add_cell(
-				cell_id,
-				cell_start,
-				cell_end
-			);
-
-			auto* const cell_data = grid[cell_id];
-			if (cell_data == NULL) {
-				std::cerr <<  __FILE__ << "(" << __LINE__ << ") No data for cell: "
-					<< cell_id
-					<< std::endl;
-				abort();
-			}
-
-			(*cell_data)[MHD_T()][Magnetic_Field_T()]
-				= init_cond.default_data.get_data(
-					Magnetic_Field_T(),
-					cell_center,
-					0
-				);
-		}
-
-		// set state in additional boundary regions
-		for (size_t bdy_id = 0; bdy_id < init_cond.get_number_of_boundaries(); bdy_id++) {
-			for (const auto& cell_id: init_cond.get_cells(bdy_id)) {
-
-				const auto cell_center = grid.geometry.get_center(cell_id);
-
-				auto* const cell_data = grid[cell_id];
-				if (cell_data == NULL) {
-					std::cerr <<  __FILE__ << "(" << __LINE__ << ") No data for cell: "
-						<< cell_id
-						<< std::endl;
-					abort();
-				}
-
-				(*cell_data)[MHD_T()][Magnetic_Field_T()]
-					= init_cond.get_data(
-						Magnetic_Field_T(),
-						bdy_id,
-						cell_center,
-						simulation_time
-					);
-			}
-		}
-	}
-
-	if (verbose && grid.get_rank() == 0) {
-		std::cout << "done";
-		std::cout.flush();
-	}
-}
 
 // cell class used by this program
 using Cell = gensimcell::Cell<
@@ -1053,16 +866,12 @@ int main(int argc, char* argv[])
 	if (verbose and rank == 0) {
 		cout << "Initializing magnetic field... " << endl;
 	}
-	initialize_B<
-		pamhd::mhd::MHD_State_Conservative,
-		pamhd::mhd::Magnetic_Field
-	>(
+	pamhd::initialize_field(
 		initial_field,
-		0,
-		cell_ids,
 		grid,
-		"",
-		verbose
+		cell_ids,
+		0,
+		MHD_B_Getter
 	);
 	if (verbose and rank == 0) {
 		cout << "done." << endl;
