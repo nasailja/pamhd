@@ -289,7 +289,7 @@ int main(int argc, char* argv[])
 
 	const auto cell_ids = grid.get_cells();
 
-	create_particles(1, cell_ids, grid);
+	create_particles(nr_of_values, cell_ids, grid);
 
 	pamhd::particle::accumulate(
 		cell_ids,
