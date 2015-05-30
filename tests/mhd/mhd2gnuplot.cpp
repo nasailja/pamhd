@@ -289,8 +289,6 @@ int plot_1d(
 		   "set y2label 'Pressure' textcolor lt 3\n"
 		   "unset key\n"
 		   "set ytics nomirror\n"
-		   "set yrange [0 : *]\n"
-		   "set y2range [0 : *]\n"
 		   "set y2tics auto\n"
 		   "plot "
 		     "'-' using 1:2 axes x1y1 with line linewidth 2 title 'density', "
