@@ -164,26 +164,26 @@ template<
 					};
 
 				// handle periodic grid geometry
-				if (x_offset < 0 and neighbor_center[0] > cell_center[0]) {
+				if (x_offset < 0 and neighbor_center[0] > cell_min[0]) {
 					neighbor_max[0] = cell_min[0];
 					neighbor_min[0] = cell_min[0] - neighbor_length[0];
-				} else if (x_offset > 0 and neighbor_center[0] < cell_center[0]) {
+				} else if (x_offset > 0 and neighbor_center[0] < cell_max[0]) {
 					neighbor_min[0] = cell_max[0];
 					neighbor_max[0] = cell_max[0] + neighbor_length[0];
 				}
 
-				if (y_offset < 0 and neighbor_center[1] > cell_center[1]) {
+				if (y_offset < 0 and neighbor_center[1] > cell_min[1]) {
 					neighbor_max[1] = cell_min[1];
 					neighbor_min[1] = cell_min[1] - neighbor_length[1];
-				} else if (y_offset > 0 and neighbor_center[1] < cell_center[1]) {
+				} else if (y_offset > 0 and neighbor_center[1] < cell_max[1]) {
 					neighbor_min[1] = cell_max[1];
 					neighbor_max[1] = cell_max[1] + neighbor_length[1];
 				}
 
-				if (z_offset < 0 and neighbor_center[2] > cell_center[2]) {
+				if (z_offset < 0 and neighbor_center[2] > cell_min[2]) {
 					neighbor_max[2] = cell_min[2];
 					neighbor_min[2] = cell_min[2] - neighbor_length[2];
-				} else if (z_offset > 0 and neighbor_center[2] < cell_center[2]) {
+				} else if (z_offset > 0 and neighbor_center[2] < cell_max[2]) {
 					neighbor_min[2] = cell_max[2];
 					neighbor_max[2] = cell_max[2] + neighbor_length[2];
 				}
