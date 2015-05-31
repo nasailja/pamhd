@@ -186,31 +186,23 @@ double get_norm(
 	MPI_Comm& comm
 ) {
 	double
-		norm_local = 0,
-		norm_global = 0;
+		density_local = 0,
+		density_global = 0;
 	for (const auto& cell_id: cell_ids) {
 		const auto* const cell_data = grid[cell_id];
 		if (cell_data == nullptr) {
 			std::cerr << __FILE__ << "(" << __LINE__ << ")" << std::endl;
 			abort();
 		}
-
-		norm_local
-			= std::max(
-				norm_local,
-				std::fabs(
-					(*cell_data)[Mass_Density()]
-					- mass_density()
-				)
-			);
+		density_local += (*cell_data)[Mass_Density()];
 	}
 	if (
 		MPI_Allreduce(
-			&norm_local,
-			&norm_global,
+			&density_local,
+			&density_global,
 			1,
 			MPI_DOUBLE,
-			MPI_MAX,
+			MPI_SUM,
 			comm
 		) != MPI_SUCCESS
 	) {
@@ -220,7 +212,28 @@ double get_norm(
 		abort();
 	}
 
-	return norm_global;
+	size_t
+		cells_local = cell_ids.size(),
+		cells_global = 0;
+	if (
+		MPI_Allreduce(
+			&cells_local,
+			&cells_global,
+			1,
+			MPI_UINT64_T,
+			MPI_SUM,
+			comm
+		) != MPI_SUCCESS
+	) {
+		std::cerr << __FILE__ << ":" << __LINE__
+			<< ": Couldn't set reduce norm."
+			<< std::endl;
+		abort();
+	}
+
+	density_global /= cells_global;
+
+	return std::fabs(density_global - mass_density());
 }
 
 
@@ -250,93 +263,111 @@ int main(int argc, char* argv[])
 	}
 
 
-	constexpr size_t nr_of_values = 10000;
-
-	// same as accumulate.cpp but for all dimensions
-	double old_norm = std::numeric_limits<double>::max();
-
-	const std::array<uint64_t, 3> nr_of_cells{{1, 1, 1}};
+	constexpr size_t
+		nr_of_values = 100,
+		max_nr_of_cells = 512;
 
 	const unsigned int neighborhood_size = 1;
 	const std::array<bool, 3> periodic = {{true, true, true}};
-
-	Grid grid;
-
-	if (
-		not grid.initialize(
-			nr_of_cells, comm, "RANDOM", neighborhood_size, 0,
-			periodic[0], periodic[1], periodic[2]
-		)
-	) {
-		std::cerr << __FILE__ << ":" << __LINE__
-			<< ": Couldn't initialize grids."
-			<< std::endl;
-		abort();
-	}
 
 	dccrg::Cartesian_Geometry::Parameters geom_params;
 	geom_params.start = {{-3,  -5,  -7}};
 	geom_params.level_0_cell_length = {{7,   5,   3}};
 
-	if (not grid.set_geometry(geom_params)) {
-		std::cerr << __FILE__ << "(" << __LINE__ << "): "
-			<< "Couldn't set geometry of grids."
-			<< std::endl;
-		abort();
-	}
-
-	grid.balance_load();
-
-	const auto cell_ids = grid.get_cells();
-
-	create_particles(nr_of_values, cell_ids, grid);
-
-	pamhd::particle::accumulate(
-		cell_ids,
-		grid,
-		[](Cell& cell)->pamhd::particle::Particles_Internal::data_type&{
-			return cell[pamhd::particle::Particles_Internal()];
-		},
-		[](pamhd::particle::Particle_Internal& particle)
-			->pamhd::particle::Position::data_type&
-		{
-			return particle[pamhd::particle::Position()];
-		},
-		[](pamhd::particle::Particle_Internal& particle)
-			->pamhd::particle::Mass::data_type&
-		{
-			return particle[pamhd::particle::Mass()];
-		},
-		bulk_value_getter,
-		list_bulk_value_getter,
-		list_target_getter,
-		accumulation_list_length_getter,
-		accumulation_list_getter
-	);
-
-	// transform accumulated mass to mass density
-	for (const auto& cell_id: cell_ids) {
-		const auto cell_length = grid.geometry.get_length(cell_id);
-		const auto volume = cell_length[0] * cell_length[1] * cell_length[2];
-
-		auto* const cell_data = grid[cell_id];
-		if (cell_data == nullptr) {
-			std::cerr << __FILE__ << "(" << __LINE__ << ")" << std::endl;
+	for (size_t nr_cells = 1; nr_cells <= max_nr_of_cells; nr_cells *= 2) {
+		Grid grid;
+		const std::array<uint64_t, 3> nr_of_cells{{nr_cells, 1, 1}};
+		if (
+			not grid.initialize(
+				nr_of_cells, comm, "RANDOM", neighborhood_size, 0,
+				periodic[0], periodic[1], periodic[2]
+			)
+		) {
+			std::cerr << __FILE__ << ":" << __LINE__
+				<< ": Couldn't initialize grids."
+				<< std::endl;
 			abort();
 		}
-		(*cell_data)[Mass_Density()] /= volume;
-	}
 
-	const double norm = get_norm(cell_ids, grid, comm);
-
-	if (norm > 1e-6) {
-		if (rank == 0) {
-			std::cerr << __FILE__ << ":" << __LINE__
-				<< ": Norm is too large: " << norm
+		if (not grid.set_geometry(geom_params)) {
+			std::cerr << __FILE__ << "(" << __LINE__ << "): "
+				<< "Couldn't set geometry of grids."
 				<< std::endl;
+			abort();
 		}
-		MPI_Finalize();
-		return EXIT_FAILURE;
+
+		grid.balance_load();
+
+		const auto cell_ids = grid.get_cells();
+
+		create_particles(nr_of_values, cell_ids, grid);
+
+		for (const auto& cell_id: cell_ids) {
+			auto* const cell_data = grid[cell_id];
+			if (cell_data == nullptr) {abort();}
+			bulk_value_getter(*cell_data) = 0;
+		}
+		pamhd::particle::accumulate(
+			cell_ids,
+			grid,
+			[](Cell& cell)->pamhd::particle::Particles_Internal::data_type&{
+				return cell[pamhd::particle::Particles_Internal()];
+			},
+			[](pamhd::particle::Particle_Internal& particle)
+				->pamhd::particle::Position::data_type&
+			{
+				return particle[pamhd::particle::Position()];
+			},
+			[](pamhd::particle::Particle_Internal& particle)
+				->pamhd::particle::Mass::data_type&
+			{
+				return particle[pamhd::particle::Mass()];
+			},
+			bulk_value_getter,
+			list_bulk_value_getter,
+			list_target_getter,
+			accumulation_list_length_getter,
+			accumulation_list_getter
+		);
+
+		Cell::set_transfer_all(true, pamhd::particle::Nr_Accumulated_To_Cells());
+		grid.update_copies_of_remote_neighbors();
+		Cell::set_transfer_all(false, pamhd::particle::Nr_Accumulated_To_Cells());
+
+		allocate_accumulation_lists(grid);
+
+		// transfer accumulated values between processes
+		Cell::set_transfer_all(true, Accumulated_To_Cells());
+		grid.update_copies_of_remote_neighbors();
+		Cell::set_transfer_all(false, Accumulated_To_Cells());
+
+		accumulate_from_remote_neighbors(grid);
+
+		// transform accumulated mass to mass density
+		for (const auto& cell_id: cell_ids) {
+			const auto cell_length = grid.geometry.get_length(cell_id);
+			const auto volume = cell_length[0] * cell_length[1] * cell_length[2];
+
+			auto* const cell_data = grid[cell_id];
+			if (cell_data == nullptr) {
+				std::cerr << __FILE__ << "(" << __LINE__ << ")" << std::endl;
+				abort();
+			}
+			(*cell_data)[Mass_Density()] /= volume;
+		}
+
+		const double norm = get_norm(cell_ids, grid, comm);
+
+		if (norm > 1e-10) {
+			if (rank == 0) {
+				std::cerr << __FILE__ << ":" << __LINE__
+					<< ": Norm is too large: " << norm
+					<< " with " << nr_cells << " cell(s)"
+					<< std::endl;
+			}
+			MPI_Finalize();
+			return EXIT_FAILURE;
+		}
 	}
 
 	MPI_Finalize();
