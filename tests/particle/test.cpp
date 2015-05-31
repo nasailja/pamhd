@@ -120,7 +120,7 @@ using Cell = gensimcell::Cell<
 >;
 using Grid = dccrg::Dccrg<Cell, dccrg::Cartesian_Geometry>;
 
-// particle list of given cell
+// returns a reference to internal particle list of given cell
 const auto Particle_List_Getter
 	= [](Cell& cell)->typename pamhd::particle::Particles_Internal::data_type&{
 		return cell[pamhd::particle::Particles_Internal()];
@@ -230,7 +230,7 @@ const auto Mag_div
 	= [](Cell& cell_data)->typename pamhd::mhd::Magnetic_Field_Divergence::data_type&{
 		return cell_data[pamhd::mhd::Magnetic_Field_Divergence()];
 	};
-// field used for propagating particles
+// magnetic field for propagating particles
 const auto Mag_part
 	= [](Cell& cell_data)->typename pamhd::mhd::Magnetic_Field::data_type&{
 		return cell_data[pamhd::particle::Magnetic_Field()];
@@ -240,7 +240,7 @@ const auto Cur
 	= [](Cell& cell_data)->typename pamhd::mhd::Electric_Current_Density::data_type&{
 		return cell_data[pamhd::mhd::Electric_Current_Density()];
 	};
-// electric field from Ohm's law (E = (J-V)xB at the moment)
+// electric field for propagating particles
 const auto Ele
 	= [](Cell& cell_data)->typename pamhd::particle::Electric_Field::data_type&{
 		return cell_data[pamhd::particle::Electric_Field()];
@@ -819,6 +819,8 @@ int main(int argc, char* argv[])
 
 	grid.balance_load();
 
+	// create copies of remote neighbor cells' data
+	grid.update_copies_of_remote_neighbors();
 
 	const auto
 		inner_cell_ids = grid.get_local_cells_not_on_process_boundary(),
@@ -894,9 +896,6 @@ int main(int argc, char* argv[])
 	if (verbose and rank == 0) {
 		cout << "done." << endl;
 	}
-
-	// create copies of remote neighbor cells
-	grid.update_copies_of_remote_neighbors();
 
 
 	const auto mhd_solver
@@ -1119,10 +1118,7 @@ int main(int argc, char* argv[])
 			Bulk_Mass_Getter,
 			Bulk_Momentum_Getter,
 			Particle_List_Getter,
-			Mas,
-			Mom,
-			Nrj,
-			Mag
+			Mas, Mom, Nrj, Mag
 		);
 
 		grid.wait_remote_neighbor_copy_update_receives();
@@ -1191,10 +1187,7 @@ int main(int argc, char* argv[])
 			Bulk_Mass_Getter,
 			Bulk_Momentum_Getter,
 			Particle_List_Getter,
-			Mas,
-			Mom,
-			Nrj,
-			Mag
+			Mas, Mom, Nrj, Mag
 		);
 
 		// outer: E = (J - V) x B
@@ -1273,14 +1266,8 @@ int main(int argc, char* argv[])
 				time_step,
 				adiabatic_index,
 				vacuum_permeability,
-				Mas,
-				Mom,
-				Nrj,
-				Mag,
-				Mas_f,
-				Mom_f,
-				Nrj_f,
-				Mag_f
+				Mas, Mom, Nrj, Mag,
+				Mas_f, Mom_f, Nrj_f, Mag_f
 			)
 		);
 
@@ -1314,14 +1301,8 @@ int main(int argc, char* argv[])
 				time_step,
 				adiabatic_index,
 				vacuum_permeability,
-				Mas,
-				Mom,
-				Nrj,
-				Mag,
-				Mas_f,
-				Mom_f,
-				Nrj_f,
-				Mag_f
+				Mas, Mom, Nrj, Mag,
+				Mas_f, Mom_f, Nrj_f, Mag_f
 			)
 		);
 
@@ -1330,14 +1311,8 @@ int main(int argc, char* argv[])
 			grid,
 			adiabatic_index,
 			vacuum_permeability,
-			Mas,
-			Mom,
-			Nrj,
-			Mag,
-			Mas_f,
-			Mom_f,
-			Nrj_f,
-			Mag_f
+			Mas, Mom, Nrj, Mag,
+			Mas_f, Mom_f, Nrj_f, Mag_f
 		);
 
 		pamhd::particle::resize_receiving_containers<
@@ -1365,14 +1340,8 @@ int main(int argc, char* argv[])
 			grid,
 			adiabatic_index,
 			vacuum_permeability,
-			Mas,
-			Mom,
-			Nrj,
-			Mag,
-			Mas_f,
-			Mom_f,
-			Nrj_f,
-			Mag_f
+			Mas, Mom, Nrj, Mag,
+			Mas_f, Mom_f, Nrj_f, Mag_f
 		);
 
 		pamhd::particle::incorporate_external_particles<
