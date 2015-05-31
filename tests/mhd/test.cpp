@@ -65,74 +65,71 @@ which doesn't use generic cell
 */
 int Poisson_Cell::transfer_switch = Poisson_Cell::INIT;
 
+using Cell = pamhd::mhd::Cell;
+using Grid = dccrg::Dccrg<Cell, dccrg::Cartesian_Geometry>;
+
+// reference to total mass density of all fluids in given cell
+const auto Mas
+	= [](Cell& cell_data)->typename pamhd::mhd::Mass_Density::data_type&{
+		return cell_data[pamhd::mhd::MHD_State_Conservative()][pamhd::mhd::Mass_Density()];
+	};
+const auto Mom
+	= [](Cell& cell_data)->typename pamhd::mhd::Momentum_Density::data_type&{
+		return cell_data[pamhd::mhd::MHD_State_Conservative()][pamhd::mhd::Momentum_Density()];
+	};
+const auto Nrj
+	= [](Cell& cell_data)->typename pamhd::mhd::Total_Energy_Density::data_type&{
+		return cell_data[pamhd::mhd::MHD_State_Conservative()][pamhd::mhd::Total_Energy_Density()];
+	};
+const auto Mag
+	= [](Cell& cell_data)->typename pamhd::mhd::Magnetic_Field::data_type&{
+		return cell_data[pamhd::mhd::MHD_State_Conservative()][pamhd::mhd::Magnetic_Field()];
+	};
+
+// field before divergence removal in case removal fails
+const auto Mag_tmp
+	= [](Cell& cell_data)->typename pamhd::mhd::Magnetic_Field_Temp::data_type&{
+		return cell_data[pamhd::mhd::Magnetic_Field_Temp()];
+	};
+// divergence of magnetic field
+const auto Mag_div
+	= [](Cell& cell_data)->typename pamhd::mhd::Magnetic_Field_Divergence::data_type&{
+		return cell_data[pamhd::mhd::Magnetic_Field_Divergence()];
+	};
+// adjustment to magnetic field due to resistivity
+const auto Mag_res
+	= [](Cell& cell_data)->typename pamhd::mhd::Magnetic_Field_Resistive::data_type&{
+		return cell_data[pamhd::mhd::Magnetic_Field_Resistive()];
+	};
+// curl of magnetic field
+const auto Cur
+	= [](Cell& cell_data)->typename pamhd::mhd::Electric_Current_Density::data_type&{
+		return cell_data[pamhd::mhd::Electric_Current_Density()];
+	};
+
+// flux / total change of mass density over one time step
+const auto Mas_f
+	= [](Cell& cell_data)->typename pamhd::mhd::Mass_Density::data_type&{
+		return cell_data[pamhd::mhd::MHD_Flux_Conservative()][pamhd::mhd::Mass_Density()];
+	};
+const auto Mom_f
+	= [](Cell& cell_data)->typename pamhd::mhd::Momentum_Density::data_type&{
+		return cell_data[pamhd::mhd::MHD_Flux_Conservative()][pamhd::mhd::Momentum_Density()];
+	};
+const auto Nrj_f
+	= [](Cell& cell_data)->typename pamhd::mhd::Total_Energy_Density::data_type&{
+		return cell_data[pamhd::mhd::MHD_Flux_Conservative()][pamhd::mhd::Total_Energy_Density()];
+	};
+const auto Mag_f
+	= [](Cell& cell_data)->typename pamhd::mhd::Magnetic_Field::data_type&{
+		return cell_data[pamhd::mhd::MHD_Flux_Conservative()][pamhd::mhd::Magnetic_Field()];
+	};
+
 
 int main(int argc, char* argv[])
 {
 	using std::min;
 	using std::pow;
-	using Cell = pamhd::mhd::Cell;
-	using Grid = dccrg::Dccrg<Cell, dccrg::Cartesian_Geometry>;
-
-
-	const auto Mas
-		= [](Cell& cell_data)->typename pamhd::mhd::Mass_Density::data_type&{
-			return cell_data[pamhd::mhd::MHD_State_Conservative()][pamhd::mhd::Mass_Density()];
-		};
-
-	const auto Mom
-		= [](Cell& cell_data)->typename pamhd::mhd::Momentum_Density::data_type&{
-			return cell_data[pamhd::mhd::MHD_State_Conservative()][pamhd::mhd::Momentum_Density()];
-		};
-
-	const auto Nrj
-		= [](Cell& cell_data)->typename pamhd::mhd::Total_Energy_Density::data_type&{
-			return cell_data[pamhd::mhd::MHD_State_Conservative()][pamhd::mhd::Total_Energy_Density()];
-		};
-
-	const auto Mag
-		= [](Cell& cell_data)->typename pamhd::mhd::Magnetic_Field::data_type&{
-			return cell_data[pamhd::mhd::MHD_State_Conservative()][pamhd::mhd::Magnetic_Field()];
-		};
-
-	const auto Mag_tmp
-		= [](Cell& cell_data)->typename pamhd::mhd::Magnetic_Field_Temp::data_type&{
-			return cell_data[pamhd::mhd::Magnetic_Field_Temp()];
-		};
-
-	const auto Mag_div
-		= [](Cell& cell_data)->typename pamhd::mhd::Magnetic_Field_Divergence::data_type&{
-			return cell_data[pamhd::mhd::Magnetic_Field_Divergence()];
-		};
-
-	const auto Mag_res
-		= [](Cell& cell_data)->typename pamhd::mhd::Magnetic_Field_Resistive::data_type&{
-			return cell_data[pamhd::mhd::Magnetic_Field_Resistive()];
-		};
-
-	const auto Cur
-		= [](Cell& cell_data)->typename pamhd::mhd::Electric_Current_Density::data_type&{
-			return cell_data[pamhd::mhd::Electric_Current_Density()];
-		};
-
-	const auto Mas_f
-		= [](Cell& cell_data)->typename pamhd::mhd::Mass_Density::data_type&{
-			return cell_data[pamhd::mhd::MHD_Flux_Conservative()][pamhd::mhd::Mass_Density()];
-		};
-
-	const auto Mom_f
-		= [](Cell& cell_data)->typename pamhd::mhd::Momentum_Density::data_type&{
-			return cell_data[pamhd::mhd::MHD_Flux_Conservative()][pamhd::mhd::Momentum_Density()];
-		};
-
-	const auto Nrj_f
-		= [](Cell& cell_data)->typename pamhd::mhd::Total_Energy_Density::data_type&{
-			return cell_data[pamhd::mhd::MHD_Flux_Conservative()][pamhd::mhd::Total_Energy_Density()];
-		};
-
-	const auto Mag_f
-		= [](Cell& cell_data)->typename pamhd::mhd::Magnetic_Field::data_type&{
-			return cell_data[pamhd::mhd::MHD_Flux_Conservative()][pamhd::mhd::Magnetic_Field()];
-		};
 
 
 	/*
