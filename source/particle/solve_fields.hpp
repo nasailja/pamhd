@@ -217,6 +217,10 @@ template<
 }
 
 
+/*!
+If cell doesn't have particles and no_particles_allowed == true
+skips that cell.
+*/
 template<
 	class Particle_Mass_T,
 	class Particle_Velocity_T,
@@ -242,7 +246,8 @@ template<
 	MHD_Mass_Getter MHD_Mass,
 	MHD_Momentum_Getter MHD_Momentum,
 	MHD_Energy_Getter MHD_Energy,
-	MHD_Magnetic_Field_Getter MHD_Magnetic_Field
+	MHD_Magnetic_Field_Getter MHD_Magnetic_Field,
+	const bool no_particles_allowed = false
 ) {
 	for (const auto& cell: cell_ids) {
 		auto* const cell_data = grid[cell];
@@ -252,6 +257,10 @@ template<
 		}
 
 		if (Particle_List(*cell_data).size() == 0) {
+			if (no_particles_allowed) {
+				continue;
+			}
+
 			std::cerr <<  __FILE__ << "(" << __LINE__ << "): "
 				<< "No particles in cell " << cell
 				<< std::endl;
