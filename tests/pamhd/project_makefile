@@ -1,0 +1,88 @@
+TESTS_PAMHD_EXECUTABLES = \
+  tests/pamhd/test.exe
+
+TESTS_PAMHD_TESTS =
+
+tests/pamhd_executables: $(TESTS_PAMHD_EXECUTABLES)
+
+tests/pamhd_tests: $(TESTS_PAMHD_TESTS)
+
+tests/pamhd_clean_results:
+	@printf "CLEAN RESULTS tests/pamhd\n" && rm -f \
+	  tests/pamhd/*.dat \
+	  tests/pamhd/*.vtk \
+	  tests/pamhd/*.dc \
+	  tests/pamhd/*.visit \
+	  tests/pamhd/*.gnuplot \
+	  tests/pamhd/*.png
+
+tests/pamhd_clean:
+	@printf "CLEAN tests/pamhd\n" && rm -f \
+	  $(TESTS_PAMHD_EXECUTABLES) \
+	  $(TESTS_PAMHD_TESTS)
+
+EXECUTABLES += tests/pamhd_executables
+TESTS += tests/pamhd_tests
+RESULTS += tests/pamhd_clean_results
+CLEAN += tests/pamhd_clean
+
+
+TEST_PAMHD_COMMON_DEPS = \
+  source/boundaries/boundary.hpp \
+  source/boundaries/boundary_time_dependent.hpp \
+  source/boundaries/box.hpp \
+  source/boundaries/boxes.hpp \
+  source/boundaries/common.hpp \
+  source/boundaries/copy_boundary.hpp \
+  source/boundaries/initial_condition.hpp \
+  source/boundaries/program_options_validators.hpp \
+  source/boundaries/sphere.hpp \
+  source/boundaries/spheres.hpp \
+  source/boundaries/time_dependent_boundary.hpp \
+  source/boundaries/value_boundaries.hpp \
+  source/boundaries/variable_to_option.hpp \
+  source/boundaries/variable_to_option_vector.hpp \
+  source/mhd/common.hpp \
+  source/mhd/hll_athena.hpp \
+  source/mhd/initialize.hpp \
+  source/mhd/save.hpp \
+  source/mhd/solve.hpp \
+  source/mhd/variables.hpp \
+  source/mhd/N_solve.hpp \
+  source/particle/accumulate.hpp \
+  source/particle/accumulate_dccrg.hpp \
+  source/particle/accumulation_variables.hpp \
+  source/particle/common.hpp \
+  source/particle/initialize.hpp \
+  source/particle/save.hpp \
+  source/particle/solve_dccrg.hpp \
+  source/particle/solve_fields.hpp \
+  source/particle/variables.hpp
+
+TEST_PAMHD_COMPILE_COMMOM = \
+  $< -o $@ \
+  $(CPPFLAGS) \
+  $(CXXFLAGS) \
+  $(LDFLAGS) \
+  $(BOOST_CPPFLAGS) \
+  $(BOOST_LDFLAGS) \
+  $(BOOST_LIBS) \
+  $(DCCRG_CPPFLAGS) \
+  $(EIGEN_CPPFLAGS) \
+  $(GENSIMCELL_CPPFLAGS) \
+  $(MUPARSERX_CPPFLAGS) \
+  $(MUPARSERX_LDFLAGS) \
+  $(MUPARSERX_LIBS) \
+  $(PRETTYPRINT_CPPFLAGS) \
+  $(ZOLTAN_CPPFLAGS) \
+  $(ZOLTAN_LDFLAGS) \
+  $(ZOLTAN_LIBS) \
+  -Wno-unused-variable \
+  -Wno-unused-parameter \
+  -Wno-unused-function
+
+tests/pamhd/test.exe: \
+  tests/pamhd/test.cpp \
+  $(TEST_PAMHD_COMMON_DEPS) \
+  tests/pamhd/project_makefile
+	@printf "MPICXX $<\n" && $(MPICXX) $(TEST_PAMHD_COMPILE_COMMOM)

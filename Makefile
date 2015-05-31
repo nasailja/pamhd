@@ -26,6 +26,7 @@ include \
   tests/boundaries/project_makefile \
   tests/divergence/project_makefile \
   tests/particle/project_makefile \
+  tests/pamhd/project_makefile \
   tests/poisson/project_makefile \
   tests/vectorclass/project_makefile \
   tests/interpolate/project_makefile

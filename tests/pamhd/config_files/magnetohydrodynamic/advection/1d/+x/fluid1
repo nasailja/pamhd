@@ -1,0 +1,27 @@
+# mass only in fluid
+output-directory = results/magnetohydrodynamic/advection/1d/+x/fluid1/hll_athena/
+solver-mhd = hll_athena
+time-start = 0
+time-length = 1
+load-balancer = RANDOM
+save-particle-n = 0.1
+vacuum-permeability = 1
+proton-mass = 1
+remove-div-B-n = -1
+time-step-factor = 0.5
+nr-initial-populations = 0
+adiabatic-index = 1.6666667
+
+[grid]
+periodic = {true, true, true}
+nr-cells = {20, 1, 1}
+volume = {1, 1, 1}
+start = {0, 0, 0}
+
+[initial-field]
+default.magnetic-field = {0, sin(2*pi*r[0]), cos(2*pi*r[0])}
+
+[initial-fluid1]
+default.number-density = 1
+default.velocity = {1, 0, 0}
+default.pressure = 1
