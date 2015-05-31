@@ -81,121 +81,109 @@ using Cell = gensimcell::Cell<
 >;
 using Grid = dccrg::Dccrg<Cell, dccrg::Cartesian_Geometry>;
 
+// reference to total mass density of all fluids in given cell
+const auto Mas
+	= [](Cell& cell_data)->typename pamhd::mhd::Mass_Density::data_type&{
+		return cell_data[pamhd::mhd::MHD_State_Conservative()][pamhd::mhd::Mass_Density()];
+	};
+const auto Mom
+	= [](Cell& cell_data)->typename pamhd::mhd::Momentum_Density::data_type&{
+		return cell_data[pamhd::mhd::MHD_State_Conservative()][pamhd::mhd::Momentum_Density()];
+	};
+const auto Nrj
+	= [](Cell& cell_data)->typename pamhd::mhd::Total_Energy_Density::data_type&{
+		return cell_data[pamhd::mhd::MHD_State_Conservative()][pamhd::mhd::Total_Energy_Density()];
+	};
+const auto Mag
+	= [](Cell& cell_data)->typename pamhd::mhd::Magnetic_Field::data_type&{
+		return cell_data[pamhd::mhd::MHD_State_Conservative()][pamhd::mhd::Magnetic_Field()];
+	};
+
+// field before divergence removal in case removal fails
+const auto Mag_tmp
+	= [](Cell& cell_data)->typename pamhd::mhd::Magnetic_Field_Temp::data_type&{
+		return cell_data[pamhd::mhd::Magnetic_Field_Temp()];
+	};
+// divergence of magnetic field
+const auto Mag_div
+	= [](Cell& cell_data)->typename pamhd::mhd::Magnetic_Field_Divergence::data_type&{
+		return cell_data[pamhd::mhd::Magnetic_Field_Divergence()];
+	};
+// adjustment to magnetic field due to resistivity
+const auto Mag_res
+	= [](Cell& cell_data)->typename pamhd::mhd::Magnetic_Field_Resistive::data_type&{
+		return cell_data[pamhd::mhd::Magnetic_Field_Resistive()];
+	};
+// curl of magnetic field
+const auto Cur
+	= [](Cell& cell_data)->typename pamhd::mhd::Electric_Current_Density::data_type&{
+		return cell_data[pamhd::mhd::Electric_Current_Density()];
+	};
+
+// flux / total change of magnetic field over one time step
+const auto Mag_f
+	= [](Cell& cell_data)->typename pamhd::mhd::Magnetic_Field::data_type&{
+		return cell_data[pamhd::mhd::MHD_Flux_Conservative()][pamhd::mhd::Magnetic_Field()];
+	};
+
+// reference to mass density of fluid 1 in given cell
+const auto Mas1
+	= [](Cell& cell_data)->typename pamhd::mhd::Mass_Density::data_type&{
+		return cell_data[pamhd::mhd::HD1_State()][pamhd::mhd::Mass_Density()];
+	};
+const auto Mom1
+	= [](Cell& cell_data)->typename pamhd::mhd::Momentum_Density::data_type&{
+		return cell_data[pamhd::mhd::HD1_State()][pamhd::mhd::Momentum_Density()];
+	};
+const auto Nrj1
+	= [](Cell& cell_data)->typename pamhd::mhd::Total_Energy_Density::data_type&{
+		return cell_data[pamhd::mhd::HD1_State()][pamhd::mhd::Total_Energy_Density()];
+	};
+// reference to mass density of fluid 2 in given cell
+const auto Mas2
+	= [](Cell& cell_data)->typename pamhd::mhd::Mass_Density::data_type&{
+		return cell_data[pamhd::mhd::HD2_State()][pamhd::mhd::Mass_Density()];
+	};
+const auto Mom2
+	= [](Cell& cell_data)->typename pamhd::mhd::Momentum_Density::data_type&{
+		return cell_data[pamhd::mhd::HD2_State()][pamhd::mhd::Momentum_Density()];
+	};
+const auto Nrj2
+	= [](Cell& cell_data)->typename pamhd::mhd::Total_Energy_Density::data_type&{
+		return cell_data[pamhd::mhd::HD2_State()][pamhd::mhd::Total_Energy_Density()];
+	};
+
+// flux of mass density of fluid 1 over one time step
+const auto Mas1_f
+	= [](Cell& cell_data)->typename pamhd::mhd::Mass_Density::data_type&{
+		return cell_data[pamhd::mhd::HD1_Flux()][pamhd::mhd::Mass_Density()];
+	};
+const auto Mom1_f
+	= [](Cell& cell_data)->typename pamhd::mhd::Momentum_Density::data_type&{
+		return cell_data[pamhd::mhd::HD1_Flux()][pamhd::mhd::Momentum_Density()];
+	};
+const auto Nrj1_f
+	= [](Cell& cell_data)->typename pamhd::mhd::Total_Energy_Density::data_type&{
+		return cell_data[pamhd::mhd::HD1_Flux()][pamhd::mhd::Total_Energy_Density()];
+	};
+const auto Mas2_f
+	= [](Cell& cell_data)->typename pamhd::mhd::Mass_Density::data_type&{
+		return cell_data[pamhd::mhd::HD2_Flux()][pamhd::mhd::Mass_Density()];
+	};
+const auto Mom2_f
+	= [](Cell& cell_data)->typename pamhd::mhd::Momentum_Density::data_type&{
+		return cell_data[pamhd::mhd::HD2_Flux()][pamhd::mhd::Momentum_Density()];
+	};
+const auto Nrj2_f
+	= [](Cell& cell_data)->typename pamhd::mhd::Total_Energy_Density::data_type&{
+		return cell_data[pamhd::mhd::HD2_Flux()][pamhd::mhd::Total_Energy_Density()];
+	};
+
 
 int main(int argc, char* argv[])
 {
 	using std::min;
 	using std::pow;
-
-	const auto Mas
-		= [](Cell& cell_data)->typename pamhd::mhd::Mass_Density::data_type&{
-			return cell_data[pamhd::mhd::MHD_State_Conservative()][pamhd::mhd::Mass_Density()];
-		};
-
-	const auto Mom
-		= [](Cell& cell_data)->typename pamhd::mhd::Momentum_Density::data_type&{
-			return cell_data[pamhd::mhd::MHD_State_Conservative()][pamhd::mhd::Momentum_Density()];
-		};
-
-	const auto Nrj
-		= [](Cell& cell_data)->typename pamhd::mhd::Total_Energy_Density::data_type&{
-			return cell_data[pamhd::mhd::MHD_State_Conservative()][pamhd::mhd::Total_Energy_Density()];
-		};
-
-	const auto Mag
-		= [](Cell& cell_data)->typename pamhd::mhd::Magnetic_Field::data_type&{
-			return cell_data[pamhd::mhd::MHD_State_Conservative()][pamhd::mhd::Magnetic_Field()];
-		};
-
-	const auto Mag_tmp
-		= [](Cell& cell_data)->typename pamhd::mhd::Magnetic_Field_Temp::data_type&{
-			return cell_data[pamhd::mhd::Magnetic_Field_Temp()];
-		};
-
-	const auto Mag_div
-		= [](Cell& cell_data)->typename pamhd::mhd::Magnetic_Field_Divergence::data_type&{
-			return cell_data[pamhd::mhd::Magnetic_Field_Divergence()];
-		};
-
-	const auto Mag_res
-		= [](Cell& cell_data)->typename pamhd::mhd::Magnetic_Field_Resistive::data_type&{
-			return cell_data[pamhd::mhd::Magnetic_Field_Resistive()];
-		};
-
-	const auto Cur
-		= [](Cell& cell_data)->typename pamhd::mhd::Electric_Current_Density::data_type&{
-			return cell_data[pamhd::mhd::Electric_Current_Density()];
-		};
-
-	const auto Mas_f
-		= [](Cell& cell_data)->typename pamhd::mhd::Mass_Density::data_type&{
-			return cell_data[pamhd::mhd::MHD_Flux_Conservative()][pamhd::mhd::Mass_Density()];
-		};
-
-	const auto Mom_f
-		= [](Cell& cell_data)->typename pamhd::mhd::Momentum_Density::data_type&{
-			return cell_data[pamhd::mhd::MHD_Flux_Conservative()][pamhd::mhd::Momentum_Density()];
-		};
-
-	const auto Nrj_f
-		= [](Cell& cell_data)->typename pamhd::mhd::Total_Energy_Density::data_type&{
-			return cell_data[pamhd::mhd::MHD_Flux_Conservative()][pamhd::mhd::Total_Energy_Density()];
-		};
-
-	const auto Mag_f
-		= [](Cell& cell_data)->typename pamhd::mhd::Magnetic_Field::data_type&{
-			return cell_data[pamhd::mhd::MHD_Flux_Conservative()][pamhd::mhd::Magnetic_Field()];
-		};
-
-	const auto Mas1
-		= [](Cell& cell_data)->typename pamhd::mhd::Mass_Density::data_type&{
-			return cell_data[pamhd::mhd::HD1_State()][pamhd::mhd::Mass_Density()];
-		};
-	const auto Mom1
-		= [](Cell& cell_data)->typename pamhd::mhd::Momentum_Density::data_type&{
-			return cell_data[pamhd::mhd::HD1_State()][pamhd::mhd::Momentum_Density()];
-		};
-	const auto Nrj1
-		= [](Cell& cell_data)->typename pamhd::mhd::Total_Energy_Density::data_type&{
-			return cell_data[pamhd::mhd::HD1_State()][pamhd::mhd::Total_Energy_Density()];
-		};
-	const auto Mas2
-		= [](Cell& cell_data)->typename pamhd::mhd::Mass_Density::data_type&{
-			return cell_data[pamhd::mhd::HD2_State()][pamhd::mhd::Mass_Density()];
-		};
-	const auto Mom2
-		= [](Cell& cell_data)->typename pamhd::mhd::Momentum_Density::data_type&{
-			return cell_data[pamhd::mhd::HD2_State()][pamhd::mhd::Momentum_Density()];
-		};
-	const auto Nrj2
-		= [](Cell& cell_data)->typename pamhd::mhd::Total_Energy_Density::data_type&{
-			return cell_data[pamhd::mhd::HD2_State()][pamhd::mhd::Total_Energy_Density()];
-		};
-
-	const auto Mas1_f
-		= [](Cell& cell_data)->typename pamhd::mhd::Mass_Density::data_type&{
-			return cell_data[pamhd::mhd::HD1_Flux()][pamhd::mhd::Mass_Density()];
-		};
-	const auto Mom1_f
-		= [](Cell& cell_data)->typename pamhd::mhd::Momentum_Density::data_type&{
-			return cell_data[pamhd::mhd::HD1_Flux()][pamhd::mhd::Momentum_Density()];
-		};
-	const auto Nrj1_f
-		= [](Cell& cell_data)->typename pamhd::mhd::Total_Energy_Density::data_type&{
-			return cell_data[pamhd::mhd::HD1_Flux()][pamhd::mhd::Total_Energy_Density()];
-		};
-	const auto Mas2_f
-		= [](Cell& cell_data)->typename pamhd::mhd::Mass_Density::data_type&{
-			return cell_data[pamhd::mhd::HD2_Flux()][pamhd::mhd::Mass_Density()];
-		};
-	const auto Mom2_f
-		= [](Cell& cell_data)->typename pamhd::mhd::Momentum_Density::data_type&{
-			return cell_data[pamhd::mhd::HD2_Flux()][pamhd::mhd::Momentum_Density()];
-		};
-	const auto Nrj2_f
-		= [](Cell& cell_data)->typename pamhd::mhd::Total_Energy_Density::data_type&{
-			return cell_data[pamhd::mhd::HD2_Flux()][pamhd::mhd::Total_Energy_Density()];
-		};
 
 	/*
 	Initialize MPI
@@ -671,19 +659,14 @@ int main(int argc, char* argv[])
 			std::cerr << __FILE__ << ":" << __LINE__ << std::endl;
 			abort();
 		}
-		Mas_f(*cell_data)     =
 		Mas1_f(*cell_data)    =
 		Mas2_f(*cell_data)    =
-		Mom_f(*cell_data)[0]  =
-		Mom_f(*cell_data)[1]  =
-		Mom_f(*cell_data)[2]  =
 		Mom1_f(*cell_data)[0] =
 		Mom1_f(*cell_data)[1] =
 		Mom1_f(*cell_data)[2] =
 		Mom2_f(*cell_data)[0] =
 		Mom2_f(*cell_data)[1] =
 		Mom2_f(*cell_data)[2] =
-		Nrj_f(*cell_data)     =
 		Nrj1_f(*cell_data)    =
 		Nrj2_f(*cell_data)    =
 		Mag_f(*cell_data)[0]  =
@@ -1058,8 +1041,9 @@ int main(int argc, char* argv[])
 						) / (2 * vacuum_permeability);
 
 					const auto
-						mass_frac1 = Mas1(*cell_data) / Mas(*cell_data),
-						mass_frac2 = Mas2(*cell_data) / Mas(*cell_data);
+						total_mass = Mas1(*cell_data) + Mas2(*cell_data),
+						mass_frac1 = Mas1(*cell_data) / total_mass,
+						mass_frac2 = Mas2(*cell_data) / total_mass;
 					Nrj1(*cell_data) += mass_frac1 * mag_nrj_diff;
 					Nrj2(*cell_data) += mass_frac2 * mag_nrj_diff;
 				}
@@ -1163,6 +1147,7 @@ int main(int argc, char* argv[])
 					= value_bdy_fluid1.get_data(P, bdy_id, cell_center, simulation_time);
 
 				Mas1(*cell_data) = mass_density;
+				Mas(*cell_data) = Mas1(*cell_data) + Mas2(*cell_data);
 				Mom1(*cell_data) = mass_density * velocity;
 				if (mass_density > 0 and pressure > 0) {
 					Nrj1(*cell_data) = pamhd::mhd::get_total_energy_density(
@@ -1200,6 +1185,7 @@ int main(int argc, char* argv[])
 					= value_bdy_fluid2.get_data(P, bdy_id, cell_center, simulation_time);
 
 				Mas2(*cell_data) = mass_density;
+				Mas(*cell_data) = Mas1(*cell_data) + Mas2(*cell_data);
 				Mom2(*cell_data) = mass_density * velocity;
 				if (mass_density > 0 and pressure > 0) {
 					Nrj2(*cell_data) = pamhd::mhd::get_total_energy_density(
@@ -1236,7 +1222,7 @@ int main(int argc, char* argv[])
 		}
 
 		/*
-		Add magnetic nrj to boundary cells
+		Add magnetic nrj to fluid boundary cells
 		*/
 		for (size_t bdy_id = 0; bdy_id < value_bdy_fluid1.get_number_of_boundaries(); bdy_id++) {
 			for (const auto& cell_id: value_bdy_fluid1.get_cells(bdy_id)) {
