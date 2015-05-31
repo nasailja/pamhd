@@ -77,7 +77,8 @@ template<
 	Bulk_Value_In_List_Getter List_Bulk_Val,
 	Target_In_List_Getter List_Target,
 	Accumulation_List_Length_Getter List_Len,
-	Accumulation_List_Getter Accu_List
+	Accumulation_List_Getter Accu_List,
+	const bool clear_at_start = true
 ) {
 	for (const auto& cell_id: cell_ids) {
 		const auto
@@ -97,7 +98,9 @@ template<
 			abort();
 		}
 
-		Accu_List(*cell_data).clear();
+		if (clear_at_start) {
+			Accu_List(*cell_data).clear();
+		}
 
 		// cache required neighbor data
 		std::vector<bool> is_locals;

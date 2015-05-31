@@ -1071,7 +1071,8 @@ int main(int argc, char* argv[])
 			Accu_List_Bulk_Momentum_Getter,
 			Accu_List_Target_Getter,
 			Accu_List_Length_Getter,
-			Accu_List_Getter
+			Accu_List_Getter,
+			false // don't erase accumulated mass
 		);
 
 
@@ -1435,6 +1436,9 @@ int main(int argc, char* argv[])
 			pamhd::particle::Nr_Particles_External,
 			pamhd::particle::Particles_External
 		>(outer_cell_ids, grid);
+
+		simulation_time += time_step;
+
 
 		/*
 		Solution(s) done for this step.
@@ -1812,9 +1816,6 @@ int main(int argc, char* argv[])
 			(*target_data)[pamhd::mhd::MHD_State_Conservative()]
 				= (*source_data)[pamhd::mhd::MHD_State_Conservative()];
 		}
-
-
-		simulation_time += time_step;
 
 
 		/*
