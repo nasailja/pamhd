@@ -42,182 +42,6 @@ namespace particle {
 
 
 /*!
-Accumulated velocity is saved into reference returned by Bulk_Momentum_Getter.
-*/
-template<
-	class Particle_List_Getter,
-	class Particle_Position_Getter,
-	class Particle_Mass_Getter,
-	class Particle_Momentum_Getter,
-	class Bulk_Mass_Getter,
-	class Bulk_Momentum_Getter,
-	class Bulk_Velocity_Getter,
-	class Accu_List_Bulk_Mass_Getter,
-	class Accu_List_Bulk_Momentum_Getter,
-	class Accu_List_Target_Getter,
-	class Accu_List_Length_Getter,
-	class Accumulation_List_Getter,
-	class Cell,
-	class Geometry
-> void accumulate_velocity(
-	const std::vector<uint64_t>& cell_ids,
-	dccrg::Dccrg<Cell, Geometry>& grid,
-	const double vacuum_permeability,
-	Particle_List_Getter Part_List,
-	Particle_Position_Getter Part_Pos,
-	Particle_Mass_Getter Part_Mass,
-	Particle_Momentum_Getter Part_Mom,
-	Bulk_Mass_Getter Bulk_Mass,
-	Bulk_Momentum_Getter Bulk_Momentum,
-	Bulk_Velocity_Getter Bulk_Velocity,
-	Accu_List_Bulk_Mass_Getter List_Bulk_Mass,
-	Accu_List_Bulk_Momentum_Getter List_Bulk_Momentum,
-	Accu_List_Target_Getter List_Target,
-	Accu_List_Length_Getter Accu_List_Len,
-	Accumulation_List_Getter Accu_List
-) {
-	for (const auto& cell: cell_ids) {
-		auto* const cell_data = grid[cell];
-		if (cell_data == nullptr) {
-			std::cerr <<  __FILE__ << "(" << __LINE__ << ")" << std::endl;
-			abort();
-		}
-		Bulk_Mass(*cell_data) = 0;
-		Bulk_Momentum(*cell_data) = {0, 0, 0};
-	}
-	pamhd::particle::accumulate(
-		cell_ids,
-		grid,
-		Part_List,
-		Part_Pos,
-		Part_Mass,
-		Bulk_Mass,
-		List_Bulk_Mass,
-		List_Target,
-		Accu_List_Len,
-		Accu_List
-	);
-	pamhd::particle::accumulate(
-		cell_ids,
-		grid,
-		Part_List,
-		Part_Pos,
-		Part_Mom,
-		Bulk_Momentum,
-		List_Bulk_Momentum,
-		List_Target,
-		Accu_List_Len,
-		Accu_List
-	);
-}
-
-
-/*
-...
-Calculates electric field using generalized Ohm's law.
-
-Included terms: E = JxB - VxB.
-
-Getters should return a reference to data of corresponding
-variable when given data of one cell.
-
-Given variables should have correct values also in
-neighbors of given cells
-*/
-template<
-	class Electric_Field_Getter,
-	class Magnetic_Field_Getter,
-	class Current_Getter,
-	class Particle_List_Getter,
-	class Particle_Position_Getter,
-	class Particle_Mass_Getter,
-	class Particle_Momentum_Getter,
-	class Bulk_Mass_Getter,
-	class Bulk_Momentum_Getter,
-	class Bulk_Velocity_Getter,
-	class Accu_List_Bulk_Mass_Getter,
-	class Accu_List_Bulk_Momentum_Getter,
-	class Accu_List_Target_Getter,
-	class Accu_List_Length_Getter,
-	class Accumulation_List_Getter,
-	class Cell,
-	class Geometry
-> void calculate_electric_field(
-	const std::vector<uint64_t>& cell_ids,
-	dccrg::Dccrg<Cell, Geometry>& grid,
-	const double vacuum_permeability,
-	Electric_Field_Getter Electric_Field,
-	Magnetic_Field_Getter Magnetic_Field,
-	Current_Getter Current,
-	Particle_List_Getter Part_List,
-	Particle_Position_Getter Part_Pos,
-	Particle_Mass_Getter Part_Mass,
-	Particle_Momentum_Getter Part_Mom,
-	Bulk_Mass_Getter Bulk_Mass,
-	Bulk_Momentum_Getter Bulk_Momentum,
-	Bulk_Velocity_Getter Bulk_Velocity,
-	Accu_List_Bulk_Mass_Getter List_Bulk_Mass,
-	Accu_List_Bulk_Momentum_Getter List_Bulk_Momentum,
-	Accu_List_Target_Getter List_Target,
-	Accu_List_Length_Getter Accu_List_Len,
-	Accumulation_List_Getter Accu_List
-) {
-	pamhd::divergence::get_curl(
-		cell_ids,
-		grid,
-		Magnetic_Field,
-		Current
-	);
-	for (const auto& cell: cell_ids) {
-		auto* const cell_data = grid[cell];
-		if (cell_data == nullptr) {
-			std::cerr <<  __FILE__ << "(" << __LINE__ << ")" << std::endl;
-			abort();
-		}
-		Current(*cell_data) /= vacuum_permeability;
-	}
-
-	accumulate_velocity(
-		cell_ids,
-		grid,
-		vacuum_permeability,
-		Part_List,
-		Part_Pos,
-		Part_Mass,
-		Part_Mom,
-		Bulk_Mass,
-		Bulk_Momentum,
-		Bulk_Velocity,
-		List_Bulk_Mass,
-		List_Bulk_Momentum,
-		List_Target,
-		Accu_List_Len,
-		Accu_List
-	);
-
-	for (const auto& cell: cell_ids) {
-		auto* const cell_data = grid[cell];
-		if (cell_data == nullptr) {
-			std::cerr <<  __FILE__ << "(" << __LINE__ << ")" << std::endl;
-			abort();
-		}
-		Bulk_Velocity(*cell_data) = Bulk_Momentum(*cell_data) / Bulk_Mass(*cell_data);
-	}
-
-	for (const auto& cell: cell_ids) {
-		auto* const cell_data = grid[cell];
-		if (cell_data == nullptr) {
-			std::cerr <<  __FILE__ << "(" << __LINE__ << ")" << std::endl;
-			abort();
-		}
-		Electric_Field(*cell_data)
-			= (Current(*cell_data) - Bulk_Velocity(*cell_data))
-			.cross(Magnetic_Field(*cell_data));
-	}
-}
-
-
-/*!
 If cell doesn't have particles and no_particles_allowed == true
 skips that cell.
 */
@@ -258,6 +82,9 @@ template<
 
 		if (Particle_List(*cell_data).size() == 0) {
 			if (no_particles_allowed) {
+				MHD_Mass(*cell_data) = 0;
+				MHD_Momentum(*cell_data) = {0, 0, 0};
+				MHD_Energy(*cell_data) = 0;
 				continue;
 			}
 
@@ -271,6 +98,12 @@ template<
 		const auto volume = length[0] * length[1] * length[2];
 
 		MHD_Mass(*cell_data) = Particle_Bulk_Mass(*cell_data) / volume;
+		if (MHD_Mass(*cell_data) <= 0) {
+			MHD_Momentum(*cell_data) = {0, 0, 0};
+			MHD_Energy(*cell_data) = 0;
+			continue;
+		}
+
 		MHD_Momentum(*cell_data) = Particle_Bulk_Momentum(*cell_data) / volume;
 
 		const auto pressure
