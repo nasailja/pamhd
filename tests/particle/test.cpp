@@ -53,7 +53,6 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "particle/initialize.hpp"
 #include "particle/save.hpp"
 #include "particle/solve_dccrg.hpp"
-#include "particle/solve_fields.hpp"
 #include "particle/variables.hpp"
 #include "pamhd/initialize.hpp"
 
@@ -108,9 +107,11 @@ using Cell = gensimcell::Cell<
 	pamhd::mhd::MHD_Flux_Conservative,
 	pamhd::particle::Electric_Field,
 	pamhd::particle::Magnetic_Field,
+	pamhd::particle::Number_Of_Particles,
 	pamhd::particle::Bulk_Mass,
 	pamhd::particle::Bulk_Momentum,
 	pamhd::particle::Bulk_Velocity,
+	pamhd::particle::Bulk_Relative_Velocity2,
 	pamhd::particle::Nr_Particles_Internal,
 	pamhd::particle::Nr_Particles_External,
 	pamhd::particle::Nr_Accumulated_To_Cells,
@@ -136,20 +137,47 @@ const auto Particle_Position_Getter
 
 // mass of given particle
 const auto Particle_Mass_Getter
-	= [](pamhd::particle::Particle_Internal& particle)
+	= [](Cell&, pamhd::particle::Particle_Internal& particle)
 		->typename pamhd::particle::Mass::data_type&
 	{
 		return particle[pamhd::particle::Mass()];
 	};
 
-const auto Particle_Momentum_Getter
-	= [](pamhd::particle::Particle_Internal& particle)
-		->typename pamhd::particle::Velocity::data_type
+const auto Particle_Species_Mass_Getter
+	= [](Cell&, pamhd::particle::Particle_Internal& particle)
+		->typename pamhd::particle::Species_Mass::data_type&
 	{
-		return particle[pamhd::particle::Mass()] * particle[pamhd::particle::Velocity()];
+		return particle[pamhd::particle::Species_Mass()];
 	};
 
-// accumulated mass of particles in given cell
+const auto Particle_Momentum_Getter
+	= [](Cell&, pamhd::particle::Particle_Internal& particle)
+		->typename pamhd::particle::Velocity::data_type
+	{
+		return
+			particle[pamhd::particle::Mass()]
+			* particle[pamhd::particle::Velocity()];
+	};
+
+const auto Particle_Relative_Velocity2_Getter
+	= [](Cell& cell_data, pamhd::particle::Particle_Internal& particle)
+		->typename pamhd::particle::Mass::data_type
+	{
+		return
+			particle[pamhd::particle::Species_Mass()]
+			* particle[pamhd::particle::Mass()]
+			* (
+				particle[pamhd::particle::Velocity()]
+				- cell_data[pamhd::particle::Bulk_Velocity()]
+			).squaredNorm();
+	};
+
+// accumulated number of particles in given cell
+const auto Number_Of_Particles_Getter
+	= [](Cell& cell_data)->typename pamhd::particle::Number_Of_Particles::data_type&{
+		return cell_data[pamhd::particle::Number_Of_Particles()];
+	};
+
 const auto Bulk_Mass_Getter
 	= [](Cell& cell_data)->typename pamhd::particle::Bulk_Mass::data_type&{
 		return cell_data[pamhd::particle::Bulk_Mass()];
@@ -158,6 +186,11 @@ const auto Bulk_Mass_Getter
 const auto Bulk_Momentum_Getter
 	= [](Cell& cell_data)->typename pamhd::particle::Bulk_Momentum::data_type&{
 		return cell_data[pamhd::particle::Bulk_Momentum()];
+	};
+
+const auto Bulk_Relative_Velocity2_Getter
+	= [](Cell& cell_data)->typename pamhd::particle::Bulk_Relative_Velocity2::data_type&{
+		return cell_data[pamhd::particle::Bulk_Relative_Velocity2()];
 	};
 
 // accumulated momentum / accumulated velocity of particles in given cell
@@ -172,7 +205,7 @@ const auto Accu_List_Getter
 		return cell_data[pamhd::particle::Accumulated_To_Cells()];
 	};
 
-// reference to length of list above incoming from other processes
+// length of above list (for transferring between processes)
 const auto Accu_List_Length_Getter
 	= [](Cell& cell_data)->typename pamhd::particle::Nr_Accumulated_To_Cells::data_type&{
 		return cell_data[pamhd::particle::Nr_Accumulated_To_Cells()];
@@ -186,7 +219,14 @@ const auto Accu_List_Target_Getter
 		return accu_item[pamhd::particle::Target()];
 	};
 
-// accumulated mass of particles in an accumulation list item
+// accumulated number of particles in an accumulation list item
+const auto Accu_List_Number_Of_Particles_Getter
+	= [](pamhd::particle::Accumulated_To_Cell& accu_item)
+		->typename pamhd::particle::Number_Of_Particles::data_type&
+	{
+		return accu_item[pamhd::particle::Number_Of_Particles()];
+	};
+
 const auto Accu_List_Bulk_Mass_Getter
 	= [](pamhd::particle::Accumulated_To_Cell& accu_item)
 		->typename pamhd::particle::Bulk_Mass::data_type&
@@ -194,12 +234,18 @@ const auto Accu_List_Bulk_Mass_Getter
 		return accu_item[pamhd::particle::Bulk_Mass()];
 	};
 
-// accumulated momentum of particles in an accumulation list item
 const auto Accu_List_Bulk_Momentum_Getter
 	= [](pamhd::particle::Accumulated_To_Cell& accu_item)
 		->typename pamhd::particle::Bulk_Momentum::data_type&
 	{
 		return accu_item[pamhd::particle::Bulk_Momentum()];
+	};
+
+const auto Accu_List_Bulk_Relative_Velocity2_Getter
+	= [](pamhd::particle::Accumulated_To_Cell& accu_item)
+		->typename pamhd::particle::Bulk_Relative_Velocity2::data_type&
+	{
+		return accu_item[pamhd::particle::Bulk_Relative_Velocity2()];
 	};
 
 // reference to total mass density of all fluids in given cell
@@ -972,14 +1018,50 @@ int main(int argc, char* argv[])
 			abort();
 		}
 
-		/*
-		Calculate/update bulk particle quantities and E between processes
-		*/
+		accumulate_mhd_data(
+			inner_cell_ids,
+			outer_cell_ids,
+			grid,
+			Particle_List_Getter,
+			Particle_Position_Getter,
+			Particle_Mass_Getter,
+			Particle_Species_Mass_Getter,
+			Particle_Momentum_Getter,
+			Particle_Relative_Velocity2_Getter,
+			Number_Of_Particles_Getter,
+			Bulk_Mass_Getter,
+			Bulk_Momentum_Getter,
+			Bulk_Relative_Velocity2_Getter,
+			Bulk_Velocity_Getter,
+			Accu_List_Number_Of_Particles_Getter,
+			Accu_List_Bulk_Mass_Getter,
+			Accu_List_Bulk_Momentum_Getter,
+			Accu_List_Bulk_Relative_Velocity2_Getter,
+			Accu_List_Target_Getter,
+			Accu_List_Length_Getter,
+			Accu_List_Getter,
+			pamhd::particle::Nr_Accumulated_To_Cells(),
+			pamhd::particle::Accumulated_To_Cells(),
+			pamhd::particle::Bulk_Velocity()
+		);
 
 		// B required for E calculation
 		Cell::set_transfer_all(true, pamhd::mhd::MHD_State_Conservative());
 		grid.start_remote_neighbor_copy_updates();
 
+		pamhd::particle::fill_mhd_fluid_values(
+			cell_ids,
+			grid,
+			adiabatic_index,
+			vacuum_permeability,
+			particle_temp_nrj_ratio,
+			Number_Of_Particles_Getter,
+			Bulk_Mass_Getter,
+			Bulk_Momentum_Getter,
+			Bulk_Relative_Velocity2_Getter,
+			Particle_List_Getter,
+			Mas, Mas, Mom, Nrj, Mag
+		);
 
 		// inner: J for E = (J - V) x B
 		pamhd::divergence::get_curl(
@@ -1007,43 +1089,6 @@ int main(int argc, char* argv[])
 			}
 			Mag_part(*cell_data) = Mag(*cell_data);
 		}
-
-		// prepare to accumulate particle data
-		for (const auto& cell: cell_ids) {
-			auto* const cell_data = grid[cell];
-			if (cell_data == nullptr) {
-				std::cerr <<  __FILE__ << "(" << __LINE__ << ")" << std::endl;
-				abort();
-			}
-			Bulk_Mass_Getter(*cell_data) = 0;
-			Bulk_Momentum_Getter(*cell_data) = {0, 0, 0};
-		}
-		pamhd::particle::accumulate(
-			outer_cell_ids,
-			grid,
-			Particle_List_Getter,
-			Particle_Position_Getter,
-			Particle_Mass_Getter,
-			Bulk_Mass_Getter,
-			Accu_List_Bulk_Mass_Getter,
-			Accu_List_Target_Getter,
-			Accu_List_Length_Getter,
-			Accu_List_Getter
-		);
-		pamhd::particle::accumulate(
-			outer_cell_ids,
-			grid,
-			Particle_List_Getter,
-			Particle_Position_Getter,
-			Particle_Momentum_Getter,
-			Bulk_Momentum_Getter,
-			Accu_List_Bulk_Momentum_Getter,
-			Accu_List_Target_Getter,
-			Accu_List_Length_Getter,
-			Accu_List_Getter,
-			false // don't erase accumulated mass
-		);
-
 
 		grid.wait_remote_neighbor_copy_update_receives();
 
@@ -1076,66 +1121,6 @@ int main(int argc, char* argv[])
 		grid.wait_remote_neighbor_copy_update_sends();
 		Cell::set_transfer_all(false, pamhd::mhd::MHD_State_Conservative());
 
-		// update lengths of accumulation lists from above
-		Cell::set_transfer_all(true, pamhd::particle::Nr_Accumulated_To_Cells());
-		grid.start_remote_neighbor_copy_updates();
-
-		pamhd::particle::accumulate(
-			inner_cell_ids,
-			grid,
-			Particle_List_Getter,
-			Particle_Position_Getter,
-			Particle_Mass_Getter,
-			Bulk_Mass_Getter,
-			Accu_List_Bulk_Mass_Getter,
-			Accu_List_Target_Getter,
-			Accu_List_Length_Getter,
-			Accu_List_Getter
-		);
-		pamhd::particle::accumulate(
-			inner_cell_ids,
-			grid,
-			Particle_List_Getter,
-			Particle_Position_Getter,
-			Particle_Momentum_Getter,
-			Bulk_Momentum_Getter,
-			Accu_List_Bulk_Momentum_Getter,
-			Accu_List_Target_Getter,
-			Accu_List_Length_Getter,
-			Accu_List_Getter
-		);
-
-		pamhd::particle::fill_mhd_fluid_values<
-			pamhd::particle::Mass,
-			pamhd::particle::Velocity,
-			pamhd::particle::Species_Mass
-		>(
-			inner_cell_ids,
-			grid,
-			adiabatic_index,
-			vacuum_permeability,
-			particle_temp_nrj_ratio,
-			Bulk_Mass_Getter,
-			Bulk_Momentum_Getter,
-			Particle_List_Getter,
-			Mas, Mom, Nrj, Mag
-		);
-
-		grid.wait_remote_neighbor_copy_update_receives();
-
-		allocate_accumulation_lists(
-			grid,
-			Accu_List_Getter,
-			Accu_List_Length_Getter
-		);
-
-		grid.wait_remote_neighbor_copy_update_sends();
-		Cell::set_transfer_all(false, pamhd::particle::Nr_Accumulated_To_Cells());
-
-
-		Cell::set_transfer_all(true, pamhd::particle::Accumulated_To_Cells());
-		grid.start_remote_neighbor_copy_updates();
-
 		// inner: E = (J - V) x B
 		for (const auto& cell: inner_cell_ids) {
 			auto* const cell_data = grid[cell];
@@ -1155,41 +1140,6 @@ int main(int argc, char* argv[])
 				).cross(Mag(*cell_data));
 		}
 
-		grid.wait_remote_neighbor_copy_update_receives();
-
-		pamhd::particle::accumulate_from_remote_neighbors<
-			pamhd::particle::Target,
-			pamhd::particle::Bulk_Mass
-		>(
-			grid,
-			Bulk_Mass_Getter,
-			Accu_List_Getter
-		);
-		pamhd::particle::accumulate_from_remote_neighbors<
-			pamhd::particle::Target,
-			pamhd::particle::Bulk_Momentum
-		>(
-			grid,
-			Bulk_Momentum_Getter,
-			Accu_List_Getter
-		);
-
-		pamhd::particle::fill_mhd_fluid_values<
-			pamhd::particle::Mass,
-			pamhd::particle::Velocity,
-			pamhd::particle::Species_Mass
-		>(
-			outer_cell_ids,
-			grid,
-			adiabatic_index,
-			vacuum_permeability,
-			particle_temp_nrj_ratio,
-			Bulk_Mass_Getter,
-			Bulk_Momentum_Getter,
-			Particle_List_Getter,
-			Mas, Mom, Nrj, Mag
-		);
-
 		// outer: E = (J - V) x B
 		for (const auto& cell: outer_cell_ids) {
 			auto* const cell_data = grid[cell];
@@ -1208,9 +1158,6 @@ int main(int argc, char* argv[])
 					- Bulk_Velocity_Getter(*cell_data)
 				).cross(Mag(*cell_data));
 		}
-
-		grid.wait_remote_neighbor_copy_update_sends();
-		Cell::set_transfer_all(false, pamhd::particle::Accumulated_To_Cells());
 
 
 		Cell::set_transfer_all(true, pamhd::particle::Electric_Field());
@@ -1376,6 +1323,7 @@ int main(int argc, char* argv[])
 			pamhd::particle::Particles_External
 		>(outer_cell_ids, grid);
 
+
 		simulation_time += time_step;
 
 
@@ -1393,7 +1341,7 @@ int main(int argc, char* argv[])
 				cout.flush();
 			}
 
-			// save old B in case div removal fails
+			// save old value of B in case div removal fails
 			for (const auto& cell: cell_ids) {
 				auto* const cell_data = grid[cell];
 				if (cell_data == nullptr) {
@@ -1420,7 +1368,7 @@ int main(int argc, char* argv[])
 					Mag,
 					Mag_div,
 					[](Cell& cell_data)
-						-> pamhd::mhd::Scalar_Potential_Gradient::data_type&
+						-> typename pamhd::mhd::Scalar_Potential_Gradient::data_type&
 					{
 						return cell_data[pamhd::mhd::Scalar_Potential_Gradient()];
 					},
@@ -1766,7 +1714,7 @@ int main(int argc, char* argv[])
 			}
 
 			if (verbose && rank == 0) {
-				cout << "Saving particles at time " << simulation_time << endl;
+				cout << "Saving particles at time " << simulation_time << "... " << endl;
 			}
 
 			if (
@@ -1789,6 +1737,10 @@ int main(int argc, char* argv[])
 					<< std::endl;
 				MPI_Finalize();
 				return EXIT_SUCCESS;
+			}
+
+			if (verbose && rank == 0) {
+				cout << "done." << endl;
 			}
 		}
 	}

@@ -243,7 +243,6 @@ tests/particle/test.exe: \
   tests/particle/test.cpp \
   $(TEST_PARTICLE_COMMON_DEPS) \
   source/particle/solve_dccrg.hpp \
-  source/particle/solve_fields.hpp \
   source/particle/save.hpp \
   source/particle/initialize.hpp \
   source/particle/accumulate_dccrg.hpp \

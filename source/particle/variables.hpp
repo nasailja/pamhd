@@ -163,24 +163,44 @@ struct Bulk_Mass {
 	using data_type = double;
 	static const std::string get_name() { return {"bulk mass"}; }
 	static const std::string get_option_name() { return {"bulk-mass"}; }
-	static const std::string get_option_help() { return {"Mass of particles (kg)"}; }
+	static const std::string get_option_help() { return {"Accumulated mass of particles"}; }
 };
 
 struct Bulk_Momentum {
 	using data_type = Eigen::Vector3d;
 	static const std::string get_name() { return {"bulk momentum"}; }
 	static const std::string get_option_name() { return {"bulk-momentum"}; }
-	static const std::string get_option_help() { return {"Momnetum of particles (kg * m / s)"}; }
+	static const std::string get_option_help() { return {"Accumulated mometum of particles"}; }
 };
 
 struct Bulk_Velocity {
 	using data_type = Eigen::Vector3d;
 	static const std::string get_name() { return {"bulk velocity"}; }
 	static const std::string get_option_name() { return {"bulk-velocity"}; }
-	static const std::string get_option_help() { return {"Particle velocity (m / s)"}; }
+	static const std::string get_option_help() { return {"Accumulated velocity of particles"}; }
 };
 
-using Accumulated_To_Cell = Accumulated_To_Cell_T<Bulk_Mass, Bulk_Momentum>;
+struct Number_Of_Particles {
+	using data_type = double;
+	static const std::string get_name() { return {"number of species particles"}; }
+	static const std::string get_option_name() { return {"number-of-species-particles"}; }
+	static const std::string get_option_help() { return {"Accumulated number of particles (mass / species mass)"}; }
+};
+
+struct Bulk_Relative_Velocity2 {
+	using data_type = double;
+	static const std::string get_name() { return {"bulk relative velocity2"}; }
+	static const std::string get_option_name() { return {"bulk-relative-velocity2"}; }
+	static const std::string get_option_help() { return {"Accumulated square of particle velocity relative to bulk velocity"}; }
+};
+
+using Accumulated_To_Cell
+	= Accumulated_To_Cell_T<
+		Number_Of_Particles,
+		Bulk_Mass,
+		Bulk_Momentum,
+		Bulk_Relative_Velocity2
+	>;
 using Accumulated_To_Cells = Accumulated_To_Cells_T<Accumulated_To_Cell>;
 
 

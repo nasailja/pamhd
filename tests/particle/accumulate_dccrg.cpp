@@ -160,12 +160,11 @@ const auto accumulation_list_length_getter
 
 const auto accumulate_from_remote_neighbors
 	= [](Grid& grid){
-		pamhd::particle::accumulate_from_remote_neighbors<
-			pamhd::particle::Target,
-			Count
-		>(
+		pamhd::particle::accumulate_from_remote_neighbors(
 			grid,
 			bulk_value_getter,
+			list_bulk_value_getter,
+			list_target_getter,
 			accumulation_list_getter
 		);
 	};
@@ -347,6 +346,13 @@ int main(int argc, char* argv[])
 		grid_y_np.balance_load();
 		grid_z.balance_load();
 		grid_z_np.balance_load();
+		// create copies of remote neighbors
+		grid_x.update_copies_of_remote_neighbors();
+		grid_x_np.update_copies_of_remote_neighbors();
+		grid_y.update_copies_of_remote_neighbors();
+		grid_y_np.update_copies_of_remote_neighbors();
+		grid_z.update_copies_of_remote_neighbors();
+		grid_z_np.update_copies_of_remote_neighbors();
 
 		const auto
 			cell_ids_x = grid_x.get_cells(),
@@ -380,7 +386,7 @@ int main(int argc, char* argv[])
 					{
 						return particle[pamhd::particle::Position()];
 					},
-					[](pamhd::particle::Particle_Internal& particle)
+					[](Cell&, pamhd::particle::Particle_Internal& particle)
 						->pamhd::particle::Mass::data_type&
 					{
 						return particle[pamhd::particle::Mass()];
