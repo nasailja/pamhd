@@ -61,6 +61,7 @@ TEST_MHD_PROGRAM_DEPS = \
   source/boundaries/variable_to_option.hpp \
   source/boundaries/variable_to_option_vector.hpp \
   source/mhd/common.hpp \
+  source/mhd/boundaries.hpp \
   source/mhd/initialize.hpp \
   source/mhd/save.hpp \
   source/mhd/solve.hpp \

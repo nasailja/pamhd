@@ -299,11 +299,13 @@ int main(int argc, char* argv[])
 		),
 		value_boundary_help(
 			"Options for value boundary conditions which set cell data "
-			"to specified values after each simulation time step"
+			"to specified values after each simulation time step. "
+			"Boundaries of different fluids have to be in identical positions."
 		),
 		copy_boundary_help(
 			"Options for copy boundaries which set cell data to average "
-			"value of neighboring non-boundary cells"
+			"value of neighboring non-boundary cells. "
+			"Boundaries of different fluids have to be in identical positions."
 		);
 
 	// handle general options

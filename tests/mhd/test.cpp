@@ -35,6 +35,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 #include "boost/filesystem.hpp"
 #include "boost/lexical_cast.hpp"
+#include "boost/optional.hpp"
 #include "boost/program_options.hpp"
 #include "dccrg.hpp"
 #include "dccrg_cartesian_geometry.hpp"
@@ -47,6 +48,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "boundaries/value_boundaries.hpp"
 #include "divergence/remove.hpp"
 #include "grid_options.hpp"
+#include "mhd/boundaries.hpp"
 #include "mhd/common.hpp"
 #include "mhd/initialize.hpp"
 #include "mhd/save.hpp"
@@ -185,6 +187,19 @@ int main(int argc, char* argv[])
 			pamhd::mhd::Magnetic_Field
 		>;
 	Value_Boundary_T value_boundaries;
+
+	using Value_Boundary_T
+		= pamhd::boundaries::Value_Boundaries<
+			uint64_t,
+			double,
+			double,
+			std::array<double, 3>,
+			pamhd::mhd::Number_Density,
+			pamhd::mhd::Velocity,
+			pamhd::mhd::Pressure,
+			pamhd::mhd::Magnetic_Field
+		>;
+	Value_Boundary_T resistivity_boundary;
 
 	using Copy_Boundary_T
 		= pamhd::boundaries::Copy_Boundary<
@@ -615,6 +630,16 @@ int main(int argc, char* argv[])
 		cout << "Done initializing MHD" << endl;
 	}
 
+	pamhd::mhd::Boundary_Classifier<uint64_t> boundary_classifier;
+	boundary_classifier.classify<pamhd::mhd::Cell_Type>(
+		0,
+		grid.get_local_cells_not_on_process_boundary(),
+		grid.get_local_cells_on_process_boundary(),
+		grid,
+		value_boundaries,
+		copy_boundary
+	);
+
 	size_t simulated_steps = 0;
 	while (simulation_time < end_time) {
 		simulated_steps++;
@@ -664,12 +689,12 @@ int main(int argc, char* argv[])
 		grid.start_remote_neighbor_copy_updates();
 
 		pamhd::divergence::get_curl(
-			inner_cells,
+			boundary_classifier.inner_solve_cells,
 			grid,
 			Mag,
 			Cur
 		);
-		for (const auto& cell: inner_cells) {
+		for (const auto& cell: boundary_classifier.inner_solve_cells) {
 			auto* const cell_data = grid[cell];
 			if (cell_data == nullptr) {
 				std::cerr <<  __FILE__ << "(" << __LINE__ << ")" << std::endl;
@@ -682,7 +707,7 @@ int main(int argc, char* argv[])
 			max_dt,
 			pamhd::mhd::solve(
 				mhd_solver,
-				inner_cells,
+				boundary_classifier.inner_solve_cells,
 				grid,
 				time_step,
 				adiabatic_index,
@@ -698,7 +723,7 @@ int main(int argc, char* argv[])
 			max_dt,
 			pamhd::mhd::solve(
 				mhd_solver,
-				outer_cells,
+				boundary_classifier.outer_solve_cells,
 				grid,
 				time_step,
 				adiabatic_index,
@@ -709,12 +734,12 @@ int main(int argc, char* argv[])
 		);
 
 		pamhd::divergence::get_curl(
-			outer_cells,
+			boundary_classifier.outer_solve_cells,
 			grid,
 			Mag,
 			Cur
 		);
-		for (const auto& cell: outer_cells) {
+		for (const auto& cell: boundary_classifier.outer_solve_cells) {
 			auto* const cell_data = grid[cell];
 			if (cell_data == nullptr) {
 				std::cerr <<  __FILE__ << "(" << __LINE__ << ")" << std::endl;
@@ -736,12 +761,12 @@ int main(int argc, char* argv[])
 
 		// add contribution to change of B from resistivity
 		pamhd::divergence::get_curl(
-			inner_cells,
+			boundary_classifier.inner_solve_cells,
 			grid,
 			Cur,
 			Mag_res
 		);
-		for (const auto& cell: inner_cells) {
+		for (const auto& cell: boundary_classifier.inner_solve_cells) {
 			auto* const cell_data = grid[cell];
 			if (cell_data == nullptr) {
 				std::cerr <<  __FILE__ << "(" << __LINE__ << ")" << std::endl;
@@ -754,12 +779,12 @@ int main(int argc, char* argv[])
 		grid.wait_remote_neighbor_copy_update_receives();
 
 		pamhd::divergence::get_curl(
-			outer_cells,
+			boundary_classifier.outer_solve_cells,
 			grid,
 			Cur,
 			Mag_res
 		);
-		for (const auto& cell: outer_cells) {
+		for (const auto& cell: boundary_classifier.outer_solve_cells) {
 			auto* const cell_data = grid[cell];
 			if (cell_data == nullptr) {
 				std::cerr <<  __FILE__ << "(" << __LINE__ << ")" << std::endl;
@@ -769,17 +794,25 @@ int main(int argc, char* argv[])
 			Mag_f(*cell_data) += Mag_res(*cell_data);
 		}
 
+		grid.wait_remote_neighbor_copy_update_sends();
+		Cell::set_transfer_all(false, pamhd::mhd::Electric_Current_Density());
+
 		pamhd::mhd::apply_fluxes(
-			cells,
+			boundary_classifier.inner_normal_cells,
 			grid,
 			adiabatic_index,
 			vacuum_permeability,
 			Mas, Mom, Nrj, Mag,
 			Mas_f, Mom_f, Nrj_f, Mag_f
 		);
-
-		grid.wait_remote_neighbor_copy_update_sends();
-		Cell::set_transfer_all(false, pamhd::mhd::Electric_Current_Density());
+		pamhd::mhd::apply_fluxes(
+			boundary_classifier.outer_normal_cells,
+			grid,
+			adiabatic_index,
+			vacuum_permeability,
+			Mas, Mom, Nrj, Mag,
+			Mas_f, Mom_f, Nrj_f, Mag_f
+		);
 
 		simulation_time += time_step;
 
@@ -894,45 +927,14 @@ int main(int argc, char* argv[])
 		}
 
 
-		/*
-		Apply value boundaries
-		*/
-		value_boundaries.clear_cells();
-
-		// classify cells
-		for (const auto cell_id: cells) {
-			const auto
-				cell_start = grid.geometry.get_min(cell_id),
-				cell_end = grid.geometry.get_max(cell_id);
-
-			boost::optional<size_t> result = value_boundaries.add_cell(
-				simulation_time,
-				cell_id,
-				cell_start,
-				cell_end
-			);
-
-			if (not result) {
-				std::cerr <<  __FILE__ << "(" << __LINE__ << "): "
-					"Couldn't add cell " << cell_id << " to value_boundaries."
-					<< std::endl;
-				abort();
-			}
-
-			auto* const cell_data = grid[cell_id];
-			if (cell_data == NULL) {
-				std::cerr <<  __FILE__ << "(" << __LINE__ << "): "
-					"No data for cell: " << cell_id
-					<< std::endl;
-				abort();
-			}
-
-			if (*result > 0) {
-				(*cell_data)[pamhd::mhd::Cell_Type()] = 1;
-			} else {
-				(*cell_data)[pamhd::mhd::Cell_Type()] = 0;
-			}
-		}
+		/*boundary_classifier.classify<pamhd::mhd::Cell_Type>(
+			simulation_time,
+			grid.get_local_cells_not_on_process_boundary(),
+			grid.get_local_cells_on_process_boundary(),
+			grid,
+			value_boundaries,
+			copy_boundary
+		);*/
 
 		// set boundary data
 		const pamhd::mhd::Number_Density N{};
@@ -940,61 +942,9 @@ int main(int argc, char* argv[])
 		const pamhd::mhd::Pressure P{};
 		const pamhd::mhd::Magnetic_Field B{};
 
-		for (size_t bdy_id = 0; bdy_id < value_boundaries.get_number_of_boundaries(); bdy_id++) {
-
-			for (const auto& cell_id: value_boundaries.get_cells(bdy_id)) {
-				const auto cell_center = grid.geometry.get_center(cell_id);
-
-				auto* const cell_data = grid[cell_id];
-				if (cell_data == NULL) {
-					std::cerr <<  __FILE__ << "(" << __LINE__ << "): "
-						"No data for cell: " << cell_id
-						<< std::endl;
-					abort();
-				}
-
-				const auto mass_density
-					= value_boundaries.get_data(N, bdy_id, cell_center, simulation_time)
-					* proton_mass;
-				const auto velocity
-					= value_boundaries.get_data(V, bdy_id, cell_center, simulation_time);
-				const auto pressure
-					= value_boundaries.get_data(P, bdy_id, cell_center, simulation_time);
-				const auto magnetic_field
-					= value_boundaries.get_data(B, bdy_id, cell_center, simulation_time);
-
-				Mas(*cell_data) = mass_density;
-				Mom(*cell_data) = mass_density * velocity;
-				Mag(*cell_data) = magnetic_field;
-				Nrj(*cell_data) = pamhd::mhd::get_total_energy_density(
-					mass_density,
-					velocity,
-					pressure,
-					magnetic_field,
-					adiabatic_index,
-					vacuum_permeability
-				);
-			}
-		}
-
-
-		/*
-		Apply copy boundaries
-		*/
-		copy_boundary.clear_cells();
-
-		// don't copy from other boundary cells
-		for (size_t bdy_id = 0; bdy_id < value_boundaries.get_number_of_boundaries(); bdy_id++) {
-			for (const auto& cell_id: value_boundaries.get_cells(bdy_id)) {
-				copy_boundary.add_as_other_boundary(cell_id);
-			}
-		}
-
-		// classify cells
-		for (const auto cell_id: cells) {
-			const auto
-				cell_start = grid.geometry.get_min(cell_id),
-				cell_end = grid.geometry.get_max(cell_id);
+		for (const auto& bdy_item: boundary_classifier.value_boundary_cells) {
+			const auto& cell_id = bdy_item.first;
+			const auto& bdy_id = bdy_item.second;
 
 			auto* const cell_data = grid[cell_id];
 			if (cell_data == NULL) {
@@ -1004,12 +954,32 @@ int main(int argc, char* argv[])
 				abort();
 			}
 
-			if (copy_boundary.add_cell(cell_id, cell_start, cell_end) > 0) {
-				(*cell_data)[pamhd::mhd::Cell_Type()] = 2;
-			}
+			const auto cell_center = grid.geometry.get_center(cell_id);
+
+			const auto mass_density
+				= value_boundaries.get_data(N, bdy_id, cell_center, simulation_time)
+				* proton_mass;
+			const auto velocity
+				= value_boundaries.get_data(V, bdy_id, cell_center, simulation_time);
+			const auto pressure
+				= value_boundaries.get_data(P, bdy_id, cell_center, simulation_time);
+			const auto magnetic_field
+				= value_boundaries.get_data(B, bdy_id, cell_center, simulation_time);
+
+			Mas(*cell_data) = mass_density;
+			Mom(*cell_data) = mass_density * velocity;
+			Mag(*cell_data) = magnetic_field;
+			Nrj(*cell_data) = pamhd::mhd::get_total_energy_density(
+				mass_density,
+				velocity,
+				pressure,
+				magnetic_field,
+				adiabatic_index,
+				vacuum_permeability
+			);
 		}
 
-		// copy up-to-date data
+		// copy up-to-date data to copy boundaries
 		Cell::set_transfer_all(
 			true,
 			pamhd::mhd::MHD_State_Conservative(),
@@ -1022,94 +992,13 @@ int main(int argc, char* argv[])
 			pamhd::mhd::Cell_Type()
 		);
 
-		// set copy boundary cells' neighbors
-		for (const auto& cell: copy_boundary.get_cells()) {
-			const auto* const neighbors_of = grid.get_neighbors_of(cell);
-			if (neighbors_of == NULL) {
-				std::cerr <<  __FILE__ << "(" << __LINE__ << "): "
-					"No neighbors for cell: " << cell
-					<< std::endl;
-				abort();
-			}
-
-			std::vector<uint64_t> final_neighbors;
-			for (const auto& neighbor: *neighbors_of) {
-				if (neighbor == dccrg::error_cell) {
-					continue;
-				}
-
-				const auto* const neighbor_data = grid[neighbor];
-				if (neighbor_data == NULL) {
-					std::cerr <<  __FILE__ << "(" << __LINE__ << "): "
-						<< "No data for "
-						<< (grid.is_local(neighbor) ? "local" : "remote")
-						<< " neighbor: " << neighbor
-						<< " of cell " << cell
-						<< std::endl;
-					abort();
-				}
-
-				if ((*neighbor_data)[pamhd::mhd::Cell_Type()] == 0) {
-					final_neighbors.push_back(neighbor);
-				}
-			}
-
-			if (copy_boundary.set_neighbors_of(cell, final_neighbors) > 1) {
-				std::cerr <<  __FILE__ << "(" << __LINE__ << "): "
-					<< "> 1 non-boundary cell assigned as source for cell " << cell
-					<< ": " << copy_boundary.get_source_cells(cell)
-					<< std::endl;
-				abort();
-			}
-		}
-
-		/*
-		Remove copy cells without normal neighbors from cell lists
-		so their flux isn't applied
-		*/
-		std::unordered_set<uint64_t>
-			temp_inner(inner_cells.cbegin(), inner_cells.cend()),
-			temp_outer(outer_cells.cbegin(), outer_cells.cend());
-
-		for (const auto& cell: copy_boundary.get_cells()) {
-			const auto& source = copy_boundary.get_source_cells(cell);
-			if (source.size() > 1) {
-				std::cerr <<  __FILE__ << "(" << __LINE__ << "): "
-					<< "Cell " << cell << " has more than one source cell."
-					<< std::endl;
-				abort();
-			}
-
-			if (source.size() > 0) {
-				continue;
-			}
-
-			temp_inner.erase(cell);
-			temp_outer.erase(cell);
-		}
-		inner_cells.clear();
-		outer_cells.clear();
-		inner_cells.insert(inner_cells.end(), temp_inner.cbegin(), temp_inner.cend());
-		outer_cells.insert(outer_cells.end(), temp_outer.cbegin(), temp_outer.cend());
-		temp_inner.clear();
-		temp_outer.clear();
-
 		// copy data to copy boundary cells
-		for (const auto& cell: copy_boundary.get_cells()) {
-			const auto& source = copy_boundary.get_source_cells(cell);
-			if (source.size() > 1) {
-				std::cerr <<  __FILE__ << "(" << __LINE__ << "): "
-					<< "Cell " << cell << " has more than one source cell."
-					<< std::endl;
-				abort();
-			}
+		for (const auto& bdy_item: boundary_classifier.copy_boundary_cells) {
+			const auto& target_id = bdy_item.first;
+			const auto& source_id = bdy_item.second;
 
-			if (source.size() == 0) {
-				continue;
-			}
-
-			auto* const target_data = grid[cell];
-			const auto* const source_data = grid[source[0]];
+			auto* const target_data = grid[target_id];
+			const auto* const source_data = grid[source_id];
 
 			if (source_data == NULL or target_data == NULL) {
 				std::cerr <<  __FILE__ << "(" << __LINE__ << "): "
