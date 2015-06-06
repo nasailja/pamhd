@@ -46,6 +46,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "boundaries/copy_boundary.hpp"
 #include "boundaries/initial_condition.hpp"
 #include "boundaries/value_boundaries.hpp"
+#include "boundaries/variable_to_option.hpp"
 #include "divergence/remove.hpp"
 #include "grid_options.hpp"
 #include "mhd/boundaries.hpp"
@@ -69,6 +70,14 @@ int Poisson_Cell::transfer_switch = Poisson_Cell::INIT;
 
 using Cell = pamhd::mhd::Cell;
 using Grid = dccrg::Dccrg<Cell, dccrg::Cartesian_Geometry>;
+
+//! variable for resistivity value boundary
+struct Resistivity {
+	using data_type = double;
+	static const std::string get_name() { return {"resistivity"}; }
+	static const std::string get_option_name() { return {"resistivity"}; }
+	static const std::string get_option_help() { return {"Resistivity"}; }
+};
 
 // reference to total mass density of all fluids in given cell
 const auto Mas
@@ -188,19 +197,6 @@ int main(int argc, char* argv[])
 		>;
 	Value_Boundary_T value_boundaries;
 
-	using Value_Boundary_T
-		= pamhd::boundaries::Value_Boundaries<
-			uint64_t,
-			double,
-			double,
-			std::array<double, 3>,
-			pamhd::mhd::Number_Density,
-			pamhd::mhd::Velocity,
-			pamhd::mhd::Pressure,
-			pamhd::mhd::Magnetic_Field
-		>;
-	Value_Boundary_T resistivity_boundary;
-
 	using Copy_Boundary_T
 		= pamhd::boundaries::Copy_Boundary<
 			uint64_t,
@@ -208,6 +204,8 @@ int main(int argc, char* argv[])
 			std::array<double, 3>
 		>;
 	Copy_Boundary_T copy_boundary;
+
+	pamhd::boundaries::Variable_To_Option<Resistivity> resistivity_bdy;
 
 	pamhd::grid::Options grid_options;
 	grid_options.data.set_expression(pamhd::grid::Number_Of_Cells(), "{1, 1, 1}");
@@ -228,7 +226,6 @@ int main(int argc, char* argv[])
 		start_time = 0,
 		end_time = 1,
 		time_step_factor = 0.5,
-		resistivity = 0,
 		remove_div_B_n = 0.1,
 		poisson_norm_stop = 1e-10,
 		poisson_norm_increase_max = 10,
@@ -240,7 +237,8 @@ int main(int argc, char* argv[])
 		config_file_name(""),
 		boundary_file_name(""),
 		lb_name("RCB"),
-		output_directory("./");
+		output_directory("./"),
+		resistivity("");
 
 	boost::program_options::options_description
 		options(
@@ -294,9 +292,10 @@ int main(int argc, char* argv[])
 				->default_value(vacuum_permeability),
 			"https://en.wikipedia.org/wiki/Vacuum_permeability in V*s/(A*m)")
 		("resistivity",
-			boost::program_options::value<double>(&resistivity)
+			boost::program_options::value<std::string>(&resistivity)
 				->default_value(resistivity),
-			"Use arg as plasma resistivity (V*m/A, E += arg * J")
+			"Use expression arg as electric resistivity "
+			"(>= 0, not used if empty expression)")
 		("adiabatic-index",
 			boost::program_options::value<double>(&adiabatic_index)
 				->default_value(adiabatic_index),
@@ -477,6 +476,9 @@ int main(int argc, char* argv[])
 		abort();
 	}
 
+	if (resistivity != "") {
+		resistivity_bdy.set_expression(Resistivity(), resistivity);
+	}
 
 	if (option_variables.count("verbose") > 0) {
 		verbose = true;
@@ -756,46 +758,60 @@ int main(int argc, char* argv[])
 		);
 
 		// transfer J for calculating additional contributions to B
-		Cell::set_transfer_all(true, pamhd::mhd::Electric_Current_Density());
-		grid.start_remote_neighbor_copy_updates();
+		if (resistivity != "") {
+			Cell::set_transfer_all(true, pamhd::mhd::Electric_Current_Density());
+			grid.start_remote_neighbor_copy_updates();
 
-		// add contribution to change of B from resistivity
-		pamhd::divergence::get_curl(
-			boundary_classifier.inner_solve_cells,
-			grid,
-			Cur,
-			Mag_res
-		);
-		for (const auto& cell: boundary_classifier.inner_solve_cells) {
-			auto* const cell_data = grid[cell];
-			if (cell_data == nullptr) {
-				std::cerr <<  __FILE__ << "(" << __LINE__ << ")" << std::endl;
-				abort();
+			// add contribution to change of B from resistivity
+			pamhd::divergence::get_curl(
+				boundary_classifier.inner_solve_cells,
+				grid,
+				Cur,
+				Mag_res
+			);
+			for (const auto& cell: boundary_classifier.inner_solve_cells) {
+				auto* const cell_data = grid[cell];
+				if (cell_data == nullptr) {
+					std::cerr <<  __FILE__ << "(" << __LINE__ << ")" << std::endl;
+					abort();
+				}
+				const auto cell_center = grid.geometry.get_center(cell);
+				Mag_res(*cell_data)
+					*= -resistivity_bdy.get_data(
+						Resistivity(),
+						cell_center,
+						simulation_time
+					);
+				Mag_f(*cell_data) += Mag_res(*cell_data);
 			}
-			Mag_res(*cell_data) *= -resistivity;
-			Mag_f(*cell_data) += Mag_res(*cell_data);
-		}
 
-		grid.wait_remote_neighbor_copy_update_receives();
+			grid.wait_remote_neighbor_copy_update_receives();
 
-		pamhd::divergence::get_curl(
-			boundary_classifier.outer_solve_cells,
-			grid,
-			Cur,
-			Mag_res
-		);
-		for (const auto& cell: boundary_classifier.outer_solve_cells) {
-			auto* const cell_data = grid[cell];
-			if (cell_data == nullptr) {
-				std::cerr <<  __FILE__ << "(" << __LINE__ << ")" << std::endl;
-				abort();
+			pamhd::divergence::get_curl(
+				boundary_classifier.outer_solve_cells,
+				grid,
+				Cur,
+				Mag_res
+			);
+			for (const auto& cell: boundary_classifier.outer_solve_cells) {
+				auto* const cell_data = grid[cell];
+				if (cell_data == nullptr) {
+					std::cerr <<  __FILE__ << "(" << __LINE__ << ")" << std::endl;
+					abort();
+				}
+				const auto cell_center = grid.geometry.get_center(cell);
+				Mag_res(*cell_data)
+					*= -resistivity_bdy.get_data(
+						Resistivity(),
+						cell_center,
+						simulation_time
+					);
+				Mag_f(*cell_data) += Mag_res(*cell_data);
 			}
-			Mag_res(*cell_data) *= -resistivity;
-			Mag_f(*cell_data) += Mag_res(*cell_data);
-		}
 
-		grid.wait_remote_neighbor_copy_update_sends();
-		Cell::set_transfer_all(false, pamhd::mhd::Electric_Current_Density());
+			grid.wait_remote_neighbor_copy_update_sends();
+			Cell::set_transfer_all(false, pamhd::mhd::Electric_Current_Density());
+		}
 
 		pamhd::mhd::apply_fluxes(
 			boundary_classifier.inner_normal_cells,
