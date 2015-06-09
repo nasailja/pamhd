@@ -31,23 +31,23 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
-If called as the main program loads particle data from first given file into
-dictionary particle_data and appends to it data from any subsequent files.
-Requires NumPy. Unique particle IDs are keys in the returned dictionary,
-values consist of lists where each element is a tuple of particle position
-and velocity in three dimensions. Each list is filled in order from given
-files.
+If called as the main program creates empty dictionaries bulk_data
+and particle_data and fills them by calling load() on each file
+given as an argument to this program.
 
-Example printing the id of every particle
-in one file:
+Example printing the id of every particle in one file:
 python -i particle2numpy.py particle_0.000e+00_s.dc
 for key in particle_data:
 	print(key)
 exit()
 
+Example printing the electric field in cell 3 in the first given file:
+python -i particle2numpy.py particle_0.000e+00_s.dc
+print(bulk_data[3][0][0])
+
 Example printing the velocity of particle with id == 4 from the last given
-file where the particle existed:
-python -i particle2numpy.py results/massless/data/p_avg\=5dt/particle_0.000e+00_s.dc
+file in which the particle existed:
+python -i particle2numpy.py particle_0.000e+00_s.dc
 print(particle_data[4][-1][1])
 exit()
 '''
@@ -61,29 +61,39 @@ except:
 
 
 '''
-Adds particle data produced by massless.exe of PAMHD
-from given file into given dictionary.
+Returns bulk and particle data of PAMHD particle programs.
 
-Already existing particles' data is appended to from given file.
+If bulk_data or particle_data are None will skip reading
+the corresponding data otherwise bulk_data and particle_data
+must be dictionaries to which already existing data is
+appended from given file. If both are None will do nothing
+and return None
 
 Returns the following in a numpy array:
 simulation time,
 adiabatic index,
-proton mass,
 vacuum permeability,
 ratio of particle temperature to energy (Boltzmann constant).
+
+bulk_data will have cell ids as keys and each value will be
+a list of tuples of numpy arrays of electric and magnetic field.
+particle_data will have particle ids as keys and each value
+will be a list of tuples of numpy arrays of particle position
+and velocity.
 '''
-def load(file_name, particle_data):
-	import binascii
+def load(file_name, bulk_data, particle_data):
+	if bulk_data == None and particle_data == None:
+		return None
 
 	if not os.path.isfile(file_name):
 		raise Exception('Given file name (' + file_name + ')is not a file.')
 
 	infile = open(file_name, 'rb')
 
-	# read simulation header
-	header = numpy.fromfile(infile, dtype = '5float64', count = 1)
+	# read simulation header, given by source/particle/save.hpp
+	header = numpy.fromfile(infile, dtype = '4float64', count = 1)
 
+	# from this point onward format given in by dccrg's save_grid_data()
 	# check file endiannes
 	endianness = numpy.fromfile(infile, dtype = 'uint64', count = 1)[0]
 	if endianness != numpy.uint64(0x1234567890abcdef):
@@ -129,22 +139,38 @@ def load(file_name, particle_data):
 	cell_ids_data_offsets = numpy.fromfile(infile, dtype = '2uint64', count = total_cells)
 	#print(cell_ids_data_offsets)
 
+	# until this point format decided by dccrg
 	# read particle data
 	for item in cell_ids_data_offsets:
-		infile.seek(item[1], 0)
-		bulk_data = numpy.fromfile(
-			infile,
-			dtype = '3float, 3float64, uint64',
-			count = 1
-		)[0]
+		cell_id = item[0]
+
+		if bulk_data == None:
+			infile.seek(item[1] + 7 * 8, 0)
+		else:
+			infile.seek(item[1], 0)
+			# given by source/particle/save.hpp
+			temp_bulk_data = numpy.fromfile(
+				infile,
+				dtype = '3float, 3float64, uint64',
+				count = 1
+			)[0]
+			if cell_id in bulk_data:
+				bulk_data[cell_id].append((temp_bulk_data[0], temp_bulk_data[1]))
+			else:
+				bulk_data[cell_id] = [(temp_bulk_data[0], temp_bulk_data[1])]
+
+		# given by Particle_Internal in source/particle/variables.hpp
+		if particle_data == None:
+			continue
+
 		temp_particle_data = numpy.fromfile(
 			infile,
-			dtype = '3float64, 3float64, float64, float64, uint64',
-			count = bulk_data[2]
+			dtype = '3float64, 3float64, float64, float64, float64, uint64',
+			count = temp_bulk_data[2]
 		)
 		for particle in temp_particle_data:
-			position, velocity, mass, charge_mass_ratio, particle_id \
-				= particle[0], particle[1], particle[2], particle[3], particle[4]
+			position, velocity, mass, species_mass, charge_mass_ratio, particle_id \
+				= particle[0], particle[1], particle[2], particle[3], particle[4], particle[5]
 
 			if particle_id in particle_data:
 				particle_data[particle_id].append((position, velocity))
@@ -157,6 +183,7 @@ def load(file_name, particle_data):
 if __name__ == '__main__':
 	import sys
 
+	bulk_data = dict()
 	particle_data = dict()
 	for arg in sys.argv[1:]:
-		load(arg, particle_data)
+		load(arg, bulk_data, particle_data)
