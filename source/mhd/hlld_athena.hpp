@@ -254,7 +254,7 @@ template <
 	if (max_signal_neg >= 0.0) {
 		return std::make_tuple(flux_neg * area * dt, empty, std::fabs(max_signal_pos));
 	} else if (max_signal_pos <= 0.0) {
-		return std::make_tuple(flux_pos * area * dt, empty, std::fabs(max_signal_neg));
+		return std::make_tuple(empty, flux_pos * area * dt, std::fabs(max_signal_neg));
 	}
 
 	const auto
@@ -467,14 +467,14 @@ template <
 				* inv_permeability_sqrt;
 	}
 
-	MHD flux;
+	MHD final_flux_neg = empty, final_flux_pos = empty;
 	if (signal_s_neg >= 0) {
 
-		flux = flux_neg + (state_s_neg - state_neg) * max_signal_neg;
+		final_flux_neg = flux_neg + (state_s_neg - state_neg) * max_signal_neg;
 
 	} else if (signal_middle >= 0) {
 
-		flux
+		final_flux_neg
 			= flux_neg
 			+ state_s2_neg * signal_s_neg
 			- state_s_neg * (signal_s_neg - max_signal_neg)
@@ -482,7 +482,7 @@ template <
 
 	} else if (signal_s_pos > 0) {
 
-		flux
+		final_flux_pos
 			= flux_pos
 			+ state_s2_pos * signal_s_pos
 			- state_s_pos * (signal_s_pos - max_signal_pos)
@@ -490,16 +490,18 @@ template <
 
 	} else {
 
-		flux = flux_pos + (state_s_pos - state_pos) * max_signal_pos;
+		final_flux_pos = flux_pos + (state_s_pos - state_pos) * max_signal_pos;
 
 	}
-	flux[Mag][0] = 0;
+	final_flux_neg[Mag][0] =
+	final_flux_pos[Mag][0] = 0;
 
-	flux *= area * dt;
+	final_flux_neg *= area * dt;
+	final_flux_pos *= area * dt;
 
 	return std::make_tuple(
-		flux,
-		empty,
+		final_flux_neg,
+		final_flux_pos,
 		std::max(
 			std::fabs(max_signal_neg),
 			std::fabs(max_signal_pos)

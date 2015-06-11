@@ -51,6 +51,8 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "mhd/save.hpp"
 #include "mhd/solve.hpp"
 #include "mhd/hll_athena.hpp"
+#include "mhd/hlld_athena.hpp"
+#include "mhd/roe_athena.hpp"
 #include "mhd/variables.hpp"
 #include "pamhd/initialize.hpp"
 
@@ -282,7 +284,7 @@ int main(int argc, char* argv[])
 		vacuum_permeability = 4e-7 * M_PI,
 		proton_mass = 1.672621777e-27;
 	std::string
-		mhd_solver_str("hll_athena"),
+		mhd_solver_str("roe_athena"),
 		config_file_name(""),
 		boundary_file_name(""),
 		lb_name("RCB"),
@@ -550,6 +552,26 @@ int main(int argc, char* argv[])
 			if (mhd_solver_str == "hll_athena") {
 
 				return pamhd::mhd::athena::get_flux_hll<
+					pamhd::mhd::MHD_Conservative,
+					pamhd::mhd::Mass_Density,
+					pamhd::mhd::Momentum_Density,
+					pamhd::mhd::Total_Energy_Density,
+					pamhd::mhd::Magnetic_Field
+				>;
+
+			} else if (mhd_solver_str == "hlld_athena") {
+
+				return pamhd::mhd::athena::get_flux_hlld<
+					pamhd::mhd::MHD_Conservative,
+					pamhd::mhd::Mass_Density,
+					pamhd::mhd::Momentum_Density,
+					pamhd::mhd::Total_Energy_Density,
+					pamhd::mhd::Magnetic_Field
+				>;
+
+			} else if (mhd_solver_str == "roe_athena") {
+
+				return pamhd::mhd::athena::get_flux_roe<
 					pamhd::mhd::MHD_Conservative,
 					pamhd::mhd::Mass_Density,
 					pamhd::mhd::Momentum_Density,

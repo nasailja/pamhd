@@ -29,6 +29,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "exception"
 #include "limits"
 #include "tuple"
+#include "utility"
 
 #include "gensimcell.hpp"
 
@@ -328,13 +329,11 @@ struct Prim1DS{
  *            const double Bxi, ...)
  *  \brief Computes 1D fluxes
  *   Input Arguments:
- *   - Bxi = B in direction of slice at cell interface
+ *   - Bxi = B normal to cell interface
  *   - Ul,Ur = L/R-states of CONSERVED variables at cell interface
- *   Output Arguments:
- *   - Flux = fluxes of CONSERVED variables at cell interface
+ *   Returns flux contribution from negative and positive state respectively
  */
-
-Cons1DS athena_roe_fluxes(
+std::pair<Cons1DS, Cons1DS> athena_roe_fluxes(
 	const Cons1DS& Ul,
 	const Cons1DS& Ur,
 	const Prim1DS& Wl,
@@ -344,7 +343,6 @@ Cons1DS athena_roe_fluxes(
 ) {
   constexpr int NWAVE = 7;
 
-  Cons1DS Flux;
   constexpr double etah = 0.0;
 
   double sqrtdl,sqrtdr,isdlpdr,droe,v1roe,v2roe,v3roe,pbl=0.0,pbr=0.0;
@@ -415,7 +413,15 @@ Cons1DS athena_roe_fluxes(
  * Compute L/R fluxes 
  */
 
-  Cons1DS Fl,Fr;
+  Cons1DS Fl,Fr,empty;
+
+  empty.d  =
+  empty.Mx =
+  empty.My =
+  empty.Mz =
+  empty.E  =
+  empty.By =
+  empty.Bz = 0;
 
   Fl.d  = Ul.Mx;
   Fr.d  = Ur.Mx;
@@ -458,18 +464,17 @@ Cons1DS athena_roe_fluxes(
  */
 
   if(ev[0] >= 0.0) {
-    return Fl;
+    return std::make_pair(Fl, empty);
   }
 
   if(ev[NWAVE-1] <= 0.0) {
-    return Fr;
+    return std::make_pair(empty, Fr);
   }
 
 /*--- Step 6. ------------------------------------------------------------------
  * Compute projection of dU onto L eigenvectors ("vector A")
  */
 
-  //for (n=0; n<NWAVE; n++) dU[n] = pUr[n] - pUl[n];
   dU[0] = Ur.d - Ul.d;
   dU[1] = Ur.Mx - Ul.Mx;
   dU[2] = Ur.My - Ul.My;
@@ -487,12 +492,8 @@ Cons1DS athena_roe_fluxes(
 
 /*--- Step 7. ------------------------------------------------------------------
  * Check that the density and pressure in the intermediate states are positive.
- * If not, set hlle_flag=1 if d_inter<0; hlle_flag=2 if p_inter<0
  */
 
-  int hlle_flag = 0;
-
-  //for (n=0; n<NWAVE; n++) u_inter[n] = pUl[n];
   u_inter[0] = Ul.d;
   u_inter[1] = Ul.Mx;
   u_inter[2] = Ul.My;
@@ -505,57 +506,76 @@ Cons1DS athena_roe_fluxes(
     for (int m=0; m<NWAVE; m++) u_inter[m] += a[n]*rem[m][n];
     if(ev[n+1] > ev[n]) {
       if (u_inter[0] <= 0.0) {
-        hlle_flag=1;
-        break;
+        throw std::domain_error(
+          std::string("Non-physical density in intermediate of ")
+          + __func__
+        );
       }
-      p_inter = u_inter[4] - 0.5*
-	(std::pow(u_inter[1], 2)+std::pow(u_inter[2], 2)+std::pow(u_inter[3], 2))/u_inter[0];
-      p_inter -= 0.5*(std::pow(u_inter[NWAVE-2], 2)+std::pow(u_inter[NWAVE-1], 2)+std::pow(Bxi, 2));
+      p_inter
+        = u_inter[4]
+        - 0.5 * (
+          std::pow(u_inter[1], 2)
+          + std::pow(u_inter[2], 2)
+          + std::pow(u_inter[3], 2)
+        ) / u_inter[0];
+      p_inter -= 0.5 * (
+        std::pow(u_inter[NWAVE-2], 2)
+        + std::pow(u_inter[NWAVE-1], 2)
+        + std::pow(Bxi, 2)
+      );
       if (p_inter < 0.0) {
-	hlle_flag=2;
-	break;
+        throw std::domain_error(
+          std::string("Non-physical pressure in intermediate of ")
+          + __func__
+        );
       }
     }
   }
-
-  if (hlle_flag != 0) {
-	throw std::domain_error(
-		std::string("Non-physical intermediate state in ")
-		+ __func__
-	);
-  }
-
 
 /*--- Step 8. ------------------------------------------------------------------
  * Compute Roe flux */
 
   for (int m=0; m<NWAVE; m++) {
-    coeff[m] = 0.5*std::max(std::fabs(ev[m]), etah)*a[m];
-  }
-  /*for (n=0; n<NWAVE; n++) {
-    pF[n] = 0.5*(pFl[n] + pFr[n]);
-    for (m=0; m<NWAVE; m++) {
-      pF[n] -= coeff[m]*rem[n][m];
-    }
-  }*/
-  Flux.d = 0.5*(Fl.d + Fr.d);
-  Flux.Mx = 0.5*(Fl.Mx + Fr.Mx);
-  Flux.My = 0.5*(Fl.My + Fr.My);
-  Flux.Mz = 0.5*(Fl.Mz + Fr.Mz);
-  Flux.E = 0.5*(Fl.E + Fr.E);
-  Flux.By = 0.5*(Fl.By + Fr.By);
-  Flux.Bz = 0.5*(Fl.Bz + Fr.Bz);
-  for (int m=0; m<NWAVE; m++) {
-    Flux.d -= coeff[m] * rem[0][m];
-    Flux.Mx -= coeff[m] * rem[1][m];
-    Flux.My -= coeff[m] * rem[2][m];
-    Flux.Mz -= coeff[m] * rem[3][m];
-    Flux.E -= coeff[m] * rem[4][m];
-    Flux.By -= coeff[m] * rem[5][m];
-    Flux.Bz -= coeff[m] * rem[6][m];
+    coeff[m] = 0.5 * a[m] * std::max(std::fabs(ev[m]), etah);
   }
 
-  return Flux;
+  Cons1DS final_flux_neg, final_flux_pos;
+
+  final_flux_neg.d = 0.5 * Fl.d;
+  final_flux_neg.Mx = 0.5 * Fl.Mx;
+  final_flux_neg.My = 0.5 * Fl.My;
+  final_flux_neg.Mz = 0.5 * Fl.Mz;
+  final_flux_neg.E = 0.5 * Fl.E;
+  final_flux_neg.By = 0.5 * Fl.By;
+  final_flux_neg.Bz = 0.5 * Fl.Bz;
+
+  final_flux_pos.d = 0.5 * Fr.d;
+  final_flux_pos.Mx = 0.5 * Fr.Mx;
+  final_flux_pos.My = 0.5 * Fr.My;
+  final_flux_pos.Mz = 0.5 * Fr.Mz;
+  final_flux_pos.E = 0.5 * Fr.E;
+  final_flux_pos.By = 0.5 * Fr.By;
+  final_flux_pos.Bz = 0.5 * Fr.Bz;
+
+  for (int m=0; m<NWAVE; m++) {
+    final_flux_neg.d -= 0.5 * coeff[m] * rem[0][m];
+    final_flux_neg.Mx -= 0.5 * coeff[m] * rem[1][m];
+    final_flux_neg.My -= 0.5 * coeff[m] * rem[2][m];
+    final_flux_neg.Mz -= 0.5 * coeff[m] * rem[3][m];
+    final_flux_neg.E -= 0.5 * coeff[m] * rem[4][m];
+    final_flux_neg.By -= 0.5 * coeff[m] * rem[5][m];
+    final_flux_neg.Bz -= 0.5 * coeff[m] * rem[6][m];
+
+    final_flux_pos.d -= 0.5 * coeff[m] * rem[0][m];
+    final_flux_pos.Mx -= 0.5 * coeff[m] * rem[1][m];
+    final_flux_pos.My -= 0.5 * coeff[m] * rem[2][m];
+    final_flux_pos.Mz -= 0.5 * coeff[m] * rem[3][m];
+    final_flux_pos.E -= 0.5 * coeff[m] * rem[4][m];
+    final_flux_pos.By -= 0.5 * coeff[m] * rem[5][m];
+    final_flux_pos.Bz -= 0.5 * coeff[m] * rem[6][m];
+  }
+
+  return std::make_pair(final_flux_neg, final_flux_pos);
 }
 
 
@@ -739,7 +759,7 @@ template <
 			prim_pos_temp[Mag][2] / std::sqrt(vacuum_permeability)
 		};
 
-	const auto flux_temp
+	const auto fluxes_temp
 		= athena_roe_fluxes(
 			Ul,
 			Ur,
@@ -749,25 +769,26 @@ template <
 			adiabatic_index
 		);
 
-	MHD flux, empty;
-	flux[Mas] = flux_temp.d;
-	flux[Mom][0] = flux_temp.Mx;
-	flux[Mom][1] = flux_temp.My;
-	flux[Mom][2] = flux_temp.Mz;
-	flux[Nrj] = flux_temp.E;
-	flux[Mag][0] = 0;
-	flux[Mag][1] = flux_temp.By * std::sqrt(vacuum_permeability);
-	flux[Mag][2] = flux_temp.Bz * std::sqrt(vacuum_permeability);
-	empty[Mas] = 0;
-	empty[Mom][0] = 0;
-	empty[Mom][1] = 0;
-	empty[Mom][2] = 0;
-	empty[Nrj] = 0;
-	empty[Mag][0] = 0;
-	empty[Mag][1] = 0;
-	empty[Mag][2] = 0;
+	MHD flux_neg, flux_pos;
+	flux_neg[Mas] = fluxes_temp.first.d;
+	flux_neg[Mom][0] = fluxes_temp.first.Mx;
+	flux_neg[Mom][1] = fluxes_temp.first.My;
+	flux_neg[Mom][2] = fluxes_temp.first.Mz;
+	flux_neg[Nrj] = fluxes_temp.first.E;
+	flux_neg[Mag][0] = 0;
+	flux_neg[Mag][1] = fluxes_temp.first.By * std::sqrt(vacuum_permeability);
+	flux_neg[Mag][2] = fluxes_temp.first.Bz * std::sqrt(vacuum_permeability);
+	flux_pos[Mas] = fluxes_temp.second.d;
+	flux_pos[Mom][0] = fluxes_temp.second.Mx;
+	flux_pos[Mom][1] = fluxes_temp.second.My;
+	flux_pos[Mom][2] = fluxes_temp.second.Mz;
+	flux_pos[Nrj] = fluxes_temp.second.E;
+	flux_pos[Mag][0] = 0;
+	flux_pos[Mag][1] = fluxes_temp.second.By * std::sqrt(vacuum_permeability);
+	flux_pos[Mag][2] = fluxes_temp.second.Bz * std::sqrt(vacuum_permeability);
 
-	flux *= area * dt;
+	flux_neg *= area * dt;
+	flux_pos *= area * dt;
 
 	// get maximum signal speed
 	const auto
@@ -826,7 +847,7 @@ template <
 			);
 	}
 
-	return std::make_tuple(flux, empty, ret_signal_speed);
+	return std::make_tuple(flux_neg, flux_pos, ret_signal_speed);
 }
 
 }}} // namespaces

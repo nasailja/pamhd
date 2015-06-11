@@ -1150,6 +1150,26 @@ int main(int argc, char* argv[])
 					pamhd::mhd::Magnetic_Field
 				>;
 
+			} else if (mhd_solver_str == "hlld_athena") {
+
+				return pamhd::mhd::athena::get_flux_hlld<
+					pamhd::mhd::MHD_State_Conservative::data_type,
+					pamhd::mhd::Mass_Density,
+					pamhd::mhd::Momentum_Density,
+					pamhd::mhd::Total_Energy_Density,
+					pamhd::mhd::Magnetic_Field
+				>;
+
+			} else if (mhd_solver_str == "roe_athena") {
+
+				return pamhd::mhd::athena::get_flux_roe<
+					pamhd::mhd::MHD_State_Conservative::data_type,
+					pamhd::mhd::Mass_Density,
+					pamhd::mhd::Momentum_Density,
+					pamhd::mhd::Total_Energy_Density,
+					pamhd::mhd::Magnetic_Field
+				>;
+
 			} else {
 
 				std::cerr <<  __FILE__ << "(" << __LINE__ << ") Invalid solver: "

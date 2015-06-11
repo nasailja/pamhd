@@ -38,6 +38,8 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 #include "mhd/common.hpp"
 #include "mhd/hll_athena.hpp"
+#include "mhd/hlld_athena.hpp"
+#include "mhd/roe_athena.hpp"
 #include "mhd/variables.hpp"
 
 
@@ -793,13 +795,46 @@ int main(int argc, char* argv[])
 		verbose = true;
 	}
 
-	const auto solver = pamhd::mhd::athena::get_flux_hll<
-		pamhd::mhd::MHD_Conservative,
-		pamhd::mhd::Mass_Density,
-		pamhd::mhd::Momentum_Density,
-		pamhd::mhd::Total_Energy_Density,
-		pamhd::mhd::Magnetic_Field
-	>;
+	const auto solver
+		= [&solver_str](){
+			if (solver_str == "hll_athena") {
+
+				return pamhd::mhd::athena::get_flux_hll<
+					pamhd::mhd::MHD_State_Conservative::data_type,
+					pamhd::mhd::Mass_Density,
+					pamhd::mhd::Momentum_Density,
+					pamhd::mhd::Total_Energy_Density,
+					pamhd::mhd::Magnetic_Field
+				>;
+
+			} else if (solver_str == "hlld_athena") {
+
+				return pamhd::mhd::athena::get_flux_hlld<
+					pamhd::mhd::MHD_State_Conservative::data_type,
+					pamhd::mhd::Mass_Density,
+					pamhd::mhd::Momentum_Density,
+					pamhd::mhd::Total_Energy_Density,
+					pamhd::mhd::Magnetic_Field
+				>;
+
+			} else if (solver_str == "roe_athena") {
+
+				return pamhd::mhd::athena::get_flux_roe<
+					pamhd::mhd::MHD_State_Conservative::data_type,
+					pamhd::mhd::Mass_Density,
+					pamhd::mhd::Momentum_Density,
+					pamhd::mhd::Total_Energy_Density,
+					pamhd::mhd::Magnetic_Field
+				>;
+
+			} else {
+
+				std::cerr <<  __FILE__ << "(" << __LINE__ << ") Invalid solver: "
+					<< solver_str << ", use --help to list available solvers"
+					<< std::endl;
+				abort();
+			}
+		}();
 
 	Grid grid;
 
