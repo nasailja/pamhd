@@ -3,7 +3,7 @@
 output-directory = results/hydrodynamic/jet_injection/
 time-start = 0
 time-length = 2
-load-balancer = RCB
+load-balancer = RANDOM
 save-mhd-n = 0.1
 vacuum-permeability = 1
 proton-mass = 1
