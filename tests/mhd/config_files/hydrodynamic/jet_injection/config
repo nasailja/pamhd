@@ -1,0 +1,59 @@
+# similar to Section 2.5 in http://www.csrc.sdsu.edu/research_reports/CSRCR2012-01.pdf
+
+output-directory = results/hydrodynamic/jet_injection/
+time-start = 0
+time-length = 2
+load-balancer = RCB
+save-mhd-n = 0.1
+vacuum-permeability = 1
+proton-mass = 1
+adiabatic-index = 1.66666667
+remove-div-B-n = -1
+time-step-factor = 0.5
+solver-mhd = roe_athena
+
+[grid]
+periodic = {false, false, false}
+nr-cells = {40 + 2, 20 + 2, 1}
+volume = {3 * (1 + 2/40), 1.5 * (1 + 2/20), 1}
+start = {-3/40, -1.5/20, 0}
+
+[initial]
+default.number-density = 1
+default.velocity = {2.7 - r[0]/2, 0, 0}
+default.pressure = 1
+default.magnetic-field = {0, 0, 0}
+
+[value-boundaries]
+nr-boxes = 2
+# -x edge
+box1.time = 0
+box1.start = {-99, -99, -99}
+box1.end = {0, 99, 99}
+box1.number-density = 1
+box1.velocity = {2.7, 0, 0}
+box1.pressure = 1
+box1.magnetic-field = {0, 0, 0}
+# injection
+box2.time = 0
+box2.start = {1.4, -99, -99}
+box2.end = {1.6, 0, 99}
+box2.number-density = 5
+box2.velocity = {0, 1.3, 0}
+box2.pressure = 5
+box2.magnetic-field = {0, 0, 0}
+
+[copy-boundaries]
+nr-boxes = 4
+# +x edge
+box1.start = {3, -99, -99}
+box1.end = {99, 99, 99}
+# +y edge
+box2.start = {-99, 1.5, -99}
+box2.end = {99, 99, 99}
+# -x side of -y edge
+box3.start = {0, -99, -99}
+box3.end = {1.4, 0, 99}
+# +x side of -y edge
+box4.start = {1.6, -99, -99}
+box4.end = {99, 0, 99}
