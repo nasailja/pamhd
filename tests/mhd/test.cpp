@@ -1037,7 +1037,9 @@ int main(int argc, char* argv[])
 			or (save_mhd_n > 0 and simulation_time >= next_mhd_save)
 		) {
 			if (next_mhd_save <= simulation_time) {
-				next_mhd_save += save_mhd_n;
+				next_mhd_save
+					+= save_mhd_n
+					* ceil((simulation_time - next_mhd_save) / save_mhd_n);
 			}
 
 			if (verbose and rank == 0) {
