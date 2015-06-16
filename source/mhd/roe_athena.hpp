@@ -507,7 +507,7 @@ std::pair<Cons1DS, Cons1DS> athena_roe_fluxes(
     if(ev[n+1] > ev[n]) {
       if (u_inter[0] <= 0.0) {
         throw std::domain_error(
-          std::string("Non-physical density in intermediate of ")
+          std::string("Non-physical density in intermediate state of ")
           + __func__
         );
       }
@@ -525,7 +525,7 @@ std::pair<Cons1DS, Cons1DS> athena_roe_fluxes(
       );
       if (p_inter < 0.0) {
         throw std::domain_error(
-          std::string("Non-physical pressure in intermediate of ")
+          std::string("Non-physical pressure in intermediate state of ")
           + __func__
         );
       }
