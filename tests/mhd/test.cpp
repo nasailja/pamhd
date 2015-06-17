@@ -205,7 +205,10 @@ int main(int argc, char* argv[])
 		>;
 	Copy_Boundary_T copy_boundary;
 
+	mup::Value J_val;
+	mup::Variable J_var(&J_val);
 	pamhd::boundaries::Variable_To_Option<Resistivity> resistivity_bdy;
+	resistivity_bdy.add_variable(Resistivity(), "J", J_var);
 
 	pamhd::grid::Options grid_options;
 	grid_options.data.set_expression(pamhd::grid::Number_Of_Cells(), "{1, 1, 1}");
@@ -776,6 +779,7 @@ int main(int argc, char* argv[])
 					abort();
 				}
 				const auto cell_center = grid.geometry.get_center(cell);
+				J_val = Cur(*cell_data).norm();
 				Mag_res(*cell_data)
 					*= -resistivity_bdy.get_data(
 						Resistivity(),
@@ -800,6 +804,7 @@ int main(int argc, char* argv[])
 					abort();
 				}
 				const auto cell_center = grid.geometry.get_center(cell);
+				J_val = Cur(*cell_data).norm();
 				Mag_res(*cell_data)
 					*= -resistivity_bdy.get_data(
 						Resistivity(),

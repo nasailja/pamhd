@@ -75,6 +75,15 @@ public:
 	}
 
 
+	void add_variable(
+		const Current_Variable&,
+		const std::string& name,
+		mup::Variable& variable
+	) {
+		this->parser.DefineVar(name, variable);
+	}
+
+
 	void add_options(
 		const std::string& prefix,
 		boost::program_options::options_description& options
@@ -597,6 +606,15 @@ public:
 	{
 		this->parser.DefineVar("r", this->r_var);
 		this->parser.DefineVar("t", this->t_var);
+	}
+
+
+	void add_variable(
+		const Last_Variable&,
+		const std::string& name,
+		mup::Variable& variable
+	) {
+		this->parser.DefineVar(name, variable);
 	}
 
 
