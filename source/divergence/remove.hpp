@@ -860,8 +860,8 @@ template <
 			if (nr_neighbors[1] == 2) {
 				result[1] += 0.5 * (
 					Vector(*neighbor_datas[5])[2]
-					+ Vector(*neighbor_datas[1])[2]
-					- Vector(*neighbor_datas[0])[2]
+					+ Vector(*neighbor_datas[3])[2]
+					- Vector(*neighbor_datas[2])[2]
 					- Vector(*neighbor_datas[4])[2]
 				) / std::sqrt(
 					neigh_pos_dist[1]*neigh_pos_dist[1]
@@ -873,8 +873,8 @@ template <
 			// dxdxVy
 			result[1] -= 2 * (
 				vec[1] / neigh_neg_dist[0] / neigh_pos_dist[0]
-				+ Vector(*neighbor_datas[3])[1] / neigh_pos_dist[0] / (neigh_pos_dist[0] + neigh_neg_dist[0])
-				- Vector(*neighbor_datas[2])[1] / neigh_neg_dist[0] / (neigh_pos_dist[0] + neigh_neg_dist[0])
+				+ Vector(*neighbor_datas[1])[1] / neigh_pos_dist[0] / (neigh_pos_dist[0] + neigh_neg_dist[0])
+				- Vector(*neighbor_datas[0])[1] / neigh_neg_dist[0] / (neigh_pos_dist[0] + neigh_neg_dist[0])
 			);
 			// dydxVx
 			if (nr_neighbors[1] == 2) {
@@ -894,8 +894,8 @@ template <
 			// dxdxVz
 			result[2] -= 2 * (
 				vec[2] / neigh_neg_dist[0] / neigh_pos_dist[0]
-				+ Vector(*neighbor_datas[3])[2] / neigh_pos_dist[0] / (neigh_pos_dist[0] + neigh_neg_dist[0])
-				- Vector(*neighbor_datas[2])[2] / neigh_neg_dist[0] / (neigh_pos_dist[0] + neigh_neg_dist[0])
+				+ Vector(*neighbor_datas[1])[2] / neigh_pos_dist[0] / (neigh_pos_dist[0] + neigh_neg_dist[0])
+				- Vector(*neighbor_datas[0])[2] / neigh_neg_dist[0] / (neigh_pos_dist[0] + neigh_neg_dist[0])
 			);
 			// dxdzVx
 			if (nr_neighbors[2] == 2) {
@@ -914,18 +914,18 @@ template <
 			// dydyVz
 			result[2] -= 2 * (
 				vec[2] / neigh_neg_dist[1] / neigh_pos_dist[1]
-				+ Vector(*neighbor_datas[5])[2] / neigh_pos_dist[1] / (neigh_pos_dist[1] + neigh_neg_dist[1])
-				- Vector(*neighbor_datas[4])[2] / neigh_neg_dist[1] / (neigh_pos_dist[1] + neigh_neg_dist[1])
+				+ Vector(*neighbor_datas[3])[2] / neigh_pos_dist[1] / (neigh_pos_dist[1] + neigh_neg_dist[1])
+				- Vector(*neighbor_datas[2])[2] / neigh_neg_dist[1] / (neigh_pos_dist[1] + neigh_neg_dist[1])
 			);
 			// dydzVy
 			if (nr_neighbors[2] == 2) {
 				result[2] += 0.5 * (
 					Vector(*neighbor_datas[5])[1]
-					+ Vector(*neighbor_datas[1])[1]
-					- Vector(*neighbor_datas[0])[1]
+					+ Vector(*neighbor_datas[3])[1]
+					- Vector(*neighbor_datas[2])[1]
 					- Vector(*neighbor_datas[4])[1]
 				) / std::sqrt(
-					neigh_pos_dist[0]*neigh_pos_dist[0]
+					neigh_pos_dist[1]*neigh_pos_dist[1]
 					+ neigh_pos_dist[2]*neigh_pos_dist[2]
 				);
 			}
