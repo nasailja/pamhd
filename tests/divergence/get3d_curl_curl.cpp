@@ -249,7 +249,7 @@ int main(int argc, char* argv[])
 				order_of_accuracy
 					= -log(norm / old_norm)
 					/ log(double(nr_of_cells) / old_nr_of_cells);
-			if (order_of_accuracy < 1) {
+			if (order_of_accuracy < 2.3) {
 				if (grid.get_rank() == 0) {
 					std::cerr << __FILE__ << ":" << __LINE__
 						<< ": Order of accuracy from " << old_nr_of_cells

@@ -804,16 +804,17 @@ template <
 		result_z = dxdzVx - dxdxVz - dydyVz + dydzVy
 
 		dxdyA = dydxA = [A(0, 1) + A(1, 0) - A(-1, 0) - A(0, -1)] / 2 / sqrt(dx*dx+dy*dy)
+		dxdxA = 2*[-A(0, 0) + A(1, 0)/2 + A(-1, 0)/2]/dx/dx
 		...
 		*/
 
 		// result_x
 		if (nr_neighbors[1] == 2) {
-			// dydyVx
+			// -dydyVx
 			result[0] -= 2 * (
-				vec[0] / neigh_neg_dist[1] / neigh_pos_dist[1]
+				-vec[0] / neigh_neg_dist[1] / neigh_pos_dist[1]
 				+ Vector(*neighbor_datas[3])[0] / neigh_pos_dist[1] / (neigh_pos_dist[1] + neigh_neg_dist[1])
-				- Vector(*neighbor_datas[2])[0] / neigh_neg_dist[1] / (neigh_pos_dist[1] + neigh_neg_dist[1])
+				+ Vector(*neighbor_datas[2])[0] / neigh_neg_dist[1] / (neigh_pos_dist[1] + neigh_neg_dist[1])
 			);
 			// dydxVy
 			if (nr_neighbors[0] == 2) {
@@ -829,11 +830,11 @@ template <
 			}
 		}
 		if (nr_neighbors[2] == 2) {
-			// dzdzVx
+			// -dzdzVx
 			result[0] -= 2 * (
-				vec[0] / neigh_neg_dist[2] / neigh_pos_dist[2]
+				-vec[0] / neigh_neg_dist[2] / neigh_pos_dist[2]
 				+ Vector(*neighbor_datas[5])[0] / neigh_pos_dist[2] / (neigh_pos_dist[2] + neigh_neg_dist[2])
-				- Vector(*neighbor_datas[4])[0] / neigh_neg_dist[2] / (neigh_pos_dist[2] + neigh_neg_dist[2])
+				+ Vector(*neighbor_datas[4])[0] / neigh_neg_dist[2] / (neigh_pos_dist[2] + neigh_neg_dist[2])
 			);
 			// dzdxVz
 			if (nr_neighbors[0] == 2) {
@@ -850,11 +851,11 @@ template <
 		}
 		// result_y
 		if (nr_neighbors[2] == 2) {
-			// dzdzVy
+			// -dzdzVy
 			result[1] -= 2 * (
-				vec[1] / neigh_neg_dist[2] / neigh_pos_dist[2]
+				-vec[1] / neigh_neg_dist[2] / neigh_pos_dist[2]
 				+ Vector(*neighbor_datas[5])[1] / neigh_pos_dist[2] / (neigh_pos_dist[2] + neigh_neg_dist[2])
-				- Vector(*neighbor_datas[4])[1] / neigh_neg_dist[2] / (neigh_pos_dist[2] + neigh_neg_dist[2])
+				+ Vector(*neighbor_datas[4])[1] / neigh_neg_dist[2] / (neigh_pos_dist[2] + neigh_neg_dist[2])
 			);
 			// dzdyVz
 			if (nr_neighbors[1] == 2) {
@@ -870,11 +871,11 @@ template <
 			}
 		}
 		if (nr_neighbors[0] == 2) {
-			// dxdxVy
+			// -dxdxVy
 			result[1] -= 2 * (
-				vec[1] / neigh_neg_dist[0] / neigh_pos_dist[0]
+				-vec[1] / neigh_neg_dist[0] / neigh_pos_dist[0]
 				+ Vector(*neighbor_datas[1])[1] / neigh_pos_dist[0] / (neigh_pos_dist[0] + neigh_neg_dist[0])
-				- Vector(*neighbor_datas[0])[1] / neigh_neg_dist[0] / (neigh_pos_dist[0] + neigh_neg_dist[0])
+				+ Vector(*neighbor_datas[0])[1] / neigh_neg_dist[0] / (neigh_pos_dist[0] + neigh_neg_dist[0])
 			);
 			// dydxVx
 			if (nr_neighbors[1] == 2) {
@@ -891,11 +892,11 @@ template <
 		}
 		// result_z
 		if (nr_neighbors[0] == 2) {
-			// dxdxVz
+			// -dxdxVz
 			result[2] -= 2 * (
-				vec[2] / neigh_neg_dist[0] / neigh_pos_dist[0]
+				-vec[2] / neigh_neg_dist[0] / neigh_pos_dist[0]
 				+ Vector(*neighbor_datas[1])[2] / neigh_pos_dist[0] / (neigh_pos_dist[0] + neigh_neg_dist[0])
-				- Vector(*neighbor_datas[0])[2] / neigh_neg_dist[0] / (neigh_pos_dist[0] + neigh_neg_dist[0])
+				+ Vector(*neighbor_datas[0])[2] / neigh_neg_dist[0] / (neigh_pos_dist[0] + neigh_neg_dist[0])
 			);
 			// dxdzVx
 			if (nr_neighbors[2] == 2) {
@@ -911,11 +912,11 @@ template <
 			}
 		}
 		if (nr_neighbors[1] == 2) {
-			// dydyVz
+			// -dydyVz
 			result[2] -= 2 * (
-				vec[2] / neigh_neg_dist[1] / neigh_pos_dist[1]
+				-vec[2] / neigh_neg_dist[1] / neigh_pos_dist[1]
 				+ Vector(*neighbor_datas[3])[2] / neigh_pos_dist[1] / (neigh_pos_dist[1] + neigh_neg_dist[1])
-				- Vector(*neighbor_datas[2])[2] / neigh_neg_dist[1] / (neigh_pos_dist[1] + neigh_neg_dist[1])
+				+ Vector(*neighbor_datas[2])[2] / neigh_neg_dist[1] / (neigh_pos_dist[1] + neigh_neg_dist[1])
 			);
 			// dydzVy
 			if (nr_neighbors[2] == 2) {
