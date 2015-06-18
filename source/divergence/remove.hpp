@@ -836,7 +836,7 @@ template <
 				- Vector(*neighbor_datas[4])[0] / neigh_neg_dist[2] / (neigh_pos_dist[2] + neigh_neg_dist[2])
 			);
 			// dzdxVz
-			if (nr_neighbors[2] == 2) {
+			if (nr_neighbors[0] == 2) {
 				result[0] += 0.5 * (
 					Vector(*neighbor_datas[5])[2]
 					+ Vector(*neighbor_datas[1])[2]
@@ -898,7 +898,7 @@ template <
 				- Vector(*neighbor_datas[2])[2] / neigh_neg_dist[0] / (neigh_pos_dist[0] + neigh_neg_dist[0])
 			);
 			// dxdzVx
-			if (nr_neighbors[1] == 2) {
+			if (nr_neighbors[2] == 2) {
 				result[2] += 0.5 * (
 					Vector(*neighbor_datas[5])[0]
 					+ Vector(*neighbor_datas[1])[0]
