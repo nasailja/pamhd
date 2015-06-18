@@ -40,6 +40,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "vector"
 
 #include "dccrg.hpp"
+#include "dccrg_cartesian_geometry.hpp"
 #include "gensimcell.hpp"
 #include "mpi.h"
 #include "tests/poisson/poisson_solve.hpp" // part of dccrg
@@ -694,6 +695,242 @@ template <
 	}
 
 	return ret_val;
+}
+
+
+/*!
+Calculates curl(curl(vector)) of vector variable in given cells.
+
+See get_divergence() for more info on arguments, etc.
+*/
+template <
+	class Cell,
+	class Vector_Getter,
+	class Result_Getter
+> void get_curl_curl(
+	const std::vector<uint64_t>& cells,
+	dccrg::Dccrg<Cell, dccrg::Cartesian_Geometry>& grid,
+	Vector_Getter Vector,
+	Result_Getter Result
+) {
+	for (const auto& cell: cells) {
+		if (grid.get_refinement_level(cell) != 0) {
+			std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
+				<< "Adaptive mesh refinement not supported"
+				<< std::endl;
+			abort();
+		}
+
+		const auto cell_length = grid.geometry.get_length(cell);
+
+		const auto face_neighbors_of = grid.get_face_neighbors_of(cell);
+
+		// get distance between neighbors in same dimension
+		std::array<double, 3>
+			// distance from current cell on neg and pos side (> 0)
+			neigh_neg_dist{{0, 0, 0}},
+			neigh_pos_dist{{0, 0, 0}};
+
+		// number of neighbors in each dimension
+		std::array<size_t, 3> nr_neighbors{{0, 0, 0}};
+		// pointers to neighbor data, -x, +x, -y, +y, -z, +z
+		std::array<Cell*, 6> neighbor_datas{nullptr};
+
+		for (const auto& item: face_neighbors_of) {
+			const auto neighbor = item.first;
+			const auto direction = item.second;
+			if (direction == 0 or std::abs(direction) > 3) {
+				std::cerr << __FILE__ << "(" << __LINE__<< ")" << std::endl;
+				abort();
+			}
+			const size_t dim = std::abs(direction) - 1;
+
+			nr_neighbors[dim]++;
+
+			const auto neighbor_length
+				= grid.geometry.get_length(neighbor);
+
+			const double distance
+				= (cell_length[dim] + neighbor_length[dim]) / 2.0;
+
+			if (direction < 0) {
+				neigh_neg_dist[dim] = distance;
+			} else {
+				neigh_pos_dist[dim] = distance;
+			}
+
+			auto* const neighbor_data = grid[neighbor];
+			if (neighbor_data == nullptr) {
+				std::cerr << __FILE__ << "(" << __LINE__<< ")" << std::endl;
+				abort();
+			}
+			size_t index = dim * 2;
+			if (direction > 0) {
+				index++;
+			}
+			neighbor_datas[index] = neighbor_data;
+		}
+
+		bool have_enough_neighbors = false;
+		for (auto dim = 0; dim < 3; dim++) {
+			if (nr_neighbors[dim] == 2) {
+				have_enough_neighbors = true;
+			}
+		}
+
+		auto* const cell_data = grid[cell];
+		if (cell_data == NULL) {
+			std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
+				<< "No data for simulation cell " << cell
+				<< std::endl;
+			abort();
+		}
+
+		auto
+			&vec = Vector(*cell_data),
+			&result = Result(*cell_data);
+
+		result[0] =
+		result[1] =
+		result[2] = 0;
+
+		if (not have_enough_neighbors) {
+			continue;
+		}
+
+		/*
+		result_x = dydxVy - dydyVx - dzdzVx + dzdxVz
+		result_y = dzdyVz - dzdzVy - dxdxVy + dxdyVx
+		result_z = dxdzVx - dxdxVz - dydyVz + dydzVy
+
+		dxdyA = dydxA = [A(0, 1) + A(1, 0) - A(-1, 0) - A(0, -1)] / 2 / sqrt(dx*dx+dy*dy)
+		...
+		*/
+
+		// result_x
+		if (nr_neighbors[1] == 2) {
+			// dydyVx
+			result[0] -= 2 * (
+				vec[0] / neigh_neg_dist[1] / neigh_pos_dist[1]
+				+ Vector(*neighbor_datas[3])[0] / neigh_pos_dist[1] / (neigh_pos_dist[1] + neigh_neg_dist[1])
+				- Vector(*neighbor_datas[2])[0] / neigh_neg_dist[1] / (neigh_pos_dist[1] + neigh_neg_dist[1])
+			);
+			// dydxVy
+			if (nr_neighbors[0] == 2) {
+				result[0] += 0.5 * (
+					Vector(*neighbor_datas[3])[1]
+					+ Vector(*neighbor_datas[1])[1]
+					- Vector(*neighbor_datas[0])[1]
+					- Vector(*neighbor_datas[2])[1]
+				) / std::sqrt(
+					neigh_pos_dist[0]*neigh_pos_dist[0]
+					+ neigh_pos_dist[1]*neigh_pos_dist[1]
+				);
+			}
+		}
+		if (nr_neighbors[2] == 2) {
+			// dzdzVx
+			result[0] -= 2 * (
+				vec[0] / neigh_neg_dist[2] / neigh_pos_dist[2]
+				+ Vector(*neighbor_datas[5])[0] / neigh_pos_dist[2] / (neigh_pos_dist[2] + neigh_neg_dist[2])
+				- Vector(*neighbor_datas[4])[0] / neigh_neg_dist[2] / (neigh_pos_dist[2] + neigh_neg_dist[2])
+			);
+			// dzdxVz
+			if (nr_neighbors[2] == 2) {
+				result[0] += 0.5 * (
+					Vector(*neighbor_datas[5])[2]
+					+ Vector(*neighbor_datas[1])[2]
+					- Vector(*neighbor_datas[0])[2]
+					- Vector(*neighbor_datas[4])[2]
+				) / std::sqrt(
+					neigh_pos_dist[0]*neigh_pos_dist[0]
+					+ neigh_pos_dist[2]*neigh_pos_dist[2]
+				);
+			}
+		}
+		// result_y
+		if (nr_neighbors[2] == 2) {
+			// dzdzVy
+			result[1] -= 2 * (
+				vec[1] / neigh_neg_dist[2] / neigh_pos_dist[2]
+				+ Vector(*neighbor_datas[5])[1] / neigh_pos_dist[2] / (neigh_pos_dist[2] + neigh_neg_dist[2])
+				- Vector(*neighbor_datas[4])[1] / neigh_neg_dist[2] / (neigh_pos_dist[2] + neigh_neg_dist[2])
+			);
+			// dzdyVz
+			if (nr_neighbors[1] == 2) {
+				result[1] += 0.5 * (
+					Vector(*neighbor_datas[5])[2]
+					+ Vector(*neighbor_datas[1])[2]
+					- Vector(*neighbor_datas[0])[2]
+					- Vector(*neighbor_datas[4])[2]
+				) / std::sqrt(
+					neigh_pos_dist[1]*neigh_pos_dist[1]
+					+ neigh_pos_dist[2]*neigh_pos_dist[2]
+				);
+			}
+		}
+		if (nr_neighbors[0] == 2) {
+			// dxdxVy
+			result[1] -= 2 * (
+				vec[1] / neigh_neg_dist[0] / neigh_pos_dist[0]
+				+ Vector(*neighbor_datas[3])[1] / neigh_pos_dist[0] / (neigh_pos_dist[0] + neigh_neg_dist[0])
+				- Vector(*neighbor_datas[2])[1] / neigh_neg_dist[0] / (neigh_pos_dist[0] + neigh_neg_dist[0])
+			);
+			// dydxVx
+			if (nr_neighbors[1] == 2) {
+				result[1] += 0.5 * (
+					Vector(*neighbor_datas[3])[0]
+					+ Vector(*neighbor_datas[1])[0]
+					- Vector(*neighbor_datas[0])[0]
+					- Vector(*neighbor_datas[2])[0]
+				) / std::sqrt(
+					neigh_pos_dist[0]*neigh_pos_dist[0]
+					+ neigh_pos_dist[1]*neigh_pos_dist[1]
+				);
+			}
+		}
+		// result_z
+		if (nr_neighbors[0] == 2) {
+			// dxdxVz
+			result[2] -= 2 * (
+				vec[2] / neigh_neg_dist[0] / neigh_pos_dist[0]
+				+ Vector(*neighbor_datas[3])[2] / neigh_pos_dist[0] / (neigh_pos_dist[0] + neigh_neg_dist[0])
+				- Vector(*neighbor_datas[2])[2] / neigh_neg_dist[0] / (neigh_pos_dist[0] + neigh_neg_dist[0])
+			);
+			// dxdzVx
+			if (nr_neighbors[1] == 2) {
+				result[2] += 0.5 * (
+					Vector(*neighbor_datas[5])[0]
+					+ Vector(*neighbor_datas[1])[0]
+					- Vector(*neighbor_datas[0])[0]
+					- Vector(*neighbor_datas[4])[0]
+				) / std::sqrt(
+					neigh_pos_dist[0]*neigh_pos_dist[0]
+					+ neigh_pos_dist[2]*neigh_pos_dist[2]
+				);
+			}
+		}
+		if (nr_neighbors[1] == 2) {
+			// dydyVz
+			result[2] -= 2 * (
+				vec[2] / neigh_neg_dist[1] / neigh_pos_dist[1]
+				+ Vector(*neighbor_datas[5])[2] / neigh_pos_dist[1] / (neigh_pos_dist[1] + neigh_neg_dist[1])
+				- Vector(*neighbor_datas[4])[2] / neigh_neg_dist[1] / (neigh_pos_dist[1] + neigh_neg_dist[1])
+			);
+			// dydzVy
+			if (nr_neighbors[2] == 2) {
+				result[2] += 0.5 * (
+					Vector(*neighbor_datas[5])[1]
+					+ Vector(*neighbor_datas[1])[1]
+					- Vector(*neighbor_datas[0])[1]
+					- Vector(*neighbor_datas[4])[1]
+				) / std::sqrt(
+					neigh_pos_dist[0]*neigh_pos_dist[0]
+					+ neigh_pos_dist[2]*neigh_pos_dist[2]
+				);
+			}
+		}
+	}
 }
 
 
