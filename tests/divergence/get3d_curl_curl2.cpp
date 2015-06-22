@@ -69,6 +69,7 @@ const auto Result_Getter
 		return cell_data[Result()];
 	};
 
+// returns true on success
 bool check(
 	Grid& grid,
 	const std::array<std::array<double, 3>, 7>& init_cond,
@@ -130,6 +131,7 @@ bool check(
 		);
 	}
 
+	int failure = 0;
 	if (grid.is_local(14)) {
 		const auto* const cell_data = grid[14];
 		if (cell_data == nullptr) {
@@ -141,25 +143,30 @@ bool check(
 				<< ": X, got " << (*cell_data)[Result()][0]
 				<< " but should be " << reference_result[0]
 				<< std::endl;
-			MPI_Finalize();
-			return EXIT_FAILURE;
+			failure++;
 		}
 		if ((*cell_data)[Result()][1] != reference_result[1]) {
 			std::cerr << __FILE__ << ":" << __LINE__ << std::setprecision(20)
 				<< ": Y, got " << (*cell_data)[Result()][1]
 				<< " but should be " << reference_result[1]
 				<< std::endl;
-			MPI_Finalize();
-			return EXIT_FAILURE;
+			failure++;
 		}
 		if ((*cell_data)[Result()][2] != reference_result[2]) {
 			std::cerr << __FILE__ << ":" << __LINE__ << std::setprecision(20)
 				<< ": Z, got " << (*cell_data)[Result()][2]
 				<< " but should be " << reference_result[2]
 				<< std::endl;
-			MPI_Finalize();
-			return EXIT_FAILURE;
+			failure++;
 		}
+	}
+
+	int failure_global = 0;
+	MPI_Allreduce(&failure, &failure_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+	if (failure_global == 0) {
+		return true;
+	} else {
+		return false;
 	}
 }
 
@@ -196,7 +203,7 @@ int main(int argc, char* argv[])
 	const unsigned int neighborhood_size = 0;
 	const int max_refinement_level = 0;
 
-	const std::array<uint64_t, 3> grid_size{3, 3, 3};
+	std::array<uint64_t, 3> grid_size{3, 3, 3};
 	const auto init_grid
 		= [&](Grid& grid){
 			if (
@@ -255,6 +262,11 @@ int main(int argc, char* argv[])
 				}
 			)
 		) {
+			if (rank == 0) {
+				std::cerr << __FILE__ << ":" << __LINE__
+					<< " Vx failed"
+					<< std::endl;
+			}
 			MPI_Finalize();
 			return EXIT_FAILURE;
 		}
@@ -286,6 +298,11 @@ int main(int argc, char* argv[])
 				}
 			)
 		) {
+			if (rank == 0) {
+				std::cerr << __FILE__ << ":" << __LINE__
+					<< " Vy failed"
+					<< std::endl;
+			}
 			MPI_Finalize();
 			return EXIT_FAILURE;
 		}
@@ -317,6 +334,86 @@ int main(int argc, char* argv[])
 				}
 			)
 		) {
+			if (rank == 0) {
+				std::cerr << __FILE__ << ":" << __LINE__
+					<< " Vz failed"
+					<< std::endl;
+			}
+			MPI_Finalize();
+			return EXIT_FAILURE;
+		}
+	}
+	// rotation in z plane 1
+	{
+		Grid grid;
+		grid_size[2] = 1;
+		init_grid(grid);
+		init_geom(grid); // dx = 1, dy = 2, dz = 3
+		if (
+			not check(
+				grid,
+				{{ // Vx, Vy, Vz
+					{{ 0,  0, 0}}, // -z: cell 5
+					{{-1,  2, 0}}, // -y: cell 11
+					{{ 1,  2, 0}}, // -x: cell 13
+					{{ 0,  0, 0}}, // cell 14
+					{{-1, -2, 0}}, // +x: cell 15
+					{{ 1, -2, 0}}, // +y: cell 17
+					{{ 0,  0, 0}}  // +z: cell 23
+				}},
+				{
+					// dydxVy - dydyVx - dzdzVx + dzdxVz
+					(-2-2-2-2)/2.0/sqrt(1*1+2*2) - 2*(0+1/2.0/2/2-1/2.0/2/2),
+					// dzdyVz - dzdzVy - dxdxVy + dxdyVx
+					-2*(0-2/2.0/2/2+2/2.0/2/2) + (1-1-1+1)/2.0/sqrt(1*1+2*2),
+					// dxdzVx - dxdxVz - dydyVz + dydzVy
+					0
+				}
+			)
+		) {
+			if (rank == 0) {
+				std::cerr << __FILE__ << ":" << __LINE__
+					<< " rotation 1 failed"
+					<< std::endl;
+			}
+			MPI_Finalize();
+			return EXIT_FAILURE;
+		}
+	}
+
+	// rotation in z plane 2
+	{
+		Grid grid;
+		grid_size[2] = 1;
+		init_grid(grid);
+		init_geom(grid); // dx = 1, dy = 2, dz = 3
+		if (
+			not check(
+				grid,
+				{{ // Vx, Vy, Vz
+					{{ 0,  0, 0}}, // -z: cell 5
+					{{ 1,  2, 0}}, // -y: cell 11
+					{{ 1, -2, 0}}, // -x: cell 13
+					{{ 0,  0, 0}}, // cell 14
+					{{-1,  2, 0}}, // +x: cell 15
+					{{-1, -2, 0}}, // +y: cell 17
+					{{ 0,  0, 0}}  // +z: cell 23
+				}},
+				{
+					// dydxVy - dydyVx - dzdzVx + dzdxVz
+					-(-2-2-2-2)/2.0/sqrt(1*1+2*2) + 2*(0+1/2.0/2/2-1/2.0/2/2),
+					// dzdyVz - dzdzVy - dxdxVy + dxdyVx
+					2*(0-2/2.0/2/2+2/2.0/2/2) - (1-1-1+1)/2.0/sqrt(1*1+2*2),
+					// dxdzVx - dxdxVz - dydyVz + dydzVy
+					0
+				}
+			)
+		) {
+			if (rank == 0) {
+				std::cerr << __FILE__ << ":" << __LINE__
+					<< " rotation 1 failed"
+					<< std::endl;
+			}
 			MPI_Finalize();
 			return EXIT_FAILURE;
 		}
