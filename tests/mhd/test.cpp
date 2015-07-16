@@ -1021,7 +1021,7 @@ int main(int argc, char* argv[])
 			auto* const target_data = grid[target_id];
 			const auto* const source_data = grid[source_id];
 
-			if (source_data == NULL or target_data == NULL) {
+			if (source_data == nullptr or target_data == nullptr) {
 				std::cerr <<  __FILE__ << "(" << __LINE__ << "): "
 					<< "No data for source or target cell."
 					<< std::endl;
