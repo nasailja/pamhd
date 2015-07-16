@@ -39,7 +39,7 @@ Propagation test after http://dx.doi.org/10.1029/2005JA011382
 #include "iostream"
 
 #include "boost/numeric/odeint.hpp"
-#include "Eigen/Core" // must be included before gensimcell.hpp
+#include "Eigen/Core"
 #include "Eigen/Geometry"
 
 #include "particle/solve.hpp"
