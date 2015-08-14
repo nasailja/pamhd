@@ -64,9 +64,9 @@ Reads simulation data from given file.
 
 Fills out grid info and simulation data.
 
-On success returns whether fluxes were saved into
-given file and physical constants used by the simulation,
-on failure returns an uninitialized value.
+On success returns simulation time, adiabatic index,
+proton mass, vacuum permeability.
+Returns uninitialized value on error.
 */
 boost::optional<std::array<double, 4>> read_data(
 	dccrg::Mapping& cell_id_mapping,
