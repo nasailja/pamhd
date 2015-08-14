@@ -177,9 +177,6 @@ int main()
 				* std::pow(initial_velocity[1], 2)
 				/ (2 * get_earth_dipole(initial_position).norm());
 
-		double old_error = 0;
-		size_t old_step_divisor = 0;
-
 		for (size_t step_divisor = 1; step_divisor <= (1 << 11); step_divisor *= 2) {
 
 			state_t state{{initial_position, initial_velocity}};
@@ -226,12 +223,6 @@ int main()
 				);
 			}
 
-			if (old_step_divisor > 0) {
-				order_of_accuracy
-					= -log(nrj_error / old_error)
-					/ log(double(step_divisor) / old_step_divisor);
-			}
-
 			/*cout
 				<< kinetic_energy << " "
 				<< pitch_angle << " "
@@ -255,9 +246,6 @@ int main()
 					<< std::endl;
 				return EXIT_FAILURE;
 			}
-
-			old_error = nrj_error;
-			old_step_divisor = step_divisor;
 		}
 	}}
 
