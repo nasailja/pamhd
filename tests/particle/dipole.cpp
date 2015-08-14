@@ -189,8 +189,7 @@ int main()
 
 			double
 				nrj_error = 0,
-				mom_error = 0,
-				order_of_accuracy = 0;
+				mom_error = 0;
 			for (double time = 0; time < propagation_time; time += time_step) {
 
 				std::tie(
