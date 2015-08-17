@@ -52,6 +52,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "gensimcell.hpp"
 #include "prettyprint.hpp"
 
+#include "mhd/variables.hpp"
 #include "particle/save.hpp"
 #include "particle/variables.hpp"
 
@@ -63,7 +64,10 @@ Reads simulation data from given file.
 
 Fills out grid info and simulation data withing given volume.
 
-On success returns vacuum permeability.
+On success returns simulation_time, adiabatic index,
+vacuum permeability and particle temperature to energy ratio
+(Boltzmann constant).
+Returns uninitialized value on error.
 */
 boost::optional<std::array<double, 4>> read_data(
 	const Eigen::Vector3d& volume_start,
@@ -192,6 +196,7 @@ boost::optional<std::array<double, 4>> read_data(
 			true,
 			Electric_Field(),
 			Magnetic_Field(),
+			pamhd::mhd::Electric_Current_Density(),
 			Nr_Particles_Internal()
 		);
 		tie(
@@ -241,6 +246,7 @@ boost::optional<std::array<double, 4>> read_data(
 			false,
 			Electric_Field(),
 			Magnetic_Field(),
+			pamhd::mhd::Electric_Current_Density(),
 			Nr_Particles_Internal()
 		);
 		Cell::set_transfer_all(true, Particles_Internal());

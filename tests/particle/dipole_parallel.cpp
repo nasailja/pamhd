@@ -32,6 +32,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "mpi.h" // must be included before gensimcell
 #include "gensimcell.hpp"
 
+#include "mhd/variables.hpp"
 #include "particle/save.hpp"
 #include "particle/solve_dccrg.hpp"
 #include "particle/variables.hpp"
@@ -368,6 +369,7 @@ int main(int argc, char* argv[])
 				not save<
 					Electric_Field,
 					Magnetic_Field,
+					pamhd::mhd::Electric_Current_Density,
 					Nr_Particles_Internal,
 					Particles_Internal
 				>(

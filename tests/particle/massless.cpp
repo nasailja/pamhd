@@ -50,6 +50,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "boundaries/initial_condition.hpp"
 #include "boundaries/value_boundaries.hpp"
 #include "grid_options.hpp"
+#include "mhd/variables.hpp"
 #include "particle/initialize.hpp"
 #include "particle/save.hpp"
 #include "particle/solve_dccrg.hpp"
@@ -973,6 +974,7 @@ int main(int argc, char* argv[])
 				not save<
 					Electric_Field,
 					Magnetic_Field,
+					pamhd::mhd::Electric_Current_Density,
 					Nr_Particles_Internal,
 					Particles_Internal
 				>(

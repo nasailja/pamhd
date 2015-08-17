@@ -41,6 +41,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Eigen/Core" // must be included before gensimcell.hpp
 #include "gensimcell.hpp"
 
+#include "mhd/variables.hpp"
 #include "particle/accumulation_variables.hpp"
 
 
@@ -226,6 +227,26 @@ struct Electric_Current_Density {
 };
 
 
+/*
+Cell types of field and particle boundaries.
+*/
+struct Field_Cell_Type {
+	using data_type = int;
+	static const std::string get_name() { return {"field cell type"}; }
+	static const std::string get_option_name() { return {"field-cell-type"}; }
+	static const std::string get_option_help() {
+		return {"Cell type for field solver (0: normal, < 0: do-not-solve, > 0: boundary)"};
+	}
+};
+struct Particle_Cell_Type {
+	using data_type = int;
+	static const std::string get_name() { return {"particle cell type"}; }
+	static const std::string get_option_name() { return {"particle-cell-type"}; }
+	static const std::string get_option_help() {
+		return {"Cell type for particle solver (0: normal, < 0: do-not-solve, > 0: boundary)"};
+	}
+};
+
 /*!
 Cell type for particle model of PAMHD.
 
@@ -237,14 +258,22 @@ dccrg uses to save the file.
 */
 using Cell = gensimcell::Cell<
 	gensimcell::Optional_Transfer,
+	pamhd::mhd::MHD_State_Conservative,
+	Field_Cell_Type,
+	Particle_Cell_Type,
+	pamhd::mhd::MPI_Rank,
+	pamhd::mhd::Magnetic_Field_Temp,
+	pamhd::mhd::Magnetic_Field_Divergence,
+	pamhd::mhd::Scalar_Potential_Gradient,
+	pamhd::mhd::Electric_Current_Density,
+	pamhd::mhd::MHD_Flux_Conservative,
+	Electric_Field,
+	Magnetic_Field,
+	Number_Of_Particles,
 	Bulk_Mass,
 	Bulk_Momentum,
 	Bulk_Velocity,
-	Electric_Field,
-	Magnetic_Field,
-	Magnetic_Field_Divergence,
-	Scalar_Potential_Gradient,
-	Electric_Current_Density,
+	Bulk_Relative_Velocity2,
 	Nr_Particles_Internal,
 	Nr_Particles_External,
 	Nr_Accumulated_To_Cells,
@@ -252,7 +281,6 @@ using Cell = gensimcell::Cell<
 	Particles_External,
 	Accumulated_To_Cells
 >;
-
 
 }} // namespaces
 

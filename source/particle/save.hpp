@@ -62,6 +62,7 @@ Return true on success, false otherwise.
 template <
 	class Electric_Field_T,
 	class Magnetic_Field_T,
+	class Electric_Current_Density_T,
 	class Nr_Particles_T,
 	class Particles_T,
 	class Cell,
@@ -107,6 +108,7 @@ template <
 		true,
 		Electric_Field_T(),
 		Magnetic_Field_T(),
+		Electric_Current_Density_T(),
 		Nr_Particles_T(),
 		Particles_T()
 	);
@@ -119,6 +121,7 @@ template <
 		false,
 		Electric_Field_T(),
 		Magnetic_Field_T(),
+		Electric_Current_Density_T(),
 		Nr_Particles_T(),
 		Particles_T()
 	);
