@@ -19,9 +19,12 @@ BOOST_CPPFLAGS = -I $(HOME)/libraries/gcc/4.9.2/mpi-sgi/2.12r16/boost/1.58.0/inc
 BOOST_LDFLAGS = -L $(HOME)/libraries/gcc/4.9.2/mpi-sgi/2.12r16/boost/1.58.0/lib
 BOOST_LIBS = \
   -lboost_coroutine \
+  -lboost_context \
+  -lboost_chrono \
   -lboost_filesystem \
   -lboost_system \
   -lboost_random \
+  -lboost_thread \
   -lboost_program_options
 
 PHIPROF_CPPFLAGS = -I $(HOME)/libraries/phiprof
