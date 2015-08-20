@@ -223,12 +223,10 @@ int main(int argc, char* argv[])
 		b0 = 1e-6,
 		b1 = 1e-7,
 		e1 = 0.1,
-		vx_min = 1e6,
-		vx_max = 1e7,
-		vy_min = -1e7,
-		vy_max = 1e7,
-		vz_min = -1e7,
-		vz_max = 1e7;
+		v_min = 1e6,
+		v_max = 1e8,
+		angle_min = 0,
+		angle_max = 180;
 	size_t particles = 1, seed = 1;
 
 	boost::program_options::options_description
@@ -281,30 +279,22 @@ int main(int argc, char* argv[])
 			boost::program_options::value<size_t>(&particles)
 				->default_value(particles),
 			"Approximate total number of particles to propagate (minimum is 1 / MPI rank)")
-		("vx-min",
-			boost::program_options::value<double>(&vx_min)
-				->default_value(vx_min),
-			"Minimum bulk velocity x component of electrons")
-		("vx-max",
-			boost::program_options::value<double>(&vx_max)
-				->default_value(vx_max),
-			"Maximum bulk velocity x component of electrons")
-		("vy-min",
-			boost::program_options::value<double>(&vy_min)
-				->default_value(vy_min),
-			"Minimum bulk velocity y component of electrons")
-		("vy-max",
-			boost::program_options::value<double>(&vy_max)
-				->default_value(vy_max),
-			"Maximum bulk velocity y component of electrons")
-		("vz-min",
-			boost::program_options::value<double>(&vz_min)
-				->default_value(vz_min),
-			"Minimum bulk velocity z component of electrons")
-		("vz-max",
-			boost::program_options::value<double>(&vz_max)
-				->default_value(vz_max),
-			"Maximum bulk velocity z component of electrons")
+		("v-min",
+			boost::program_options::value<double>(&v_min)
+				->default_value(v_min),
+			"Minimum velocity of electrons (m/s)")
+		("v-max",
+			boost::program_options::value<double>(&v_max)
+				->default_value(v_max),
+			"Maximum velocity of electrons (m/s)")
+		("angle-min",
+			boost::program_options::value<double>(&angle_min)
+				->default_value(angle_min),
+			"Minimum angle of electron velocity from x axis (degrees)")
+		("angle-max",
+			boost::program_options::value<double>(&angle_max)
+				->default_value(angle_max),
+			"Maximum angle of electron velocity from x axis (degrees)")
 		("save-dt",
 			boost::program_options::value<double>(&save_dt)
 				->default_value(save_dt),
@@ -352,6 +342,11 @@ int main(int argc, char* argv[])
 		verbose = false;
 	}
 
+	angle_min *= M_PI / 180;
+	angle_max *= M_PI / 180;
+	if (v_max >= light_speed) {
+		v_max = 0.999999 * light_speed;
+	}
 	seed += rank;
 	if (particles > comm_size) {
 		particles /= comm_size;
@@ -426,10 +421,10 @@ int main(int argc, char* argv[])
 			<< time_length * e_gyro_freq << " electron gyro periods (g_e)"
 			<< "\n# Simulation box length (m): " << length
 			<< "\n# Number of particles: " << particles
-			<< "\n# Minimum electron bulk velocity (m/s): "
-			<< vx_min << " " << vy_min << " " << vz_min
-			<< "\n# Maximum electron bulk velocity (m/s): "
-			<< vx_max << " " << vy_max << " " << vz_max
+			<< "\n# Minimum electron velocity (m/s): " << v_min
+			<< "\n# Maximum electron velocity (m/s): " << v_max
+			<< "\n# Minimum electron velocity angle from x axis (m/s): " << angle_min
+			<< "\n# Maximum electron velocity angle from x axis (m/s): " << angle_max
 			<< "\n# EM wave frequency (f_w): " << em_frequency
 			<< " Hz\n# Electron number density in middle (1/m^3): " << density_mid
 			<< "\n# Electron number density at ends (1/m^3): " << density_ends
@@ -463,25 +458,23 @@ int main(int argc, char* argv[])
 	std::mt19937_64 random_source;
 	random_source.seed(seed);
 	std::uniform_real_distribution<>
-		vx_gen(vx_min, vx_max),
-		vy_gen(vy_min, vy_max),
-		vz_gen(vz_min, vz_max);
+		v_gen(v_min, v_max),
+		angle_gen(angle_min, angle_max),
+		// rotation of velocity about x axis
+		rotation_gen(0, 2 * M_PI);
 
 	for (size_t particle = 0; particle < particles; particle++) {
 
-		Eigen::Vector3d initial_vel{
-			vx_gen(random_source),
-			vy_gen(random_source),
-			vz_gen(random_source)
-		};
+		const auto
+			v = v_gen(random_source),
+			angle = angle_gen(random_source),
+			rotation = rotation_gen(random_source);
 
-		while (initial_vel.squaredNorm() >= light_speed2) {
-			initial_vel = {
-				vx_gen(random_source),
-				vy_gen(random_source),
-				vz_gen(random_source)
-			};
-		}
+		Eigen::Vector3d initial_vel{
+			v * std::cos(angle),
+			v * std::sin(angle) * std::sin(rotation),
+			v * std::sin(angle) * std::cos(rotation)
+		};
 
 		state_t state{
 			Eigen::Vector3d{0, 0, 0},
