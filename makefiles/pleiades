@@ -7,6 +7,8 @@ MPICXX = mpicxx
 RUN =
 MPIRUN = mpiexec
 
+BACKGROUND_B_CPPFLAGS = -I $(HOME)/libraries/background_B/source
+
 DCCRG_CPPFLAGS = -I $(HOME)/libraries/dccrg
 
 EIGEN_CPPFLAGS = -I $(HOME)/libraries/eigen
