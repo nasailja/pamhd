@@ -222,7 +222,6 @@ int main(int argc, char* argv[])
 		density_ends = 1e8,
 		b0 = 1e-6,
 		b1 = 1e-7,
-		e1 = 0.1,
 		v_min = 1e6,
 		v_max = 1e8,
 		angle_min = 0,
@@ -271,10 +270,6 @@ int main(int argc, char* argv[])
 			boost::program_options::value<double>(&b1)
 				->default_value(b1),
 			"Magnetic field magnitude perpendicular to simulation box")
-		("E1",
-			boost::program_options::value<double>(&e1)
-				->default_value(e1),
-			"Electric field magnitude perpendicular to simulation box")
 		("particles",
 			boost::program_options::value<size_t>(&particles)
 				->default_value(particles),
@@ -396,6 +391,13 @@ int main(int argc, char* argv[])
 				+ pow(e_plasma_freq_ends, 2)
 					/ em_frequency
 					/ (e_gyro_freq - em_frequency)
+			),
+		e1 = light_speed
+			* b1
+			/ sqrt(
+				1
+				- pow(e_plasma_freq_mid / em_frequency, 2)
+					/ (1 - e_gyro_freq / em_frequency)
 			);
 
 	length *= min(wavelength_mid, wavelength_ends);
@@ -430,14 +432,15 @@ int main(int argc, char* argv[])
 			<< "\n# Electron number density at ends (1/m^3): " << density_ends
 			<< "\n# B0 (T): " << b0
 			<< "\n# B1 (T): " << b1
-			<< "\n# E1 (V/m): " << e1
 			<< "\n# Random seed: " << seed
 			<< "\n# Derived parameters\n# Electron gyro frequency (f_g): "
 			<< e_gyro_freq << " Hz, " << e_gyro_freq / em_frequency << " f_w"
 			<< "\n# Electron plasma frequency in middle: " << e_plasma_freq_mid
 			<< " Hz, " << e_plasma_freq_mid / e_gyro_freq << " f_g"
+			<< ", " << e_plasma_freq_mid / em_frequency << " f_w"
 			<< "\n# Electron plasma frequency at ends: " << e_plasma_freq_ends
 			<< " Hz, " << e_plasma_freq_ends / e_gyro_freq << " f_g"
+			<< ", " << e_plasma_freq_ends / em_frequency << " f_w"
 			<< "\n# EM wavelength in middle: " << wavelength_mid << " m, "
 			<< wavelength_mid / length << " simulation boxes"
 			<< "\n# EM wavelength at ends: " << wavelength_ends << " m, "
@@ -446,6 +449,7 @@ int main(int argc, char* argv[])
 			<< " m/s, " << wavelength_mid * em_frequency / light_speed << " c"
 			<< "\n# EM phase speed at ends: " << wavelength_ends * em_frequency
 			<< " m/s, " << wavelength_ends * em_frequency / light_speed << " c"
+			<< "\n# E1 (V/m): " << e1
 			<< "\n# Argument to E (0, E1*sin(arg), E1*sin(arg+pi/2) "
 				"and B (B0, B1*sin(arg-pi/2), B1*sin(arg): " << fields.print()
 			<< "\n# Each particle on separate line, format: r_x, r_y, ..., v_y, v_z, r_x, ..."
