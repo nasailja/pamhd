@@ -948,15 +948,6 @@ int main(int argc, char* argv[])
 		}
 
 
-		/*boundary_classifier.classify<pamhd::mhd::Cell_Type>(
-			simulation_time,
-			grid.get_local_cells_not_on_process_boundary(),
-			grid.get_local_cells_on_process_boundary(),
-			grid,
-			value_boundaries,
-			copy_boundary
-		);*/
-
 		// set boundary data
 		const pamhd::mhd::Number_Density N{};
 		const pamhd::mhd::Velocity V{};
