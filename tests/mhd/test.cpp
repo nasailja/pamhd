@@ -533,8 +533,16 @@ int main(int argc, char* argv[])
 		}();
 
 
-	if (rank == 0) {
-		boost::filesystem::create_directories(output_directory);
+	if (rank == 0 and output_directory != "") {
+		try {
+			boost::filesystem::create_directories(output_directory);
+		} catch (const boost::filesystem::filesystem_error& e) {
+			std::cerr <<  __FILE__ << "(" << __LINE__ << ") "
+				"Couldn't create output directory " << output_directory << ": "
+				<< e.what()
+				<< std::endl;
+			abort();
+		}
 	}
 
 
@@ -1044,7 +1052,9 @@ int main(int argc, char* argv[])
 
 			if (
 				not pamhd::mhd::Save::save(
-					output_directory + "mhd_",
+					boost::filesystem::canonical(
+						boost::filesystem::path(output_directory)
+					).append("mhd_").generic_string(),
 					grid,
 					simulation_time,
 					adiabatic_index,
