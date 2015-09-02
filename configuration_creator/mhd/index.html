@@ -271,7 +271,15 @@ config_text_updater.addEventListener("click", function() {
 		+ document.getElementById("time_length").value
 		+ "<br>save-mhd-n = "
 		+ document.getElementById("save_mhd_n").value
-		+ "<br>remove-div-B-n = "
+
+	if (document.getElementById("resistivity").value != "") {
+		new_html
+			+= "<br>resistivity = "
+			+ document.getElementById("resistivity").value
+	}
+
+	new_html
+		+= "<br>remove-div-B-n = "
 		+ document.getElementById("remove_div_b_n").value
 		+ "<br>adiabatic-index = "
 		+ document.getElementById("adiabatic_index").value
@@ -833,7 +841,7 @@ Use the add and remove buttons to modify the number of additional regions of dif
 <li>value boundary: when simulation is running these regions are filled with given data after every solution</li>
 <li>copy boundary: when simulation is running these regions set their value based on data in nearest non-boundary cells after every solution</li>
 </ul>
-Expressions for values of MHD variables can refer to the x, y and z coordinates of cells' center with r[0], r[1] and r[2] respectively.
+Expressions for values of MHD variables can refer to the x, y and z coordinates of cells' center with r[0], r[1] and r[2] respectively and current simulation time with t.
 </p>
 
 <p>
@@ -899,6 +907,8 @@ Expressions for values of MHD variables can refer to the x, y and z coordinates 
 		<input type="text" id="time_length" name="time_length"><br>
 		Time interval for saving simulation results (< 0 skips saving)
 		<input type="text" id="save_mhd_n" name="save_mhd_n"><br>
+		Expression for electric resistivity (optional, can use t, r[0], r[1], r[2] and can refer to magnitude of electric current density as J)
+		<input type="text" id="resistivity" name="resistivity"><br>
 		Time interval for removing divergence of magnetic field (< 0 skips removal)
 		<input type="text" id="remove_div_b_n" name="remove_div_b_n"><br>
 		Value of adiabatic index (> 0)
