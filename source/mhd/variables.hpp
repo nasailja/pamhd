@@ -121,7 +121,25 @@ struct Cell_Type {
 	static const std::string get_name() { return {"cell type"}; }
 	static const std::string get_option_name() { return {"cell-type"}; }
 	static const std::string get_option_help() {
-		return {"Cell type (0: normal, < 0: do-not-solve, > 0: boundary)"};
+		return {"Cell type (normal, do-not-solve, value / copy boundary)"};
+	}
+};
+
+struct Value_Boundary_Id {
+	using data_type = int;
+	static const std::string get_name() { return {"value boundary id"}; }
+	static const std::string get_option_name() { return {"value-boundary-id"}; }
+	static const std::string get_option_help() {
+		return {"Value boundary cell's boundary id"};
+	}
+};
+
+struct Source_Of_Copy_Cell {
+	using data_type = unsigned long long int;
+	static const std::string get_name() { return {"source of copy cell"}; }
+	static const std::string get_option_name() { return {"source-of-copy-cell"}; }
+	static const std::string get_option_help() {
+		return {"Id of cell that is source of data for copy boundary cell."};
 	}
 };
 
@@ -189,6 +207,8 @@ using Cell = gensimcell::Cell<
 	MHD_State_Conservative,
 	Electric_Current_Density,
 	Cell_Type,
+	Source_Of_Copy_Cell,
+	Value_Boundary_Id,
 	MPI_Rank,
 	Magnetic_Field_Resistive,
 	Magnetic_Field_Temp,
@@ -209,6 +229,14 @@ struct HD1_State { using data_type = HD_Conservative; };
 struct HD2_State { using data_type = HD_Conservative; };
 struct HD1_Flux { using data_type = HD_Conservative; };
 struct HD2_Flux { using data_type = HD_Conservative; };
+
+// separate variables for fluids and fields in boundary code
+struct Cell_Type_Fluid2 { using data_type = int; };
+struct Cell_Type_Fields { using data_type = int; };
+struct Copy_Source_Fluid2 { using data_type = unsigned long long int; };
+struct Copy_Source_Fields { using data_type = unsigned long long int; };
+struct Value_Bdy_Id_Fluid2 { using data_type = int; };
+struct Value_Bdy_Id_Fields { using data_type = int; };
 
 
 }} // namespaces

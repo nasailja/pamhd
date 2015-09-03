@@ -36,6 +36,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "cmath"
 #include "limits"
+#include "tuple"
 #include "vector"
 
 #include "dccrg.hpp"
@@ -64,10 +65,12 @@ template <
 	class Mass_Density_Flux_Getter,
 	class Momentum_Density_Flux_Getter,
 	class Total_Energy_Density_Flux_Getter,
-	class Magnetic_Field_Flux_Getter
-> double solve(
+	class Magnetic_Field_Flux_Getter,
+	class Cell_Type_Getter,
+	class Cell_Type
+> std::pair<double, size_t> solve(
 	const Solver solver,
-	const std::vector<uint64_t>& cells,
+	const size_t solve_start_index,
 	dccrg::Dccrg<Cell, Geometry>& grid,
 	const double dt,
 	const double adiabatic_index,
@@ -79,13 +82,16 @@ template <
 	const Mass_Density_Flux_Getter Mas_f,
 	const Momentum_Density_Flux_Getter Mom_f,
 	const Total_Energy_Density_Flux_Getter Nrj_f,
-	const Magnetic_Field_Flux_Getter Mag_f
+	const Magnetic_Field_Flux_Getter Mag_f,
+	const Cell_Type_Getter Cell_t,
+	const Cell_Type normal_cell,
+	const Cell_Type dont_solve_cell
 ) {
 	// Use N fluid solver with same total and fluid mass
 	return
 		N_solve(
 			solver,
-			cells,
+			solve_start_index,
 			grid,
 			dt,
 			adiabatic_index,
@@ -98,13 +104,18 @@ template <
 			Mas_f,
 			Mom_f,
 			Nrj_f,
-			Mag_f
+			Mag_f,
+			Cell_t,
+			normal_cell,
+			dont_solve_cell
 		);
 }
 
 
 /*!
 Applies the MHD solution to given cells.
+
+Returns 1 + last index where solution was applied.
 */
 template <
 	class Cell,
@@ -116,9 +127,10 @@ template <
 	class Mass_Density_Flux_Getter,
 	class Momentum_Density_Flux_Getter,
 	class Total_Energy_Density_Flux_Getter,
-	class Magnetic_Field_Flux_Getter
+	class Magnetic_Field_Flux_Getter,
+	class Cell_Type_Getter,
+	class Cell_Type
 > void apply_fluxes(
-	const std::vector<uint64_t>& cells,
 	dccrg::Dccrg<Cell, Geometry>& grid,
 	const double adiabatic_index,
 	const double vacuum_permeability,
@@ -130,20 +142,33 @@ template <
 	const Momentum_Density_Flux_Getter Mom_f,
 	const Total_Energy_Density_Flux_Getter Nrj_f,
 	const Magnetic_Field_Flux_Getter Mag_f,
+	const Cell_Type_Getter Cell_t,
+	const Cell_Type normal_cell,
 	const bool check_new_state = true
 ) {
-	for (const auto& cell_id: cells) {
-		auto* const cell_data = grid[cell_id];
-		if (cell_data == NULL) {
-			std::cerr <<  __FILE__ << "(" << __LINE__ << "): "
-				<< " No data for cell " << cell_id
-				<< std::endl;
-			abort();
+	using std::get;
+	const auto& cell_data_pointers = grid.get_cell_data_pointers();
+
+	for (size_t i = 0 ; i < cell_data_pointers.size(); i++) {
+		const auto& cell_id = get<0>(cell_data_pointers[i]);
+
+		// process only inner xor outer cells
+		if (cell_id == dccrg::error_cell) {
+			continue;
+		}
+
+		const auto& offset = get<2>(cell_data_pointers[i]);
+		if (offset[0] != 0 or offset[1] != 0 or offset[2] != 0) {
+			continue;
+		}
+
+		auto* const cell_data = get<1>(cell_data_pointers[i]);
+		if (Cell_t(*cell_data) != normal_cell) {
+			continue;
 		}
 
 		const auto length = grid.geometry.get_length(cell_id);
 		const double inverse_volume = 1.0 / (length[0] * length[1] * length[2]);
-
 		try {
 			apply_fluxes(
 				*cell_data,

@@ -135,10 +135,15 @@ const auto Mag_f
 	= [](Cell& cell_data)->typename pamhd::mhd::Magnetic_Field::data_type&{
 		return cell_data[pamhd::mhd::MHD_Flux_Conservative()][pamhd::mhd::Magnetic_Field()];
 	};
+const auto Cell_t
+	= [](Cell& cell_data)->typename pamhd::mhd::Cell_Type::data_type&{
+		return cell_data[pamhd::mhd::Cell_Type()];
+	};
 
 
 int main(int argc, char* argv[])
 {
+	using std::get;
 	using std::min;
 	using std::pow;
 
@@ -298,7 +303,9 @@ int main(int argc, char* argv[])
 			boost::program_options::value<std::string>(&resistivity)
 				->default_value(resistivity),
 			"Use expression arg as electric resistivity "
-			"(>= 0, not used if empty expression)")
+			"(>= 0, not used if empty expression, can reference simulation time "
+			"with t, current cell position with r[0], r[1], r[2] and electric "
+			"current density with J)")
 		("adiabatic-index",
 			boost::program_options::value<double>(&adiabatic_index)
 				->default_value(adiabatic_index),
@@ -316,7 +323,7 @@ int main(int argc, char* argv[])
 		("solver-mhd",
 			boost::program_options::value<std::string>(&mhd_solver_str)
 				->default_value(mhd_solver_str),
-			"MHD solver to use, one of: hll_athena")
+			"MHD solver to use, one of: hll_athena, hlld_athena, roe_athena")
 		("remove-div-B-n",
 			boost::program_options::value<double>(&remove_div_B_n)
 				->default_value(remove_div_B_n),
@@ -643,11 +650,12 @@ int main(int argc, char* argv[])
 		cout << "Done initializing MHD" << endl;
 	}
 
-	pamhd::mhd::Boundary_Classifier<uint64_t> boundary_classifier;
-	boundary_classifier.classify<pamhd::mhd::Cell_Type>(
-		0,
-		grid.get_local_cells_not_on_process_boundary(),
-		grid.get_local_cells_on_process_boundary(),
+	pamhd::mhd::Boundary_Classifier<pamhd::mhd::Cell_Type> boundary_classifier;
+	boundary_classifier.classify<
+		pamhd::mhd::Value_Boundary_Id,
+		pamhd::mhd::Source_Of_Copy_Cell
+	>(
+		simulation_time,
 		grid,
 		value_boundaries,
 		copy_boundary
@@ -702,12 +710,12 @@ int main(int argc, char* argv[])
 		grid.start_remote_neighbor_copy_updates();
 
 		pamhd::divergence::get_curl(
-			boundary_classifier.inner_solve_cells,
+			inner_cells,
 			grid,
 			Mag,
 			Cur
 		);
-		for (const auto& cell: boundary_classifier.inner_solve_cells) {
+		for (const auto& cell: inner_cells) {
 			auto* const cell_data = grid[cell];
 			if (cell_data == nullptr) {
 				std::cerr <<  __FILE__ << "(" << __LINE__ << ")" << std::endl;
@@ -716,43 +724,59 @@ int main(int argc, char* argv[])
 			Cur(*cell_data) /= vacuum_permeability;
 		}
 
+		double solve_max_dt = -1;
+		size_t solve_index = 0;
+		std::tie(
+			solve_max_dt,
+			solve_index
+		) = pamhd::mhd::solve(
+			mhd_solver,
+			0,
+			grid,
+			time_step,
+			adiabatic_index,
+			vacuum_permeability,
+			Mas, Mom, Nrj, Mag,
+			Mas_f, Mom_f, Nrj_f, Mag_f,
+			Cell_t,
+			boundary_classifier.normal_cell,
+			boundary_classifier.dont_solve_cell
+		);
 		max_dt = min(
 			max_dt,
-			pamhd::mhd::solve(
-				mhd_solver,
-				boundary_classifier.inner_solve_cells,
-				grid,
-				time_step,
-				adiabatic_index,
-				vacuum_permeability,
-				Mas, Mom, Nrj, Mag,
-				Mas_f, Mom_f, Nrj_f, Mag_f
-			)
+			solve_max_dt
 		);
 
 		grid.wait_remote_neighbor_copy_update_receives();
 
+		std::tie(
+			solve_max_dt,
+			solve_index
+		) = pamhd::mhd::solve(
+			mhd_solver,
+			solve_index + 1,
+			grid,
+			time_step,
+			adiabatic_index,
+			vacuum_permeability,
+			Mas, Mom, Nrj, Mag,
+			Mas_f, Mom_f, Nrj_f, Mag_f,
+			Cell_t,
+			boundary_classifier.normal_cell,
+			boundary_classifier.dont_solve_cell
+		);
 		max_dt = min(
 			max_dt,
-			pamhd::mhd::solve(
-				mhd_solver,
-				boundary_classifier.outer_solve_cells,
-				grid,
-				time_step,
-				adiabatic_index,
-				vacuum_permeability,
-				Mas, Mom, Nrj, Mag,
-				Mas_f, Mom_f, Nrj_f, Mag_f
-			)
+			solve_max_dt
 		);
 
 		pamhd::divergence::get_curl(
-			boundary_classifier.outer_solve_cells,
+			outer_cells,
 			grid,
 			Mag,
 			Cur
 		);
-		for (const auto& cell: boundary_classifier.outer_solve_cells) {
+		for (const auto& cell: outer_cells) {
 			auto* const cell_data = grid[cell];
 			if (cell_data == nullptr) {
 				std::cerr <<  __FILE__ << "(" << __LINE__ << ")" << std::endl;
@@ -775,12 +799,12 @@ int main(int argc, char* argv[])
 
 			// add contribution to change of B from resistivity
 			pamhd::divergence::get_curl(
-				boundary_classifier.inner_solve_cells,
+				inner_cells,
 				grid,
 				Cur,
 				Mag_res
 			);
-			for (const auto& cell: boundary_classifier.inner_solve_cells) {
+			for (const auto& cell: inner_cells) {
 				auto* const cell_data = grid[cell];
 				if (cell_data == nullptr) {
 					std::cerr <<  __FILE__ << "(" << __LINE__ << ")" << std::endl;
@@ -800,12 +824,12 @@ int main(int argc, char* argv[])
 			grid.wait_remote_neighbor_copy_update_receives();
 
 			pamhd::divergence::get_curl(
-				boundary_classifier.outer_solve_cells,
+				outer_cells,
 				grid,
 				Cur,
 				Mag_res
 			);
-			for (const auto& cell: boundary_classifier.outer_solve_cells) {
+			for (const auto& cell: outer_cells) {
 				auto* const cell_data = grid[cell];
 				if (cell_data == nullptr) {
 					std::cerr <<  __FILE__ << "(" << __LINE__ << ")" << std::endl;
@@ -827,20 +851,13 @@ int main(int argc, char* argv[])
 		}
 
 		pamhd::mhd::apply_fluxes(
-			boundary_classifier.inner_normal_cells,
 			grid,
 			adiabatic_index,
 			vacuum_permeability,
 			Mas, Mom, Nrj, Mag,
-			Mas_f, Mom_f, Nrj_f, Mag_f
-		);
-		pamhd::mhd::apply_fluxes(
-			boundary_classifier.outer_normal_cells,
-			grid,
-			adiabatic_index,
-			vacuum_permeability,
-			Mas, Mom, Nrj, Mag,
-			Mas_f, Mom_f, Nrj_f, Mag_f
+			Mas_f, Mom_f, Nrj_f, Mag_f,
+			Cell_t,
+			boundary_classifier.normal_cell
 		);
 
 		simulation_time += time_step;
@@ -962,18 +979,26 @@ int main(int argc, char* argv[])
 		const pamhd::mhd::Pressure P{};
 		const pamhd::mhd::Magnetic_Field B{};
 
-		for (const auto& bdy_item: boundary_classifier.value_boundary_cells) {
-			const auto& cell_id = bdy_item.first;
-			const auto& bdy_id = bdy_item.second;
+		const auto cell_data_pointers = grid.get_cell_data_pointers();
 
-			auto* const cell_data = grid[cell_id];
-			if (cell_data == NULL) {
-				std::cerr <<  __FILE__ << "(" << __LINE__ << "): "
-					"No data for cell: " << cell_id
-					<< std::endl;
-				abort();
+		// value boundaries
+		for (const auto& cell_item: cell_data_pointers) {
+			const auto& cell_id = get<0>(cell_item);
+			if (cell_id == dccrg::error_cell) {
+				continue;
 			}
 
+			const auto& offset = get<2>(cell_item);
+			if (offset[0] != 0 or offset[1] != 0 or offset[2] != 0) {
+				continue;
+			}
+
+			auto* const cell_data = get<1>(cell_item);
+			if ((*cell_data)[pamhd::mhd::Cell_Type()] != boundary_classifier.value_boundary_cell) {
+				continue;
+			}
+
+			const auto& bdy_id = (*cell_data)[pamhd::mhd::Value_Boundary_Id()];
 			const auto cell_center = grid.geometry.get_center(cell_id);
 
 			const auto mass_density
@@ -1000,34 +1025,39 @@ int main(int argc, char* argv[])
 		}
 
 		// copy up-to-date data to copy boundaries
-		Cell::set_transfer_all(
-			true,
-			pamhd::mhd::MHD_State_Conservative(),
-			pamhd::mhd::Cell_Type()
-		);
+		Cell::set_transfer_all(true, pamhd::mhd::MHD_State_Conservative());
 		grid.update_copies_of_remote_neighbors();
-		Cell::set_transfer_all(
-			false,
-			pamhd::mhd::MHD_State_Conservative(),
-			pamhd::mhd::Cell_Type()
-		);
+		Cell::set_transfer_all(false, pamhd::mhd::MHD_State_Conservative());
 
-		// copy data to copy boundary cells
-		for (const auto& bdy_item: boundary_classifier.copy_boundary_cells) {
-			const auto& target_id = bdy_item.first;
-			const auto& source_id = bdy_item.second;
+		// copy boundaries
+		for (const auto& cell_item: cell_data_pointers) {
+			const auto& cell_id = get<0>(cell_item);
+			if (cell_id == dccrg::error_cell) {
+				continue;
+			}
 
-			auto* const target_data = grid[target_id];
+			const auto& offset = get<2>(cell_item);
+			if (offset[0] != 0 or offset[1] != 0 or offset[2] != 0) {
+				continue;
+			}
+
+			auto* const cell_data = get<1>(cell_item);
+			if ((*cell_data)[pamhd::mhd::Cell_Type()] != boundary_classifier.copy_boundary_cell) {
+				continue;
+			}
+
+			const auto& source_id = (*cell_data)[pamhd::mhd::Source_Of_Copy_Cell()];
 			const auto* const source_data = grid[source_id];
 
-			if (source_data == nullptr or target_data == nullptr) {
+			if (source_data == nullptr) {
 				std::cerr <<  __FILE__ << "(" << __LINE__ << "): "
-					<< "No data for source or target cell."
+					<< "No data for source cell " << source_id
+					<< " of copy boundary cell " << cell_id
 					<< std::endl;
 				abort();
 			}
 
-			(*target_data)[pamhd::mhd::MHD_State_Conservative()]
+			(*cell_data)[pamhd::mhd::MHD_State_Conservative()]
 				= (*source_data)[pamhd::mhd::MHD_State_Conservative()];
 		}
 

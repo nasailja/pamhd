@@ -36,6 +36,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "cmath"
 #include "limits"
+#include "utility"
 #include "vector"
 
 #include "dccrg.hpp"
@@ -51,7 +52,8 @@ namespace mhd {
 /*!
 Advances MHD solution for one time step of length dt with given solver.
 
-Returns the maximum allowed length of time step for the next step on this process.
+Returns the maximum allowed length of time step for the next step on this process
+and index after last one that was solved in dccrg's cell data pointer cache.
 
 Fluid_Mass_Density_Getter must return the mass of fluid being solved,
 other getter must return the total from all fluids of respective variables.
@@ -68,10 +70,12 @@ template <
 	class Mass_Density_Flux_Getter,
 	class Momentum_Density_Flux_Getter,
 	class Total_Energy_Density_Flux_Getter,
-	class Magnetic_Field_Flux_Getter
-> double N_solve(
+	class Magnetic_Field_Flux_Getter,
+	class Cell_Type_Getter,
+	class Cell_Type
+> std::pair<double, size_t> N_solve(
 	const Solver solver,
-	const std::vector<uint64_t>& cells,
+	const size_t solve_start_index,
 	dccrg::Dccrg<Cell, Geometry>& grid,
 	const double dt,
 	const double adiabatic_index,
@@ -84,8 +88,13 @@ template <
 	const Mass_Density_Flux_Getter Mas_f,
 	const Momentum_Density_Flux_Getter Mom_f,
 	const Total_Energy_Density_Flux_Getter Nrj_f,
-	const Magnetic_Field_Flux_Getter Mag_f
+	const Magnetic_Field_Flux_Getter Mag_f,
+	const Cell_Type_Getter Cell_t,
+	const Cell_Type normal_cell,
+	const Cell_Type dont_solve_cell
 ) {
+	using std::get;
+
 	if (not std::isfinite(dt) or dt < 0) {
 		throw std::domain_error(
 			"Invalid time step: "
@@ -102,16 +111,23 @@ template <
 	// maximum allowed next time step for cells of this process
 	double max_dt = std::numeric_limits<double>::max();
 
-	for (const auto& cell_id: cells) {
+	const auto& cell_data_pointers = grid.get_cell_data_pointers();
 
-		auto* const cell_data = grid[cell_id];
-		if (cell_data == NULL) {
-			std::cerr <<  __FILE__ << "(" << __LINE__ << "): "
-				<< " No data for cell " << cell_id
-				<< " on process " << grid.get_rank()
-				<< std::endl;
-			abort();
+	size_t i = solve_start_index;
+	for ( ; i < cell_data_pointers.size(); i++) {
+		const auto& cell_id = get<0>(cell_data_pointers[i]);
+
+		// process only inner xor outer cells
+		if (cell_id == dccrg::error_cell) {
+			break;
 		}
+
+		const auto& offset = get<2>(cell_data_pointers[i]);
+		if (offset[0] != 0 or offset[1] != 0 or offset[2] != 0) {
+			throw std::runtime_error("Unexpected neighbor cell.");
+		}
+
+		auto* const cell_data = get<1>(cell_data_pointers[i]);
 
 		const std::array<double, 3>
 			cell_length = grid.geometry.get_length(cell_id),
@@ -122,31 +138,53 @@ template <
 				cell_length[0] * cell_length[1]
 			}};
 
-		const auto face_neighbors = grid.get_face_neighbors_of(cell_id);
-		for (const auto& item: face_neighbors) {
-			const uint64_t neighbor_id = item.first;
+		i++;
+		while (i < cell_data_pointers.size()) {
+			const auto& neighbor_id = get<0>(cell_data_pointers[i]);
 
-			auto* const neighbor_data = grid[neighbor_id];
-			if (neighbor_data == NULL) {
-				std::cerr <<  __FILE__ << "(" << __LINE__ << "): "
-					<< " No data for neighbor " << neighbor_id
-					<< " owned by " << grid.get_process(neighbor_id)
-					<< " on process " << grid.get_rank()
-					<< std::endl;
-				abort();
+			if (neighbor_id == dccrg::error_cell) {
+				i--;
+				break;
 			}
 
-			// direction of neighbor from cell
-			const int neighbor_dir = item.second;
-			if (
-				neighbor_dir == 0
-				or neighbor_dir > 3
-				or neighbor_dir < -3
-			) {
-				std::cerr <<  __FILE__ << "(" << __LINE__ << "): "
-					<< " Invalid neighbor direction " << neighbor_dir
-					<< std::endl;
-				abort();
+			const auto& neigh_offset = get<2>(cell_data_pointers[i]);
+
+			if (neigh_offset[0] == 0 and neigh_offset[1] == 0 and neigh_offset[2] == 0) {
+				i--;
+				break;
+			}
+
+			// don't solve between dont_solve_cell and any other
+			if (Cell_t(*cell_data) == dont_solve_cell) {
+				i++;
+				continue;
+			}
+
+			int neighbor_dir = 0;
+
+			// only solve between face neighbors
+			if (neigh_offset[0] == 1 and neigh_offset[1] == 0 and neigh_offset[2] == 0) {
+				neighbor_dir = 1;
+			}
+			if (neigh_offset[0] == -1 and neigh_offset[1] == 0 and neigh_offset[2] == 0) {
+				neighbor_dir = -1;
+			}
+			if (neigh_offset[0] == 0 and neigh_offset[1] == 1 and neigh_offset[2] == 0) {
+				neighbor_dir = 2;
+			}
+			if (neigh_offset[0] == 0 and neigh_offset[1] == -1 and neigh_offset[2] == 0) {
+				neighbor_dir = -2;
+			}
+			if (neigh_offset[0] == 0 and neigh_offset[1] == 0 and neigh_offset[2] == 1) {
+				neighbor_dir = 3;
+			}
+			if (neigh_offset[0] == 0 and neigh_offset[1] == 0 and neigh_offset[2] == -1) {
+				neighbor_dir = -3;
+			}
+
+			if (neighbor_dir == 0) {
+				i++;
+				continue;
 			}
 
 			if (grid.is_local(neighbor_id) and neighbor_dir < 0) {
@@ -154,6 +192,23 @@ template <
 				This case is handled when neighbor is the current cell
 				and current cell is neighbor in positive direction
 				*/
+				i++;
+				continue;
+			}
+
+			auto* const neighbor_data = get<1>(cell_data_pointers[i]);
+
+			if (Cell_t(*neighbor_data) == dont_solve_cell) {
+				i++;
+				continue;
+			}
+
+			// don't solve between boundary cells
+			if (
+				Cell_t(*cell_data) != normal_cell
+				and Cell_t(*neighbor_data) != normal_cell
+			) {
+				i++;
 				continue;
 			}
 
@@ -278,10 +333,12 @@ template <
 					abort();
 				}
 			}
+
+			i++;
 		}
 	}
 
-	return max_dt;
+	return std::make_pair(max_dt, i);
 }
 
 

@@ -58,120 +58,57 @@ are instead classified as dont_solve cells.
 
 Assumes grid library provides a DCCRG compatible API.
 */
-template<class Cell> class Boundary_Classifier
+template<class Cell_Type_Variable> class Boundary_Classifier
 {
-private:
-
-	std::vector<Cell>
-		// cells given to classify but without dont_solves
-		inner_solve_cells_, outer_solve_cells_,
-		// classified cells but without boundaries and dont_solves
-		inner_normal_cells_, outer_normal_cells_;
-
-	std::vector<
-		std::pair<
-			Cell, // cell id
-			size_t // id of 1st boundary of any type that cell belongs to
-		>
-	> value_boundary_cells_;
-
-	std::vector<
-		std::pair<
-			Cell, // cell id
-			Cell // source cell id for data
-		>
-	> copy_boundary_cells_;
-
-	std::vector<Cell> dont_solve_cells_;
-
-
 public:
 
-	Boundary_Classifier() :
-		inner_solve_cells(inner_solve_cells_),
-		outer_solve_cells(outer_solve_cells_),
-		inner_normal_cells(inner_normal_cells_),
-		outer_normal_cells(outer_normal_cells_),
-		value_boundary_cells(value_boundary_cells_),
-		copy_boundary_cells(copy_boundary_cells_),
-		dont_solve_cells(dont_solve_cells_)
-	{}
+	//! cell types
+	static constexpr typename Cell_Type_Variable::data_type
+		normal_cell = 0,
+		dont_solve_cell = 1,
+		value_boundary_cell = 2,
+		copy_boundary_cell = 3;
 
-	const std::vector<Cell>
-		//! inner cells given to classify() but without dont_solve_cells
-		&inner_solve_cells,
-		//! outer cells given to classify() but without dont_solve_cells
-		&outer_solve_cells,
-		//! inner cells given to classify() but without dont_solve and boundary cells
-		&inner_normal_cells,
-		//! outer cells given to classify() but without dont_solve and boundary cells
-		&outer_normal_cells;
-
-	//! cells given to classify classified as value boundary cells
-	const std::vector<
-		std::pair<
-			Cell,
-			size_t
-		>
-	>& value_boundary_cells;
-
-	//! cells given to classify classified as copy boundary cells
-	const std::vector<
-		std::pair<
-			Cell,
-			Cell
-		>
-	>& copy_boundary_cells;
-
-	//! cells given to classify that don't have non-boundary face neighbors
-	const std::vector<Cell>& dont_solve_cells;
-
-
+	/*!
+	Source_Of_Copy_Cell_T variable stores the id of cell that
+	is source of data for copy boundary cell.
+	*/
 	template<
-		class Cell_Type_V,
+		class Value_Boundary_Id_T,
+		class Source_Of_Copy_Cell_T,
 		class Cell_Data,
 		class Geometry,
 		class Value_Boundaries,
 		class Copy_Boundaries
 	> void classify(
 		const double simulation_time,
-		const std::vector<Cell>& given_inner_cells,
-		const std::vector<Cell>& given_outer_cells,
 		dccrg::Dccrg<Cell_Data, Geometry>& grid,
 		Value_Boundaries& value_boundaries,
 		Copy_Boundaries& copy_boundaries
 	) {
-		constexpr auto
-			normal_value = 0,
-			value_boundary_value = 1,
-			copy_boundary_value = 2,
-			dont_solve_value
-				= std::numeric_limits<typename Cell_Type_V::data_type>::max();
+		using std::get;
 
-		static_assert(
-			copy_boundary_value < dont_solve_value,
-			"Given type representing cell boundary type is too small."
-		);
+		constexpr Cell_Type_Variable cell_type{};
+		constexpr Value_Boundary_Id_T value_bdy_id{};
+		constexpr Source_Of_Copy_Cell_T source{};
 
-		std::vector<Cell> cells(
-			given_inner_cells.cbegin(),
-			given_inner_cells.cend()
-		);
-		cells.insert(
-			cells.end(),
-			given_outer_cells.cbegin(),
-			given_outer_cells.cend()
-		);
+		const auto cell_data_pointers = grid.get_cell_data_pointers();
 
-		value_boundaries.clear_cells();
-		copy_boundaries.clear_cells();
-		for (const auto& cell_id: cells) {
+		for (const auto& cell_item: cell_data_pointers) {
 			boost::optional<size_t> classification_result;
 
-			auto* const cell_data = grid[cell_id];
-			if (cell_data == nullptr) {
-				std::cerr <<  __FILE__ << "(" << __LINE__ << "): " << cell_id << std::endl;
-				abort();
+			const auto& cell_id = get<0>(cell_item);
+
+			// process inner and outer cells
+			if (cell_id == dccrg::error_cell) {
+				continue;
+			}
+
+			const auto& offset = get<2>(cell_item);
+
+			// skip neighbors
+			if (offset[0] != 0 or offset[1] != 0 or offset[2] != 0) {
+				continue;
 			}
 
 			const auto
@@ -190,8 +127,11 @@ public:
 					<< std::endl;
 				abort();
 			}
+
+			auto* const cell_data = get<1>(cell_item);
+
 			if (*classification_result > 0) {
-				(*cell_data)[Cell_Type_V()] = value_boundary_value;
+				(*cell_data)[cell_type] = value_boundary_cell;
 				continue;
 			}
 
@@ -207,86 +147,73 @@ public:
 				abort();
 			}
 			if (*classification_result > 0) {
-				(*cell_data)[Cell_Type_V()] = copy_boundary_value;
+				(*cell_data)[cell_type] = copy_boundary_cell;
 				continue;
 			}
 
-			(*cell_data)[Cell_Type_V()] = normal_value;
+			(*cell_data)[cell_type] = normal_cell;
 		}
-		Cell_Data::set_transfer_all(true, Cell_Type_V());
+		Cell_Data::set_transfer_all(true, cell_type);
 		grid.update_copies_of_remote_neighbors();
-		Cell_Data::set_transfer_all(false, Cell_Type_V());
+		Cell_Data::set_transfer_all(false, cell_type);
 
-		// figure out dont_solve_cells_
-		const auto has_normal_neighbor
-			= [&grid](const Cell& cell){
-				bool ret_val = false;
-				const auto face_neighbors_of = grid.get_face_neighbors_of(cell);
-				for (const auto& item: face_neighbors_of) {
-					const auto& neighbor = item.first;
-					auto* const neighbor_data = grid[neighbor];
-					if (neighbor_data == nullptr) {
-						std::cerr <<  __FILE__ << "(" << __LINE__ << "): " << neighbor << std::endl;
-						abort();
-					}
-					if ((*neighbor_data)[Cell_Type_V()] == normal_value) {
-						ret_val = true;
-						break;
-					}
-				}
-				return ret_val;
-			};
-		for (const auto& cell: cells) {
-			auto* const cell_data = grid[cell];
-			if (cell_data == nullptr) {
-				std::cerr <<  __FILE__ << "(" << __LINE__ << ")" << std::endl;
-				abort();
-			}
-			if (
-				(*cell_data)[Cell_Type_V()] != normal_value
-				and not has_normal_neighbor(cell)
-			) {
-				(*cell_data)[Cell_Type_V()] = dont_solve_value;
-			}
-		}
+		// figure out dont solve cells
+		for (size_t i = 0; i < cell_data_pointers.size(); i++) {
+			const auto& cell_id = get<0>(cell_data_pointers[i]);
 
-		// populate copy_boundary_cells_ and set their source
-		this->copy_boundary_cells_.clear();
-		for (const auto& cell: cells) {
-			auto* const cell_data = grid[cell];
-			if (cell_data == nullptr) {
-				std::cerr <<  __FILE__ << "(" << __LINE__ << ")" << std::endl;
-				abort();
-			}
-			if ((*cell_data)[Cell_Type_V()] != copy_boundary_value) {
+			if (cell_id == dccrg::error_cell) {
 				continue;
 			}
 
-			bool source_found = false;
-			const auto face_neighbors_of = grid.get_face_neighbors_of(cell);
-			for (const auto& item: face_neighbors_of) {
-				const auto& neighbor = item.first;
+			const auto& offset = get<2>(cell_data_pointers[i]);
+			if (offset[0] != 0 or offset[1] != 0 or offset[2] != 0) {
+				continue;
+			}
 
-				auto* const neighbor_data = grid[neighbor];
-				if (neighbor_data == nullptr) {
-					std::cerr <<  __FILE__ << "(" << __LINE__ << ")" << std::endl;
-					abort();
-				}
+			auto* const cell_data = get<1>(cell_data_pointers[i]);
+			if (
+				(*cell_data)[cell_type] == normal_cell
+				or (*cell_data)[cell_type] == dont_solve_cell
+			) {
+				continue;
+			}
 
-				if ((*neighbor_data)[Cell_Type_V()] == normal_value) {
-					source_found = true;
-					this->copy_boundary_cells_.emplace_back(cell, neighbor);
+			bool has_normal_neighbor = false;
+			i++;
+			while (i < cell_data_pointers.size()) {
+				const auto& neighbor_id = get<0>(cell_data_pointers[i]);
+
+				if (neighbor_id == dccrg::error_cell) {
+					i--;
 					break;
 				}
+
+				const auto& neigh_offset = get<2>(cell_data_pointers[i]);
+				if (neigh_offset[0] == 0 and neigh_offset[1] == 0 and neigh_offset[2] == 0) {
+					i--;
+					break;
+				}
+
+				auto* const neighbor_data = get<1>(cell_data_pointers[i]);
+				if ((*neighbor_data)[cell_type] == normal_cell) {
+					has_normal_neighbor = true;
+					break;
+				}
+
+				i++;
 			}
-			if (not source_found) {
-				// make copy cell without sources into dont solves
-				(*cell_data)[Cell_Type_V()] = dont_solve_value;
+
+			if (not has_normal_neighbor) {
+				(*cell_data)[cell_type] = dont_solve_cell;
 			}
 		}
 
-		// populate value_boundary_cells_
-		this->value_boundary_cells_.clear();
+		// tell other processes about dont_solve_cells
+		Cell_Data::set_transfer_all(true, cell_type);
+		grid.update_copies_of_remote_neighbors();
+		Cell_Data::set_transfer_all(false, cell_type);
+
+		// set boundary ids of value boundary cells
 		for (size_t bdy_id = 0; bdy_id < value_boundaries.get_number_of_boundaries(); bdy_id++) {
 			for (const auto& cell_id: value_boundaries.get_cells(bdy_id)) {
 				auto* const cell_data = grid[cell_id];
@@ -294,50 +221,57 @@ public:
 					std::cerr <<  __FILE__ << "(" << __LINE__ << ")" << std::endl;
 					abort();
 				}
-				if (
-					(*cell_data)[Cell_Type_V()] != value_boundary_value
-					and (*cell_data)[Cell_Type_V()] != dont_solve_value
-				) {
-					std::cerr <<  __FILE__ << "(" << __LINE__ << ")" << std::endl;
-					abort();
-				}
-				this->value_boundary_cells_.emplace_back(cell_id, bdy_id);
+				(*cell_data)[value_bdy_id] = bdy_id;
 			}
 		}
 
-		this->dont_solve_cells_.clear();
-		this->inner_solve_cells_.clear();
-		this->inner_normal_cells_.clear();
-		for (const auto& cell: given_inner_cells) {
-			auto* const cell_data = grid[cell];
-			if (cell_data == nullptr) {
-				std::cerr <<  __FILE__ << "(" << __LINE__ << ")" << std::endl;
-				abort();
+		// set sources of copy boundary cells
+		for (size_t i = 0; i < cell_data_pointers.size(); i++) {
+			const auto& cell_id = get<0>(cell_data_pointers[i]);
+
+			if (cell_id == dccrg::error_cell) {
+				continue;
 			}
-			if ((*cell_data)[Cell_Type_V()] == dont_solve_value) {
-				this->dont_solve_cells_.push_back(cell);
-			} else {
-				this->inner_solve_cells_.push_back(cell);
-				if ((*cell_data)[Cell_Type_V()] == normal_value) {
-					this->inner_normal_cells_.push_back(cell);
+
+			const auto& offset = get<2>(cell_data_pointers[i]);
+			if (offset[0] != 0 or offset[1] != 0 or offset[2] != 0) {
+				continue;
+			}
+
+			auto* const cell_data = get<1>(cell_data_pointers[i]);
+			if ((*cell_data)[cell_type] != copy_boundary_cell) {
+				continue;
+			}
+
+			bool source_found = false;
+			i++;
+			while (i < cell_data_pointers.size()) {
+				const auto& neighbor_id = get<0>(cell_data_pointers[i]);
+
+				if (neighbor_id == dccrg::error_cell) {
+					i--;
+					break;
 				}
-			}
-		}
-		this->outer_solve_cells_.clear();
-		this->outer_normal_cells_.clear();
-		for (const auto& cell: given_outer_cells) {
-			auto* const cell_data = grid[cell];
-			if (cell_data == nullptr) {
-				std::cerr <<  __FILE__ << "(" << __LINE__ << ")" << std::endl;
-				abort();
-			}
-			if ((*cell_data)[Cell_Type_V()] == dont_solve_value) {
-				this->dont_solve_cells_.push_back(cell);
-			} else {
-				this->outer_solve_cells_.push_back(cell);
-				if ((*cell_data)[Cell_Type_V()] == normal_value) {
-					this->outer_normal_cells_.push_back(cell);
+
+				const auto& neigh_offset = get<2>(cell_data_pointers[i]);
+				if (neigh_offset[0] == 0 and neigh_offset[1] == 0 and neigh_offset[2] == 0) {
+					i--;
+					break;
 				}
+
+				auto* const neigh_data = get<1>(cell_data_pointers[i]);
+				if ((*neigh_data)[cell_type] == normal_cell) {
+					source_found = true;
+					(*cell_data)[source] = neighbor_id;
+					break;
+				}
+
+				i++;
+			}
+
+			// make copy cell without sources into dont solve
+			if (not source_found) {
+				(*cell_data)[cell_type] = dont_solve_cell;
 			}
 		}
 	}
