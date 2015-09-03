@@ -257,7 +257,12 @@ int plot_1d(
 	const std::vector<uint64_t>& cells,
 	const std::string& output_file_name_prefix,
 	const double adiabatic_index,
-	const double vacuum_permeability
+	const double vacuum_permeability,
+	const std::string& common_cmd,
+	const std::string& density_pressure_cmd,
+	const std::string& velocity_cmd,
+	const std::string& magnetic_field_cmd,
+	const std::string& current_density_cmd
 ) {
 	const string gnuplot_file_name(output_file_name_prefix + ".dat");
 	ofstream gnuplot_file(gnuplot_file_name);
@@ -278,24 +283,24 @@ int plot_1d(
 
 	// mass density & pressure
 	gnuplot_file
-		<< "set term png enhanced\nset output '"
+		<< common_cmd
+		<< "\nset output '"
 		<< output_file_name_prefix + ".png"
 		<< "'\nset xlabel 'Dimension "
 		<< boost::lexical_cast<std::string>(tube_dim + 1)
 		<< "'\nset xrange ["
 		<< boost::lexical_cast<std::string>(tube_start)
 		<< " : " << boost::lexical_cast<std::string>(tube_end)
-		<< "]\nset ylabel 'Mass density' textcolor lt 1\n"
-		   "set y2label 'Pressure' textcolor lt 3\n"
-		   "unset key\n"
+		<< "]\n" << density_pressure_cmd
+		<< "\nunset key\n"
 		   "set ytics nomirror\n"
 		   "set format x '%.2e'\n"
 		   "set format y '%.2e'\n"
 		   "set format y2 '%.2e'\n"
 		   "set y2tics auto\n"
 		   "plot "
-		     "'-' using 1:2 axes x1y1 with line linewidth 2 title 'density', "
-		     "'-' u 1:2 axes x1y2 w l lt 3 lw 2 t 'pressure'\n";
+		     "'-' using 1:2 axes x1y1 with line linewidth 2, "
+		     "'-' u 1:2 axes x1y2 w l lt 3 lw 2\n";
 
 	for (const auto& cell_id: cells) {
 		const auto& mhd_data
@@ -319,22 +324,18 @@ int plot_1d(
 				vacuum_permeability
 			) << "\n";
 	}
-	gnuplot_file << "end\n";
+	gnuplot_file << "end\nreset\n";
 
 	// velocity
 	gnuplot_file
-		<< "set term png enhanced\nset output '"
+		<< common_cmd
+		<< "\nset output '"
 		<< output_file_name_prefix + "_V.png"
-		<< "'\nset ylabel 'Velocity'\n"
-		   "set yrange [* : *]\n"
-		   "set key horizontal bottom outside\n"
-		   "unset y2label\n"
-		   "unset y2tics\n"
-		   "set ytics mirror\n"
-		   "plot "
-		     "'-' u 1:2 w l lw 2 t 'v_1', "
-		     "'-' u 1:2 w l lw 2 t 'v_2', "
-		     "'-' u 1:2 w l lw 2 t 'v_3'\n";
+		<< "'\n" << velocity_cmd
+		<< "\nset key horizontal bottom outside\nplot "
+		     "'-' u 1:2 w l lw 2 t 'component 1', "
+		     "'-' u 1:2 w l lw 2 t 'component 2', "
+		     "'-' u 1:2 w l lw 2 t 'component 3'\n";
 
 	for (const auto& cell_id: cells) {
 		const auto& mhd_data
@@ -376,17 +377,18 @@ int plot_1d(
 			gnuplot_file << x << " 0\n";
 		}
 	}
-	gnuplot_file << "end\n";
+	gnuplot_file << "end\nreset\n";
 
 	// magnetic field
 	gnuplot_file
-		<< "set term png enhanced\nset output '"
+		<< common_cmd
+		<< "\nset output '"
 		<< output_file_name_prefix + "_B.png"
-		<< "'\nset ylabel 'Magnetic field'\n"
-		   "plot "
-		     "'-' u 1:2 w l lw 2 t 'B_1', "
-		     "'-' u 1:2 w l lw 2 t 'B_2', "
-		     "'-' u 1:2 w l lw 2 t 'B_3'\n";
+		<< "'\n" << magnetic_field_cmd
+		<< "\nset key horizontal bottom outside\nplot "
+		     "'-' u 1:2 w l lw 2 t 'component 1', "
+		     "'-' u 1:2 w l lw 2 t 'component 2', "
+		     "'-' u 1:2 w l lw 2 t 'component 3'\n";
 
 	for (const auto& cell_id: cells) {
 		const auto& mhd_data
@@ -413,17 +415,18 @@ int plot_1d(
 		const double x = geometry.get_center(cell_id)[tube_dim];
 		gnuplot_file << x << " " << B[2] << "\n";
 	}
-	gnuplot_file << "end\n";
+	gnuplot_file << "end\nreset\n";
 
 	// current density
 	gnuplot_file
-		<< "set term png enhanced\nset output '"
+		<< common_cmd
+		<< "\nset output '"
 		<< output_file_name_prefix + "_J.png"
-		<< "'\nset ylabel 'Current density'\n"
-		   "plot "
-		     "'-' u 1:2 w l lw 2 t 'J_1', "
-		     "'-' u 1:2 w l lw 2 t 'J_2', "
-		     "'-' u 1:2 w l lw 2 t 'J_3'\n";
+		<< "'\n" << current_density_cmd
+		<< "\nset key horizontal bottom outside\nplot "
+		     "'-' u 1:2 w l lw 2 t 'component 1', "
+		     "'-' u 1:2 w l lw 2 t 'component 2', "
+		     "'-' u 1:2 w l lw 2 t 'component 3'\n";
 
 	for (const auto& cell_id: cells) {
 		const auto& J = simulation_data.at(cell_id)[Electric_Current_Density()];
@@ -444,7 +447,7 @@ int plot_1d(
 		const double x = geometry.get_center(cell_id)[tube_dim];
 		gnuplot_file << x << " " << J[2] << "\n";
 	}
-	gnuplot_file << "end\n";
+	gnuplot_file << "end\nreset\n";
 
 
 	gnuplot_file.close();
@@ -842,6 +845,14 @@ int main(int argc, char* argv[])
 	bool verbose = false;
 	std::vector<std::string> input_files;
 	std::string
+		common_plot_1d("set term png enhanced size 800, 600"),
+		density_pressure_plot_1d(
+			"set ylabel \"Mass density\" textcolor lt 1\n"
+			"set y2label \"Pressure\" textcolor lt 3"
+		),
+		velocity_plot_1d("set ylabel \"Velocity\""),
+		magnetic_field_plot_1d("set ylabel \"Magnetic field\""),
+		current_density_plot_1d("set ylabel \"Current density\""),
 		common_plot_2d(
 			"set term png enhanced size 800, 600\n"
 			"set pal gray\n"
@@ -862,6 +873,29 @@ int main(int argc, char* argv[])
 			boost::program_options::value<std::vector<std::string>>(&input_files)
 				->default_value(input_files),
 			"Results to plot, the --input-file part can be omitted")
+		("common-1d",
+			boost::program_options::value<std::string>(&common_plot_1d)
+				->default_value(common_plot_1d),
+			"Gnuplot command(s) common to all variables in 1d")
+		("density-pressure-1d",
+			boost::program_options::value<std::string>(&density_pressure_plot_1d)
+				->default_value(density_pressure_plot_1d),
+			"Gnuplot command(s) for plotting mass density and pressure in 1d")
+		("velocity-1d",
+			boost::program_options::value<std::string>(&velocity_plot_1d)
+				->default_value(velocity_plot_1d),
+			"Gnuplot command(s) for plotting each component of velocity in 1d "
+			"(component number and closing \" added automatically)")
+		("magnetic-field-1d",
+			boost::program_options::value<std::string>(&magnetic_field_plot_1d)
+				->default_value(magnetic_field_plot_1d),
+			"Gnuplot command(s) for plotting each component of magnetic field in 1d "
+			"(component number and closing \" added automatically)")
+		("current-density-1d",
+			boost::program_options::value<std::string>(&current_density_plot_1d)
+				->default_value(current_density_plot_1d),
+			"Gnuplot command(s) for plotting each component of current density in 1d "
+			"(component number and closing \" added automatically)")
 		("common-2d",
 			boost::program_options::value<std::string>(&common_plot_2d)
 				->default_value(common_plot_2d),
@@ -997,7 +1031,12 @@ int main(int argc, char* argv[])
 				cells,
 				input_files[i].substr(0, input_files[i].size() - 3),
 				(*header)[1],
-				(*header)[3]
+				(*header)[3],
+				common_plot_1d,
+				density_pressure_plot_1d,
+				velocity_plot_1d,
+				magnetic_field_plot_1d,
+				current_density_plot_1d
 			);
 			break;
 		case 2:
