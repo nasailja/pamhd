@@ -51,6 +51,29 @@ $RUN ./test.exe \
     --config-file config_files/magnetohydrodynamic/magnetic_field_advection/1d/-z/config.cfg
 $RUN ./mhd2gnuplot.exe results/magnetohydrodynamic/magnetic_field_advection/1d/-z/*dc 2> /dev/null
 
+# rarefaction
+echo rarefaction hd 1d +x hll_athena
+$RUN ./test.exe \
+    --solver-mhd hll_athena \
+    --output-directory results/hydrodynamic/rarefaction/1d/+x/hll_athena/ \
+    --config-file config_files/hydrodynamic/rarefaction/1d/+x/config
+$RUN ./mhd2gnuplot.exe results/hydrodynamic/rarefaction/1d/+x/hll_athena/*dc 2> /dev/null
+
+echo rarefaction hd 1d +x hlld_athena
+$RUN ./test.exe \
+    --solver-mhd hlld_athena \
+    --output-directory results/hydrodynamic/rarefaction/1d/+x/hlld_athena/ \
+    --config-file config_files/hydrodynamic/rarefaction/1d/+x/config
+$RUN ./mhd2gnuplot.exe results/hydrodynamic/rarefaction/1d/+x/hlld_athena/*dc 2> /dev/null
+
+# TODO: fix
+#echo rarefaction hd 1d +x roe_athena
+#$RUN ./test.exe \
+#    --solver-mhd roe_athena \
+#    --output-directory results/hydrodynamic/rarefaction/1d/+x/roe_athena/ \
+#    --config-file config_files/hydrodynamic/rarefaction/1d/+x/config
+#$RUN ./mhd2gnuplot.exe results/hydrodynamic/rarefaction/1d/+x/roe_athena/*dc 2> /dev/null
+
 # shock tube
 echo shock_tube mhd 1d +x hll_athena
 $RUN ./test.exe \
