@@ -30,13 +30,13 @@ using namespace std;
 int main()
 {
 	mup::ParserX parser(mup::pckCOMMON | mup::pckNON_COMPLEX | mup::pckMATRIX | mup::pckUNIT);
-	mup::Value value1{0};
+	mup::Value value1{0.0};
 	mup::Variable variable1{&value1};
 	parser.DefineVar("v1", variable1);
 	parser.SetExpr("v1 + 1");
 
 	double sum = 0;
-	for (const auto i: {1, 3, 5, 7, 11}) {
+	for (const auto i: {1.0, 3.0, 5.0, 7.0, 11.0}) {
 		value1 = i;
 		sum += parser.Eval().GetInteger();
 	}

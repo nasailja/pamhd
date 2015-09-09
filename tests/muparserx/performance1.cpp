@@ -44,7 +44,7 @@ using namespace std::chrono;
 int main()
 {
 	mup::ParserX parser(mup::pckCOMMON | mup::pckNON_COMPLEX | mup::pckMATRIX | mup::pckUNIT);
-	mup::Value value1{0};
+	mup::Value value1{0.0};
 	mup::Variable variable1{&value1};
 	parser.DefineVar("v1", variable1);
 	parser.SetExpr("v1 + 1");
@@ -52,7 +52,7 @@ int main()
 	const auto time_start = high_resolution_clock::now();
 
 	for (int i = 0; i < 1000000; i++) {
-		value1 = i;
+		value1 = double(i);
 		if (parser.Eval().GetInteger() != i + 1) {
 			std::cerr <<  __FILE__ << "(" << __LINE__<< ") "
 				<< "Wrong value for variable: " << parser.Eval().GetInteger()

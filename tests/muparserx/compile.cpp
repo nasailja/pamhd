@@ -42,7 +42,7 @@ using namespace std;
 int main()
 {
 	mup::ParserX parser(mup::pckALL_NON_COMPLEX);
-	mup::Value value1{0};
+	mup::Value value1{0.0};
 	mup::Variable variable1{&value1};
 	parser.DefineVar("v1", variable1);
 	parser.SetExpr("v1 + 1");
