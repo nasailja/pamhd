@@ -116,6 +116,9 @@ if not 'save_mhd_n' in form_data:
 	exit()
 config.write('save-mhd-n = ' + form_data.getfirst('save_mhd_n') + '\n')
 
+if 'resistivity' in form_data:
+	config.write('resistivity = ' + form_data.getfirst('resistivity') + '\n')
+
 if not 'remove_div_b_n' in form_data:
 	print 'remove_div_b_n missing from form data:<br>'
 	print_form_data(form_data)
