@@ -113,7 +113,7 @@ template <
 		Particles_T()
 	);
 	const bool ret_val = grid.save_grid_data(
-		file_name_prefix + "particle_" + time_string.str() + "_s.dc",
+		file_name_prefix + time_string.str() + "_s.dc",
 		0,
 		header
 	);

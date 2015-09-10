@@ -63,16 +63,10 @@ Reads simulation data from given file.
 
 Fills out grid info and simulation data.
 
-On success returns whether fluxes were saved into
-given file and physical constants used by the simulation,
-on failure returns an uninitialized value.
+On success returns physical constants used by
+simulation, on failure returns an uninitialized value.
 */
-boost::optional<
-	std::tuple<
-		bool,
-		std::array<double, 4>
-	>
-> read_data(
+boost::optional<std::array<double, 4>> read_data(
 	dccrg::Mapping& cell_id_mapping,
 	dccrg::Grid_Topology& topology,
 	dccrg::Cartesian_Geometry& geometry,
@@ -93,66 +87,65 @@ boost::optional<
 		cerr << "Process " << mpi_rank
 			<< " couldn't open file " << file_name
 			<< endl;
-		return boost::optional<std::tuple<bool, std::array<double, 4>>>();
+		return boost::optional<std::array<double, 4>>();
 	}
 
 	MPI_Offset offset = 0;
 
-	// check whether fluxes were saved
-	std::string header_data(Save::get_header_string_template() + "x\n");
-	MPI_File_read_at(
+	// read file version
+	uint64_t file_version = 0;
+	MPI_File_read_at( // TODO: add error checking
 		file,
 		offset,
-		const_cast<void*>(static_cast<const void*>(header_data.data())),
-		Save::get_header_string_size(),
-		MPI_BYTE,
+		&file_version,
+		1,
+		MPI_UINT64_T,
 		MPI_STATUS_IGNORE
 	);
-	offset += Save::get_header_string_size();
-
-	bool have_fluxes;
-	if (header_data == Save::get_header_string_template() + "y\n")  {
-		have_fluxes = true;
-	} else if (header_data == Save::get_header_string_template() + "n\n") {
-		have_fluxes = false;
-	} else {
+	offset += sizeof(uint64_t);
+	if (file_version != 1) {
 		cerr << "Process " << mpi_rank
-			<< " Invalid header in file " << file_name
-			<< ": " << header_data
+			<< " Unsupported file version: " << file_version
 			<< endl;
-		return boost::optional<std::tuple<bool, std::array<double, 4>>>();
+		return boost::optional<std::array<double, 4>>();
 	}
 
-	// read physical constants
-	std::array<double, Save::nr_header_doubles> phys_consts;
+	// read simulation parameters
+	std::array<double, 4> simulation_parameters;
 	MPI_File_read_at(
 		file,
 		offset,
-		phys_consts.data(),
-		Save::nr_header_doubles,
+		simulation_parameters.data(),
+		4,
 		MPI_DOUBLE,
 		MPI_STATUS_IGNORE
 	);
-	offset += Save::nr_header_doubles * sizeof(double);
+	offset += 4 * sizeof(double);
 
-
-	Cell::set_transfer_all(
-		true,
-		MHD_State_Conservative(),
-		Electric_Current_Density()
+	// check endianness
+	uint64_t endianness = 0;
+	MPI_File_read_at(
+		file,
+		offset,
+		&endianness,
+		1,
+		MPI_UINT64_T,
+		MPI_STATUS_IGNORE
 	);
-	if (have_fluxes) {
-		Cell::set_transfer_all(true, MHD_Flux_Conservative());
-	}
-
-	// skip endianness check data
 	offset += sizeof(uint64_t);
+	if (endianness != 0x1234567890abcdef) {
+		cerr << "Process " << mpi_rank
+			<< " Unsupported endianness: " << endianness
+			<< ", should be " << 0x1234567890abcdef
+			<< endl;
+		return boost::optional<std::array<double, 4>>();
+	}
 
 	if (not cell_id_mapping.read(file, offset)) {
 		cerr << "Process " << mpi_rank
 			<< " couldn't set cell id mapping from file " << file_name
 			<< endl;
-		return boost::optional<std::tuple<bool, std::array<double, 4>>>();
+		return boost::optional<std::array<double, 4>>();
 	}
 
 	offset
@@ -164,7 +157,7 @@ boost::optional<
 		cerr << "Process " << mpi_rank
 			<< " couldn't read geometry from file " << file_name
 			<< endl;
-		return boost::optional<std::tuple<bool, std::array<double, 4>>>();
+		return boost::optional<std::array<double, 4>>();
 	}
 	offset += geometry.data_size();
 
@@ -182,12 +175,7 @@ boost::optional<
 
 	if (total_cells == 0) {
 		MPI_File_close(&file);
-		return boost::optional<std::tuple<bool, std::array<double, 4>>>(
-			std::make_tuple(
-				have_fluxes,
-				phys_consts
-			)
-		);
+		return boost::optional<std::array<double, 4>>(simulation_parameters);
 	}
 
 	// read cell ids and data offsets
@@ -202,6 +190,14 @@ boost::optional<
 	);
 
 	// read cell data
+	Cell::set_transfer_all(
+		true,
+		MHD_State_Conservative(),
+		Electric_Current_Density(),
+		Cell_Type(),
+		MPI_Rank(),
+		Resistivity()
+	);
 	for (const auto& item: cells_offsets) {
 		const uint64_t
 			cell_id = item.first,
@@ -256,12 +252,7 @@ boost::optional<
 
 	MPI_File_close(&file);
 
-	return boost::optional<std::tuple<bool, std::array<double, 4>>>(
-		std::make_tuple(
-			have_fluxes,
-			phys_consts
-		)
-	);
+	return boost::optional<std::array<double, 4>>(simulation_parameters);
 }
 
 
@@ -273,8 +264,7 @@ void convert(
 	const unordered_map<uint64_t, Cell>& simulation_data,
 	const std::string& output_file_name_prefix,
 	const double adiabatic_index,
-	const double vacuum_permeability,
-	const bool /*have_fluxes*/
+	const double vacuum_permeability
 ) {
 	std::vector<uint64_t> cells;
 	for (const auto& i: simulation_data) {
@@ -376,6 +366,12 @@ void convert(
 			<< current_density[1] << " "
 			<< current_density[2] << "\n";
 	}
+
+	vtk_file << "SCALARS rank int 1\nlookup_table default\n";
+	for (const auto& cell: cells) {
+		vtk_file << simulation_data.at(cell)[MPI_Rank()] << "\n";
+	}
+
 }
 
 
@@ -453,8 +449,10 @@ int main(int argc, char* argv[])
 
 	if (rank == 0) {
 		std::ofstream visit_file(
-			boost::filesystem::path(input_files[0]).parent_path().string()
-			+ "/mhd.visit"
+			boost::filesystem::path(input_files[0])
+				.parent_path()
+				.append("mhd.visit")
+				.generic_string()
 		);
 
 		visit_file << "!NBLOCKS 1\n";
@@ -463,6 +461,13 @@ int main(int argc, char* argv[])
 				input_files[i].substr(0, input_files[i].size() - 3) + ".vtk\n"
 			).filename().string();
 		}
+
+		if (not visit_file.good()) {
+			std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
+				<< "Writing of visit file probably failed."
+				<< std::endl;
+		}
+
 		visit_file.close();
 	}
 
@@ -482,19 +487,15 @@ int main(int argc, char* argv[])
 		dccrg::Cartesian_Geometry geometry(cell_id_mapping.length, cell_id_mapping, topology);
 		unordered_map<uint64_t, Cell> simulation_data;
 
-		boost::optional<
-			std::tuple<
-				bool,
-				std::array<double, 4>
-			>
-		> header = read_data(
-			cell_id_mapping,
-			topology,
-			geometry,
-			simulation_data,
-			input_files[i],
-			rank
-		);
+		boost::optional<std::array<double, 4>> header
+			= read_data(
+				cell_id_mapping,
+				topology,
+				geometry,
+				simulation_data,
+				input_files[i],
+				rank
+			);
 		if (not header) {
 			std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
 				<< "Couldn't read simulation data from file " << input_files[i]
@@ -506,9 +507,8 @@ int main(int argc, char* argv[])
 			geometry,
 			simulation_data,
 			input_files[i].substr(0, input_files[i].size() - 3),
-			std::get<1>(*header)[1],
-			std::get<1>(*header)[3],
-			std::get<0>(*header)
+			(*header)[1],
+			(*header)[3]
 		);
 	}
 

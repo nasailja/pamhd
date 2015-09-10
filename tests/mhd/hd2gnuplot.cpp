@@ -36,7 +36,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "functional"
 #include "fstream"
 #include "string"
-#include "tuple"
 #include "unordered_map"
 #include "vector"
 
@@ -64,9 +63,8 @@ Reads simulation data from given file.
 
 Fills out grid info and simulation data.
 
-On success returns whether fluxes were saved into
-given file and physical constants used by the simulation,
-on failure returns an uninitialized value.
+On success returns physical constants used by
+simulation, on failure returns an uninitialized value.
 */
 boost::optional<std::array<double, 4>> read_data(
 	dccrg::Mapping& cell_id_mapping,
@@ -94,45 +92,54 @@ boost::optional<std::array<double, 4>> read_data(
 
 	MPI_Offset offset = 0;
 
-	// check whether fluxes were saved
-	std::string header_data(Save::get_header_string_template() + "x\n");
-	MPI_File_read_at(
+	// read file version
+	uint64_t file_version = 0;
+	MPI_File_read_at( // TODO: add error checking
 		file,
 		offset,
-		const_cast<void*>(static_cast<const void*>(header_data.data())),
-		Save::get_header_string_size(),
-		MPI_BYTE,
+		&file_version,
+		1,
+		MPI_UINT64_T,
 		MPI_STATUS_IGNORE
 	);
-	offset += Save::get_header_string_size();
-
-	if (header_data == Save::get_header_string_template() + "y\n")  {
+	offset += sizeof(uint64_t);
+	if (file_version != 1) {
 		cerr << "Process " << mpi_rank
-			<< " HD state+flux data not supported in file " << file_name
-			<< endl;
-		return boost::optional<std::array<double, 4>>();
-	} else if (header_data != Save::get_header_string_template() + "n\n") {
-		cerr << "Process " << mpi_rank
-			<< " Invalid header in file " << file_name
-			<< ": " << header_data
+			<< " Unsupported file version: " << file_version
 			<< endl;
 		return boost::optional<std::array<double, 4>>();
 	}
 
-	// read physical constants
-	std::array<double, Save::nr_header_doubles> metadata;
+	// read simulation parameters
+	std::array<double, 4> simulation_parameters;
 	MPI_File_read_at(
 		file,
 		offset,
-		metadata.data(),
-		Save::nr_header_doubles,
+		simulation_parameters.data(),
+		4,
 		MPI_DOUBLE,
 		MPI_STATUS_IGNORE
 	);
-	offset += Save::nr_header_doubles * sizeof(double);
+	offset += 4 * sizeof(double);
 
-	// skip endianness check data
+	// check endianness
+	uint64_t endianness = 0;
+	MPI_File_read_at(
+		file,
+		offset,
+		&endianness,
+		1,
+		MPI_UINT64_T,
+		MPI_STATUS_IGNORE
+	);
 	offset += sizeof(uint64_t);
+	if (endianness != 0x1234567890abcdef) {
+		cerr << "Process " << mpi_rank
+			<< " Unsupported endianness: " << endianness
+			<< ", should be " << 0x1234567890abcdef
+			<< endl;
+		return boost::optional<std::array<double, 4>>();
+	}
 
 	if (not cell_id_mapping.read(file, offset)) {
 		cerr << "Process " << mpi_rank
@@ -168,7 +175,7 @@ boost::optional<std::array<double, 4>> read_data(
 
 	if (total_cells == 0) {
 		MPI_File_close(&file);
-		return boost::optional<std::array<double, 4>>(metadata);
+		return boost::optional<std::array<double, 4>>(simulation_parameters);
 	}
 
 	// read cell ids and data offsets
@@ -237,7 +244,7 @@ boost::optional<std::array<double, 4>> read_data(
 
 	MPI_File_close(&file);
 
-	return boost::optional<std::array<double, 4>>(metadata);
+	return boost::optional<std::array<double, 4>>(simulation_parameters);
 }
 
 

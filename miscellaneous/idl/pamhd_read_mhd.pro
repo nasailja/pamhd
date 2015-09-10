@@ -36,13 +36,20 @@
 ; Fills data_field with an array of arrays of MHD data,
 ; data_field[0:*, N] is simulation data of N+1th cell stored in file.
 ;
-; Fills meta_data with adiabatic index, proton mass and vacuum premeability. 
+; Fills meta_data with simulation time, adiabatic index,
+; proton mass and vacuum premeability.
+;
+; If given sort_data returned data is sorted in ascending order
+; by rz then items with identical rz are sorted by ry and items
+; with identical rz and ry are sorted by rx.
 ;
 ; Returns 0 on success, > 0 on failure
 ;
-function pamhd_read_mhd, filename, variable_names = variable_names, variable_descriptions = variable_descriptions, data_field = data_field, meta_data = meta_data
+function pamhd_read_mhd, filename, variable_names = variable_names, variable_descriptions = variable_descriptions, data_field = data_field, meta_data = meta_data, sort_data = sort_data
 
-	variable_names = 'rx,ry,rz,dx,dy,dz,mas,momx,momy,momz,nrj,magx,magy,magz'
+	variable_names = 'rx,ry,rz,dx,dy,dz,mas,momx,momy,momz,nrj,'
+	variable_names += 'magx,magy,magz,curx,cury,curz,res,rank'
+
 	variable_descriptions = 'x coord of cell center, '
 	variable_descriptions += 'y coord of cell center, '
 	variable_descriptions += 'z coord of cell center, '
@@ -56,34 +63,34 @@ function pamhd_read_mhd, filename, variable_names = variable_names, variable_des
 	variable_descriptions += 'total energy density, '
 	variable_descriptions += 'x component of magnetic field, '
 	variable_descriptions += 'y component of magnetic field, '
-	variable_descriptions += 'z component of magnetic field'
+	variable_descriptions += 'z component of magnetic field, '
+	variable_descriptions += 'x component of electric current density, '
+	variable_descriptions += 'y component of electric current density, '
+	variable_descriptions += 'z component of electric current density, '
+	variable_descriptions += 'electrical resistivity, '
+	variable_descriptions += 'owner of cell (MPI rank)'
 
 	openr, in_file, filename, /get_lun
 
 	items_read = ulong64(0)
 
-	; whether fluxes were saved
-	fluxes_header = bytarr(11)
-	readu, in_file, fluxes_header, transfer_count = items_read
-	if (items_read ne 11) then begin
+	; file version
+	file_version = ulong64(0)
+	readu, in_file, file_version, transfer_count = items_read
+	if (items_read ne 1) then begin
 		close, in_file
 		free_lun, in_file
-		print, "Couldn't read header", items_read
+		print, "Couldn't read file version", items_read
 		return, 1
 	endif
-
-	fluxes_header = string(fluxes_header)
-
-	have_fluxes = strmatch(fluxes_header, 'fluxes = n' + string(10B))
-	if (have_fluxes ne 1) then begin
+	if (file_version ne 1) then begin
 		close, in_file
 		free_lun, in_file
-		print, "File with MHD fluxes not supported."
+		print, "Unsupported file version."
 		return, 2
 	endif
 
-
-	; metadata
+	; simulation parameters
 	simulation_time = double(-1)
 	adiabatic_index = double(-1)
 	proton_mass = double(-1)
@@ -102,7 +109,6 @@ function pamhd_read_mhd, filename, variable_names = variable_names, variable_des
 	meta_data[2] = proton_mass
 	meta_data[3] = vacuum_permeability
 
-
 	; endianness check
 	endianness = ulong64(1311768467294899695) ; 0x1234567890abcdef
 	endianness_file = ulong64(0)
@@ -119,7 +125,6 @@ function pamhd_read_mhd, filename, variable_names = variable_names, variable_des
 		print, "Unsupported endianness."
 		return, 5
 	endif
-
 
 	; number of refinement level 0 cells
 	grid_size_x = ulong64(0)
@@ -214,7 +219,6 @@ function pamhd_read_mhd, filename, variable_names = variable_names, variable_des
 	endif
 	;print, "Length of ref. lvl. 0 cells", lvl_0_cell_length_x, lvl_0_cell_length_y, lvl_0_cell_length_z
 
-
 	; total number of cells
 	total_cells = ulong64(0)
 	readu, in_file, total_cells, transfer_count = items_read
@@ -236,25 +240,28 @@ function pamhd_read_mhd, filename, variable_names = variable_names, variable_des
 		return, 16
 	endif
 
-
 	; read cell data into final array
-	data_field = make_array(14, total_cells, /double)
-	cell_data = make_array(11, /double)
+	data_field = make_array(19, total_cells, /double) ; returned to user
+	cell_data1 = make_array(11, /double)
+	cell_data2 = make_array(2, /long)
+	cell_data3 = make_array(1, /double)
 	for i = ulong64(0), total_cells - ulong64(1) do begin
 		cell_id = cell_ids_data_offsets[0, i]
 		data_offset = cell_ids_data_offsets[1, i]
 
 		point_lun, in_file, data_offset
-		readu, in_file, cell_data, transfer_count = items_read
-		if (items_read ne 11) then begin
+		readu, in_file, cell_data1, cell_data2, cell_data3, transfer_count = items_read
+		if (items_read ne 1) then begin
 			close, in_file
 			free_lun, in_file
-			print, "Couldn't read cell data at byte offset", data_offset
-			print, items_read, "items read, should be 11"
+			print, "Couldn't read cell data at byte offset ", data_offset
+			print, items_read, " item sets read, should be 1"
 			return, 17
 		endif
 
-		data_field[6:13, i] = cell_data[0:7]
+		data_field[6, i] = cell_data1
+		data_field[17, i] = cell_data3[0]
+		data_field[18, i] = double(cell_data2[1])
 
 		; add derived data
 		cell_id = cell_id - 1
@@ -273,6 +280,34 @@ function pamhd_read_mhd, filename, variable_names = variable_names, variable_des
 
 	close, in_file
 	free_lun, in_file
+
+	if (keyword_set(sort_data)) then begin
+		; sort by rz
+		data_field = data_field[*, sort(data_field[2, *])]
+
+		; sort by ry each set of rows with same value in rz
+		subranges_y = uniq(data_field[2, *])
+		range_y_start = 0
+		foreach range_y_end, subranges_y do begin
+			;print, 'processing subrange with Z value of', data_field[2, range_y_start]
+			data_field[*, range_y_start : range_y_end] $
+				= data_field[*, range_y_start + sort(data_field[1, range_y_start : range_y_end])]
+
+			; sort by rx each set of rows with same value in ry
+			subranges_x = range_y_start + uniq(data_field[1, range_y_start : range_y_end])
+			range_x_start = range_y_start
+			foreach range_x_end, subranges_x do begin
+				;print, '   processing subrange with Y value of', data_field[1, range_x_start]
+				data_field[*, range_x_start : range_x_end] $
+					= data_field[*, range_x_start + sort(data_field[0, range_x_start : range_x_end])]
+
+				range_x_start = range_x_end + 1
+			endforeach
+
+			range_y_start = range_y_end + 1
+		endforeach
+
+	endif
 
 	return, 0
 end

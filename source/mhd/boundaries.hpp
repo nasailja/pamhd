@@ -274,6 +274,11 @@ public:
 				(*cell_data)[cell_type] = dont_solve_cell;
 			}
 		}
+
+		// tell other processes about dont_solve_cells
+		Cell_Data::set_transfer_all(true, cell_type);
+		grid.update_copies_of_remote_neighbors();
+		Cell_Data::set_transfer_all(false, cell_type);
 	}
 };
 

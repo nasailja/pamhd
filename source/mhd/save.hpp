@@ -46,119 +46,86 @@ namespace pamhd {
 namespace mhd {
 
 
-class Save
-{
-public:
+/*!
+Saves the MHD solution into a file with name derived from simulation time.
 
-	static std::string get_header_string_template()
-	{
-		return {"fluxes = "};
-	}
+path_name_prefix is added to the beginning of the file name.
 
-	static size_t get_header_string_size()
-	{
-		return get_header_string_template().size() + 2;
-	}
+The transfer of all first level variables must be switched
+off before this function is called. After save returns the
+transfer of all first level variables is switched off.
+Transfer of variables in MHD_T must be switched on.
 
-	static constexpr size_t nr_header_doubles = 4;
+Return true on success, false otherwise.
+*/
+template <
+	class Cell,
+	class Geometry,
+	class... Variables
+> bool save(
+	const std::string& path_name_prefix,
+	dccrg::Dccrg<Cell, Geometry>& grid,
+	const uint64_t file_version,
+	const double simulation_time,
+	const double adiabatic_index,
+	const double proton_mass,
+	const double vacuum_permeability,
+	const Variables&... variables
+) {
+	const std::array<double, 4> simulation_parameters{{
+		simulation_time,
+		adiabatic_index,
+		proton_mass,
+		vacuum_permeability
+	}};
 
+	const std::array<int, 2> counts{{1, 4}};
+	const std::array<MPI_Aint, 2> displacements{{
+		0,
+		reinterpret_cast<char*>(const_cast<double*>(simulation_parameters.data()))
+			- reinterpret_cast<char*>(const_cast<uint64_t*>(&file_version))
+	}};
+	std::array<MPI_Datatype, 2> datatypes{{MPI_UINT64_T, MPI_DOUBLE}};
 
-	/*!
-	Saves the MHD solution into a file with name derived from simulation time.
-
-	path_name_prefix is added to the beginning of the file name.
-
-	The transfer of all first level variables must be switched
-	off before this function is called. After save returns the
-	transfer of all first level variables is switched off.
-	Transfer of variables in MHD_T must be switched on.
-
-	Return true on success, false otherwise.
-	*/
-	template <
-		class Cell,
-		class Geometry,
-		class... Variables
-	> static bool save(
-		const std::string& path_name_prefix,
-		dccrg::Dccrg<Cell, Geometry>& grid,
-		const double simulation_time,
-		const double adiabatic_index,
-		const double proton_mass,
-		const double vacuum_permeability,
-		const Variables&... variables
+	MPI_Datatype header_datatype;
+	if (
+		MPI_Type_create_struct(
+			2,
+			counts.data(),
+			displacements.data(),
+			datatypes.data(),
+			&header_datatype
+		) != MPI_SUCCESS
 	) {
-		std::string header_string(get_header_string_template() + "n\n");
-		if (header_string.size() != get_header_string_size()) {
-			std::cerr << __FILE__ << ":" << __LINE__
-				<< ": Invalid size for header: " << header_string.size()
-				<< ", should be " << get_header_string_size()
-				<< std::endl;
-			return false;
-		}
-
-		// write physical constants
-		const std::array<double, nr_header_doubles> header_doubles{{
-			simulation_time,
-			adiabatic_index,
-			proton_mass,
-			vacuum_permeability
-		}};
-
-
-		std::array<int, 2> counts{{
-			int(header_string.size()),
-			nr_header_doubles
-		}};
-		std::array<MPI_Aint, 2> displacements{{
-			0,
-			reinterpret_cast<char*>(const_cast<double*>(header_doubles.data()))
-				- static_cast<const char*>(header_string.data())
-		}};
-		std::array<MPI_Datatype, 2> datatypes{{
-			MPI_BYTE,
-			MPI_DOUBLE
-		}};
-
-		MPI_Datatype header_datatype;
-		if (
-			MPI_Type_create_struct(
-				2,
-				counts.data(),
-				displacements.data(),
-				datatypes.data(),
-				&header_datatype
-			) != MPI_SUCCESS
-		) {
-			std::cerr << __FILE__ << ":" << __LINE__
-				<< " Couldn't create header datatype"
-				<< std::endl;
-			abort();
-		}
-
-		std::tuple<void*, int, MPI_Datatype> header{
-			(void*) header_string.data(),
-			1,
-			header_datatype
-		};
-
-		std::ostringstream time_string;
-		time_string
-			<< std::scientific
-			<< std::setprecision(3)
-			<< simulation_time;
-
-		Cell::set_transfer_all(true, variables...);
-		const bool ret_val = grid.save_grid_data(
-			path_name_prefix + time_string.str() + "_s.dc",
-			0,
-			header
-		);
-		Cell::set_transfer_all(false, variables...);
-
-		return ret_val;
+		std::cerr << __FILE__ << ":" << __LINE__
+			<< " Couldn't create header datatype"
+			<< std::endl;
+		abort();
 	}
-};
+
+	std::tuple<void*, int, MPI_Datatype> header{
+		(void*) &file_version,
+		1,
+		header_datatype
+	};
+
+	std::ostringstream time_string;
+	time_string
+		<< std::scientific
+		<< std::setprecision(3)
+		<< simulation_time;
+
+	Cell::set_transfer_all(true, variables...);
+	const bool ret_val = grid.save_grid_data(
+		path_name_prefix + time_string.str() + "_s.dc",
+		0,
+		header
+	);
+	Cell::set_transfer_all(false, variables...);
+
+	return ret_val;
+}
+
 
 }} // namespaces
 

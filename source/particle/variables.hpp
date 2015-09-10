@@ -149,7 +149,7 @@ struct Electric_Field {
 	using data_type = Eigen::Vector3d;
 	static const std::string get_name() { return {"electric field"}; }
 	static const std::string get_option_name() { return {"electric-field"}; }
-	static const std::string get_option_help() { return {"Electric field used for propagating particles"}; }
+	static const std::string get_option_help() { return {"Cell-centered electric field"}; }
 };
 
 struct Magnetic_Field {
@@ -226,19 +226,14 @@ struct Electric_Current_Density {
 	static const std::string get_option_help() { return {"Density of electric current"}; }
 };
 
-
-/*
-Cell types of field and particle boundaries.
-*/
-struct Field_Cell_Type {
-	using data_type = int;
-	static const std::string get_name() { return {"field cell type"}; }
-	static const std::string get_option_name() { return {"field-cell-type"}; }
-	static const std::string get_option_help() {
-		return {"Cell type for field solver (0: normal, < 0: do-not-solve, > 0: boundary)"};
-	}
+struct Current_Minus_Velocity {
+	using data_type = Eigen::Vector3d;
+	static const std::string get_name() { return {"J-V"}; }
+	static const std::string get_option_name() { return {"J-V"}; }
+	static const std::string get_option_help() { return {"Current minus Velocity for interpolating electric field to particle position"}; }
 };
-struct Particle_Cell_Type {
+
+struct Cell_Type_Particle {
 	using data_type = int;
 	static const std::string get_name() { return {"particle cell type"}; }
 	static const std::string get_option_name() { return {"particle-cell-type"}; }
@@ -246,6 +241,33 @@ struct Particle_Cell_Type {
 		return {"Cell type for particle solver (0: normal, < 0: do-not-solve, > 0: boundary)"};
 	}
 };
+struct Copy_Source_Particle {
+	using data_type = unsigned long long int;
+	static const std::string get_name() { return {"source of copy cell"}; }
+	static const std::string get_option_name() { return {"source-of-copy-cell"}; }
+	static const std::string get_option_help() {
+		return {"Id of cell that is source of data for copy boundary cell."};
+	}
+};
+struct Value_Boundary_Id_Particle {
+	using data_type = int;
+	static const std::string get_name() { return {"value boundary id"}; }
+	static const std::string get_option_name() { return {"value-boundary-id"}; }
+	static const std::string get_option_help() {
+		return {"Value boundary cell's boundary id"};
+	}
+};
+
+struct Cell_Type_Field {
+	using data_type = int;
+	static const std::string get_name() { return {"field cell type"}; }
+	static const std::string get_option_name() { return {"field-cell-type"}; }
+	static const std::string get_option_help() {
+		return {"Cell type for field solver (0: normal, < 0: do-not-solve, > 0: boundary)"};
+	}
+};
+struct Copy_Source_Field { using data_type = unsigned long long int; };
+struct Value_Boundary_Id_Field { using data_type = int; };
 
 /*!
 Cell type for particle model of PAMHD.
@@ -259,13 +281,18 @@ dccrg uses to save the file.
 using Cell = gensimcell::Cell<
 	gensimcell::Optional_Transfer,
 	pamhd::mhd::MHD_State_Conservative,
-	Field_Cell_Type,
-	Particle_Cell_Type,
+	pamhd::mhd::Electric_Current_Density,
+	Cell_Type_Particle,
+	Copy_Source_Particle,
+	Value_Boundary_Id_Particle,
+	Cell_Type_Field,
+	Copy_Source_Field,
+	Value_Boundary_Id_Field,
 	pamhd::mhd::MPI_Rank,
+	pamhd::mhd::Resistivity,
 	pamhd::mhd::Magnetic_Field_Temp,
 	pamhd::mhd::Magnetic_Field_Divergence,
 	pamhd::mhd::Scalar_Potential_Gradient,
-	pamhd::mhd::Electric_Current_Density,
 	pamhd::mhd::MHD_Flux_Conservative,
 	Electric_Field,
 	Magnetic_Field,
@@ -273,6 +300,7 @@ using Cell = gensimcell::Cell<
 	Bulk_Mass,
 	Bulk_Momentum,
 	Bulk_Velocity,
+	Current_Minus_Velocity,
 	Bulk_Relative_Velocity2,
 	Nr_Particles_Internal,
 	Nr_Particles_External,

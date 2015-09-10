@@ -22,7 +22,7 @@ start = {0, 0, 0}
 [initial-field]
 default.magnetic-field = {0, sin(2*pi*r[0]), cos(2*pi*r[0])}
 
-[initial-fluid1]
+[initial-fluid]
 default.number-density = 0.5
 default.velocity = {1, 0, 0}
 default.pressure = 0.5

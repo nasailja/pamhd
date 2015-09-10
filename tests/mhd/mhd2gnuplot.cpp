@@ -36,7 +36,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "functional"
 #include "fstream"
 #include "string"
-#include "tuple"
 #include "unordered_map"
 #include "vector"
 
@@ -94,52 +93,54 @@ boost::optional<std::array<double, 4>> read_data(
 
 	MPI_Offset offset = 0;
 
-	// check whether fluxes were saved
-	std::string header_data(Save::get_header_string_template() + "x\n");
-	MPI_File_read_at(
+	// read file version
+	uint64_t file_version = 0;
+	MPI_File_read_at( // TODO: add error checking
 		file,
 		offset,
-		const_cast<void*>(static_cast<const void*>(header_data.data())),
-		Save::get_header_string_size(),
-		MPI_BYTE,
+		&file_version,
+		1,
+		MPI_UINT64_T,
 		MPI_STATUS_IGNORE
 	);
-	offset += Save::get_header_string_size();
-
-	if (header_data == Save::get_header_string_template() + "y\n")  {
+	offset += sizeof(uint64_t);
+	if (file_version != 1) {
 		cerr << "Process " << mpi_rank
-			<< " Fluxes not supported in MHD data of file " << file_name
-			<< endl;
-		return boost::optional<std::array<double, 4>>();
-	} else if (header_data != Save::get_header_string_template() + "n\n") {
-		cerr << "Process " << mpi_rank
-			<< " Invalid header in file " << file_name
-			<< ": " << header_data
+			<< " Unsupported file version: " << file_version
 			<< endl;
 		return boost::optional<std::array<double, 4>>();
 	}
 
-	// read physical constants
-	std::array<double, Save::nr_header_doubles> metadata;
+	// read simulation parameters
+	std::array<double, 4> simulation_parameters;
 	MPI_File_read_at(
 		file,
 		offset,
-		metadata.data(),
-		Save::nr_header_doubles,
+		simulation_parameters.data(),
+		4,
 		MPI_DOUBLE,
 		MPI_STATUS_IGNORE
 	);
-	offset += Save::nr_header_doubles * sizeof(double);
+	offset += 4 * sizeof(double);
 
-
-	Cell::set_transfer_all(
-		true,
-		MHD_State_Conservative(),
-		Electric_Current_Density()
+	// check endianness
+	uint64_t endianness = 0;
+	MPI_File_read_at(
+		file,
+		offset,
+		&endianness,
+		1,
+		MPI_UINT64_T,
+		MPI_STATUS_IGNORE
 	);
-
-	// skip endianness check data
 	offset += sizeof(uint64_t);
+	if (endianness != 0x1234567890abcdef) {
+		cerr << "Process " << mpi_rank
+			<< " Unsupported endianness: " << endianness
+			<< ", should be " << 0x1234567890abcdef
+			<< endl;
+		return boost::optional<std::array<double, 4>>();
+	}
 
 	if (not cell_id_mapping.read(file, offset)) {
 		cerr << "Process " << mpi_rank
@@ -175,7 +176,7 @@ boost::optional<std::array<double, 4>> read_data(
 
 	if (total_cells == 0) {
 		MPI_File_close(&file);
-		return boost::optional<std::array<double, 4>>(metadata);
+		return boost::optional<std::array<double, 4>>(simulation_parameters);
 	}
 
 	// read cell ids and data offsets
@@ -190,6 +191,14 @@ boost::optional<std::array<double, 4>> read_data(
 	);
 
 	// read cell data
+	Cell::set_transfer_all(
+		true,
+		MHD_State_Conservative(),
+		Electric_Current_Density(),
+		Cell_Type(),
+		MPI_Rank(),
+		Resistivity()
+	);
 	for (const auto& item: cells_offsets) {
 		const uint64_t
 			cell_id = item.first,
@@ -244,7 +253,7 @@ boost::optional<std::array<double, 4>> read_data(
 
 	MPI_File_close(&file);
 
-	return boost::optional<std::array<double, 4>>(metadata);
+	return boost::optional<std::array<double, 4>>(simulation_parameters);
 }
 
 
@@ -446,6 +455,41 @@ int plot_1d(
 		const auto& J = simulation_data.at(cell_id)[Electric_Current_Density()];
 		const double x = geometry.get_center(cell_id)[tube_dim];
 		gnuplot_file << x << " " << J[2] << "\n";
+	}
+	gnuplot_file << "end\nreset\n";
+
+	// resistivity & mpi rank
+	gnuplot_file
+		<< common_cmd
+		<< "\nset output '"
+		<< output_file_name_prefix + "_R.png"
+		<< "'\nset xlabel 'Dimension "
+		<< boost::lexical_cast<std::string>(tube_dim + 1)
+		<< "'\nset xrange ["
+		<< boost::lexical_cast<std::string>(tube_start)
+		<< " : " << boost::lexical_cast<std::string>(tube_end)
+		<< "]\nset ylabel \"Resistivity\" textcolor lt 1\n"
+		   "set y2label \"MPI rank\" textcolor lt 3"
+		   "\nunset key\n"
+		   "set ytics nomirror\n"
+		   "set format x '%.2e'\n"
+		   "set format y '%.2e'\n"
+		   "set format y2 '%.2e'\n"
+		   "set y2tics auto\n"
+		   "plot "
+		     "'-' using 1:2 axes x1y1 with line linewidth 2, "
+		     "'-' u 1:2 axes x1y2 w l lt 3 lw 2\n";
+
+	for (const auto& cell_id: cells) {
+		const double x = geometry.get_center(cell_id)[tube_dim];
+		gnuplot_file << x << " " << simulation_data.at(cell_id)[Resistivity()] << "\n";
+	}
+	gnuplot_file << "end\n";
+
+	for (const auto& cell_id: cells) {
+		const double x = geometry.get_center(cell_id)[tube_dim];
+		gnuplot_file
+			<< x << " " << simulation_data.at(cell_id)[MPI_Rank()] << "\n";
 	}
 	gnuplot_file << "end\nreset\n";
 

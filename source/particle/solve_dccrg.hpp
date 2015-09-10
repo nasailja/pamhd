@@ -73,7 +73,7 @@ private:
 		&data_start, &data_end;
 
 	const std::array<Eigen::Vector3d, 27>
-		&electric_field, &magnetic_field;
+		&current_minus_velocity, &magnetic_field;
 
 
 public:
@@ -85,13 +85,13 @@ public:
 		const double& given_charge_to_mass_ratio,
 		const Eigen::Vector3d& given_data_start,
 		const Eigen::Vector3d& given_data_end,
-		const std::array<Eigen::Vector3d, 27>& given_electric_field,
+		const std::array<Eigen::Vector3d, 27>& given_current_minus_velocity,
 		const std::array<Eigen::Vector3d, 27>& given_magnetic_field
 	) :
 		charge_to_mass_ratio(given_charge_to_mass_ratio),
 		data_start(given_data_start),
 		data_end(given_data_end),
-		electric_field(given_electric_field),
+		current_minus_velocity(given_current_minus_velocity),
 		magnetic_field(given_magnetic_field)
 	{}
 
@@ -101,12 +101,12 @@ public:
 		const double
 	) const {
 		const auto
-			E_at_pos
+			J_m_V_at_pos
 				= interpolate(
 					state[0],
 					this->data_start,
 					this->data_end,
-					this->electric_field
+					this->current_minus_velocity
 				),
 			B_at_pos
 				= interpolate(
@@ -114,7 +114,8 @@ public:
 					this->data_start,
 					this->data_end,
 					this->magnetic_field
-				);
+				),
+			E_at_pos = J_m_V_at_pos.cross(B_at_pos);
 
 		change[0] = state[1];
 		change[1]
@@ -134,7 +135,7 @@ list of their previous cell and added to Particle_Destinations_T
 information.
 */
 template<
-	class Electric_Field_T,
+	class Current_Minus_Velocity_T,
 	class Magnetic_Field_T,
 	class Nr_Particles_External_T,
 	class Particles_Internal_T,
@@ -164,7 +165,7 @@ template<
 		"Only odeint steppers without internal state are supported."
 	);
 
-	constexpr Electric_Field_T Ele{};
+	constexpr Current_Minus_Velocity_T JmV{};
 	constexpr Magnetic_Field_T Mag{};
 	constexpr Nr_Particles_External_T Nr_Ext{};
 	constexpr Particles_Internal_T Part_Int{};
@@ -181,7 +182,7 @@ template<
 	for (const auto& cell_id: cell_ids) {
 
 		// get field data from neighborhood for interpolation
-		std::array<Eigen::Vector3d, 27> electric_fields, magnetic_fields;
+		std::array<Eigen::Vector3d, 27> current_minus_velocities, magnetic_fields;
 
 		const auto* const neighbor_ids = grid.get_neighbors_of(cell_id);
 		if (neighbor_ids == nullptr) {
@@ -203,7 +204,7 @@ template<
 		}
 
 		// put current cell's data into middle
-		electric_fields[14] = (*cell_data)[Ele];
+		current_minus_velocities[14] = (*cell_data)[JmV];
 		magnetic_fields[14] = (*cell_data)[Mag];
 
 		for (size_t i = 0; i < neighbor_ids->size(); i++) {
@@ -212,10 +213,10 @@ template<
 			// use same values in missing neighbors
 			if (neighbor_id == dccrg::error_cell) {
 				if (i <= 13) {
-					electric_fields[i] = electric_fields[14];
+					current_minus_velocities[i] = current_minus_velocities[14];
 					magnetic_fields[i] = magnetic_fields[14];
 				} else {
-					electric_fields[i + 1] = electric_fields[14];
+					current_minus_velocities[i + 1] = current_minus_velocities[14];
 					magnetic_fields[i + 1] = magnetic_fields[14];
 				}
 
@@ -229,10 +230,10 @@ template<
 			}
 
 			if (i <= 13) {
-				electric_fields[i] = (*neighbor_data)[Ele];
+				current_minus_velocities[i] = (*neighbor_data)[JmV];
 				magnetic_fields[i] = (*neighbor_data)[Mag];
 			} else {
-				electric_fields[i + 1] = (*neighbor_data)[Ele];
+				current_minus_velocities[i + 1] = (*neighbor_data)[JmV];
 				magnetic_fields[i + 1] = (*neighbor_data)[Mag];
 			}
 		}
@@ -269,7 +270,8 @@ template<
 					cell_length[0] / 2.0,
 					particle[C2M],
 					particle[Vel],
-					(*cell_data)[Ele],
+					// use cell-centered instead of interpolated fields
+					(*cell_data)[JmV].cross((*cell_data)[Mag]),
 					(*cell_data)[Mag]
 				).second
 			);
@@ -278,7 +280,7 @@ template<
 				particle[C2M],
 				interpolation_start,
 				interpolation_end,
-				electric_fields,
+				current_minus_velocities,
 				magnetic_fields
 			);
 
@@ -363,7 +365,7 @@ template<
 						<< " in cell " << cell_id
 						<< " of length " << cell_length
 						<< " at " << cell_center
-						<< " with E " << (*cell_data)[Ele]
+						<< " with E " << (*cell_data)[JmV].cross((*cell_data)[Mag])
 						<< " and B " << (*cell_data)[Mag]
 						<< " from neighbors ";
 					for (const auto& neighbor_id: *neighbor_ids) {

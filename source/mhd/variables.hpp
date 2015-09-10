@@ -116,6 +116,7 @@ struct MPI_Rank {
 	static const std::string get_option_help() { return {"Owner (MPI process) of cell"}; }
 };
 
+// TODO: separate into own file
 struct Cell_Type {
 	using data_type = int;
 	static const std::string get_name() { return {"cell type"}; }
@@ -134,7 +135,7 @@ struct Value_Boundary_Id {
 	}
 };
 
-struct Source_Of_Copy_Cell {
+struct Copy_Source {
 	using data_type = unsigned long long int;
 	static const std::string get_name() { return {"source of copy cell"}; }
 	static const std::string get_option_name() { return {"source-of-copy-cell"}; }
@@ -162,6 +163,14 @@ struct Electric_Current_Density {
 	static const std::string get_name() { return {"current density"}; }
 	static const std::string get_option_name() { return {"current-density"}; }
 	static const std::string get_option_help() { return {"Density of electric current"}; }
+};
+
+//! Electrical resistivity of plasma (n in E = -VxB + nJ + ...)
+struct Resistivity {
+	using data_type = double;
+	static const std::string get_name() { return {"electrical resistivity"}; }
+	static const std::string get_option_name() { return {"electrical-resistivity"}; }
+	static const std::string get_option_help() { return {"Electrical resistivity"}; }
 };
 
 //! Set of conservative MHD variables
@@ -207,9 +216,10 @@ using Cell = gensimcell::Cell<
 	MHD_State_Conservative,
 	Electric_Current_Density,
 	Cell_Type,
-	Source_Of_Copy_Cell,
+	Copy_Source,
 	Value_Boundary_Id,
 	MPI_Rank,
+	Resistivity,
 	Magnetic_Field_Resistive,
 	Magnetic_Field_Temp,
 	Magnetic_Field_Divergence,
@@ -232,11 +242,11 @@ struct HD2_Flux { using data_type = HD_Conservative; };
 
 // separate variables for fluids and fields in boundary code
 struct Cell_Type_Fluid2 { using data_type = int; };
-struct Cell_Type_Fields { using data_type = int; };
+struct Cell_Type_Field { using data_type = int; };
 struct Copy_Source_Fluid2 { using data_type = unsigned long long int; };
-struct Copy_Source_Fields { using data_type = unsigned long long int; };
-struct Value_Bdy_Id_Fluid2 { using data_type = int; };
-struct Value_Bdy_Id_Fields { using data_type = int; };
+struct Copy_Source_Field { using data_type = unsigned long long int; };
+struct Value_Boundary_Id_Fluid2 { using data_type = int; };
+struct Value_Boundary_Id_Field { using data_type = int; };
 
 
 }} // namespaces

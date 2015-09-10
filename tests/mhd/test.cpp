@@ -71,14 +71,6 @@ int Poisson_Cell::transfer_switch = Poisson_Cell::INIT;
 using Cell = pamhd::mhd::Cell;
 using Grid = dccrg::Dccrg<Cell, dccrg::Cartesian_Geometry>;
 
-//! variable for resistivity value boundary
-struct Resistivity {
-	using data_type = double;
-	static const std::string get_name() { return {"resistivity"}; }
-	static const std::string get_option_name() { return {"resistivity"}; }
-	static const std::string get_option_help() { return {"Resistivity"}; }
-};
-
 // reference to total mass density of all fluids in given cell
 const auto Mas
 	= [](Cell& cell_data)->typename pamhd::mhd::Mass_Density::data_type&{
@@ -106,6 +98,11 @@ const auto Mag_tmp
 const auto Mag_div
 	= [](Cell& cell_data)->typename pamhd::mhd::Magnetic_Field_Divergence::data_type&{
 		return cell_data[pamhd::mhd::Magnetic_Field_Divergence()];
+	};
+// electrical resistivity
+const auto Res
+	= [](Cell& cell_data)->typename pamhd::mhd::Resistivity::data_type&{
+		return cell_data[pamhd::mhd::Resistivity()];
 	};
 // adjustment to magnetic field due to resistivity
 const auto Mag_res
@@ -212,8 +209,8 @@ int main(int argc, char* argv[])
 
 	mup::Value J_val;
 	mup::Variable J_var(&J_val);
-	pamhd::boundaries::Variable_To_Option<Resistivity> resistivity_bdy;
-	resistivity_bdy.add_variable(Resistivity(), "J", J_var);
+	pamhd::boundaries::Variable_To_Option<pamhd::mhd::Resistivity> resistivity_bdy;
+	resistivity_bdy.add_variable(pamhd::mhd::Resistivity(), "J", J_var);
 
 	pamhd::grid::Options grid_options;
 	grid_options.data.set_expression(pamhd::grid::Number_Of_Cells(), "{1, 1, 1}");
@@ -487,7 +484,7 @@ int main(int argc, char* argv[])
 	}
 
 	if (resistivity != "") {
-		resistivity_bdy.set_expression(Resistivity(), resistivity);
+		resistivity_bdy.set_expression(pamhd::mhd::Resistivity(), resistivity);
 	}
 
 	if (option_variables.count("verbose") > 0) {
@@ -614,6 +611,17 @@ int main(int argc, char* argv[])
 
 	grid.balance_load();
 
+	const auto& cell_data_pointers = grid.get_cell_data_pointers();
+
+	// index of first outer cell in dccrg's cell data pointer cache
+	size_t outer_cell_start_i = 0;
+	for (const auto& item: cell_data_pointers) {
+		outer_cell_start_i++;
+		if (get<0>(item) == dccrg::error_cell) {
+			break;
+		}
+	}
+
 
 	/*
 	Simulate
@@ -638,7 +646,7 @@ int main(int argc, char* argv[])
 		initial_condition,
 		grid,
 		cells,
-		0,
+		simulation_time,
 		adiabatic_index,
 		vacuum_permeability,
 		proton_mass,
@@ -646,6 +654,22 @@ int main(int argc, char* argv[])
 		Mas, Mom, Nrj, Mag,
 		Mas_f, Mom_f, Nrj_f, Mag_f
 	);
+	// initialize other variables
+	for (const auto& item: cell_data_pointers) {
+		const auto& cell_id = get<0>(item);
+		if (cell_id == dccrg::error_cell) {
+			continue;
+		}
+
+		const auto& offset = get<2>(item);
+		if (offset[0] != 0 or offset[1] != 0 or offset[2] != 0) {
+			continue;
+		}
+
+		auto* const cell_data = get<1>(item);
+		Res(*cell_data) = 0;
+		(*cell_data)[pamhd::mhd::MPI_Rank()] = rank;
+	}
 	if (verbose and rank == 0) {
 		cout << "Done initializing MHD" << endl;
 	}
@@ -653,7 +677,7 @@ int main(int argc, char* argv[])
 	pamhd::mhd::Boundary_Classifier<pamhd::mhd::Cell_Type> boundary_classifier;
 	boundary_classifier.classify<
 		pamhd::mhd::Value_Boundary_Id,
-		pamhd::mhd::Source_Of_Copy_Cell
+		pamhd::mhd::Copy_Source
 	>(
 		simulation_time,
 		grid,
@@ -702,26 +726,25 @@ int main(int argc, char* argv[])
 				<< " s with time step " << time_step << " s" << endl;
 		}
 
-		Cell::set_transfer_all(
-			true,
-			pamhd::mhd::MHD_State_Conservative(),
-			pamhd::mhd::Cell_Type()
-		);
+		Cell::set_transfer_all(true, pamhd::mhd::MHD_State_Conservative());
 		grid.start_remote_neighbor_copy_updates();
 
-		pamhd::divergence::get_curl(
-			inner_cells,
-			grid,
-			Mag,
-			Cur
-		);
-		for (const auto& cell: inner_cells) {
-			auto* const cell_data = grid[cell];
-			if (cell_data == nullptr) {
-				std::cerr <<  __FILE__ << "(" << __LINE__ << ")" << std::endl;
-				abort();
+		if (resistivity != "") {
+			pamhd::divergence::get_curl(
+				// TODO: consider boundaries
+				inner_cells,
+				grid,
+				Mag,
+				Cur
+			);
+			for (const auto& cell: inner_cells) {
+				auto* const cell_data = grid[cell];
+				if (cell_data == nullptr) {
+					std::cerr <<  __FILE__ << "(" << __LINE__ << ")" << std::endl;
+					abort();
+				}
+				Cur(*cell_data) /= vacuum_permeability;
 			}
-			Cur(*cell_data) /= vacuum_permeability;
 		}
 
 		double solve_max_dt = -1;
@@ -770,27 +793,25 @@ int main(int argc, char* argv[])
 			solve_max_dt
 		);
 
-		pamhd::divergence::get_curl(
-			outer_cells,
-			grid,
-			Mag,
-			Cur
-		);
-		for (const auto& cell: outer_cells) {
-			auto* const cell_data = grid[cell];
-			if (cell_data == nullptr) {
-				std::cerr <<  __FILE__ << "(" << __LINE__ << ")" << std::endl;
-				abort();
+		if (resistivity != "") {
+			pamhd::divergence::get_curl(
+				outer_cells,
+				grid,
+				Mag,
+				Cur
+			);
+			for (const auto& cell: outer_cells) {
+				auto* const cell_data = grid[cell];
+				if (cell_data == nullptr) {
+					std::cerr <<  __FILE__ << "(" << __LINE__ << ")" << std::endl;
+					abort();
+				}
+				Cur(*cell_data) /= vacuum_permeability;
 			}
-			Cur(*cell_data) /= vacuum_permeability;
 		}
 
 		grid.wait_remote_neighbor_copy_update_sends();
-		Cell::set_transfer_all(
-			false,
-			pamhd::mhd::MHD_State_Conservative(),
-			pamhd::mhd::Cell_Type()
-		);
+		Cell::set_transfer_all(false, pamhd::mhd::MHD_State_Conservative());
 
 		// transfer J for calculating additional contributions to B
 		if (resistivity != "") {
@@ -810,14 +831,16 @@ int main(int argc, char* argv[])
 					std::cerr <<  __FILE__ << "(" << __LINE__ << ")" << std::endl;
 					abort();
 				}
+
 				const auto cell_center = grid.geometry.get_center(cell);
 				J_val = Cur(*cell_data).norm();
-				Mag_res(*cell_data)
-					*= -resistivity_bdy.get_data(
-						Resistivity(),
-						cell_center,
-						simulation_time
-					);
+				Res(*cell_data) = resistivity_bdy.get_data(
+					pamhd::mhd::Resistivity(),
+					cell_center,
+					simulation_time
+				);
+
+				Mag_res(*cell_data) *= -Res(*cell_data);
 				Mag_f(*cell_data) += Mag_res(*cell_data);
 			}
 
@@ -835,14 +858,16 @@ int main(int argc, char* argv[])
 					std::cerr <<  __FILE__ << "(" << __LINE__ << ")" << std::endl;
 					abort();
 				}
+
 				const auto cell_center = grid.geometry.get_center(cell);
 				J_val = Cur(*cell_data).norm();
-				Mag_res(*cell_data)
-					*= -resistivity_bdy.get_data(
-						Resistivity(),
-						cell_center,
-						simulation_time
-					);
+				Res(*cell_data) = resistivity_bdy.get_data(
+					pamhd::mhd::Resistivity(),
+					cell_center,
+					simulation_time
+				);
+
+				Mag_res(*cell_data) *= -Res(*cell_data);
 				Mag_f(*cell_data) += Mag_res(*cell_data);
 			}
 
@@ -979,8 +1004,6 @@ int main(int argc, char* argv[])
 		const pamhd::mhd::Pressure P{};
 		const pamhd::mhd::Magnetic_Field B{};
 
-		const auto cell_data_pointers = grid.get_cell_data_pointers();
-
 		// value boundaries
 		for (const auto& cell_item: cell_data_pointers) {
 			const auto& cell_id = get<0>(cell_item);
@@ -1046,9 +1069,8 @@ int main(int argc, char* argv[])
 				continue;
 			}
 
-			const auto& source_id = (*cell_data)[pamhd::mhd::Source_Of_Copy_Cell()];
+			const auto& source_id = (*cell_data)[pamhd::mhd::Copy_Source()];
 			const auto* const source_data = grid[source_id];
-
 			if (source_data == nullptr) {
 				std::cerr <<  __FILE__ << "(" << __LINE__ << "): "
 					<< "No data for source cell " << source_id
@@ -1081,17 +1103,21 @@ int main(int argc, char* argv[])
 			}
 
 			if (
-				not pamhd::mhd::Save::save(
+				not pamhd::mhd::save(
 					boost::filesystem::canonical(
 						boost::filesystem::path(output_directory)
 					).append("mhd_").generic_string(),
 					grid,
+					1,
 					simulation_time,
 					adiabatic_index,
 					proton_mass,
 					vacuum_permeability,
 					pamhd::mhd::MHD_State_Conservative(),
-					pamhd::mhd::Electric_Current_Density()
+					pamhd::mhd::Electric_Current_Density(),
+					pamhd::mhd::Cell_Type(),
+					pamhd::mhd::MPI_Rank(),
+					pamhd::mhd::Resistivity()
 				)
 			) {
 				std::cerr <<  __FILE__ << "(" << __LINE__ << "): "
