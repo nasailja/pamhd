@@ -928,18 +928,15 @@ int main(int argc, char* argv[])
 		("velocity-1d",
 			boost::program_options::value<std::string>(&velocity_plot_1d)
 				->default_value(velocity_plot_1d),
-			"Gnuplot command(s) for plotting each component of velocity in 1d "
-			"(component number and closing \" added automatically)")
+			"Gnuplot command(s) for plotting each component of velocity in 1d")
 		("magnetic-field-1d",
 			boost::program_options::value<std::string>(&magnetic_field_plot_1d)
 				->default_value(magnetic_field_plot_1d),
-			"Gnuplot command(s) for plotting each component of magnetic field in 1d "
-			"(component number and closing \" added automatically)")
+			"Gnuplot command(s) for plotting each component of magnetic field in 1d")
 		("current-density-1d",
 			boost::program_options::value<std::string>(&current_density_plot_1d)
 				->default_value(current_density_plot_1d),
-			"Gnuplot command(s) for plotting each component of current density in 1d "
-			"(component number and closing \" added automatically)")
+			"Gnuplot command(s) for plotting each component of current density in 1d)
 		("common-2d",
 			boost::program_options::value<std::string>(&common_plot_2d)
 				->default_value(common_plot_2d),
