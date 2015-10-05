@@ -936,7 +936,7 @@ int main(int argc, char* argv[])
 		("current-density-1d",
 			boost::program_options::value<std::string>(&current_density_plot_1d)
 				->default_value(current_density_plot_1d),
-			"Gnuplot command(s) for plotting each component of current density in 1d)
+			"Gnuplot command(s) for plotting each component of current density in 1d")
 		("common-2d",
 			boost::program_options::value<std::string>(&common_plot_2d)
 				->default_value(common_plot_2d),
