@@ -693,20 +693,13 @@ int plot_2d(
 		cell_length_x = (xrange_end - xrange_start) / plot_data.cols(),
 		cell_length_y = (yrange_end - yrange_start) / plot_data.rows();
 
-	const std::string
-		gnuplot_file_name(output_file_name + ".gnuplot"),
-		plot_title
-			= output_file_name.substr(
-				output_file_name.size() - std::min(size_t(47), output_file_name.size() - 1),
-				output_file_name.size()
-			);
+	const std::string gnuplot_file_name(output_file_name + ".gnuplot");
 	std::ofstream gnuplot_file(gnuplot_file_name);
 
 	gnuplot_file
 		<< plot_command_prefix
 		<< "\nset output '" << output_file_name
-		<< "'\nset title '..." << plot_title
-		<< "' noenhanced\nset xlabel '" << xlabel
+		<< "'\nset xlabel '" << xlabel
 		<< "'\nset ylabel '" << ylabel
 		<< "'\nset cblabel '" << cblabel
 		<< "'\nset xrange[" << xrange_start
