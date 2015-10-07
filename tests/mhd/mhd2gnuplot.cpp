@@ -301,13 +301,7 @@ int plot_1d(
 		<< boost::lexical_cast<std::string>(tube_start)
 		<< " : " << boost::lexical_cast<std::string>(tube_end)
 		<< "]\n" << density_pressure_cmd
-		<< "\nunset key\n"
-		   "set ytics nomirror\n"
-		   "set format x '%.2e'\n"
-		   "set format y '%.2e'\n"
-		   "set format y2 '%.2e'\n"
-		   "set y2tics auto\n"
-		   "plot "
+		<< "\nplot "
 		     "'-' using 1:2 axes x1y1 with line linewidth 2, "
 		     "'-' u 1:2 axes x1y2 w l lt 3 lw 2\n";
 
@@ -892,7 +886,13 @@ int main(int argc, char* argv[])
 		common_plot_1d("set term png enhanced size 800, 600"),
 		density_pressure_plot_1d(
 			"set ylabel \"Mass density\" textcolor lt 1\n"
-			"set y2label \"Pressure\" textcolor lt 3"
+			"set y2label \"Pressure\" textcolor lt 3\n"
+			"unset key\n"
+			"set ytics nomirror\n"
+			"set format x '%.2e'\n"
+			"set format y '%.2e'\n"
+			"set format y2 '%.2e'\n"
+			"set y2tics auto"
 		),
 		velocity_plot_1d("set ylabel \"Velocity\""),
 		magnetic_field_plot_1d("set ylabel \"Magnetic field\""),
