@@ -106,13 +106,7 @@ int main()
 			random_source
 		);
 
-	Vector3d bulk_velocity(0, 0, 0);
-
-	bulk_velocity
-		= get_bulk_velocity<
-			Mass,
-			Velocity
-		>(particles);
+	Vector3d bulk_velocity = get_bulk_velocity<Mass, Velocity, Species_Mass>(particles);
 
 	if (fabs(bulk_velocity[0] - bulk_velocity_ref[0]) > 0.1) {
 		std::cerr <<  __FILE__ << " (" << __LINE__ << "): "
@@ -199,11 +193,7 @@ int main()
 			random_source
 		);
 
-	bulk_velocity
-		= get_bulk_velocity<
-			Mass,
-			Velocity
-		>(particles);
+	bulk_velocity = get_bulk_velocity<Mass, Velocity, Species_Mass>(particles);
 
 	if (fabs(bulk_velocity[0] - bulk_velocity_ref[0]) > 0.1) {
 		std::cerr <<  __FILE__ << " (" << __LINE__ << "): "

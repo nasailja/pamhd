@@ -287,6 +287,7 @@ variable in each particles' data via operator [].
 template <
 	class Mass_T,
 	class Velocity_T,
+	class Species_Mass_T,
 	class Particle
 > typename Velocity_T::data_type get_bulk_velocity(
 	const std::vector<Particle>& particles
@@ -296,35 +297,33 @@ template <
 		return V;
 	}
 
-	typename Mass_T::data_type total_mass = 0;
-	// in case all particles massless
-	typename Velocity_T::data_type massless{0, 0, 0};
+	double total_species_particles = 0;
+	typename Velocity_T::data_type V_no_mass{0, 0, 0};
 	for (const auto& particle: particles) {
-		const auto& mass = particle[Mass_T()];
 		const auto& velocity = particle[Velocity_T()];
+		V_no_mass[0] += velocity[0];
+		V_no_mass[1] += velocity[1];
+		V_no_mass[2] += velocity[2];
 
-		if (mass != 0) {
-			total_mass += mass;
-			V[0] += mass * velocity[0];
-			V[1] += mass * velocity[1];
-			V[2] += mass * velocity[2];
-		} else {
-			massless[0] += velocity[0];
-			massless[1] += velocity[1];
-			massless[2] += velocity[2];
-		}
+		const auto species_particles
+			= particle[Mass_T()] / particle[Species_Mass_T()];
+		total_species_particles += species_particles;
+
+		V[0] += species_particles * velocity[0];
+		V[1] += species_particles * velocity[1];
+		V[2] += species_particles * velocity[2];
 	}
 
-	if (total_mass != 0) {
-		V[0] /= total_mass;
-		V[1] /= total_mass;
-		V[2] /= total_mass;
+	if (total_species_particles > 0) {
+		V[0] /= total_species_particles;
+		V[1] /= total_species_particles;
+		V[2] /= total_species_particles;
 		return V;
 	} else {
-		massless[0] /= particles.size();
-		massless[1] /= particles.size();
-		massless[2] /= particles.size();
-		return massless;
+		V_no_mass[0] /= particles.size();
+		V_no_mass[1] /= particles.size();
+		V_no_mass[2] /= particles.size();
+		return V_no_mass;
 	}
 }
 
@@ -344,36 +343,34 @@ template <
 		return 0;
 	}
 
-	const auto bulk_velocity = get_bulk_velocity<Mass_T, Velocity_T>(particles);
+	const auto bulk_velocity
+		= get_bulk_velocity<Mass_T, Velocity_T, Species_Mass_T>(particles);
 
-	typename Mass_T::data_type total_mass = 0;
-	double temperature = 0, massless = 0;
+	double
+		species_particles = 0,
+		mass_vel2_sum = 0,
+		// if test particles only
+		massless_vel2_sum = 0;
 	for (const auto& particle: particles) {
-		const auto& mass = particle[Mass_T()];
 		const auto& velocity = particle[Velocity_T()];
-		const auto& species_mass = particle[Species_Mass_T()];
+		const auto vel2
+			= pow(velocity[0] - bulk_velocity[0], 2)
+			+ pow(velocity[1] - bulk_velocity[1], 2)
+			+ pow(velocity[2] - bulk_velocity[2], 2);
 
-		const auto tmp
-			= species_mass
-			* (
-				pow(velocity[0] - bulk_velocity[0], 2)
-				+ pow(velocity[1] - bulk_velocity[1], 2)
-				+ pow(velocity[2] - bulk_velocity[2], 2)
-			);
-		if (mass != 0) {
-			total_mass += mass;
-			temperature += mass * tmp;
-		} else {
-			massless += tmp;
-		}
+		const auto& species_mass = particle[Species_Mass_T()];
+		massless_vel2_sum += species_mass * vel2;
+
+		const auto& mass = particle[Mass_T()];
+		mass_vel2_sum += mass * vel2;
+
+		species_particles += mass / species_mass;
 	}
 
-	if (total_mass != 0) {
-		temperature /= 3 * particle_temp_nrj_ratio * total_mass;
-		return temperature;
+	if (species_particles > 0) {
+		return mass_vel2_sum / (3 * particle_temp_nrj_ratio * species_particles);
 	} else {
-		massless /= 3 * particle_temp_nrj_ratio * particles.size();
-		return massless;
+		return massless_vel2_sum / (3 * particle_temp_nrj_ratio * particles.size());
 	}
 }
 

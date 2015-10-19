@@ -694,7 +694,7 @@ int main(int argc, char* argv[])
 		if (vertical_variable == "N") {
 			get<1>(plot_data[bin_i]) = particles.size();
 		} else if (vertical_variable == "V") {
-			const auto vel = get_bulk_velocity<Mass, Velocity>(particles);
+			const auto vel = get_bulk_velocity<Mass, Velocity, Species_Mass>(particles);
 			get<1>(plot_data[bin_i]) = vel.norm();
 		} else if (vertical_variable == "T") {
 			get<1>(plot_data[bin_i])
