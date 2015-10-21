@@ -116,8 +116,11 @@ if not 'save_mhd_n' in form_data:
 	exit()
 config.write('save-mhd-n = ' + form_data.getfirst('save_mhd_n') + '\n')
 
-if 'resistivity' in form_data:
-	config.write('resistivity = ' + form_data.getfirst('resistivity') + '\n')
+if not 'resistivity' in form_data:
+	print 'resistivity missing from form data:<br>'
+	print_form_data(form_data)
+	exit()
+config.write('resistivity = ' + form_data.getfirst('resistivity') + '\n')
 
 if not 'remove_div_b_n' in form_data:
 	print 'remove_div_b_n missing from form data:<br>'
@@ -128,21 +131,25 @@ config.write('remove-div-B-n = ' + form_data.getfirst('remove_div_b_n') + '\n')
 if not 'adiabatic_index' in form_data:
 	print 'adiabatic_index missing from form data:<br>'
 	print_form_data(form_data)
+	exit()
 config.write('adiabatic-index = ' + form_data.getfirst('adiabatic_index') + '\n')
 
 if not 'vacuum_permeability' in form_data:
 	print 'vacuum_permeability missing from form data:<br>'
 	print_form_data(form_data)
+	exit()
 config.write('vacuum-permeability = ' + form_data.getfirst('vacuum_permeability') + '\n')
 
 if not 'proton_mass' in form_data:
 	print 'proton_mass missing from form data:<br>'
 	print_form_data(form_data)
+	exit()
 config.write('proton-mass = ' + form_data.getfirst('proton_mass') + '\n')
 
 if not 'time_step_factor' in form_data:
 	print 'time_step_factor missing from form data:<br>'
 	print_form_data(form_data)
+	exit()
 config.write('time-step-factor = ' + form_data.getfirst('time_step_factor') + '\n')
 
 

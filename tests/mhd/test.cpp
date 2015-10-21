@@ -243,7 +243,7 @@ int main(int argc, char* argv[])
 		boundary_file_name(""),
 		lb_name("RCB"),
 		output_directory("./"),
-		resistivity("");
+		resistivity("0");
 
 	boost::program_options::options_description
 		options(
@@ -299,10 +299,9 @@ int main(int argc, char* argv[])
 		("resistivity",
 			boost::program_options::value<std::string>(&resistivity)
 				->default_value(resistivity),
-			"Use expression arg as electric resistivity "
-			"(>= 0, not used if empty expression, can reference simulation time "
-			"with t, current cell position with r[0], r[1], r[2] and electric "
-			"current density with J)")
+			"Use expression arg as electric resistivity (>= 0, can reference "
+			"simulation time with t, current cell position with r[0], r[1], "
+			"r[2] and electric current density with J)")
 		("adiabatic-index",
 			boost::program_options::value<double>(&adiabatic_index)
 				->default_value(adiabatic_index),
@@ -483,9 +482,7 @@ int main(int argc, char* argv[])
 		abort();
 	}
 
-	if (resistivity != "") {
-		resistivity_bdy.set_expression(pamhd::mhd::Resistivity(), resistivity);
-	}
+	resistivity_bdy.set_expression(pamhd::mhd::Resistivity(), resistivity);
 
 	if (option_variables.count("verbose") > 0) {
 		verbose = true;
@@ -729,22 +726,20 @@ int main(int argc, char* argv[])
 		Cell::set_transfer_all(true, pamhd::mhd::MHD_State_Conservative());
 		grid.start_remote_neighbor_copy_updates();
 
-		if (resistivity != "") {
-			pamhd::divergence::get_curl(
-				// TODO: consider boundaries
-				inner_cells,
-				grid,
-				Mag,
-				Cur
-			);
-			for (const auto& cell: inner_cells) {
-				auto* const cell_data = grid[cell];
-				if (cell_data == nullptr) {
-					std::cerr <<  __FILE__ << "(" << __LINE__ << ")" << std::endl;
-					abort();
-				}
-				Cur(*cell_data) /= vacuum_permeability;
+		pamhd::divergence::get_curl(
+			// TODO: consider boundaries
+			inner_cells,
+			grid,
+			Mag,
+			Cur
+		);
+		for (const auto& cell: inner_cells) {
+			auto* const cell_data = grid[cell];
+			if (cell_data == nullptr) {
+				std::cerr <<  __FILE__ << "(" << __LINE__ << ")" << std::endl;
+				abort();
 			}
+			Cur(*cell_data) /= vacuum_permeability;
 		}
 
 		double solve_max_dt = -1;
@@ -793,87 +788,85 @@ int main(int argc, char* argv[])
 			solve_max_dt
 		);
 
-		if (resistivity != "") {
-			pamhd::divergence::get_curl(
-				outer_cells,
-				grid,
-				Mag,
-				Cur
-			);
-			for (const auto& cell: outer_cells) {
-				auto* const cell_data = grid[cell];
-				if (cell_data == nullptr) {
-					std::cerr <<  __FILE__ << "(" << __LINE__ << ")" << std::endl;
-					abort();
-				}
-				Cur(*cell_data) /= vacuum_permeability;
+		pamhd::divergence::get_curl(
+			outer_cells,
+			grid,
+			Mag,
+			Cur
+		);
+		for (const auto& cell: outer_cells) {
+			auto* const cell_data = grid[cell];
+			if (cell_data == nullptr) {
+				std::cerr <<  __FILE__ << "(" << __LINE__ << ")" << std::endl;
+				abort();
 			}
+			Cur(*cell_data) /= vacuum_permeability;
 		}
 
 		grid.wait_remote_neighbor_copy_update_sends();
 		Cell::set_transfer_all(false, pamhd::mhd::MHD_State_Conservative());
 
+
 		// transfer J for calculating additional contributions to B
-		if (resistivity != "") {
-			Cell::set_transfer_all(true, pamhd::mhd::Electric_Current_Density());
-			grid.start_remote_neighbor_copy_updates();
+		Cell::set_transfer_all(true, pamhd::mhd::Electric_Current_Density());
+		grid.start_remote_neighbor_copy_updates();
 
-			// add contribution to change of B from resistivity
-			pamhd::divergence::get_curl(
-				inner_cells,
-				grid,
-				Cur,
-				Mag_res
-			);
-			for (const auto& cell: inner_cells) {
-				auto* const cell_data = grid[cell];
-				if (cell_data == nullptr) {
-					std::cerr <<  __FILE__ << "(" << __LINE__ << ")" << std::endl;
-					abort();
-				}
-
-				const auto cell_center = grid.geometry.get_center(cell);
-				J_val = Cur(*cell_data).norm();
-				Res(*cell_data) = resistivity_bdy.get_data(
-					pamhd::mhd::Resistivity(),
-					cell_center,
-					simulation_time
-				);
-
-				Mag_res(*cell_data) *= -Res(*cell_data);
-				Mag_f(*cell_data) += Mag_res(*cell_data);
+		// add contribution to change of B from resistivity
+		pamhd::divergence::get_curl(
+			inner_cells,
+			grid,
+			Cur,
+			Mag_res
+		);
+		for (const auto& cell: inner_cells) {
+			auto* const cell_data = grid[cell];
+			if (cell_data == nullptr) {
+				std::cerr <<  __FILE__ << "(" << __LINE__ << ")" << std::endl;
+				abort();
 			}
 
-			grid.wait_remote_neighbor_copy_update_receives();
-
-			pamhd::divergence::get_curl(
-				outer_cells,
-				grid,
-				Cur,
-				Mag_res
+			const auto cell_center = grid.geometry.get_center(cell);
+			J_val = Cur(*cell_data).norm();
+			Res(*cell_data) = resistivity_bdy.get_data(
+				pamhd::mhd::Resistivity(),
+				cell_center,
+				simulation_time
 			);
-			for (const auto& cell: outer_cells) {
-				auto* const cell_data = grid[cell];
-				if (cell_data == nullptr) {
-					std::cerr <<  __FILE__ << "(" << __LINE__ << ")" << std::endl;
-					abort();
-				}
 
-				const auto cell_center = grid.geometry.get_center(cell);
-				J_val = Cur(*cell_data).norm();
-				Res(*cell_data) = resistivity_bdy.get_data(
-					pamhd::mhd::Resistivity(),
-					cell_center,
-					simulation_time
-				);
-
-				Mag_res(*cell_data) *= -Res(*cell_data);
-				Mag_f(*cell_data) += Mag_res(*cell_data);
-			}
-
-			grid.wait_remote_neighbor_copy_update_sends();
-			Cell::set_transfer_all(false, pamhd::mhd::Electric_Current_Density());
+			Mag_res(*cell_data) *= -Res(*cell_data);
+			Mag_f(*cell_data) += Mag_res(*cell_data);
 		}
+
+		grid.wait_remote_neighbor_copy_update_receives();
+
+		pamhd::divergence::get_curl(
+			outer_cells,
+			grid,
+			Cur,
+			Mag_res
+		);
+		for (const auto& cell: outer_cells) {
+			auto* const cell_data = grid[cell];
+			if (cell_data == nullptr) {
+				std::cerr <<  __FILE__ << "(" << __LINE__ << ")" << std::endl;
+				abort();
+			}
+
+			const auto cell_center = grid.geometry.get_center(cell);
+			J_val = Cur(*cell_data).norm();
+			Res(*cell_data) = resistivity_bdy.get_data(
+				pamhd::mhd::Resistivity(),
+				cell_center,
+				simulation_time
+			);
+
+			Mag_res(*cell_data) *= -Res(*cell_data);
+			Mag_f(*cell_data) += Mag_res(*cell_data);
+		}
+
+		grid.wait_remote_neighbor_copy_update_sends();
+		Cell::set_transfer_all(false, pamhd::mhd::Electric_Current_Density());
+
 
 		pamhd::mhd::apply_fluxes(
 			grid,
