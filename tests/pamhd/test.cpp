@@ -2040,7 +2040,8 @@ int main(int argc, char* argv[])
 				const auto src_bulk_velocity
 					= pamhd::particle::get_bulk_velocity<
 						pamhd::particle::Mass,
-						pamhd::particle::Velocity
+						pamhd::particle::Velocity,
+						pamhd::particle::Species_Mass
 					>(src_particles);
 				const auto src_temperature
 					= pamhd::particle::get_temperature<
