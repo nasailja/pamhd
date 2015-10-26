@@ -52,6 +52,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "gensimcell.hpp"
 #include "prettyprint.hpp"
 
+#include "mhd/variables.hpp"
 #include "particle/save.hpp"
 #include "particle/variables.hpp"
 
@@ -176,7 +177,8 @@ boost::optional<std::array<double, 4>> read_data(
 		Cell::set_transfer_all(
 			true,
 			Electric_Field(),
-			Magnetic_Field()
+			Magnetic_Field(),
+			pamhd::mhd::Electric_Current_Density()
 		);
 		tie(
 			memory_address,
