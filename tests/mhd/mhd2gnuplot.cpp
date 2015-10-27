@@ -752,6 +752,28 @@ int plot_2d(
 		);
 	}
 
+	// MPI rank
+	if (mass_density_cmd != "") {
+		write_gnuplot_cmd_current(
+			"rank",
+			"\n" + mass_density_cmd + "\n",
+			[](const Cell& cell_data){
+				return cell_data[MPI_Rank()];
+			}
+		);
+	}
+
+	// resistivity
+	if (mass_density_cmd != "") {
+		write_gnuplot_cmd_current(
+			"res",
+			"\n" + mass_density_cmd + "\n",
+			[](const Cell& cell_data){
+				return cell_data[Resistivity()];
+			}
+		);
+	}
+
 
 	/*
 	Scale vector lengths
