@@ -1154,6 +1154,7 @@ int main(int argc, char* argv[])
 				/ Bulk_Mass_Getter(*cell_data);
 
 			J_m_V(*cell_data) = Cur(*cell_data) - Mom(*cell_data) / Mas(*cell_data);
+			// calculate electric field for output file
 			Ele(*cell_data) = J_m_V(*cell_data).cross(Mag(*cell_data));
 		}
 
@@ -1174,17 +1175,9 @@ int main(int argc, char* argv[])
 		}
 
 
-		Cell::set_transfer_all(
-			true,
-			pamhd::particle::Current_Minus_Velocity(),
-			pamhd::particle::Electric_Field()
-		);
+		Cell::set_transfer_all(true, pamhd::particle::Current_Minus_Velocity());
 		grid.update_copies_of_remote_neighbors();
-		Cell::set_transfer_all(
-			false,
-			pamhd::particle::Current_Minus_Velocity(),
-			pamhd::particle::Electric_Field()
-		);
+		Cell::set_transfer_all(false, pamhd::particle::Current_Minus_Velocity());
 
 
 		/*
