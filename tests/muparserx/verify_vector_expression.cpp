@@ -1,5 +1,5 @@
 /*
-Verifies that scalar math expression given on stdin is well formed.
+Verifies that vector math expression given on stdin is well formed.
 
 Copyright 2015 Ilja Honkonen
 All rights reserved.
@@ -52,19 +52,33 @@ int main()
 	parser.DefineVar("J", cur);
 	parser.DefineVar("cells", cells);
 	parser.DefineVar("volume", vol);
+	parser.SetExpr("v1 + 1");
 
 	std::string expression;
 	std::cin >> expression;
 	parser.SetExpr(expression);
 
 	try {
-		const double evaluated = parser.Eval().GetFloat();
-		(void)evaluated;
+		const auto evaluated = parser.Eval().GetArray();
+		if (evaluated.GetRows() != 1) {
+			std::cerr <<  __FILE__ << "(" << __LINE__<< ") "
+				<< "Invalid number of rows in expression '" << parser.GetExpr()
+				<< "': " << evaluated.GetRows() << ", should be 1"
+				<< std::endl;
+			return 2;
+		}
+		if (evaluated.GetCols() != 3) {
+			std::cerr <<  __FILE__ << "(" << __LINE__<< ") "
+				<< "Invalid number of columns in expression '" << parser.GetExpr()
+				<< "': " << evaluated.GetCols() << ", should be 3"
+				<< std::endl;
+			return 3;
+		}
 	} catch(mup::ParserError &error) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< ") "
 			<< "Could not evaluate expression '"
 			<< parser.GetExpr() << "': " << error.GetMsg()
-			<< endl;
+			<< std::endl;
 		return 1;
 	}
 
