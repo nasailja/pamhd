@@ -1,7 +1,9 @@
 TESTS_MUPARSERX_EXECUTABLES = \
   tests/muparserx/compile.exe \
   tests/muparserx/test1.exe \
-  tests/muparserx/performance1.exe
+  tests/muparserx/performance1.exe \
+  tests/muparserx/verify_scalar_expression.exe \
+  tests/muparserx/verify_vector_expression.exe
 
 TESTS_MUPARSERX_TESTS = \
   tests/muparserx/test1.tst \
@@ -42,4 +44,10 @@ tests/muparserx/test1.exe: tests/muparserx/test1.cpp
 	$(TEST_MUPARSERX_COMPILE_COMMAND)
 
 tests/muparserx/performance1.exe: tests/muparserx/performance1.cpp
+	$(TEST_MUPARSERX_COMPILE_COMMAND)
+
+tests/muparserx/verify_scalar_expression.exe: tests/muparserx/verify_scalar_expression.cpp
+	$(TEST_MUPARSERX_COMPILE_COMMAND)
+
+tests/muparserx/verify_vector_expression.exe: tests/muparserx/verify_vector_expression.cpp
 	$(TEST_MUPARSERX_COMPILE_COMMAND)
