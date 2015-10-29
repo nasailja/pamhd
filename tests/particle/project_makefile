@@ -8,7 +8,6 @@ TESTS_PARTICLE_EXECUTABLES = \
   tests/particle/calculate_moments.exe \
   tests/particle/velocity.exe \
   tests/particle/temperature.exe \
-  tests/particle/energy_density.exe \
   tests/particle/accumulate.exe \
   tests/particle/solve_1d.exe \
   tests/particle/solve_1d_periodic.exe \
@@ -155,11 +154,6 @@ tests/particle/temperature.exe: \
 
 tests/particle/velocity.exe: \
   tests/particle/velocity.cpp \
-  $(TEST_PARTICLE_COMMON_DEPS)
-	@printf "MPICXX $<\n" && $(MPICXX) $(TEST_PARTICLE_COMMON_COMPILE)
-
-tests/particle/energy_density.exe: \
-  tests/particle/energy_density.cpp \
   $(TEST_PARTICLE_COMMON_DEPS)
 	@printf "MPICXX $<\n" && $(MPICXX) $(TEST_PARTICLE_COMMON_COMPILE)
 
