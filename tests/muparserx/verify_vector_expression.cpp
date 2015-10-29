@@ -52,7 +52,6 @@ int main()
 	parser.DefineVar("J", cur);
 	parser.DefineVar("cells", cells);
 	parser.DefineVar("volume", vol);
-	parser.SetExpr("v1 + 1");
 
 	std::string expression;
 	std::cin >> expression;
