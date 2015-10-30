@@ -54,7 +54,7 @@ int main()
 	parser.DefineVar("volume", vol);
 
 	std::string expression;
-	std::cin >> expression;
+	std::getline(std::cin, expression);
 	parser.SetExpr(expression);
 
 	try {
