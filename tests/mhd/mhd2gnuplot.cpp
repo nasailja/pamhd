@@ -571,7 +571,9 @@ int plot_2d(
 	const std::string& pressure_cmd,
 	const std::string& velocity_cmd,
 	const std::string& magnetic_field_cmd,
-	const std::string& current_density_cmd
+	const std::string& current_density_cmd,
+	const std::string& rank_cmd,
+	const std::string& resistivity_cmd
 ) {
 	const auto& grid_size = geometry.length.get();
 
@@ -753,10 +755,10 @@ int plot_2d(
 	}
 
 	// MPI rank
-	if (mass_density_cmd != "") {
+	if (rank_cmd != "") {
 		write_gnuplot_cmd_current(
 			"rank",
-			"\n" + mass_density_cmd + "\n",
+			"\n" + rank_cmd + "\n",
 			[](const Cell& cell_data){
 				return cell_data[MPI_Rank()];
 			}
@@ -764,10 +766,10 @@ int plot_2d(
 	}
 
 	// resistivity
-	if (mass_density_cmd != "") {
+	if (resistivity_cmd != "") {
 		write_gnuplot_cmd_current(
 			"res",
-			"\n" + mass_density_cmd + "\n",
+			"\n" + resistivity_cmd + "\n",
 			[](const Cell& cell_data){
 				return cell_data[Resistivity()];
 			}
@@ -928,7 +930,9 @@ int main(int argc, char* argv[])
 		pressure_plot_2d("set title \"Pressure\""),
 		velocity_plot_2d("set title \"Velocity"),
 		magnetic_field_plot_2d("set title \"Magnetic field"),
-		current_density_plot_2d("set title \"Current density");
+		current_density_plot_2d("set title \"Current density"),
+		rank_plot_2d("set title \"MPI rank\""),
+		resistivity_plot_2d("set title \"Resistivity\"");
 
 	boost::program_options::options_description
 		options("Usage: program_name [options], where options are");
@@ -985,7 +989,15 @@ int main(int argc, char* argv[])
 			boost::program_options::value<std::string>(&current_density_plot_2d)
 				->default_value(current_density_plot_2d),
 			"Gnuplot command(s) for plotting each component of current density in 2d "
-			"(component number and closing \" added automatically)");
+			"(component number and closing \" added automatically)")
+		("rank-2d",
+			boost::program_options::value<std::string>(&rank_plot_2d)
+				->default_value(rank_plot_2d),
+			"Gnuplot command(s) for plotting MPI rank in 2d")
+		("resistivity-2d",
+			boost::program_options::value<std::string>(&resistivity_plot_2d)
+				->default_value(resistivity_plot_2d),
+			"Gnuplot command(s) for plotting electric resistivity in 2d");
 
 	boost::program_options::positional_options_description positional_options;
 	positional_options.add("input-file", -1);
@@ -1116,7 +1128,9 @@ int main(int argc, char* argv[])
 				pressure_plot_2d,
 				velocity_plot_2d,
 				magnetic_field_plot_2d,
-				current_density_plot_2d
+				current_density_plot_2d,
+				rank_plot_2d,
+				resistivity_plot_2d
 			);
 			break;
 		default:
