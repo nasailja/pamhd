@@ -957,10 +957,18 @@ int main(int argc, char* argv[])
 	boost::program_options::notify(option_variables);
 
 
-
-	if (rank == 0) {
-		boost::filesystem::create_directories(output_directory);
+	if (rank == 0 and output_directory != "") {
+		try {
+			boost::filesystem::create_directories(output_directory);
+		} catch (const boost::filesystem::filesystem_error& e) {
+			std::cerr <<  __FILE__ << "(" << __LINE__ << ") "
+				"Couldn't create output directory " << output_directory << ": "
+				<< e.what()
+				<< std::endl;
+			abort();
+		}
 	}
+
 
 	Grid grid;
 
@@ -1449,9 +1457,9 @@ int main(int argc, char* argv[])
 		}
 
 
-		Cell::set_transfer_all(true, pamhd::particle::Electric_Field());
+		Cell::set_transfer_all(true, pamhd::particle::Current_Minus_Velocity());
 		grid.update_copies_of_remote_neighbors();
-		Cell::set_transfer_all(false, pamhd::particle::Electric_Field());
+		Cell::set_transfer_all(false, pamhd::particle::Current_Minus_Velocity());
 
 
 		/*
@@ -1469,7 +1477,7 @@ int main(int argc, char* argv[])
 		max_dt = min(
 			max_dt,
 			pamhd::particle::solve<
-				pamhd::particle::Electric_Field,
+				pamhd::particle::Current_Minus_Velocity,
 				pamhd::particle::Magnetic_Field,
 				pamhd::particle::Nr_Particles_External,
 				pamhd::particle::Particles_Internal,
@@ -1544,7 +1552,7 @@ int main(int argc, char* argv[])
 		max_dt = min(
 			max_dt,
 			pamhd::particle::solve<
-				pamhd::particle::Electric_Field,
+				pamhd::particle::Current_Minus_Velocity,
 				pamhd::particle::Magnetic_Field,
 				pamhd::particle::Nr_Particles_External,
 				pamhd::particle::Particles_Internal,
@@ -2147,7 +2155,7 @@ int main(int argc, char* argv[])
 					"Couldn't save particle result."
 					<< std::endl;
 				MPI_Finalize();
-				return EXIT_SUCCESS;
+				return EXIT_FAILURE;
 			}
 
 			if (
