@@ -36,6 +36,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 <title>Interactive configuration file creator for MHD test program of PAMHD</title>
 <noscript>WARNING: This page does not work without javascript</noscript>
 <script name="script" type="text/javascript">
+
+<!-- javascript functions start -->
+
 window.onload = function() {
 
 var
@@ -67,7 +70,8 @@ var
 	kelvin_helmholtz_maker = document.getElementById("make_kelvin_helmholtz"),
 	reconnection_maker = document.getElementById("make_reconnection"),
 	orszag_tang_maker = document.getElementById("make_orszag_tang"),
-	bow_shock_maker = document.getElementById("make_bow_shock");
+	bow_shock_maker = document.getElementById("make_bow_shock"),
+	blast_wave_maker = document.getElementById("make_blast_wave");
 
 
 //! returns a text input element with given id and identical name
@@ -497,6 +501,7 @@ clearer.addEventListener("click", function() {
 	document.getElementById("time_start").value = "";
 	document.getElementById("time_length").value = "";
 	document.getElementById("save_mhd_n").value = "";
+	document.getElementById("resistivity").value = "";
 	document.getElementById("remove_div_b_n").value = "";
 	document.getElementById("adiabatic_index").value = "";
 	document.getElementById("vacuum_permeability").value = "";
@@ -538,6 +543,7 @@ shock_tube_maker.addEventListener("click", function() {
 	document.getElementById("time_start").value = "0";
 	document.getElementById("time_length").value = "1";
 	document.getElementById("save_mhd_n").value = "0.1";
+	document.getElementById("resistivity").value = "0";
 	document.getElementById("remove_div_b_n").value = "-1";
 	document.getElementById("adiabatic_index").value = "1.6666667";
 	document.getElementById("vacuum_permeability").value = "1";
@@ -605,6 +611,7 @@ kelvin_helmholtz_maker.addEventListener("click", function() {
 	document.getElementById("time_start").value = "0";
 	document.getElementById("time_length").value = "12";
 	document.getElementById("save_mhd_n").value = "1";
+	document.getElementById("resistivity").value = "0";
 	document.getElementById("remove_div_b_n").value = "0.05";
 	document.getElementById("adiabatic_index").value = "1.4";
 	document.getElementById("vacuum_permeability").value = "1";
@@ -641,6 +648,7 @@ reconnection_maker.addEventListener("click", function() {
 	document.getElementById("time_start").value = "0";
 	document.getElementById("time_length").value = "20";
 	document.getElementById("save_mhd_n").value = "1";
+	document.getElementById("resistivity").value = "0";
 	document.getElementById("remove_div_b_n").value = "0.2";
 	document.getElementById("adiabatic_index").value = "1.666667";
 	document.getElementById("vacuum_permeability").value = "1";
@@ -693,6 +701,7 @@ orszag_tang_maker.addEventListener("click", function() {
 	document.getElementById("time_start").value = "0";
 	document.getElementById("time_length").value = "5";
 	document.getElementById("save_mhd_n").value = "0.5";
+	document.getElementById("resistivity").value = "0";
 	document.getElementById("remove_div_b_n").value = "0.1";
 	document.getElementById("adiabatic_index").value = "1.666667";
 	document.getElementById("vacuum_permeability").value = "1";
@@ -728,6 +737,7 @@ bow_shock_maker.addEventListener("click", function() {
 	document.getElementById("time_start").value = "0";
 	document.getElementById("time_length").value = "10";
 	document.getElementById("save_mhd_n").value = "1";
+	document.getElementById("resistivity").value = "0";
 	document.getElementById("remove_div_b_n").value = "-1";
 	document.getElementById("adiabatic_index").value = "1.666667";
 	document.getElementById("vacuum_permeability").value = "1";
@@ -807,23 +817,78 @@ bow_shock_maker.addEventListener("click", function() {
 	config_text_updater.click();
 });
 
+blast_wave_maker.addEventListener("click", function() {
+	remove_boundaries();
+	document.getElementById("solver_mhd").selectedIndex = "2";
+	document.getElementById("time_start").value = "0";
+	document.getElementById("time_length").value = "0.5";
+	document.getElementById("save_mhd_n").value = "0.05";
+	document.getElementById("resistivity").value = "0";
+	document.getElementById("remove_div_b_n").value = "0.05";
+	document.getElementById("adiabatic_index").value = "1.666667";
+	document.getElementById("vacuum_permeability").value = "1";
+	document.getElementById("proton_mass").value = "1";
+	document.getElementById("time_step_factor").value = "0.5";
+	document.getElementById("output_directory").value = "blast_wave/";
+	document.getElementById("periodic_x").value = "true";
+	document.getElementById("periodic_y").value = "true";
+	document.getElementById("periodic_z").value = "false";
+	document.getElementById("cells_x").value = "100";
+	document.getElementById("cells_y").value = "100";
+	document.getElementById("cells_z").value = "1";
+	document.getElementById("volume_x").value = "1";
+	document.getElementById("volume_y").value = "1";
+	document.getElementById("volume_z").value = "1";
+	document.getElementById("start_x").value = "-0.5";
+	document.getElementById("start_y").value = "-0.5";
+	document.getElementById("start_z").value = "-0.5";
+	document.getElementById("init_default_mass").value = "1";
+	document.getElementById("init_default_pressure").value = "0.1";
+	document.getElementById("init_default_vx").value = "0";
+	document.getElementById("init_default_vy").value = "0";
+	document.getElementById("init_default_vz").value = "0";
+	document.getElementById("init_default_Bx").value = "1/sqrt(2)";
+	document.getElementById("init_default_By").value = "1/sqrt(2)";
+	document.getElementById("init_default_Bz").value = "0";
+	init_sphere_adder.click();
+	document.getElementById("init_sphere_1_centerx").value = "0";
+	document.getElementById("init_sphere_1_centery").value = "0";
+	document.getElementById("init_sphere_1_centerz").value = "0";
+	document.getElementById("init_sphere_1_radius").value = "0.125";
+	document.getElementById("init_sphere_1_mass").value = "1";
+	document.getElementById("init_sphere_1_pressure").value = "10";
+	document.getElementById("init_sphere_1_vx").value = "0";
+	document.getElementById("init_sphere_1_vy").value = "0";
+	document.getElementById("init_sphere_1_vz").value = "0";
+	document.getElementById("init_sphere_1_Bx").value = "1/sqrt(2)";
+	document.getElementById("init_sphere_1_By").value = "1/sqrt(2)";
+	document.getElementById("init_sphere_1_Bz").value = "0";
+	config_text_updater.click();
+});
+
 }
+
+<!-- javascript functions end -->
+
 </script>
 </head>
 
 <body>
+
+<!-- configuration creator start -->
 
 <h1>Configuration file creator for MHD test program of PAMHD</h1>
 
 <h2>Presets</h2>
 <p>
 Use these buttons to automatically fill the forms below to create configuration files for some example simulations.
-The corresponding configuration file will appear at the bottom of the page which you can copy &amp; paste into a local file and give to pamhd/tests/mhd/test.exe via its command line argument --config.<br>
+The corresponding configuration file will appear at the bottom of the page which you can copy &amp; paste into a local file and give to pamhd/tests/mhd/test.exe via its command line argument --config-file.<br>
 <button id="make_shock_tube" type="button">Shock tube</button>
 <button id="make_kelvin_helmholtz" type="button">Kelvin-Helmholtz</button>
 <button id="make_reconnection" type="button">Reconnection</button>
 <button id="make_orszag_tang" type="button">Orszag-Tang</button>
 <button id="make_bow_shock" type="button">Bow shock</button>
+<button id="make_blast_wave" type="button">Blast wave</button>
 </p>
 
 <h2>Configuration interface</h2>
@@ -884,6 +949,8 @@ Expressions for values of MHD variables can refer to the x, y and z coordinates 
 </p>
 
 <button id="clear" type="button">Clear</button>
+
+<!-- form start -->
 
 <form method="get" id="form">
 	<input type="submit" value="Submit run"><br>
@@ -953,5 +1020,8 @@ Expressions for values of MHD variables can refer to the x, y and z coordinates 
 </form>
 <button id="update_config_text" type="button">Update config file contents</button> 
 <samp id="config_text"><br>Push the button above to see contents of current configuration file</samp>
+
+<!-- form end -->
+
 </body>
 </html>
