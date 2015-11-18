@@ -508,9 +508,9 @@ clearer.addEventListener("click", function() {
 	document.getElementById("proton_mass").value = "";
 	document.getElementById("time_step_factor").value = "";
 	document.getElementById("output_directory").value = "";
-	document.getElementById("periodic_x").value = "";
-	document.getElementById("periodic_y").value = "";
-	document.getElementById("periodic_z").value = "";
+	document.getElementById("periodic_x").selectedIndex = "0";
+	document.getElementById("periodic_y").selectedIndex = "0";
+	document.getElementById("periodic_z").selectedIndex = "0";
 	document.getElementById("cells_x").value = "";
 	document.getElementById("cells_y").value = "";
 	document.getElementById("cells_z").value = "";
@@ -550,9 +550,9 @@ shock_tube_maker.addEventListener("click", function() {
 	document.getElementById("proton_mass").value = "1";
 	document.getElementById("time_step_factor").value = "0.5";
 	document.getElementById("output_directory").value = "shock_tube/";
-	document.getElementById("periodic_x").value = "false";
-	document.getElementById("periodic_y").value = "false";
-	document.getElementById("periodic_z").value = "false";
+	document.getElementById("periodic_x").selectedIndex = "0";
+	document.getElementById("periodic_y").selectedIndex = "0";
+	document.getElementById("periodic_z").selectedIndex = "0";
 	document.getElementById("cells_x").value = "100 + 2";
 	document.getElementById("cells_y").value = "1";
 	document.getElementById("cells_z").value = "1";
@@ -618,9 +618,9 @@ kelvin_helmholtz_maker.addEventListener("click", function() {
 	document.getElementById("proton_mass").value = "1";
 	document.getElementById("time_step_factor").value = "0.5";
 	document.getElementById("output_directory").value = "kelvin-helmholtz/";
-	document.getElementById("periodic_x").value = "true";
-	document.getElementById("periodic_y").value = "true";
-	document.getElementById("periodic_z").value = "false";
+	document.getElementById("periodic_x").selectedIndex = "1";
+	document.getElementById("periodic_y").selectedIndex = "1";
+	document.getElementById("periodic_z").selectedIndex = "0";
 	document.getElementById("cells_x").value = "50";
 	document.getElementById("cells_y").value = "50";
 	document.getElementById("cells_z").value = "1";
@@ -655,9 +655,9 @@ reconnection_maker.addEventListener("click", function() {
 	document.getElementById("proton_mass").value = "1";
 	document.getElementById("time_step_factor").value = "0.5";
 	document.getElementById("output_directory").value = "reconnection/";
-	document.getElementById("periodic_x").value = "true";
-	document.getElementById("periodic_y").value = "false";
-	document.getElementById("periodic_z").value = "false";
+	document.getElementById("periodic_x").selectedIndex = "1";
+	document.getElementById("periodic_y").selectedIndex = "0";
+	document.getElementById("periodic_z").selectedIndex = "0";
 	document.getElementById("cells_x").value = "2*51";
 	document.getElementById("cells_y").value = "1";
 	document.getElementById("cells_z").value = "51 + 2";
@@ -708,9 +708,9 @@ orszag_tang_maker.addEventListener("click", function() {
 	document.getElementById("proton_mass").value = "1";
 	document.getElementById("time_step_factor").value = "0.5";
 	document.getElementById("output_directory").value = "orszag-tang/";
-	document.getElementById("periodic_x").value = "true";
-	document.getElementById("periodic_y").value = "true";
-	document.getElementById("periodic_z").value = "false";
+	document.getElementById("periodic_x").selectedIndex = "1";
+	document.getElementById("periodic_y").selectedIndex = "1";
+	document.getElementById("periodic_z").selectedIndex = "0";
 	document.getElementById("cells_x").value = "40";
 	document.getElementById("cells_y").value = "40";
 	document.getElementById("cells_z").value = "1";
@@ -744,9 +744,9 @@ bow_shock_maker.addEventListener("click", function() {
 	document.getElementById("proton_mass").value = "1";
 	document.getElementById("time_step_factor").value = "0.5";
 	document.getElementById("output_directory").value = "bow_shock/";
-	document.getElementById("periodic_x").value = "false";
-	document.getElementById("periodic_y").value = "false";
-	document.getElementById("periodic_z").value = "false";
+	document.getElementById("periodic_x").selectedIndex = "0";
+	document.getElementById("periodic_y").selectedIndex = "0";
+	document.getElementById("periodic_z").selectedIndex = "0";
 	document.getElementById("cells_x").value = "2*30 + 2";
 	document.getElementById("cells_y").value = "3*30 + 2";
 	document.getElementById("cells_z").value = "1";
@@ -830,9 +830,9 @@ blast_wave_maker.addEventListener("click", function() {
 	document.getElementById("proton_mass").value = "1";
 	document.getElementById("time_step_factor").value = "0.5";
 	document.getElementById("output_directory").value = "blast_wave/";
-	document.getElementById("periodic_x").value = "true";
-	document.getElementById("periodic_y").value = "true";
-	document.getElementById("periodic_z").value = "false";
+	document.getElementById("periodic_x").selectedIndex = "1";
+	document.getElementById("periodic_y").selectedIndex = "1";
+	document.getElementById("periodic_z").selectedIndex = "0";
 	document.getElementById("cells_x").value = "100";
 	document.getElementById("cells_y").value = "100";
 	document.getElementById("cells_z").value = "1";
@@ -985,10 +985,19 @@ Expressions for values of MHD variables can refer to the x, y and z coordinates 
 	</fieldset>
 	<fieldset id="grid">
 		<legend>Parameters of simulation grid</legend>
-		Periodicity in x, y and z dimensions (true or false)
-		<input type="text" id="periodic_x" name="periodic_x">
-		<input type="text" id="periodic_y" name="periodic_y">
-		<input type="text" id="periodic_z" name="periodic_z"><br>
+		Periodicity in x, y and z dimensions
+		<select id="periodic_x" name="periodic_x" required>
+			<option value="false">false</option>
+			<option value="true">true</option>
+		</select>
+		<select id="periodic_y" name="periodic_y" required>
+			<option value="false">false</option>
+			<option value="true">true</option>
+		</select>
+		<select id="periodic_z" name="periodic_z" required>
+			<option value="false">false</option>
+			<option value="true">true</option>
+		</select><br>
 		Number of cells in x, y and z dimensions (> 0)
 		<input type="text" id="cells_x" name="cells_x">
 		<input type="text" id="cells_y" name="cells_y">
