@@ -34,7 +34,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 <html>
 <head>
 <title>Interactive configuration file creator for MHD test program of PAMHD</title>
-<noscript>WARNING: This page does not work without javascript</noscript>
+<noscript><p><h1>WARNING: This page does not work without javascript</h1></p></noscript>
 <script name="script" type="text/javascript">
 
 <!-- javascript functions start -->
@@ -868,6 +868,17 @@ blast_wave_maker.addEventListener("click", function() {
 
 }
 
+//! converts parentheses in submitted form to brackets
+function convert_parentheses() {
+	for (i in form.elements) {
+		element = form.elements[i];
+		if (typeof element.value == "string") {
+			element.value = element.value.split("(").join("[").split(")").join("]");
+		}
+	}
+	return true;
+}
+
 <!-- javascript functions end -->
 
 </script>
@@ -952,7 +963,7 @@ Expressions for values of MHD variables can refer to the x, y and z coordinates 
 
 <!-- form start -->
 
-<form method="get" id="form">
+<form method="get" id="form" onsubmit="convert_parentheses()">
 	<input type="submit" value="Submit run"><br>
 	<fieldset id="simulation">
 		<legend>General simulation parameteres</legend>
