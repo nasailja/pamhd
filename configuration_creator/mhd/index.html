@@ -34,12 +34,96 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 <html>
 <head>
 <title>Interactive configuration file creator for MHD test program of PAMHD</title>
-<noscript><p><h1>WARNING: This page does not work without javascript</h1></p></noscript>
+
+<!-- javascript block start -->
+
+<noscript>
+	<p><h1>WARNING: This page does not work without javascript</h1></p>
+</noscript>
+<script src="http://cdnjs.cloudflare.com/ajax/libs/mathjs/2.4.1/math.min.js" type="text/javascript"></script>
+<script>window.math || document.write('<script src="math.min.js">\x3C/script>')</script>
 <script name="script" type="text/javascript">
 
 <!-- javascript functions start -->
 
+// variable sets available in math expressions
+var
+	empty_context = {},
+	time_place_context = {
+		t: 0,
+		r: [0, 0, 0]
+	},
+	time_place_current_context = {
+		t: 0,
+		r: [0, 0, 0],
+		J: 0
+	};
+
+
+//! returns true for number > 0, false otherwise
+function gt_zero(number) {
+	if (isFinite(number)) {
+		if (number > 0) {
+			return true;
+		}
+	}
+	return false;
+}
+
+
+function validate_expression(element_id, validator, context) {
+	expression = document.getElementById(element_id);
+	result = document.getElementById(element_id + "_test");
+
+	// mathjs starts indices from 1
+	adjusted_expression = expression.value
+		.split("[3]").join("[4]")
+		.split("[2]").join("[3]")
+		.split("[1]").join("[2]")
+		.split("[0]").join("[1]");
+
+	try {
+		var evaluated = math.eval(adjusted_expression, context);
+		if (validator(evaluated)) {
+			result.innerHTML = "";
+			result.style.color = "initial";
+			return;
+		} else {
+			result.innerHTML = "Invalid value in expression";
+			result.style.color = "red";
+			return;
+		}
+	} catch(error) {
+		result.innerHTML = "Error in expression";
+		result.style.color = "red";
+		return;
+	}
+}
+
+//! Returns a text input element with given id and identical name.
+//! Uses validator with given context/scope to validate expression typed into returned text element.
+function make_boundary_variable(id_string, validator_str, context_str) {
+//function make_boundary_variable(id_string, validator, context) {
+	var input = document.createElement("input");
+	input.setAttribute("type", "text");
+	input.setAttribute("id", id_string);
+	input.setAttribute("name", id_string);
+	if (typeof validator_str == "string")
+	if (validator_str != "")
+	if (typeof context_str == "string")
+	if (context_str != "") {
+		input.setAttribute("onKeyUp", "validate_expression(this.id," + validator_str + ", " + context_str + ")");
+	}
+	return input;
+}
+
+
 window.onload = function() {
+
+if (typeof math == "undefined") {
+	document.body.innerHTML = "ERROR: Could not load math.js library!";
+	return;
+}
 
 var
 	init_boxes = 0,
@@ -74,15 +158,6 @@ var
 	blast_wave_maker = document.getElementById("make_blast_wave");
 
 
-//! returns a text input element with given id and identical name
-function make_boundary_variable(id_string) {
-	var input = document.createElement("input");
-	input.setAttribute("type", "text");
-	input.setAttribute("id", id_string);
-	input.setAttribute("name", id_string);
-	return input;
-}
-
 //! returns a set of input elements for given boundary
 function make_boundary(shape, id_prefix, boundary_number) {
 	id_string = id_prefix + boundary_number;
@@ -112,37 +187,55 @@ function make_boundary(shape, id_prefix, boundary_number) {
 	}
 	fieldset.appendChild(legend);
 
+	//! errors from expression validation are shown in these
+	function make_span(id_string) {
+		var span = document.createElement("span");
+		span.setAttribute("id", id_string);
+		return span;
+	}
+
 	if (shape == "box") {
 
 		fieldset.appendChild(document.createTextNode("Start coordinate (x, y, z) "));
-		fieldset.appendChild(make_boundary_variable(id_string + "_startx"));
-		fieldset.appendChild(make_boundary_variable(id_string + "_starty"));
-		fieldset.appendChild(make_boundary_variable(id_string + "_startz"));
+		fieldset.appendChild(make_boundary_variable(id_string + "_startx", "isFinite", "empty_context"));
+		fieldset.appendChild(make_boundary_variable(id_string + "_starty", "isFinite", "empty_context"));
+		fieldset.appendChild(make_boundary_variable(id_string + "_startz", "isFinite", "empty_context"));
+		fieldset.appendChild(make_span(id_string + "_startx_test"));
+		fieldset.appendChild(make_span(id_string + "_starty_test"));
+		fieldset.appendChild(make_span(id_string + "_startz_test"));
 		fieldset.appendChild(document.createElement("br"));
 
 		fieldset.appendChild(document.createTextNode("End coordinate (x, y, z) "));
-		fieldset.appendChild(make_boundary_variable(id_string + "_endx"));
-		fieldset.appendChild(make_boundary_variable(id_string + "_endy"));
-		fieldset.appendChild(make_boundary_variable(id_string + "_endz"));
+		fieldset.appendChild(make_boundary_variable(id_string + "_endx", "isFinite", "empty_context"));
+		fieldset.appendChild(make_boundary_variable(id_string + "_endy", "isFinite", "empty_context"));
+		fieldset.appendChild(make_boundary_variable(id_string + "_endz", "isFinite", "empty_context"));
+		fieldset.appendChild(make_span(id_string + "_endx_test"));
+		fieldset.appendChild(make_span(id_string + "_endy_test"));
+		fieldset.appendChild(make_span(id_string + "_endz_test"));
 		fieldset.appendChild(document.createElement("br"));
 
 	} else if (shape == "sphere") {
 
 		fieldset.appendChild(document.createTextNode("Center coordinate (x, y, z) "));
-		fieldset.appendChild(make_boundary_variable(id_string + "_centerx"));
-		fieldset.appendChild(make_boundary_variable(id_string + "_centery"));
-		fieldset.appendChild(make_boundary_variable(id_string + "_centerz"));
+		fieldset.appendChild(make_boundary_variable(id_string + "_centerx", "isFinite", "empty_context"));
+		fieldset.appendChild(make_boundary_variable(id_string + "_centery", "isFinite", "empty_context"));
+		fieldset.appendChild(make_boundary_variable(id_string + "_centerz", "isFinite", "empty_context"));
+		fieldset.appendChild(make_span(id_string + "_centerx_test"));
+		fieldset.appendChild(make_span(id_string + "_centery_test"));
+		fieldset.appendChild(make_span(id_string + "_centerz_test"));
 		fieldset.appendChild(document.createElement("br"));
 
 		fieldset.appendChild(document.createTextNode("Radius "));
-		fieldset.appendChild(make_boundary_variable(id_string + "_radius"));
+		fieldset.appendChild(make_boundary_variable(id_string + "_radius", "gt_zero", "empty_context"));
+		fieldset.appendChild(make_span(id_string + "_radius_test"));
 		fieldset.appendChild(document.createElement("br"));
 	}
 
 	// value boundaries have a time item
 	if (id_string.lastIndexOf("value") == 0) {
 		fieldset.appendChild(document.createTextNode("Time "));
-		fieldset.appendChild(make_boundary_variable(id_string + "_time"));
+		fieldset.appendChild(make_boundary_variable(id_string + "_time", "isFinite", "empty_context"));
+		fieldset.appendChild(make_span(id_string + "_time_test"));
 		fieldset.appendChild(document.createElement("br"));
 	}
 
@@ -150,23 +243,31 @@ function make_boundary(shape, id_prefix, boundary_number) {
 	if (id_string.lastIndexOf("copy") == 0) {
 	} else {
 		fieldset.appendChild(document.createTextNode("Number density "));
-		fieldset.appendChild(make_boundary_variable(id_string + "_mass"));
+		fieldset.appendChild(make_boundary_variable(id_string + "_mass", "gt_zero", "time_place_context"));
+		fieldset.appendChild(make_span(id_string + "_mass_test"));
 		fieldset.appendChild(document.createElement("br"));
 
 		fieldset.appendChild(document.createTextNode("Velocity components (x, y, z) "));
-		fieldset.appendChild(make_boundary_variable(id_string + "_vx"));
-		fieldset.appendChild(make_boundary_variable(id_string + "_vy"));
-		fieldset.appendChild(make_boundary_variable(id_string + "_vz"));
+		fieldset.appendChild(make_boundary_variable(id_string + "_vx", "isFinite", "time_place_context"));
+		fieldset.appendChild(make_boundary_variable(id_string + "_vy", "isFinite", "time_place_context"));
+		fieldset.appendChild(make_boundary_variable(id_string + "_vz", "isFinite", "time_place_context"));
+		fieldset.appendChild(make_span(id_string + "_vx_test"));
+		fieldset.appendChild(make_span(id_string + "_vy_test"));
+		fieldset.appendChild(make_span(id_string + "_vz_test"));
 		fieldset.appendChild(document.createElement("br"));
 
 		fieldset.appendChild(document.createTextNode("Thermal pressure "));
-		fieldset.appendChild(make_boundary_variable(id_string + "_pressure"));
+		fieldset.appendChild(make_boundary_variable(id_string + "_pressure", "gt_zero", "time_place_context"));
+		fieldset.appendChild(make_span(id_string + "_pressure_test"));
 		fieldset.appendChild(document.createElement("br"));
 
 		fieldset.appendChild(document.createTextNode("Magnetic field components (x, y, z) "));
-		fieldset.appendChild(make_boundary_variable(id_string + "_Bx"));
-		fieldset.appendChild(make_boundary_variable(id_string + "_By"));
-		fieldset.appendChild(make_boundary_variable(id_string + "_Bz"));
+		fieldset.appendChild(make_boundary_variable(id_string + "_Bx", "isFinite", "time_place_context"));
+		fieldset.appendChild(make_boundary_variable(id_string + "_By", "isFinite", "time_place_context"));
+		fieldset.appendChild(make_boundary_variable(id_string + "_Bz", "isFinite", "time_place_context"));
+		fieldset.appendChild(make_span(id_string + "_Bx_test"));
+		fieldset.appendChild(make_span(id_string + "_By_test"));
+		fieldset.appendChild(make_span(id_string + "_Bz_test"));
 		fieldset.appendChild(document.createElement("br"));
 	}
 
@@ -497,7 +598,7 @@ function remove_boundaries() {
 
 clearer.addEventListener("click", function() {
 	remove_boundaries();
-	document.getElementById("solver_mhd").selectedIndex = "0";
+	document.getElementById("solver_mhd").selectedIndex = "2";
 	document.getElementById("time_start").value = "";
 	document.getElementById("time_length").value = "";
 	document.getElementById("save_mhd_n").value = "";
@@ -882,6 +983,9 @@ function convert_parentheses() {
 <!-- javascript functions end -->
 
 </script>
+
+<!-- javascript block end -->
+
 </head>
 
 <body>
@@ -967,36 +1071,104 @@ Expressions for values of MHD variables can refer to the x, y and z coordinates 
 	<input type="submit" value="Submit run"><br>
 	<fieldset id="simulation">
 		<legend>General simulation parameteres</legend>
+
 		Solver to use
 		<select id="solver_mhd" name="solver_mhd" required>
 			<option value="hll_athena">hll_athena</option>
 			<option value="hlld_athena">hlld_athena</option>
 			<option value="roe_athena" selected>roe_athena</option>
 		</select><br>
+
 		Start time of simulation
-		<input type="text" id="time_start" name="time_start"><br>
+		<input
+			type="text"
+			id="time_start"
+			name="time_start"
+			onKeyUp="validate_expression(this.id, isFinite, empty_context)"
+		>
+			<span id="time_start_test"></span>
+		<br>
+
 		Duration of simulation (> 0)
-		<input type="text" id="time_length" name="time_length"><br>
+		<input
+			type="text"
+			id="time_length"
+			name="time_length"
+			onKeyUp="validate_expression(this.id, gt_zero, empty_context)"
+		>
+			<span id="time_length_test"></span>
+		<br>
+
 		Time interval for saving simulation results (< 0 skips saving)
-		<input type="text" id="save_mhd_n" name="save_mhd_n"><br>
+		<input
+			type="text"
+			id="save_mhd_n"
+			name="save_mhd_n"
+			onKeyUp="validate_expression(this.id, isFinite, empty_context)"
+		>
+			<span id="save_mhd_n_test"></span>
+		<br>
+
 		Expression for electric resistivity (can also refer to magnitude of electric current density as J)
-		<input type="text" id="resistivity" name="resistivity"><br>
+		<input
+			type="text"
+			id="resistivity"
+			name="resistivity"
+			onKeyUp="validate_expression(this.id, isFinite, time_place_current_context)"><span id="resistivity_test"></span>
+		<br>
+
 		Time interval for removing divergence of magnetic field (< 0 skips removal)
-		<input type="text" id="remove_div_b_n" name="remove_div_b_n"><br>
-		Value of adiabatic index (> 0)
-		<input type="text" id="adiabatic_index" name="adiabatic_index"><br>
+		<input
+			type="text"
+			id="remove_div_b_n"
+			name="remove_div_b_n"
+			onKeyUp="validate_expression(this.id, isFinite, empty_context)"><span id="remove_div_b_n_test"></span>
+		<br>
+
+		Value of adiabatic index (> 1)
+		<input
+			type="text"
+			id="adiabatic_index"
+			name="adiabatic_index"
+			onKeyUp="validate_expression(this.id, gt_zero, empty_context)"><span id="adiabatic_index_test"></span>
+		<br>
+
 		Value of vacuum permeability (> 0)
-		<input type="text" id="vacuum_permeability" name="vacuum_permeability"><br>
+		<input
+			type="text"
+			id="vacuum_permeability"
+			name="vacuum_permeability"
+			onKeyUp="validate_expression(this.id, gt_zero, empty_context)"><span id="vacuum_permeability_test"></span>
+		<br>
+
 		Value of proton mass (> 0)
-		<input type="text" id="proton_mass" name="proton_mass"><br>
+		<input
+			type="text"
+			id="proton_mass"
+			name="proton_mass"
+			onKeyUp="validate_expression(this.id, gt_zero, empty_context)"><span id="proton_mass_test"></span>
+		<br>
+
 		Fraction of maximum allowed time step to use (> 0, < 1)
-		<input type="text" id="time_step_factor" name="time_step_factor"><br>
+		<input
+			type="text"
+			id="time_step_factor"
+			name="time_step_factor"
+			onKeyUp="validate_expression(this.id, gt_zero, empty_context)"><span id="time_step_factor_test"></span>
+		<br>
+
 		Output directory for results relative to current directory
-		<input type="text" id="output_directory" name="output_directory"><br>
+		<input
+			type="text"
+			id="output_directory"
+			name="output_directory">
+		<br>
 	</fieldset>
+
 	<fieldset id="grid">
 		<legend>Parameters of simulation grid</legend>
 		Periodicity in x, y and z dimensions
+
 		<select id="periodic_x" name="periodic_x" required>
 			<option value="false">false</option>
 			<option value="true">true</option>
@@ -1008,34 +1180,152 @@ Expressions for values of MHD variables can refer to the x, y and z coordinates 
 		<select id="periodic_z" name="periodic_z" required>
 			<option value="false">false</option>
 			<option value="true">true</option>
-		</select><br>
+		</select>
+		<br>
+
 		Number of cells in x, y and z dimensions (> 0)
-		<input type="text" id="cells_x" name="cells_x">
-		<input type="text" id="cells_y" name="cells_y">
-		<input type="text" id="cells_z" name="cells_z"><br>
+		<input
+			type="text"
+			id="cells_x"
+			name="cells_x"
+			onKeyUp="validate_expression(this.id, gt_zero, empty_context)"
+		>
+			<span id="cells_x_test"></span>
+		<input
+			type="text"
+			id="cells_y"
+			name="cells_y"
+			onKeyUp="validate_expression(this.id, gt_zero, empty_context)"
+		>
+			<span id="cells_y_test"></span>
+		<input
+			type="text"
+			id="cells_z"
+			name="cells_z"
+			onKeyUp="validate_expression(this.id, gt_zero, empty_context)"
+		>
+			<span id="cells_z_test"></span>
+		<br>
+
 		Volume in x, y and z dimensions (> 0)
-		<input type="text" id="volume_x" name="volume_x">
-		<input type="text" id="volume_y" name="volume_y">
-		<input type="text" id="volume_z" name="volume_z"><br>
+		<input
+			type="text"
+			id="volume_x"
+			name="volume_x"
+			onKeyUp="validate_expression(this.id, gt_zero, empty_context)"
+		>
+			<span id="volume_x_test"></span>
+		<input
+			type="text"
+			id="volume_y"
+			name="volume_y"
+			onKeyUp="validate_expression(this.id, gt_zero, empty_context)"
+		>
+			<span id="volume_y_test"></span>
+		<input
+			type="text"
+			id="volume_z"
+			name="volume_z"
+			onKeyUp="validate_expression(this.id, gt_zero, empty_context)"
+		>
+			<span id="volume_z_test"></span>
+		<br>
+
 		Starting coordinate in x, y and z dimensions
-		<input type="text" id="start_x" name="start_x">
-		<input type="text" id="start_y" name="start_y">
-		<input type="text" id="start_z" name="start_z"><br>
+		<input
+			type="text"
+			id="start_x"
+			name="start_x"
+			onKeyUp="validate_expression(this.id, isFinite, empty_context)"
+		>
+			<span id="start_x_test"></span>
+		<input
+			type="text"
+			id="start_y"
+			name="start_y"
+			onKeyUp="validate_expression(this.id, isFinite, empty_context)"
+		>
+			<span id="start_y_test"></span>
+		<input
+			type="text"
+			id="start_z"
+			name="start_z"
+			onKeyUp="validate_expression(this.id, isFinite, empty_context)"
+		>
+			<span id="start_z_test"></span>
+		<br>
 	</fieldset>
+
 	<fieldset id="default_initial_condition">
 		<legend>Default initial condition of the simulation</legend>
+
 		Number density (> 0)
-		<input type="text" id="init_default_mass" name="init_default_mass"><br>
+		<input
+			type="text"
+			id="init_default_mass"
+			name="init_default_mass"
+			onKeyUp="validate_expression(this.id, gt_zero, time_place_context)"
+		>
+			<span id="init_default_mass_test"></span>
+		<br>
+
 		Thermal pressure (> 0)
-		<input type="text" id="init_default_pressure" name="init_default_pressure"><br>
+		<input
+			type="text"
+			id="init_default_pressure"
+			name="init_default_pressure"
+			onKeyUp="validate_expression(this.id, gt_zero, time_place_context)"
+		>
+			<span id="init_default_pressure_test"></span>
+		<br>
+
 		Velocity components (x, y, z)
-		<input type="text" id="init_default_vx" name="init_default_vx">
-		<input type="text" id="init_default_vy" name="init_default_vy">
-		<input type="text" id="init_default_vz" name="init_default_vz"><br>
+		<input
+			type="text"
+			id="init_default_vx"
+			name="init_default_vx"
+			onKeyUp="validate_expression(this.id, isFinite, time_place_context)"
+		>
+			<span id="init_default_vx_test"></span>
+		<input
+			type="text"
+			id="init_default_vy"
+			name="init_default_vy"
+			onKeyUp="validate_expression(this.id, isFinite, time_place_context)"
+		>
+			<span id="init_default_vy_test"></span>
+		<input
+			type="text"
+			id="init_default_vz"
+			name="init_default_vz"
+			onKeyUp="validate_expression(this.id, isFinite, time_place_context)"
+		>
+			<span id="init_default_vz_test"></span>
+		<br>
+
 		Magnetic field components (x, y, z)
-		<input type="text" id="init_default_Bx" name="init_default_Bx">
-		<input type="text" id="init_default_By" name="init_default_By">
-		<input type="text" id="init_default_Bz" name="init_default_Bz"><br>
+		<input
+			type="text"
+			id="init_default_Bx"
+			name="init_default_Bx"
+			onKeyUp="validate_expression(this.id, isFinite, time_place_context)"
+		>
+			<span id="init_default_Bx_test"></span>
+		<input
+			type="text"
+			id="init_default_By"
+			name="init_default_By"
+			onKeyUp="validate_expression(this.id, isFinite, time_place_context)"
+		>
+			<span id="init_default_By_test"></span>
+		<input
+			type="text"
+			id="init_default_Bz"
+			name="init_default_Bz"
+			onKeyUp="validate_expression(this.id, isFinite, time_place_context)"
+		>
+			<span id="init_default_Bz_test"></span>
+		<br>
 	</fieldset>
 </form>
 <button id="update_config_text" type="button">Update config file contents</button> 
