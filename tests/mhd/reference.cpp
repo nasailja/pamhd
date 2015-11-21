@@ -289,7 +289,7 @@ template <
 			&neighbor = grid[cell_i + 1];
 
 		double max_vel = -1;
-		pamhd::mhd::MHD_Conservative state_neg, state_pos, flux_neg, flux_pos;
+		pamhd::mhd::MHD_Conservative state_neg, state_pos, flux;
 		state_neg[mas] = Mas(cell);
 		state_neg[mom] = Mom(cell);
 		state_neg[nrj] = Nrj(cell);
@@ -300,8 +300,7 @@ template <
 		state_pos[mag] = Mag(neighbor);
 
 		std::tie(
-			flux_neg,
-			flux_pos,
+			flux,
 			max_vel
 		) = solver(
 			state_neg,
@@ -316,16 +315,16 @@ template <
 
 		if (cell_i > 0) {
 			// positive flux flows neg->pos, i.e. out of current cell
-			Mas_f(cell) -= flux_neg[mas] + flux_pos[mas];
-			Mom_f(cell) -= flux_neg[mom] + flux_pos[mom];
-			Nrj_f(cell) -= flux_neg[nrj] + flux_pos[nrj];
-			Mag_f(cell) -= flux_neg[mag] + flux_pos[mag];
+			Mas_f(cell) -= flux[mas];
+			Mom_f(cell) -= flux[mom];
+			Nrj_f(cell) -= flux[nrj];
+			Mag_f(cell) -= flux[mag];
 		}
 		if (cell_i < std::tuple_size<Grid>::value - 2) {
-			Mas_f(neighbor) += flux_neg[mas] + flux_pos[mas];
-			Mom_f(neighbor) += flux_neg[mom] + flux_pos[mom];
-			Nrj_f(neighbor) += flux_neg[nrj] + flux_pos[nrj];
-			Mag_f(neighbor) += flux_neg[mag] + flux_pos[mag];
+			Mas_f(neighbor) += flux[mas];
+			Mom_f(neighbor) += flux[mom];
+			Nrj_f(neighbor) += flux[nrj];
+			Mag_f(neighbor) += flux[mag];
 		}
 	}
 

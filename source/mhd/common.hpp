@@ -497,7 +497,6 @@ template <
 > using solver_t = std::function<
 	std::tuple<
 		MHD,
-		MHD,
 		double
 	>(
 		const MHD& /* state_neg */,

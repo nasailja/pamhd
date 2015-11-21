@@ -42,7 +42,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "boost/optional.hpp"
 #include "dccrg.hpp"
 
-#include "mhd/N_solve.hpp"
 #include "mhd/variables.hpp"
 
 

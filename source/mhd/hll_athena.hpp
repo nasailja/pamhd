@@ -53,7 +53,7 @@ template <
 	class Momentum_Density_T,
 	class Total_Energy_Density_T,
 	class Magnetic_Field_T
-> std::tuple<MHD, MHD, double> get_flux_hll(
+> std::tuple<MHD, double> get_flux_hll(
 	const MHD& state_neg,
 	const MHD& state_pos,
 	const double& area,
@@ -185,7 +185,7 @@ template <
 		flux[Mag][1] =
 		flux[Mag][2] = 0;
 
-		return std::make_tuple(flux, flux, 0);
+		return std::make_tuple(flux, 0);
 	}
 
 
@@ -253,10 +253,13 @@ template <
 	flux_pos[Mag][0] =
 	flux_neg[Mag][0] = 0;
 
-	flux_neg *= bp / (bp - bm) * area * dt;
-	flux_pos *= bm / (bm - bp) * area * dt;
+	MHD flux
+		= (flux_neg + flux_pos) / 2
+		+ (flux_neg - flux_pos) * (bp + bm) / (bp - bm) / 2.0;
 
-	return std::make_tuple(flux_neg, flux_pos, std::max(std::fabs(bp), std::fabs(bm)));
+	flux *= area * dt;
+
+	return std::make_tuple(flux, std::max(std::fabs(bp), std::fabs(bm)));
 }
 
 

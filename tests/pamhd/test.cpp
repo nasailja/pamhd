@@ -1509,14 +1509,14 @@ int main(int argc, char* argv[])
 		std::tie(
 			solve_max_dt,
 			solve_index
-		) = pamhd::mhd::N_solve(
+		) = pamhd::mhd::solve(
 			mhd_solver,
 			0,
 			grid,
 			time_step,
 			adiabatic_index,
 			vacuum_permeability,
-			Mas1, Mas, Mom, Nrj, Mag,
+			Mas, Mom, Nrj, Mag,
 			Mas1_f, Mom1_f, Nrj1_f, Mag_f,
 			Cell_t,
 			bdy_classifier_field.normal_cell,
@@ -1530,14 +1530,14 @@ int main(int argc, char* argv[])
 		std::tie(
 			solve_max_dt,
 			solve_index
-		) = pamhd::mhd::N_solve(
+		) = pamhd::mhd::solve(
 			mhd_solver,
 			0,
 			grid,
 			time_step,
 			adiabatic_index,
 			vacuum_permeability,
-			Mas2, Mas, Mom, Nrj, Mag,
+			Mas, Mom, Nrj, Mag,
 			Mas2_f, Mom2_f, Nrj2_f, Mag_f,
 			Cell_t,
 			bdy_classifier_field.normal_cell,
@@ -1572,14 +1572,14 @@ int main(int argc, char* argv[])
 		std::tie(
 			solve_max_dt,
 			std::ignore
-		) = pamhd::mhd::N_solve(
+		) = pamhd::mhd::solve(
 			mhd_solver,
 			solve_index + 1,
 			grid,
 			time_step,
 			adiabatic_index,
 			vacuum_permeability,
-			Mas1, Mas, Mom, Nrj, Mag,
+			Mas, Mom, Nrj, Mag,
 			Mas1_f, Mom1_f, Nrj1_f, Mag_f,
 			Cell_t,
 			bdy_classifier_field.normal_cell,
@@ -1592,14 +1592,14 @@ int main(int argc, char* argv[])
 		std::tie(
 			solve_max_dt,
 			solve_index
-		) = pamhd::mhd::N_solve(
+		) = pamhd::mhd::solve(
 			mhd_solver,
 			solve_index + 1,
 			grid,
 			time_step,
 			adiabatic_index,
 			vacuum_permeability,
-			Mas2, Mas, Mom, Nrj, Mag,
+			Mas, Mom, Nrj, Mag,
 			Mas2_f, Mom2_f, Nrj2_f, Mag_f,
 			Cell_t,
 			bdy_classifier_field.normal_cell,

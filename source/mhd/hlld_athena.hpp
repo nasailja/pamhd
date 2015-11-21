@@ -59,14 +59,14 @@ template <
 	class Momentum_Density_T,
 	class Total_Energy_Density_T,
 	class Magnetic_Field_T
-> std::tuple<MHD, MHD, double> get_flux_hlld(
+> std::tuple<MHD, double> get_flux_hlld(
 	const MHD& state_neg,
 	const MHD& state_pos,
 	const double& area,
 	const double& dt,
 	const double& adiabatic_index,
 	const double& vacuum_permeability
-) throw(std::domain_error) {
+) {
 	// shorthand notation for accessing required variables
 	const Mass_Density_T Mas{};
 	const Momentum_Density_T Mom{};
@@ -242,19 +242,10 @@ template <
 			);
 
 	// return upwind flux if flow is supermagnetosonic
-	MHD empty;
-	empty[Mas]    =
-	empty[Mom][0] =
-	empty[Mom][1] =
-	empty[Mom][2] =
-	empty[Nrj]    =
-	empty[Mag][0] =
-	empty[Mag][1] =
-	empty[Mag][2] = 0;
 	if (max_signal_neg >= 0.0) {
-		return std::make_tuple(flux_neg * area * dt, empty, std::fabs(max_signal_pos));
+		return std::make_tuple(flux_neg * area * dt, std::fabs(max_signal_pos));
 	} else if (max_signal_pos <= 0.0) {
-		return std::make_tuple(empty, flux_pos * area * dt, std::fabs(max_signal_neg));
+		return std::make_tuple(flux_pos * area * dt, std::fabs(max_signal_neg));
 	}
 
 	const auto
@@ -467,14 +458,14 @@ template <
 				* inv_permeability_sqrt;
 	}
 
-	MHD final_flux_neg = empty, final_flux_pos = empty;
+	MHD flux;
 	if (signal_s_neg >= 0) {
 
-		final_flux_neg = flux_neg + (state_s_neg - state_neg) * max_signal_neg;
+		flux = flux_neg + (state_s_neg - state_neg) * max_signal_neg;
 
 	} else if (signal_middle >= 0) {
 
-		final_flux_neg
+		flux
 			= flux_neg
 			+ state_s2_neg * signal_s_neg
 			- state_s_neg * (signal_s_neg - max_signal_neg)
@@ -482,7 +473,7 @@ template <
 
 	} else if (signal_s_pos > 0) {
 
-		final_flux_pos
+		flux
 			= flux_pos
 			+ state_s2_pos * signal_s_pos
 			- state_s_pos * (signal_s_pos - max_signal_pos)
@@ -490,18 +481,15 @@ template <
 
 	} else {
 
-		final_flux_pos = flux_pos + (state_s_pos - state_pos) * max_signal_pos;
+		flux = flux_pos + (state_s_pos - state_pos) * max_signal_pos;
 
 	}
-	final_flux_neg[Mag][0] =
-	final_flux_pos[Mag][0] = 0;
+	flux[Mag][0] = 0;
 
-	final_flux_neg *= area * dt;
-	final_flux_pos *= area * dt;
+	flux *= area * dt;
 
 	return std::make_tuple(
-		final_flux_neg,
-		final_flux_pos,
+		flux,
 		std::max(
 			std::fabs(max_signal_neg),
 			std::fabs(max_signal_pos)

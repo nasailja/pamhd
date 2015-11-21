@@ -333,7 +333,7 @@ struct Prim1DS{
  *   - Ul,Ur = L/R-states of CONSERVED variables at cell interface
  *   Returns flux contribution from negative and positive state respectively
  */
-std::pair<Cons1DS, Cons1DS> athena_roe_fluxes(
+Cons1DS athena_roe_fluxes(
 	const Cons1DS& Ul,
 	const Cons1DS& Ur,
 	const Prim1DS& Wl,
@@ -413,15 +413,7 @@ std::pair<Cons1DS, Cons1DS> athena_roe_fluxes(
  * Compute L/R fluxes 
  */
 
-  Cons1DS Fl,Fr,empty;
-
-  empty.d  =
-  empty.Mx =
-  empty.My =
-  empty.Mz =
-  empty.E  =
-  empty.By =
-  empty.Bz = 0;
+  Cons1DS Fl,Fr;
 
   Fl.d  = Ul.Mx;
   Fr.d  = Ur.Mx;
@@ -464,11 +456,11 @@ std::pair<Cons1DS, Cons1DS> athena_roe_fluxes(
  */
 
   if(ev[0] >= 0.0) {
-    return std::make_pair(Fl, empty);
+    return Fl;
   }
 
   if(ev[NWAVE-1] <= 0.0) {
-    return std::make_pair(empty, Fr);
+    return Fr;
   }
 
 /*--- Step 6. ------------------------------------------------------------------
@@ -539,43 +531,26 @@ std::pair<Cons1DS, Cons1DS> athena_roe_fluxes(
     coeff[m] = 0.5 * a[m] * std::max(std::fabs(ev[m]), etah);
   }
 
-  Cons1DS final_flux_neg, final_flux_pos;
+  Cons1DS flux;
+  flux.d = 0.5 * (Fl.d + Fr.d);
+  flux.Mx = 0.5 * (Fl.Mx + Fr.Mx);
+  flux.My = 0.5 * (Fl.My + Fr.My);
+  flux.Mz = 0.5 * (Fl.Mz + Fr.Mz);
+  flux.E = 0.5 * (Fl.E + Fr.E);
+  flux.By = 0.5 * (Fl.By + Fr.By);
+  flux.Bz = 0.5 * (Fl.Bz + Fr.Bz);
 
-  final_flux_neg.d = 0.5 * Fl.d;
-  final_flux_neg.Mx = 0.5 * Fl.Mx;
-  final_flux_neg.My = 0.5 * Fl.My;
-  final_flux_neg.Mz = 0.5 * Fl.Mz;
-  final_flux_neg.E = 0.5 * Fl.E;
-  final_flux_neg.By = 0.5 * Fl.By;
-  final_flux_neg.Bz = 0.5 * Fl.Bz;
-
-  final_flux_pos.d = 0.5 * Fr.d;
-  final_flux_pos.Mx = 0.5 * Fr.Mx;
-  final_flux_pos.My = 0.5 * Fr.My;
-  final_flux_pos.Mz = 0.5 * Fr.Mz;
-  final_flux_pos.E = 0.5 * Fr.E;
-  final_flux_pos.By = 0.5 * Fr.By;
-  final_flux_pos.Bz = 0.5 * Fr.Bz;
-
-  for (int m=0; m<NWAVE; m++) {
-    final_flux_neg.d -= 0.5 * coeff[m] * rem[0][m];
-    final_flux_neg.Mx -= 0.5 * coeff[m] * rem[1][m];
-    final_flux_neg.My -= 0.5 * coeff[m] * rem[2][m];
-    final_flux_neg.Mz -= 0.5 * coeff[m] * rem[3][m];
-    final_flux_neg.E -= 0.5 * coeff[m] * rem[4][m];
-    final_flux_neg.By -= 0.5 * coeff[m] * rem[5][m];
-    final_flux_neg.Bz -= 0.5 * coeff[m] * rem[6][m];
-
-    final_flux_pos.d -= 0.5 * coeff[m] * rem[0][m];
-    final_flux_pos.Mx -= 0.5 * coeff[m] * rem[1][m];
-    final_flux_pos.My -= 0.5 * coeff[m] * rem[2][m];
-    final_flux_pos.Mz -= 0.5 * coeff[m] * rem[3][m];
-    final_flux_pos.E -= 0.5 * coeff[m] * rem[4][m];
-    final_flux_pos.By -= 0.5 * coeff[m] * rem[5][m];
-    final_flux_pos.Bz -= 0.5 * coeff[m] * rem[6][m];
+  for (size_t m = 0; m < NWAVE; m++) {
+    flux.d -= coeff[m] * rem[0][m];
+    flux.Mx -= coeff[m] * rem[1][m];
+    flux.My -= coeff[m] * rem[2][m];
+    flux.Mz -= coeff[m] * rem[3][m];
+    flux.E -= coeff[m] * rem[4][m];
+    flux.By -= coeff[m] * rem[5][m];
+    flux.Bz -= coeff[m] * rem[6][m];
   }
 
-  return std::make_pair(final_flux_neg, final_flux_pos);
+  return flux;
 }
 
 
@@ -588,7 +563,7 @@ template <
 	class Momentum_Density_T,
 	class Total_Energy_Density_T,
 	class Magnetic_Field_T
-> std::tuple<MHD, MHD, double> get_flux_roe(
+> std::tuple<MHD, double> get_flux_roe(
 	const MHD& state_neg,
 	const MHD& state_pos,
 	const double& area,
@@ -759,7 +734,7 @@ template <
 			prim_pos_temp[Mag][2] / std::sqrt(vacuum_permeability)
 		};
 
-	const auto fluxes_temp
+	const auto flux_temp
 		= athena_roe_fluxes(
 			Ul,
 			Ur,
@@ -769,26 +744,17 @@ template <
 			adiabatic_index
 		);
 
-	MHD flux_neg, flux_pos;
-	flux_neg[Mas] = fluxes_temp.first.d;
-	flux_neg[Mom][0] = fluxes_temp.first.Mx;
-	flux_neg[Mom][1] = fluxes_temp.first.My;
-	flux_neg[Mom][2] = fluxes_temp.first.Mz;
-	flux_neg[Nrj] = fluxes_temp.first.E;
-	flux_neg[Mag][0] = 0;
-	flux_neg[Mag][1] = fluxes_temp.first.By * std::sqrt(vacuum_permeability);
-	flux_neg[Mag][2] = fluxes_temp.first.Bz * std::sqrt(vacuum_permeability);
-	flux_pos[Mas] = fluxes_temp.second.d;
-	flux_pos[Mom][0] = fluxes_temp.second.Mx;
-	flux_pos[Mom][1] = fluxes_temp.second.My;
-	flux_pos[Mom][2] = fluxes_temp.second.Mz;
-	flux_pos[Nrj] = fluxes_temp.second.E;
-	flux_pos[Mag][0] = 0;
-	flux_pos[Mag][1] = fluxes_temp.second.By * std::sqrt(vacuum_permeability);
-	flux_pos[Mag][2] = fluxes_temp.second.Bz * std::sqrt(vacuum_permeability);
+	MHD flux;
+	flux[Mas] = flux_temp.d;
+	flux[Mom][0] = flux_temp.Mx;
+	flux[Mom][1] = flux_temp.My;
+	flux[Mom][2] = flux_temp.Mz;
+	flux[Nrj] = flux_temp.E;
+	flux[Mag][0] = 0;
+	flux[Mag][1] = flux_temp.By * std::sqrt(vacuum_permeability);
+	flux[Mag][2] = flux_temp.Bz * std::sqrt(vacuum_permeability);
 
-	flux_neg *= area * dt;
-	flux_pos *= area * dt;
+	flux *= area * dt;
 
 	// get maximum signal speed
 	const auto
@@ -847,7 +813,7 @@ template <
 			);
 	}
 
-	return std::make_tuple(flux_neg, flux_pos, ret_signal_speed);
+	return std::make_tuple(flux, ret_signal_speed);
 }
 
 }}} // namespaces
