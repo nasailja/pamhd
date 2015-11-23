@@ -52,6 +52,8 @@ Journal of Computational Physics, 208, 315-344, 2005.
 \param [state_pos] MHD state in positive x direction from the face
 \param [area] Area of the face shared by volumes of state_neg and state_pos
 \param [dt] Length of time for which flux is calculated
+\param [adiabatic_index] en.wikipedia.org/wiki/Heat_capacity_ratio
+\param [vacuum_permeability] en.wikipedia.org/wiki/Vacuum_permeability
 */
 template <
 	class MHD,

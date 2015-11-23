@@ -234,22 +234,22 @@ template <
 			if (neighbor_dir > 0) {
 				state_neg[mas_int] = Mas(*cell_data);
 				state_neg[mom_int] = get_rotated_vector(Mom(*cell_data), abs(neighbor_dir));
-				state_neg[Total_Energy_Density()] = Nrj(*cell_data);
+				state_neg[nrj_int] = Nrj(*cell_data);
 				state_neg[mag_int] = get_rotated_vector(Mag(*cell_data), abs(neighbor_dir));
 
 				state_pos[mas_int] = Mas(*neighbor_data);
 				state_pos[mom_int] = get_rotated_vector(Mom(*neighbor_data), abs(neighbor_dir));
-				state_pos[Total_Energy_Density()] = Nrj(*neighbor_data);
+				state_pos[nrj_int] = Nrj(*neighbor_data);
 				state_pos[mag_int] = get_rotated_vector(Mag(*neighbor_data), abs(neighbor_dir));
 			} else {
 				state_pos[mas_int] = Mas(*cell_data);
 				state_pos[mom_int] = get_rotated_vector(Mom(*cell_data), abs(neighbor_dir));
-				state_pos[Total_Energy_Density()] = Nrj(*cell_data);
+				state_pos[nrj_int] = Nrj(*cell_data);
 				state_pos[mag_int] = get_rotated_vector(Mag(*cell_data), abs(neighbor_dir));
 
 				state_neg[mas_int] = Mas(*neighbor_data);
 				state_neg[mom_int] = get_rotated_vector(Mom(*neighbor_data), abs(neighbor_dir));
-				state_neg[Total_Energy_Density()] = Nrj(*neighbor_data);
+				state_neg[nrj_int] = Nrj(*neighbor_data);
 				state_neg[mag_int] = get_rotated_vector(Mag(*neighbor_data), abs(neighbor_dir));
 			}
 

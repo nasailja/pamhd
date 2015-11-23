@@ -632,6 +632,8 @@ template<
 
 
 /*!
+Converts bulk particle data to conservative MHD form.
+
 Skips a cell if it doesn't have particles and no_particles_allowed == true.
 */
 template<
@@ -642,7 +644,6 @@ template<
 	class Particle_Bulk_Momentum_Getter,
 	class Particle_Bulk_Relative_Velocity2_Getter,
 	class Particle_List_Getter,
-	class Total_Mass_Getter,
 	class MHD_Mass_Getter,
 	class MHD_Momentum_Getter,
 	class MHD_Energy_Getter,
@@ -658,7 +659,6 @@ template<
 	Particle_Bulk_Momentum_Getter Particle_Bulk_Momentum,
 	Particle_Bulk_Relative_Velocity2_Getter Particle_Bulk_Relative_Velocity2,
 	Particle_List_Getter Particle_List,
-	Total_Mass_Getter Total_Mass,
 	MHD_Mass_Getter MHD_Mass,
 	MHD_Momentum_Getter MHD_Momentum,
 	MHD_Energy_Getter MHD_Energy,
@@ -689,13 +689,12 @@ template<
 				= Number_Of_Particles(*cell_data)
 				* Particle_Bulk_Relative_Velocity2(*cell_data)
 				/ Particle_Bulk_Mass(*cell_data)
-				/ 3 / volume,
-			mass_frac = MHD_Mass(*cell_data) / Total_Mass(*cell_data);
+				/ 3 / volume;
 
 		MHD_Energy(*cell_data)
 			= pressure / (adiabatic_index - 1)
 			+ MHD_Momentum(*cell_data).squaredNorm() / MHD_Mass(*cell_data) / 2
-			+ mass_frac * MHD_Magnetic_Field(*cell_data).squaredNorm() / vacuum_permeability / 2;
+			+ MHD_Magnetic_Field(*cell_data).squaredNorm() / vacuum_permeability / 2;
 	}
 }
 

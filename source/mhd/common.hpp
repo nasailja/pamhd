@@ -510,6 +510,28 @@ template <
 
 
 /*!
+Particle-assisted version of solver_t
+*/
+template <
+	class MHD
+> using solver_N_t = std::function<
+	std::tuple<
+		MHD,
+		double
+	>(
+		const MHD&,
+		const MHD&,
+		const double&,
+		const double&,
+		const double&,
+		const double&,
+		const double& /* nrj_correction_neg */,
+		const double& /* nrj_correction_pos */
+	)
+>;
+
+
+/*!
 Positive flux adds to given cell multiplied with given factor.
 
 Throws std::domain_error if new state has non-positive

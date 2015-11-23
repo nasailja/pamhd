@@ -1080,7 +1080,7 @@ int main(int argc, char* argv[])
 			Bulk_Momentum_Getter,
 			Bulk_Relative_Velocity2_Getter,
 			Particle_List_Getter,
-			Mas, Mas, Mom, Nrj, Mag
+			Mas, Mom, Nrj, Mag
 		);
 
 		// inner: J for E = (J - V) x B
@@ -1557,8 +1557,6 @@ int main(int argc, char* argv[])
 					);
 				next_particle_id += nr_particles * grid.get_comm_size();
 
-				//estimate of total mass density
-				//Mas(*cell_data) = Mas(*cell_data) + mass_density;
 				pamhd::particle::fill_mhd_fluid_values(
 					{cell_id},
 					grid,
@@ -1570,7 +1568,7 @@ int main(int argc, char* argv[])
 					Bulk_Momentum_Getter,
 					Bulk_Relative_Velocity2_Getter,
 					Particle_List_Getter,
-					Mas, Mas, Mom, Nrj, Mag
+					Mas, Mom, Nrj, Mag
 				);
 			}
 		}
@@ -1702,7 +1700,7 @@ int main(int argc, char* argv[])
 					Bulk_Momentum_Getter,
 					Bulk_Relative_Velocity2_Getter,
 					Particle_List_Getter,
-					Mas, Mas, Mom, Nrj, Mag
+					Mas, Mom, Nrj, Mag
 				);
 			}
 		}
