@@ -1,0 +1,37 @@
+output-directory = results/two-stream/1d/x/
+time-start = 0
+time-length = 20
+time-step-factor = 0.5
+load-balancer = RCB
+save-particle-n = 1
+remove-div-B-n = -1
+solver-mhd = hll_athena
+vacuum-permeability = 1
+adiabatic-index = 1.6666667
+boltzmann = 1
+nr-initial-populations = 2
+
+[grid]
+periodic = {true, true, true}
+nr-cells = {10, 1, 1}
+volume = {1000, 1, 1}
+start = {0, 0, 0}
+
+[initial-field]
+default.magnetic-field = {1, 0, 0}
+
+[initial-particles]
+population1.default.bulk-number-density = 0.5
+population1.default.bulk-temperature = 0.5
+population1.default.bulk-velocity = {3, 0, 0}
+population1.default.nr-particles-in-cell = 10
+population1.default.charge-mass-ratio = 1
+population1.default.species-mass = 1
+population1.default.replace-particles = 1
+population2.default.bulk-number-density = 0.5
+population2.default.bulk-temperature = 0.5
+population2.default.bulk-velocity = {-3, 0, 0}
+population2.default.nr-particles-in-cell = 10
+population2.default.charge-mass-ratio = 1
+population2.default.species-mass = 1
+population2.default.replace-particles = 0
