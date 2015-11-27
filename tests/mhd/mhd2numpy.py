@@ -41,7 +41,7 @@ for key in mhd_data:
 	print(key)
 
 Example printing the magnetic field in cell 3 in the first given file:
-python -i mhd2numpy.py particle_0.000e+00_s.dc
+python -i mhd2numpy.py mhd_0.000e+00_s.dc
 print(mhd_data[3][0][3])
 
 Example plotting y component of magnetic field from all cells in
