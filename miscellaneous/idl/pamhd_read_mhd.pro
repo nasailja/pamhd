@@ -266,7 +266,8 @@ function pamhd_read_mhd, filename, variable_names = variable_names, variable_des
 		data_field[18, i] = double(cell_data2[1])
 		data_field[19, i] = double(cell_data2[0])
 
-		; add derived data
+		; add derived data, defined by get_center() function in
+		; dccrg_cartesian_geometry.hpp file of dccrg
 		cell_id = cell_id - 1
 		cell_x_index = cell_id mod grid_size_x
 		cell_y_index = cell_id / grid_size_x mod grid_size_y

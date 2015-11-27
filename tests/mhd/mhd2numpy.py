@@ -1,6 +1,6 @@
 #! /usr/bin/env python3
 '''
-Function for reading output of PAMHD particle test program.
+Function for reading output of PAMHD MHD test program.
 
 Copyright 2015 Ilja Honkonen
 All rights reserved.
@@ -31,23 +31,30 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
-If called as the main program creates empty dictionaries bulk_data
-and particle_data and fills them by calling load() on each file
-given as an argument to this program.
+If called as the main program creates an empty dictionary mhd_data
+and fills it by calling load() on each file given as an argument to
+this program.
 
-Example printing the id of every particle in one file:
-python -i particle2numpy.py particle_0.000e+00_s.dc
-for key in particle_data:
+Example printing the id of every cell in one file:
+python -i mhd2numpy.py mhd_0.000e+00_s.dc
+for key in mhd_data:
 	print(key)
 
-Example printing the electric field in cell 3 in the first given file:
-python -i particle2numpy.py particle_0.000e+00_s.dc
-print(bulk_data[3][0][0])
+Example printing the magnetic field in cell 3 in the first given file:
+python -i mhd2numpy.py particle_0.000e+00_s.dc
+print(mhd_data[3][0][3])
 
-Example printing the velocity of particle with id == 4 from the last given
-file in which the particle existed:
-python -i particle2numpy.py particle_0.000e+00_s.dc
-print(particle_data[4][-1][1])
+Example plotting y component of magnetic field from all cells in
+first given file as a function of cells' x coordinate (looks best
+with 1-dimensional simulation):
+python -i mhd2numpy.py mhd_0.000e+00_s.dc
+x = []
+By = []
+[x.append(mhd_data[cell_id][0][0][0]) for cell_id in mhd_data]
+[By.append(mhd_data[cell_id][0][5][1]) for cell_id in mhd_data]
+import matplotlib.pyplot as plot
+plot.plot(x, By)
+plot.show()
 '''
 
 import os
@@ -59,28 +66,34 @@ except:
 
 
 '''
-Returns bulk and particle data of PAMHD particle programs.
+Returns data of PAMHD MHD test program output.
 
-If bulk_data or particle_data are None will skip reading
-the corresponding data otherwise bulk_data and particle_data
-must be dictionaries to which already existing data is
-appended from given file. If both are None will do nothing
-and return None
+Does nothing and returns None if mhd_data is None.
 
 Returns the following in a numpy array:
 simulation time,
 adiabatic index,
-vacuum permeability,
-ratio of particle temperature to energy (Boltzmann constant).
+proton_mass,
+vacuum permeability.
 
-bulk_data will have cell ids as keys and each value will be
-a list of tuples of numpy arrays of electric and magnetic field.
-particle_data will have particle ids as keys and each value
-will be a list of tuples of numpy arrays of particle position
-and velocity.
+mhd_data will have cell ids as keys and each value is a list of
+tuples of following items:
+coordinate of cell's center,
+cell's length,
+mass density,
+momentum density,
+total energy density,
+magnetic field,
+electric current density,
+cell type,
+mpi rank,
+electric resistivity.
+
+Every call appends only one tuple to each key, i.e. if called
+on an empty dictionary every list will have only one tuple.
 '''
-def load(file_name, bulk_data, particle_data):
-	if bulk_data == None and particle_data == None:
+def load(file_name, mhd_data):
+	if mhd_data == None:
 		return None
 
 	if not os.path.isfile(file_name):
@@ -88,8 +101,11 @@ def load(file_name, bulk_data, particle_data):
 
 	infile = open(file_name, 'rb')
 
-	# read simulation header, given by source/particle/save.hpp
-	header = numpy.fromfile(infile, dtype = '4double', count = 1)
+	# read simulation header, given by source/mhd/save.hpp
+	file_version = numpy.fromfile(infile, dtype = 'uint64', count = 1)
+	if file_version > 1:
+		print('Warning file version is newer than expected...')
+	sim_params = numpy.fromfile(infile, dtype = '4double', count = 1)
 
 	# from this point onward format is given by dccrg's save_grid_data()
 	# check file endiannes
@@ -138,50 +154,58 @@ def load(file_name, bulk_data, particle_data):
 	#print(cell_ids_data_offsets)
 
 	# until this point format decided by dccrg
+	# from this point onward format decided by save() call of tests/mhd/test.cpp
+
 	# read particle data
 	for item in cell_ids_data_offsets:
 		cell_id = item[0]
 
-		if bulk_data == None:
-			infile.seek(item[1] + 7 * 8, 0)
-		else:
-			infile.seek(item[1], 0)
-			# given by source/particle/save.hpp
-			temp_bulk_data = numpy.fromfile(
-				infile,
-				dtype = '3float, 3double, uint64',
-				count = 1
-			)[0]
-			if cell_id in bulk_data:
-				bulk_data[cell_id].append((temp_bulk_data[0], temp_bulk_data[1]))
-			else:
-				bulk_data[cell_id] = [(temp_bulk_data[0], temp_bulk_data[1])]
-
-		# given by Particle_Internal in source/particle/variables.hpp
-		if particle_data == None:
-			continue
-
-		temp_particle_data = numpy.fromfile(
+		infile.seek(item[1], 0)
+		temp = numpy.fromfile(
 			infile,
-			dtype = '3double, 3double, double, double, double, uint64',
-			count = temp_bulk_data[2]
+			dtype = 'double, 3double, double, 3double, 3double, intc, intc, double',
+			count = 1
+		)[0]
+
+		# calculate cell geometry, defined by get_center() function in 
+		# dccrg_cartesian_geometry.hpp file of dccrg
+		cell_id -= 1
+		cell_index = (
+			int(cell_id % ref_lvl_0_cells[0]),
+			int(cell_id / ref_lvl_0_cells[0] % ref_lvl_0_cells[1]),
+			int(cell_id / (ref_lvl_0_cells[0] * ref_lvl_0_cells[1]))
 		)
-		for particle in temp_particle_data:
-			position, velocity, mass, species_mass, charge_mass_ratio, particle_id \
-				= particle[0], particle[1], particle[2], particle[3], particle[4], particle[5]
 
-			if particle_id in particle_data:
-				particle_data[particle_id].append((position, velocity))
-			else:
-				particle_data[particle_id] = [(position, velocity)]
+		cell_center = (
+			grid_start[0] + lvl_0_cell_length[0] * (0.5 + cell_index[0]),
+			grid_start[1] + lvl_0_cell_length[1] * (0.5 + cell_index[1]),
+			grid_start[2] + lvl_0_cell_length[2] * (0.5 + cell_index[2])
+		)
+		cell_id += 1
 
-	return header
+		data = (
+			cell_center,
+			lvl_0_cell_length,
+			temp[0],
+			temp[1],
+			temp[2],
+			temp[3],
+			temp[4],
+			temp[5],
+			temp[6],
+			temp[7]
+		)
+		if cell_id in mhd_data:
+			mhd_data[cell_id].append(data)
+		else:
+			mhd_data[cell_id] = [data]
+
+	return sim_params
 
 
 if __name__ == '__main__':
 	import sys
 
-	bulk_data = dict()
-	particle_data = dict()
+	mhd_data = dict()
 	for arg in sys.argv[1:]:
-		load(arg, bulk_data, particle_data)
+		load(arg, mhd_data)
