@@ -160,13 +160,6 @@ def load(file_name, mhd_data):
 	for item in cell_ids_data_offsets:
 		cell_id = item[0]
 
-		infile.seek(item[1], 0)
-		temp = numpy.fromfile(
-			infile,
-			dtype = 'double, 3double, double, 3double, 3double, intc, intc, double',
-			count = 1
-		)[0]
-
 		# calculate cell geometry, defined by get_center() function in 
 		# dccrg_cartesian_geometry.hpp file of dccrg
 		cell_id -= 1
@@ -182,6 +175,13 @@ def load(file_name, mhd_data):
 			grid_start[2] + lvl_0_cell_length[2] * (0.5 + cell_index[2])
 		)
 		cell_id += 1
+
+		infile.seek(item[1], 0)
+		temp = numpy.fromfile(
+			infile,
+			dtype = 'double, 3double, double, 3double, 3double, intc, intc, double',
+			count = 1
+		)[0]
 
 		data = (
 			cell_center,
