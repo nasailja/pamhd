@@ -222,7 +222,7 @@ int main(int argc, char* argv[])
 	Program options
 	*/
 
-	bool verbose = false, save_fluxes = false;
+	bool verbose = false;
 	size_t
 		poisson_iterations_max = 1000,
 		poisson_iterations_min = 0;
@@ -367,10 +367,6 @@ int main(int argc, char* argv[])
 		verbose = true;
 	}
 
-	if (option_variables.count("save-mhd-fluxes") > 0) {
-		save_fluxes = true;
-	}
-
 	if (config_file_name != "") {
 		try {
 			boost::program_options::store(
@@ -486,10 +482,6 @@ int main(int argc, char* argv[])
 
 	if (option_variables.count("verbose") > 0) {
 		verbose = true;
-	}
-
-	if (option_variables.count("save-mhd-fluxes") > 0) {
-		save_fluxes = true;
 	}
 
 	const auto mhd_solver
@@ -608,6 +600,7 @@ int main(int argc, char* argv[])
 
 	grid.balance_load();
 
+	// pointer to data of every local cell and its neighbor(s)
 	const auto& cell_data_pointers = grid.get_cell_data_pointers();
 
 	// index of first outer cell in dccrg's cell data pointer cache
@@ -833,6 +826,7 @@ int main(int argc, char* argv[])
 				simulation_time
 			);
 
+			//TODO keep pressure/temperature constant despite electric resistivity
 			Mag_res(*cell_data) *= -Res(*cell_data);
 			Mag_f(*cell_data) += Mag_res(*cell_data);
 		}
