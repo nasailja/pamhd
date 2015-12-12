@@ -371,6 +371,21 @@ template <
 }
 
 
+template<
+	class Momentum,
+	class Mass
+> Momentum get_velocity(
+	Momentum& mom,
+	Mass& mas
+) {
+	if (mas > 0) {
+		return mom / mas;
+	} else {
+		return {0, 0, 0};
+	}
+}
+
+
 /*!
 Throws std::domain_error if given a state with non-positive mass density.
 */
@@ -410,7 +425,7 @@ template <
 	Primitive ret_val;
 
 	Mas_p(ret_val) = Mas_c(data);
-	Vel(ret_val) = Mom(data) / Mas_c(data);
+	Vel(ret_val) = get_velocity(Mom(data), Mas_c(data));
 	Pre(ret_val)
 		= get_pressure(
 			Mas_c(data),
@@ -510,28 +525,6 @@ template <
 
 
 /*!
-Particle-assisted version of solver_t
-*/
-template <
-	class MHD
-> using solver_N_t = std::function<
-	std::tuple<
-		MHD,
-		double
-	>(
-		const MHD&,
-		const MHD&,
-		const double&,
-		const double&,
-		const double&,
-		const double&,
-		const double& /* nrj_correction_neg */,
-		const double& /* nrj_correction_pos */
-	)
->;
-
-
-/*!
 Positive flux adds to given cell multiplied with given factor.
 
 Throws std::domain_error if new state has non-positive
@@ -559,17 +552,12 @@ template <
 	const Mass_Density_Flux_Getter Mas_f,
 	const Momentum_Density_Flux_Getter Mom_f,
 	const Total_Energy_Density_Flux_Getter Nrj_f,
-	const Magnetic_Field_Flux_Getter Mag_f,
-	const bool check_new_state = true
+	const Magnetic_Field_Flux_Getter Mag_f
 ) {
 	Mas(data) += Mas_f(data) * factor;
 	Mom(data) += Mom_f(data) * factor;
 	Nrj(data) += Nrj_f(data) * factor;
 	Mag(data) += Mag_f(data) * factor;
-
-	if (not check_new_state) {
-		return;
-	}
 
 	if (Mas(data) <= 0) {
 		throw std::domain_error(
@@ -593,6 +581,39 @@ template <
 			+ boost::lexical_cast<std::string>(pressure)
 		);
 	}
+}
+
+template <
+	class Container,
+	class Mass_Density_Getters,
+	class Momentum_Density_Getters,
+	class Total_Energy_Density_Getters,
+	class Magnetic_Field_Getter,
+	class Mass_Density_Flux_Getters,
+	class Momentum_Density_Flux_Getters,
+	class Total_Energy_Density_Flux_Getters,
+	class Magnetic_Field_Flux_Getter
+> void apply_fluxes_N(
+	Container& data,
+	const double factor,
+	const Mass_Density_Getters Mas,
+	const Momentum_Density_Getters Mom,
+	const Total_Energy_Density_Getters Nrj,
+	const Magnetic_Field_Getter Mag,
+	const Mass_Density_Flux_Getters Mas_f,
+	const Momentum_Density_Flux_Getters Mom_f,
+	const Total_Energy_Density_Flux_Getters Nrj_f,
+	const Magnetic_Field_Flux_Getter Mag_f
+) {
+	Mag(data) += Mag_f(data) * factor;
+
+	Mas.first(data) += Mas_f.first(data) * factor;
+	Mom.first(data) += Mom_f.first(data) * factor;
+	Nrj.first(data) += Nrj_f.first(data) * factor;
+
+	Mas.second(data) += Mas_f.second(data) * factor;
+	Mom.second(data) += Mom_f.second(data) * factor;
+	Nrj.second(data) += Nrj_f.second(data) * factor;
 }
 
 
