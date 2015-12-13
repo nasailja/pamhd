@@ -97,6 +97,21 @@ template <
 }
 
 
+template<
+	class Momentum,
+	class Mass
+> Momentum get_velocity(
+	Momentum& mom,
+	Mass& mas
+) {
+	if (mas > 0) {
+		return mom / mas;
+	} else {
+		return {0, 0, 0};
+	}
+}
+
+
 /*!
 Returns flux from given state into positive x direction.
 
@@ -109,7 +124,7 @@ template <
 	class Total_Energy_Density_Getter,
 	class Magnetic_Field_Getter
 > Container get_flux(
-	Container data,
+	Container& data,
 	const double adiabatic_index,
 	const double vacuum_permeability,
 	const Mass_Density_Getter Mas,
@@ -145,14 +160,14 @@ template <
 				vacuum_permeability
 			);
 
-	const auto velocity = Mom(data) / Mas(data);
+	const auto velocity = get_velocity(Mom(data), Mas(data));
 
 	Container flux;
 
 	Mas(flux) = Mom(data)[0];
 
 	Mom(flux)
-		= Mas(data) * velocity[0] * velocity
+		= Mom(data) * velocity[0]
 		- Mag(data)[0] * Mag(data) * inv_permeability;
 	Mom(flux)[0] += pressure_thermal + pressure_magnetic;
 
@@ -371,21 +386,6 @@ template <
 }
 
 
-template<
-	class Momentum,
-	class Mass
-> Momentum get_velocity(
-	Momentum& mom,
-	Mass& mas
-) {
-	if (mas > 0) {
-		return mom / mas;
-	} else {
-		return {0, 0, 0};
-	}
-}
-
-
 /*!
 Throws std::domain_error if given a state with non-positive mass density.
 */
@@ -514,8 +514,8 @@ template <
 		MHD,
 		double
 	>(
-		const MHD& /* state_neg */,
-		const MHD& /* state_pos */,
+		MHD& /* state_neg */,
+		MHD& /* state_pos */,
 		const double& /* shared_area */,
 		const double& /* dt */,
 		const double& /* adiabatic_index */,

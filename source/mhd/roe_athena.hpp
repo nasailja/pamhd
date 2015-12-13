@@ -564,8 +564,8 @@ template <
 	class Total_Energy_Density_T,
 	class Magnetic_Field_T
 > std::tuple<MHD, double> get_flux_roe(
-	const MHD& state_neg,
-	const MHD& state_pos,
+	MHD& state_neg,
+	MHD& state_pos,
 	const double& area,
 	const double& dt,
 	const double& adiabatic_index,

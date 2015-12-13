@@ -56,8 +56,8 @@ template <
 	class Total_Energy_Density_T,
 	class Magnetic_Field_T
 > std::tuple<MHD, double> get_flux_hll(
-	const MHD& state_neg,
-	const MHD& state_pos,
+	MHD& state_neg,
+	MHD& state_pos,
 	const double& area,
 	const double& dt,
 	const double& adiabatic_index,
@@ -72,8 +72,8 @@ template <
 	const Magnetic_Field_T Mag{};
 
 	const auto
-		flow_v_neg(state_neg[Mom] / state_neg[Mas]),
-		flow_v_pos(state_pos[Mom] / state_pos[Mas]);
+		flow_v_neg = get_velocity(state_neg[Mom], state_neg[Mas]),
+		flow_v_pos = get_velocity(state_pos[Mom], state_pos[Mas]);
 
 	const auto
 		pressure_thermal_neg
@@ -190,68 +190,42 @@ template <
 		return std::make_tuple(flux, 0);
 	}
 
+	const auto Mas_getter
+		= [](MHD& state) -> typename Mass_Density_T::data_type& {
+			return state[Mass_Density_T()];
+		};
+	const auto Mom_getter
+		= [](MHD& state) -> typename Momentum_Density_T::data_type& {
+			return state[Momentum_Density_T()];
+		};
+	const auto Nrj_getter
+		= [](MHD& state) -> typename Total_Energy_Density_T::data_type& {
+			return state[Total_Energy_Density_T()];
+		};
+	const auto Mag_getter
+		= [](MHD& state) -> typename Magnetic_Field_T::data_type& {
+			return state[Magnetic_Field_T()];
+		};
 
-	MHD flux_neg, flux_pos;
+	MHD
+		flux_neg
+			= get_flux(
+				state_neg,
+				adiabatic_index,
+				vacuum_permeability,
+				Mas_getter, Mom_getter, Nrj_getter, Mag_getter
+			),
+		flux_pos
+			= get_flux(
+				state_pos,
+				adiabatic_index,
+				vacuum_permeability,
+				Mas_getter, Mom_getter, Nrj_getter, Mag_getter
+			);
 
 	// compute L/R fluxes along the lines bm/bp: F_{L}-S_{L}U_{L}; F_{R}-S_{R}U_{R}
-	flux_neg[Mas]
-		= state_neg[Mom][0]
-		- bm * state_neg[Mas];
-
-	flux_pos[Mas]
-		= state_pos[Mom][0]
-		- bp * state_pos[Mas];
-
-	flux_neg[Mom]
-		= state_neg[Mom]
-		* (flow_v_neg[0] - bm);
-
-	flux_pos[Mom]
-		= state_pos[Mom]
-		* (flow_v_pos[0] - bp);
-
-	flux_neg[Mom][0] += pressure_thermal_neg;
-
-	flux_pos[Mom][0] += pressure_thermal_pos;
-
-	flux_neg[Nrj]
-		= flow_v_neg[0] * (pressure_thermal_neg + state_neg[Nrj])
-		- bm * state_neg[Nrj];
-
-	flux_pos[Nrj]
-		= flow_v_pos[0] * (pressure_thermal_pos + state_pos[Nrj])
-		- bp * state_pos[Nrj];
-
-	const auto
-		&B_neg = state_neg[Mag],
-		&B_pos = state_pos[Mag];
-
-	flux_neg[Mom][0]
-		-= 0.5
-		* (B_neg[0]*B_neg[0] - B_neg[1]*B_neg[1] - B_neg[2]*B_neg[2])
-		/ vacuum_permeability;
-	flux_neg[Mom][1] -= B_neg[0] * B_neg[1] / vacuum_permeability;
-	flux_neg[Mom][2] -= B_neg[0] * B_neg[2] / vacuum_permeability;
-
-	flux_pos[Mom][0]
-		-= 0.5
-		* (B_pos[0]*B_pos[0] - B_pos[1]*B_pos[1] - B_pos[2]*B_pos[2])
-		/ vacuum_permeability;
-	flux_pos[Mom][1] -= B_pos[0] * B_pos[1] / vacuum_permeability;
-	flux_pos[Mom][2] -= B_pos[0] * B_pos[2] / vacuum_permeability;
-
-	flux_neg[Nrj]
-		+= pressure_magnetic_neg * flow_v_neg[0]
-		- B_neg[0] * flow_v_neg.dot(B_neg) / vacuum_permeability;
-
-	flux_pos[Nrj]
-		+= pressure_magnetic_pos * flow_v_pos[0]
-		- B_pos[0] * flow_v_pos.dot(B_pos) / vacuum_permeability;
-
-	flux_neg[Mag] = B_neg * (flow_v_neg[0] - bm) - B_neg[0] * flow_v_neg;
-
-	flux_pos[Mag] = B_pos * (flow_v_pos[0] - bp) - B_pos[0] * flow_v_pos;
-
+	flux_neg -= state_neg * bm;
+	flux_pos -= state_pos * bp;
 	flux_pos[Mag][0] =
 	flux_neg[Mag][0] = 0;
 
