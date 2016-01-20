@@ -61,7 +61,9 @@ def get_run_directory(run_id, domain = 'LP'):
 				dir_id = i.split('run_idl3d.cgi?dir=')[1].split('"')[0]
 
 	if not dir_id:
-		exit('Could not determine dir id for run ' + run_id)
+		print('Could not determine dir id for run', run_id, 'from page:')
+		print(the_page)
+		exit(1)
 	return dir_id
 
 
@@ -281,7 +283,9 @@ if args.time:
 	if args.time in times:
 		requested_time = args.time
 	else:
-		exit('Time ' + str(args.time) + "doesn't exist in available plotting times")
+		print('Time', args.time, "doesn't exist in available plotting times:")
+		print(times)
+		exit(2)
 else:
 	requested_time = default_time
 values['Itime'] = times[requested_time]
@@ -304,7 +308,9 @@ if args.variable:
 	if args.variable in quantities:
 		requested_variable = args.variable
 	else:
-		exit('Variable ' + str(args.variable) + "doesn't exist in available plot variables")
+		print('Variable', args.variable, "doesn't exist in available plot variables:")
+		print(quantities)
+		exit(3)
 else:
 	requested_variable = default_qty
 values['Quantity1'] = values['Quantity2'] = values['Quantity3'] = quantities[requested_variable]
