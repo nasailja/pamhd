@@ -1,7 +1,7 @@
 /*
 Tests vector field divergence calculation of PAMHD in 3d.
 
-Copyright 2014, 2015 Ilja Honkonen
+Copyright 2014, 2015, 2016 Ilja Honkonen
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification,
@@ -79,13 +79,11 @@ using Cell = gensimcell::Cell<
 
 
 /*!
-Returns maximum norm if p == 0.
+Returns maximum norm.
 */
-template<class Grid_T> double get_diff_lp_norm(
+template<class Grid_T> double get_max_norm(
 	const std::vector<uint64_t>& cells,
-	const Grid_T& grid,
-	const double p,
-	const double cell_volume
+	const Grid_T& grid
 ) {
 	double local_norm = 0, global_norm = 0;
 	for (const auto& cell: cells) {
@@ -99,31 +97,16 @@ template<class Grid_T> double get_diff_lp_norm(
 
 		const auto div_of = div_of_function(grid.geometry.get_center(cell));
 
-		if (p == 0) {
-			local_norm = std::max(
-				local_norm,
-				std::fabs((*cell_data)[Divergence()] - div_of)
-			);
-		} else {
-			local_norm += std::pow(
-				std::fabs((*cell_data)[Divergence()] - div_of),
-				p
-			);
-		}
+		local_norm = std::max(
+			local_norm,
+			std::fabs((*cell_data)[Divergence()] - div_of)
+		);
 	}
-	local_norm *= cell_volume;
 
-	if (p == 0) {
-		MPI_Comm comm = grid.get_communicator();
-		MPI_Allreduce(&local_norm, &global_norm, 1, MPI_DOUBLE, MPI_MAX, comm);
-		MPI_Comm_free(&comm);
-		return global_norm;
-	} else {
-		MPI_Comm comm = grid.get_communicator();
-		MPI_Allreduce(&local_norm, &global_norm, 1, MPI_DOUBLE, MPI_SUM, comm);
-		MPI_Comm_free(&comm);
-		return std::pow(global_norm, 1.0 / p);
-	}
+	MPI_Comm comm = grid.get_communicator();
+	MPI_Allreduce(&local_norm, &global_norm, 1, MPI_DOUBLE, MPI_MAX, comm);
+	MPI_Comm_free(&comm);
+	return global_norm;
 }
 
 
@@ -155,11 +138,11 @@ int main(int argc, char* argv[])
 	}
 
 	const unsigned int neighborhood_size = 0;
-	const int max_refinement_level = 0;
+	const int max_refinement_level = 1;
 
 	double old_norm = std::numeric_limits<double>::max();
 	size_t old_nr_of_cells = 0;
-	for (size_t nr_of_cells = 8; nr_of_cells <= 64; nr_of_cells *= 2) {
+	for (size_t nr_of_cells = 8; nr_of_cells <= 32; nr_of_cells *= 2) {
 
 		dccrg::Dccrg<Cell, dccrg::Cartesian_Geometry> grid;
 
@@ -172,9 +155,7 @@ int main(int argc, char* argv[])
 				"RANDOM",
 				neighborhood_size,
 				max_refinement_level,
-				false,
-				false,
-				false
+				false, false, false
 			)
 		) {
 			std::cerr << __FILE__ << ":" << __LINE__
@@ -195,9 +176,6 @@ int main(int argc, char* argv[])
 				-2 - cell_length[2]
 			}};
 
-		const double cell_volume
-			= cell_length[0] * cell_length[1] * cell_length[2];
-
 		dccrg::Cartesian_Geometry::Parameters geom_params;
 		geom_params.start = grid_start;
 		geom_params.level_0_cell_length = cell_length;
@@ -210,6 +188,23 @@ int main(int argc, char* argv[])
 		}
 
 		grid.balance_load();
+
+		for (int i = 0; i < max_refinement_level; i++) {
+			for (const auto& cell: grid.get_cells()) {
+				const auto center = grid.geometry.get_center(cell);
+				if (
+					center[0] > grid_start[0] + 3.0 * 1 / 4
+					and center[0] < grid_start[0] + 3.0 * 3 / 4
+					and center[1] > grid_start[1] + 1.5 * 1 / 4
+					and center[1] < grid_start[1] + 1.5 * 3 / 4
+					and center[2] > grid_start[2] + 4.0 * 1 / 4
+					and center[2] < grid_start[2] + 4.0 * 3 / 4
+				) {
+					grid.refine_completely(cell);
+				}
+			}
+			grid.stop_refining();
+		}
 
 		const auto all_cells = grid.get_cells();
 		for (const auto& cell: all_cells) {
@@ -227,14 +222,11 @@ int main(int argc, char* argv[])
 
 		std::vector<uint64_t> solve_cells;
 		for (const auto& cell: all_cells) {
-			const auto index = grid.mapping.get_indices(cell);
+			const auto center = grid.geometry.get_center(cell);
 			if (
-				index[0] > 0
-				and index[0] < grid_size[0] - 1
-				and index[1] > 0
-				and index[1] < grid_size[1] - 1
-				and index[2] > 0
-				and index[2] < grid_size[2] - 1
+				center[0] > -1 and center[0] < -1 + 3
+				and center[1] > -M_PI / 4 and center[1] < -M_PI / 4 + 1.5
+				and center[2] > -2 and center[2] < -2 + 4
 			) {
 				solve_cells.push_back(cell);
 			}
@@ -253,7 +245,7 @@ int main(int argc, char* argv[])
 
 		const double
 			p_of_norm = 2,
-			norm = get_diff_lp_norm(solve_cells, grid, p_of_norm, cell_volume);
+			norm = get_max_norm(solve_cells, grid);
 
 		if (norm > old_norm) {
 			if (grid.get_rank() == 0) {
@@ -272,7 +264,7 @@ int main(int argc, char* argv[])
 				= -log(norm / old_norm)
 				/ log(double(solve_cells.size()) / old_nr_of_cells);
 
-			if (order_of_accuracy < 0.6) {
+			if (order_of_accuracy < 0.4) {
 				if (grid.get_rank() == 0) {
 					std::cerr << __FILE__ << ":" << __LINE__
 						<< ": Order of accuracy from "
