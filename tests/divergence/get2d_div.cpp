@@ -261,12 +261,12 @@ int main(int argc, char* argv[])
 			abort();
 		}
 
-		if (old_nr_of_cells >= 64) {
+		if (old_nr_of_cells > 16) {
 			const double order_of_accuracy
 				= -log(norm / old_norm)
 				/ log(double(nr_of_cells) / old_nr_of_cells);
 
-			if (order_of_accuracy < 1.8) {
+			if (order_of_accuracy < 1.6) {
 				if (grid.get_rank() == 0) {
 					std::cerr << __FILE__ << ":" << __LINE__
 						<< ": Order of accuracy from "

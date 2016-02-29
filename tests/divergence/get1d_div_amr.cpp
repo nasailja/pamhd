@@ -1,7 +1,7 @@
 /*
-Tests vector field divergence calculation of PAMHD in 1d with AMR.
+Tests vector field divergence calculation of PAMHD in 1d.
 
-Copyright 2014, 2015 Ilja Honkonen
+Copyright 2014, 2015, 2016 Ilja Honkonen
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification,
@@ -35,6 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cstdlib"
 #include "iostream"
 #include "limits"
+#include "set"
 #include "tuple"
 #include "vector"
 
@@ -46,12 +47,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 double function(const double x)
 {
-	return std::sin(x);
+	return std::pow(std::sin(x / 2), 2);
 }
 
 double div_of_function(const double x)
 {
-	return std::cos(x);
+	return std::sin(x / 2) * std::cos(x / 2);
 }
 
 
@@ -73,11 +74,10 @@ using Cell = gensimcell::Cell<
 /*!
 Returns maximum norm if p == 0
 */
-template<class Grid_T> double get_diff_lp_norm(
+template<class Grid_T> double get_max_norm(
 	const std::vector<uint64_t>& cells,
 	const Grid_T& grid,
-	const double p,
-	const double cell_volume
+	const size_t dimension
 ) {
 	double local_norm = 0, global_norm = 0;
 	for (const auto& cell: cells) {
@@ -91,31 +91,16 @@ template<class Grid_T> double get_diff_lp_norm(
 
 		const auto center = grid.geometry.get_center(cell);
 
-		if (p == 0) {
-			local_norm = std::max(
-				local_norm,
-				std::fabs((*cell_data)[Divergence()] - div_of_function(center[0]))
-			);
-		} else {
-			local_norm += std::pow(
-				std::fabs((*cell_data)[Divergence()] - div_of_function(center[0])),
-				p
-			);
-		}
+		local_norm = std::max(
+			local_norm,
+			std::fabs((*cell_data)[Divergence()] - div_of_function(center[dimension]))
+		);
 	}
-	local_norm *= cell_volume;
 
-	if (p == 0) {
-		MPI_Comm comm = grid.get_communicator();
-		MPI_Allreduce(&local_norm, &global_norm, 1, MPI_DOUBLE, MPI_MAX, comm);
-		MPI_Comm_free(&comm);
-		return global_norm;
-	} else {
-		MPI_Comm comm = grid.get_communicator();
-		MPI_Allreduce(&local_norm, &global_norm, 1, MPI_DOUBLE, MPI_SUM, comm);
-		MPI_Comm_free(&comm);
-		return std::pow(global_norm, 1.0 / p);
-	}
+	MPI_Comm comm = grid.get_communicator();
+	MPI_Allreduce(&local_norm, &global_norm, 1, MPI_DOUBLE, MPI_MAX, comm);
+	MPI_Comm_free(&comm);
+	return global_norm;
 }
 
 
@@ -146,145 +131,175 @@ int main(int argc, char* argv[])
 		abort();
 	}
 
-	const unsigned int neighborhood_size = 0;
-	const int max_refinement_level = 1;
+	std::array<double, 3> old_norms{{
+		std::numeric_limits<double>::max(),
+		std::numeric_limits<double>::max(),
+		std::numeric_limits<double>::max()
+	}};
 
-	const std::array<double, 3> grid_length{{2 * M_PI, 1, 1}};
-
-	double old_norm = std::numeric_limits<double>::max();
 	size_t old_nr_of_cells = 0;
-	for (size_t nr_of_cells = 8; nr_of_cells <= 4096; nr_of_cells *= 2) {
+	for (size_t nr_of_cells = 8; nr_of_cells <= 512; nr_of_cells *= 2) {
 
-		dccrg::Dccrg<Cell, dccrg::Cartesian_Geometry> grid;
+		std::array<dccrg::Dccrg<Cell, dccrg::Cartesian_Geometry>, 3> grids;
 
-		const std::array<uint64_t, 3> grid_size{{nr_of_cells + 2, 1, 1}};
-
-		if (
-			not grid.initialize(
-				grid_size,
-				comm,
-				"RANDOM",
-				neighborhood_size,
-				max_refinement_level,
-				false,
-				false,
-				false
-			)
-		) {
-			std::cerr << __FILE__ << ":" << __LINE__
-				<< ": Couldn't initialize grid."
-				<< std::endl;
-			abort();
-		}
-
-		const std::array<double, 3>
-			cell_length{{
-				grid_length[0] / grid_size[0],
-				grid_length[1] / grid_size[1],
-				grid_length[2] / grid_size[2]
-			}},
-			grid_start{{
-				-cell_length[0] / 2, 0, 0
+		const std::array<std::array<uint64_t, 3>, 3>
+			grid_sizes{{
+				{{nr_of_cells + 2, 1, 1}},
+				{{1, nr_of_cells + 2, 1}},
+				{{1, 1, nr_of_cells + 2}}
 			}};
 
-		const double cell_volume
-			= cell_length[0] * cell_length[1] * cell_length[2];
-
-		dccrg::Cartesian_Geometry::Parameters geom_params;
-		geom_params.start = grid_start;
-		geom_params.level_0_cell_length = cell_length;
-
-		if (not grid.set_geometry(geom_params)) {
-			std::cerr << __FILE__ << ":" << __LINE__
-				<< ": Couldn't set grid geometry."
-				<< std::endl;
+		const int max_ref_lvl = 2;
+		for (size_t dim = 0; dim < 3; dim++) {
+			if (
+				not grids[dim].initialize(
+					grid_sizes[dim],
+					comm,
+					"RANDOM",
+					0,
+					max_ref_lvl,
+					false,false,false
+				)
+			) {
+				std::cerr << __FILE__ << ":" << __LINE__ << " " << dim << std::endl;
 			abort();
-		}
-
-		grid.balance_load();
-
-		const auto lvl_0_cells = grid.get_cells();
-		for (const auto& cell: lvl_0_cells) {
-			if (cell > nr_of_cells / 4 and cell < 3 * nr_of_cells / 4) {
-				grid.refine_completely(cell);
 			}
 		}
-		grid.stop_refining();
 
-		const auto all_cells = grid.get_cells();
-		for (const auto& cell: all_cells) {
-			auto* const cell_data = grid[cell];
-			if (cell_data == NULL) {
-				std::cerr << __FILE__ << ":" << __LINE__
-					<< ": No data for cell " << cell
-					<< std::endl;
+		const std::array<std::array<double, 3>, 3>
+			cell_lengths{{
+				{{2 * M_PI / (grid_sizes[0][0] - 2), 1, 1}},
+				{{1, 2 * M_PI / (grid_sizes[1][1] - 2), 1}},
+				{{1, 1, 2 * M_PI / (grid_sizes[2][2] - 2)}}
+			}},
+			grid_starts{{
+				{{-cell_lengths[0][0], 0, 0}},
+				{{0, -cell_lengths[1][1], 0}},
+				{{0, 0, -cell_lengths[2][2]}}
+			}};
+
+		std::array<dccrg::Cartesian_Geometry::Parameters, 3> geom_params;
+		for (size_t dim = 0; dim < 3; dim++) {
+			geom_params[dim].start = grid_starts[dim];
+			geom_params[dim].level_0_cell_length = cell_lengths[dim];
+			if (not grids[dim].set_geometry(geom_params[dim])) {
+				std::cerr << __FILE__ << ":" << __LINE__ << " " << dim << std::endl;
 				abort();
 			}
-
-			const auto center = grid.geometry.get_center(cell);
-
-			auto& vec = (*cell_data)[Vector_Field()];
-			vec[0] = function(center[0]);
-			vec[1] =
-			vec[2] = 0;
 		}
-		grid.update_copies_of_remote_neighbors();
 
-		std::vector<uint64_t> solve_cells;
-		for (const auto& cell: all_cells) {
-			const auto index = grid.mapping.get_indices(cell);
-			if (index[0] > 1 and index[0] < 2 * (grid_size[0] - 1)) {
-				solve_cells.push_back(cell);
+		for (int i = 0; i < max_ref_lvl; i++) {
+			for (size_t dim = 0; dim < 3; dim++) {
+				for (const auto& cell: grids[dim].get_cells()) {
+					if (
+						(grids[dim].geometry.get_center(cell)[dim] > 2 * M_PI / 8
+						and grids[dim].geometry.get_center(cell)[dim] < 6 * M_PI / 8)
+						or (grids[dim].geometry.get_center(cell)[dim] > 10 * M_PI / 8
+						and grids[dim].geometry.get_center(cell)[dim] < 14 * M_PI / 8)
+					) {
+						grids[dim].refine_completely(cell);
+					}
+				}
+				grids[dim].stop_refining();
 			}
 		}
 
-		pamhd::divergence::get_divergence(
-			solve_cells,
-			grid,
-			[](Cell& cell_data) -> Vector_Field::data_type& {
-				return cell_data[Vector_Field()];
-			},
-			[](Cell& cell_data) -> Divergence::data_type& {
-				return cell_data[Divergence()];
-			}
-		);
+		// real number of cells
+		uint64_t local_real_nr_cells = 0, real_nr_cells = 0;
+		std::set<uint64_t> uniq_indices;
+		for (const auto& cell: grids[0].get_cells()) {
+			const auto index = grids[0].mapping.get_indices(cell)[0];
+			uniq_indices.insert(cell);
+		}
+		local_real_nr_cells = uniq_indices.size();
+		MPI_Comm comm = grids[0].get_communicator();
+		MPI_Allreduce(&local_real_nr_cells, &real_nr_cells, 1, MPI_UINT64_T, MPI_SUM, comm);
+		MPI_Comm_free(&comm);
 
-		const double
-			p_of_norm = 2,
-			norm = get_diff_lp_norm(solve_cells, grid, p_of_norm, cell_volume);
+		for (size_t dim = 0; dim < 3; dim++) {
+			for (const auto& cell: grids[dim].get_cells()) {
+				auto* const cell_data = grids[dim][cell];
+				if (cell_data == nullptr) {
+					std::cerr << __FILE__ << ":" << __LINE__ << " " << dim << std::endl;
+					abort();
+				}
 
-		if (norm > old_norm) {
-			if (grid.get_rank() == 0) {
-				std::cerr << __FILE__ << ":" << __LINE__
-					<< ": Norm with " << nr_of_cells
-					<< " cells " << norm
-					<< " is larger than with " << nr_of_cells / 2
-					<< " cells " << old_norm
-					<< std::endl;
+				auto& vec = (*cell_data)[Vector_Field()];
+				vec[0] = vec[1] = vec[2] = 0;
+
+				const auto center = grids[dim].geometry.get_center(cell)[dim];
+				vec[dim] = function(center);
 			}
-			abort();
+			grids[dim].update_copies_of_remote_neighbors();
 		}
 
-		if (old_nr_of_cells >= 1) {
-			const double order_of_accuracy
-				= -log(norm / old_norm)
-				/ log(double(nr_of_cells) / old_nr_of_cells);
+		// exclude one layer of boundary cells
+		std::array<std::vector<uint64_t>, 3> solve_cells;
+		for (size_t dim = 0; dim < 3; dim++) {
+			for (const auto& cell: grids[dim].get_cells()) {
+				const auto center = grids[dim].geometry.get_center(cell)[dim];
+				if (center > 0 and center < 2 * M_PI) {
+					solve_cells[dim].push_back(cell);
+				}
+			}
+		}
 
-			if (order_of_accuracy < 1.9) {
-				if (grid.get_rank() == 0) {
+		auto Vector_Getter = [](Cell& cell_data) -> Vector_Field::data_type& {
+			return cell_data[Vector_Field()];
+		};
+		auto Divergence_Getter = [](Cell& cell_data) -> Divergence::data_type& {
+			return cell_data[Divergence()];
+		};
+
+		for (size_t dim = 0; dim < 3; dim++) {
+			pamhd::divergence::get_divergence(
+				solve_cells[dim], grids[dim], Vector_Getter, Divergence_Getter
+			);
+		}
+
+		const std::array<double, 3> norms{{
+			get_max_norm(solve_cells[0], grids[0], 0),
+			get_max_norm(solve_cells[1], grids[1], 1),
+			get_max_norm(solve_cells[2], grids[2], 2)
+		}};
+
+		for (size_t dim = 0; dim < 3; dim++) {
+			if (norms[dim] > old_norms[dim]) {
+				if (grids[dim].get_rank() == 0) {
 					std::cerr << __FILE__ << ":" << __LINE__
-						<< ": Norm with " << nr_of_cells
-						<< " cells " << norm
-						<< " is larger than with " << nr_of_cells / 2
-						<< " cells " << old_norm
+						<< " in dim " << dim
+						<< ": max norm with " << real_nr_cells
+						<< " cells " << norms[dim]
+						<< " is larger than with " << old_nr_of_cells
+						<< " cells " << old_norms[dim]
 						<< std::endl;
 				}
-				//abort();
+				abort();
 			}
 		}
 
-		old_nr_of_cells = nr_of_cells;
-		old_norm = norm;
+		for (size_t dim = 0; dim < 3; dim++) {
+			if (old_nr_of_cells > 0) {
+				const double order_of_accuracy
+					= -log(norms[dim] / old_norms[dim])
+					/ log(double(real_nr_cells) / old_nr_of_cells);
+
+				if (order_of_accuracy < 1) {
+					if (grids[dim].get_rank() == 0) {
+						std::cerr << __FILE__ << ":" << __LINE__
+							<< " in dim " << dim
+							<< ": order of accuracy from "
+							<< old_nr_of_cells << " to " << real_nr_cells
+							<< " is too low: " << order_of_accuracy
+							<< std::endl;
+					}
+					abort();
+				}
+			}
+		}
+
+		old_nr_of_cells = real_nr_cells;
+		old_norms = norms;
 	}
 
 	MPI_Finalize();
