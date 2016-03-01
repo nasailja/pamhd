@@ -8,6 +8,7 @@ TESTS_DIVERGENCE_EXECUTABLES = \
   tests/divergence/get1d_grad_amr.exe \
   tests/divergence/get2d_grad.exe \
   tests/divergence/get3d_grad.exe \
+  tests/divergence/get3d_grad_amr.exe \
   tests/divergence/get3d_curl.exe \
   tests/divergence/get3d_curl_curl.exe \
   tests/divergence/get3d_curl_curl2.exe \
@@ -26,6 +27,7 @@ TESTS_DIVERGENCE_TESTS = \
   tests/divergence/get1d_grad_amr.tst \
   tests/divergence/get2d_grad.tst \
   tests/divergence/get3d_grad.tst \
+  tests/divergence/get3d_grad_amr.tst \
   tests/divergence/get3d_curl.tst \
   tests/divergence/remove1d.tst \
   tests/divergence/remove2d.tst \
@@ -39,6 +41,7 @@ TESTS_DIVERGENCE_TESTS = \
   tests/divergence/get1d_grad_amr.mtst \
   tests/divergence/get2d_grad.mtst \
   tests/divergence/get3d_grad.mtst \
+  tests/divergence/get3d_grad_amr.mtst \
   tests/divergence/get3d_curl.mtst \
   tests/divergence/get3d_curl_curl.mtst \
   tests/divergence/get3d_curl_curl2.mtst \
@@ -122,6 +125,11 @@ tests/divergence/get2d_grad.exe: \
 
 tests/divergence/get3d_grad.exe: \
   tests/divergence/get3d_grad.cpp \
+  $(TEST_DIVERGENCE_COMMON_DEPS)
+	@printf "MPICXX $<\n" && $(MPICXX_TESTS_DIVERGENCE_MPICXX)
+
+tests/divergence/get3d_grad_amr.exe: \
+  tests/divergence/get3d_grad_amr.cpp \
   $(TEST_DIVERGENCE_COMMON_DEPS)
 	@printf "MPICXX $<\n" && $(MPICXX_TESTS_DIVERGENCE_MPICXX)
 
