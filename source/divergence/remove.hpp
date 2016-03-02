@@ -33,7 +33,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef PAMHD_DIVERGENCE_REMOVE_HPP
 #define PAMHD_DIVERGENCE_REMOVE_HPP
 
-
 #include "cmath"
 #include "limits"
 #include "tuple"
@@ -529,6 +528,10 @@ The arguments max_iterations to verbose are given
 directly to the constructor of dccrg Poisson equation
 solver class:
 https://gitorious.org/dccrg/dccrg/source/master:tests/poisson/poisson_solve.hpp
+
+Poisson solver is applied to previous results retries
+number of times in a row, i.e. solver is used once
+if retries == 0.
 */
 template <
 	class Cell_T,
@@ -550,6 +553,7 @@ template <
 	const double stop_residual = 1e-15,
 	const double p_of_norm = 2,
 	const double stop_after_residual_increase = 10,
+	const unsigned int retries = 0,
 	const bool verbose = false
 ) {
 	std::vector<uint64_t> solve_cells;
@@ -618,8 +622,24 @@ template <
 		stop_after_residual_increase,
 		verbose
 	);
+
 	// solve phi in div(grad(phi)) = rhs
-	solver.solve(cells, poisson_grid, skip_cells);
+	size_t iters = 0;
+	while (iters <= retries) {
+		solver.solve(
+			cells,
+			poisson_grid,
+			skip_cells,
+			[iters](){
+				if (iters == 0) {
+					return false;
+				} else {
+					return true;
+				}
+			}()
+		);
+		iters++;
+	}
 
 	/*
 	Remove divergence with Vec = Vec - grad(phi)
