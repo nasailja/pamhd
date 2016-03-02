@@ -924,6 +924,7 @@ int main(int argc, char* argv[])
 					poisson_norm_stop,
 					2,
 					poisson_norm_increase_max,
+					0,
 					false
 				);
 			Cell::set_transfer_all(false, pamhd::mhd::Magnetic_Field_Divergence());
