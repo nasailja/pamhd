@@ -39,6 +39,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "dccrg.hpp"
 #include "dccrg_cartesian_geometry.hpp"
+#include "gensimcell.hpp"
 #include "prettyprint.hpp"
 
 #include "divergence/remove.hpp"

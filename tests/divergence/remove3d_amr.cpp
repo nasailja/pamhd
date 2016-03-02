@@ -40,6 +40,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "dccrg.hpp"
 #include "dccrg_cartesian_geometry.hpp"
+#include "gensimcell.hpp"
 #include "prettyprint.hpp"
 
 #include "divergence/remove.hpp"
@@ -324,17 +325,21 @@ int main(int argc, char* argv[])
 			abort();
 		}
 
+		size_t real_nr_cells = 0;
 		if (old_nr_of_cells > 0) {
+			uint64_t real_nr_cells_local = solve_cells.size();
+			MPI_Allreduce(&real_nr_cells_local, &real_nr_cells, 1, MPI_UINT64_T, MPI_SUM, comm);
+
 			const double
 				order_of_accuracy
 					= -log(div_after / old_div)
-					/ log(double(solve_cells.size()) / old_nr_of_cells);
+					/ log(double(real_nr_cells) / old_nr_of_cells);
 
 			if (order_of_accuracy < 0.03) {
 				if (grid.get_rank() == 0) {
 					std::cerr << __FILE__ << ":" << __LINE__
 						<< ": Order of accuracy from "
-						<< old_nr_of_cells << " to " << solve_cells.size()
+						<< old_nr_of_cells << " to " << real_nr_cells
 						<< " is too low: " << order_of_accuracy
 						<< std::endl;
 				}
@@ -342,7 +347,7 @@ int main(int argc, char* argv[])
 			}
 		}
 
-		old_nr_of_cells = solve_cells.size();
+		old_nr_of_cells = real_nr_cells;
 		old_div = div_after;
 	}
 
