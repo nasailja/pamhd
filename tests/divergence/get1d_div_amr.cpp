@@ -209,7 +209,7 @@ int main(int argc, char* argv[])
 		std::set<uint64_t> uniq_indices;
 		for (const auto& cell: grids[0].get_cells()) {
 			const auto index = grids[0].mapping.get_indices(cell)[0];
-			uniq_indices.insert(cell);
+			uniq_indices.insert(index);
 		}
 		local_real_nr_cells = uniq_indices.size();
 		MPI_Comm comm = grids[0].get_communicator();
