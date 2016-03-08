@@ -251,7 +251,7 @@ int main(int argc, char* argv[])
 				Vector_Getter,
 				Divergence_Getter,
 				Gradient_Getter,
-				1000, 0, 1e-15, 2, 100, 5, false
+				1000, 0, 1e-15, 2, 100, 5, false, false
 			);
 		}
 

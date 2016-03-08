@@ -315,7 +315,7 @@ int main(int argc, char* argv[])
 			Vector_Getter,
 			Divergence_Getter,
 			Gradient_Getter,
-			2000, 0, 1e-15, 2, 100, false
+			2000, 0, 1e-15, 2, 100, false, false
 		);
 		pamhd::divergence::remove(
 			solve_cells,
@@ -325,7 +325,7 @@ int main(int argc, char* argv[])
 			Vector_Getter,
 			Divergence_Getter,
 			Gradient_Getter,
-			2000, 0, 1e-15, 2, 100, false
+			2000, 0, 1e-15, 2, 100, false, false
 		);
 		pamhd::divergence::remove(
 			solve_cells,
@@ -335,7 +335,7 @@ int main(int argc, char* argv[])
 			Vector_Getter,
 			Divergence_Getter,
 			Gradient_Getter,
-			2000, 0, 1e-15, 2, 100, false
+			2000, 0, 1e-15, 2, 100, false, false
 		);
 
 		const double
