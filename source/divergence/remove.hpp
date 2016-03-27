@@ -552,6 +552,7 @@ template <
 	const double p_of_norm = 2,
 	const double stop_after_residual_increase = 10,
 	const unsigned int retries = 0,
+	const bool use_failsafe = false,
 	const bool verbose = false
 ) {
 	std::vector<uint64_t> solve_cells;
@@ -622,21 +623,25 @@ template <
 	);
 
 	// solve phi in div(grad(phi)) = rhs
-	size_t iters = 0;
-	while (iters <= retries) {
-		solver.solve(
-			cells,
-			poisson_grid,
-			skip_cells,
-			[iters](){
-				if (iters == 0) {
-					return false;
-				} else {
-					return true;
-				}
-			}()
-		);
-		iters++;
+	if (use_failsafe) {
+		solver.solve_failsafe(cells, poisson_grid, skip_cells);
+	} else {
+		size_t iters = 0;
+		while (iters <= retries) {
+			solver.solve(
+				cells,
+				poisson_grid,
+				skip_cells,
+				[iters](){
+					if (iters == 0) {
+						return false;
+					} else {
+						return true;
+					}
+				}()
+			);
+			iters++;
+		}
 	}
 
 	/*

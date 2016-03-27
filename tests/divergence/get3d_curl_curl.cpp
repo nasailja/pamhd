@@ -92,8 +92,7 @@ Returns maximum norm.
 */
 template<class Grid_T> double get_diff_max_norm(
 	const std::vector<uint64_t>& cells,
-	const Grid_T& grid,
-	const double cell_volume
+	const Grid_T& grid
 ) {
 	double local_norm = 0, global_norm = 0;
 	for (const auto& cell: cells) {
@@ -186,9 +185,6 @@ int main(int argc, char* argv[])
 			cell_length{2*M_PI/grid_size[0], 2*M_PI/grid_size[1], 2*M_PI/grid_size[2]},
 			grid_start{-M_PI, -M_PI, -M_PI};
 
-		const double cell_volume
-			= cell_length[0] * cell_length[1] * cell_length[2];
-
 		dccrg::Cartesian_Geometry::Parameters geom_params;
 		geom_params.start = grid_start;
 		geom_params.level_0_cell_length = cell_length;
@@ -229,7 +225,7 @@ int main(int argc, char* argv[])
 			}
 		);
 
-		const double norm = get_diff_max_norm(cells, grid, cell_volume);
+		const double norm = get_diff_max_norm(cells, grid);
 
 		if (old_nr_of_cells > 0) {
 			if (norm > old_norm) {

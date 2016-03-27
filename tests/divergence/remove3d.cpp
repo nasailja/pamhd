@@ -259,7 +259,7 @@ int main(int argc, char* argv[])
 			[](Cell& cell_data) -> Gradient::data_type& {
 				return cell_data[Gradient()];
 			},
-			1000, 0, 1e-2, 2, 10, 0, false
+			1000, 0, 1e-2, 2, 10, 0, false, false
 		);
 		grid.update_copies_of_remote_neighbors();
 
