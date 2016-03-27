@@ -1,7 +1,7 @@
 /*
 Hybrid PIC program of PAMHD that uses an ideal MHD solver for magnetic field.
 
-Copyright 2015 Ilja Honkonen
+Copyright 2015, 2016 Ilja Honkonen
 All rights reserved.
 
 This program is free software: you can redistribute it and/or modify

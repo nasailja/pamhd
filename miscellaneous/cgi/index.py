@@ -3,7 +3,7 @@
 '''
 CGI script for starting MHD simulations of PAMHD via a webserver.
 
-Copyright 2015 Ilja Honkonen
+Copyright 2015, 2016 Ilja Honkonen
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification,

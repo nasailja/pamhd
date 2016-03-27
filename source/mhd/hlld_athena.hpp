@@ -4,7 +4,7 @@ Copyright 2003 James M. Stone
 Copyright 2003 Thomas A. Gardiner
 Copyright 2003 Peter J. Teuben
 Copyright 2003 John F. Hawley
-Copyright 2014, 2015 Ilja Honkonen
+Copyright 2014, 2015, 2016 Ilja Honkonen
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

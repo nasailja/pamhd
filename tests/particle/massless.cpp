@@ -1,7 +1,7 @@
 /*
 Propagates test particles (0 mass) in prescribed electric and magnetic fields.
 
-Copyright 2015 Ilja Honkonen
+Copyright 2015, 2016 Ilja Honkonen
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification,

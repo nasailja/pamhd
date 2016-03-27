@@ -1,7 +1,7 @@
 /*
 Tests parallel particle solver of PAMHD in dipole field.
 
-Copyright 2015 Ilja Honkonen
+Copyright 2015, 2016 Ilja Honkonen
 All rights reserved.
 
 This program is free software: you can redistribute it and/or modify

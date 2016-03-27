@@ -1,7 +1,7 @@
 /*
 Tests vector version of simulation variable to boost::program_options translator.
 
-Copyright 2014, 2015 Ilja Honkonen
+Copyright 2014, 2015, 2016 Ilja Honkonen
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification,

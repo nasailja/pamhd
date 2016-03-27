@@ -1,7 +1,7 @@
 /*
 Reference test program for MHD solvers of PAMHD.
 
-Copyright 2014, 2015 Ilja Honkonen
+Copyright 2014, 2015, 2016 Ilja Honkonen
 All rights reserved.
 
 This program is free software: you can redistribute it and/or modify
