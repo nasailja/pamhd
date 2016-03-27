@@ -159,7 +159,7 @@ protected:
 private:
 
 	std::string expression;
-	mup::ParserX parser;
+	mup::ParserX parser = mup::ParserX(mup::pckCOMMON | mup::pckNON_COMPLEX | mup::pckMATRIX | mup::pckUNIT);
 	mup::Value r_val, t_val;
 	mup::Variable r_var, t_var;
 
@@ -672,7 +672,7 @@ protected:
 private:
 
 	std::string expression;
-	mup::ParserX parser;
+	mup::ParserX parser = mup::ParserX(mup::pckCOMMON | mup::pckNON_COMPLEX | mup::pckMATRIX | mup::pckUNIT);
 	mup::Value r_val, t_val;
 	mup::Variable r_var, t_var;
 

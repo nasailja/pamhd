@@ -244,7 +244,7 @@ private:
 	std::vector<std::string> expressions;
 	size_t last_set_expression = std::numeric_limits<size_t>::max();
 
-	mup::ParserX parser;
+	mup::ParserX parser = mup::ParserX(mup::pckCOMMON | mup::pckNON_COMPLEX | mup::pckMATRIX | mup::pckUNIT);
 	mup::Value r_val, t_val;
 	mup::Variable r_var, t_var;
 
@@ -733,7 +733,7 @@ protected:
 private:
 
 	std::vector<std::string> expressions;
-	mup::ParserX parser;
+	mup::ParserX parser = mup::ParserX(mup::pckCOMMON | mup::pckNON_COMPLEX | mup::pckMATRIX | mup::pckUNIT);
 	mup::Value r_val, t_val;
 	mup::Variable r_var, t_var;
 
