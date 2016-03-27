@@ -1,15 +1,18 @@
 TESTS_MHD_EXECUTABLES = \
   tests/mhd/reference.exe \
-  tests/mhd/hd2gnuplot.exe \
+  tests/mhd/two_reference.exe \
   tests/mhd/mhd2ascii.exe \
   tests/mhd/mhd2gnuplot.exe \
   tests/mhd/mhd2vtk.exe \
-  tests/mhd/test.exe
+  tests/mhd/2mhd2gnuplot.exe \
+  tests/mhd/test.exe \
+  tests/mhd/two_test.exe
 
 TESTS_MHD_TESTS = \
   tests/mhd/reference.tst_hll_athena \
   tests/mhd/reference.tst_hlld_athena \
-  tests/mhd/reference.tst_roe_athena
+  tests/mhd/reference.tst_roe_athena \
+  tests/mhd/two_reference.tst_hll_athena
 
 tests/mhd_executables: $(TESTS_MHD_EXECUTABLES)
 
@@ -37,6 +40,7 @@ TEST_MHD_COMMON_DEPS = \
   source/mhd/hll_athena.hpp \
   source/mhd/hlld_athena.hpp \
   source/mhd/roe_athena.hpp \
+  source/mhd/N_hll_athena.hpp \
   tests/mhd/project_makefile \
   $(ENVIRONMENT_MAKEFILE) \
   Makefile
@@ -61,7 +65,8 @@ TEST_MHD_PROGRAM_DEPS = \
   source/mhd/boundaries.hpp \
   source/mhd/initialize.hpp \
   source/mhd/save.hpp \
-  source/mhd/solve.hpp
+  source/mhd/solve.hpp \
+  source/mhd/N_solve.hpp
 
 TEST_MHD_COMPILE_COMMOM = \
   $< -o $@ \
@@ -79,15 +84,10 @@ tests/mhd/reference.exe: \
   $(TEST_MHD_COMMON_DEPS)
 	@printf "CXX $<\n" && $(CXX) $(TEST_MHD_COMPILE_COMMOM)
 
-tests/mhd/hd2gnuplot.exe: \
-  tests/mhd/hd2gnuplot.cpp \
+tests/mhd/two_reference.exe: \
+  tests/mhd/two_reference.cpp \
   $(TEST_MHD_COMMON_DEPS)
-	@printf "MPICXX $<\n" && $(MPICXX) $(TEST_MHD_COMPILE_COMMOM) \
-	  $(DCCRG_CPPFLAGS) \
-	  $(PRETTYPRINT_CPPFLAGS) \
-	  $(ZOLTAN_CPPFLAGS) \
-	  $(ZOLTAN_LDFLAGS) \
-	  $(ZOLTAN_LIBS)
+	@printf "CXX $<\n" && $(CXX) $(TEST_MHD_COMPILE_COMMOM)
 
 tests/mhd/mhd2ascii.exe: \
   tests/mhd/mhd2ascii.cpp \
@@ -117,6 +117,16 @@ tests/mhd/mhd2vtk.exe: \
 	  $(ZOLTAN_LDFLAGS) \
 	  $(ZOLTAN_LIBS)
 
+tests/mhd/2mhd2gnuplot.exe: \
+  tests/mhd/2mhd2gnuplot.cpp \
+  $(TEST_MHD_COMMON_DEPS)
+	@printf "MPICXX $<\n" && $(MPICXX) $(TEST_MHD_COMPILE_COMMOM) \
+	  $(DCCRG_CPPFLAGS) \
+	  $(PRETTYPRINT_CPPFLAGS) \
+	  $(ZOLTAN_CPPFLAGS) \
+	  $(ZOLTAN_LDFLAGS) \
+	  $(ZOLTAN_LIBS)
+
 tests/mhd/test.exe: \
   tests/mhd/test.cpp \
   $(TEST_MHD_PROGRAM_DEPS)
@@ -131,10 +141,26 @@ tests/mhd/test.exe: \
 	  $(ZOLTAN_LDFLAGS) \
 	  $(ZOLTAN_LIBS)
 
+tests/mhd/two_test.exe: \
+  tests/mhd/two_test.cpp \
+  $(TEST_MHD_PROGRAM_DEPS)
+	@printf "MPICXX $<\n" && $(MPICXX) $(TEST_MHD_COMPILE_COMMOM) \
+	  $(DCCRG_CPPFLAGS) \
+	  $(MUPARSERX_CPPFLAGS) \
+	  $(MUPARSERX_LDFLAGS) \
+	  $(MUPARSERX_LIBS) \
+	  $(PHIPROF_CPPFLAGS) \
+	  $(PRETTYPRINT_CPPFLAGS) \
+	  $(ZOLTAN_CPPFLAGS) \
+	  $(ZOLTAN_LDFLAGS) \
+	  $(ZOLTAN_LIBS)
+
 tests/mhd/reference.tst_hll_athena: tests/mhd/reference.exe
 	@printf RUN\ HLL_Athena\ $<...\ \  && $(RUN) ./$< --solver hll_athena && printf "PASS\n" && touch $@
-
 tests/mhd/reference.tst_hlld_athena: tests/mhd/reference.exe
 	@printf RUN\ HLLD_Athena\ $<...\ \  && $(RUN) ./$< --solver hlld_athena && printf "PASS\n" && touch $@
 tests/mhd/reference.tst_roe_athena: tests/mhd/reference.exe
 	@printf RUN\ Roe_Athena\ $<...\ \  && $(RUN) ./$< --solver roe_athena && printf "PASS\n" && touch $@
+
+tests/mhd/two_reference.tst_hll_athena: tests/mhd/two_reference.exe
+	@printf RUN\ HLL_Athena\ $<...\ \  && $(RUN) ./$< --solver hll_athena && printf "PASS\n" && touch $@

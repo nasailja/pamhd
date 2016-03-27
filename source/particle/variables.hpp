@@ -290,6 +290,7 @@ using Cell = gensimcell::Cell<
 	Value_Boundary_Id_Field,
 	pamhd::mhd::MPI_Rank,
 	pamhd::mhd::Resistivity,
+	pamhd::mhd::Magnetic_Field_Resistive,
 	pamhd::mhd::Magnetic_Field_Temp,
 	pamhd::mhd::Magnetic_Field_Divergence,
 	pamhd::mhd::Scalar_Potential_Gradient,

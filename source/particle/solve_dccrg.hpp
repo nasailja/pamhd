@@ -416,7 +416,7 @@ template<
 
 
 template<
-	class Nr_Particles_External_T,
+	class Nr_Particles_Internal_T,
 	class Particles_Internal_T,
 	class Particles_External_T,
 	class Particle_Destination_T,
@@ -425,7 +425,7 @@ template<
 	const std::vector<uint64_t>& cell_ids,
 	dccrg::Dccrg<Cell, dccrg::Cartesian_Geometry>& grid
 ) {
-	constexpr Nr_Particles_External_T Nr_Ext{};
+	constexpr Nr_Particles_Internal_T Nr_Int{};
 	constexpr Particles_Internal_T Part_Int{};
 	constexpr Particles_External_T Part_Ext{};
 	constexpr Particle_Destination_T Dest{};
@@ -474,6 +474,8 @@ template<
 				}
 			}
 		}
+
+		cell_data[Nr_Int] = cell_data[Part_Int].size();
 	}
 }
 

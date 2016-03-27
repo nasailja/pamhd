@@ -360,14 +360,8 @@ Writes given advection simulation to a file plottable with gnuplot.
 Returns the name of the file written which
 is derived from given simulation time.
 */
-template <
-	class MHD_T,
-	class Mass_Density_T,
-	class Momentum_Density_T,
-	class Total_Energy_Density_T,
-	class Magnetic_Field_T
-> std::string plot_mhd(
-	const Grid& grid,
+std::string plot_mhd(
+	Grid& grid,
 	const double simulation_time,
 	const double adiabatic_index,
 	const double vacuum_permeability
@@ -402,96 +396,55 @@ template <
 
 	std::ofstream gnuplot_file(gnuplot_file_name);
 
-	// scale outputs to -1 < value < 1
-	std::array<double, 4> ranges;
-	for (auto& range: ranges) {
-		range = 0;
-	}
-	for (size_t cell_i = 0; cell_i < std::tuple_size<Grid>::value; cell_i++) {
-		const auto& cell_data = grid[cell_i];
-		const auto& state = cell_data[MHD_T()];
-		const auto& mass = state[Mass_Density_T()];
-		const auto& mom = state[Momentum_Density_T()];
-		const auto& mag = state[Magnetic_Field_T()];
-		const auto vel(mom / mass);
-		const double p
-			= pamhd::mhd::get_pressure(
-				mass,
-				mom,
-				state[Total_Energy_Density_T()],
-				mag,
-				adiabatic_index,
-				vacuum_permeability
-			);
-
-		if (ranges[0] < mass) ranges[0] = mass;
-		if (ranges[1] < std::fabs(vel[0])) ranges[1] = std::fabs(vel[0]);
-		if (ranges[1] < std::fabs(vel[1])) ranges[1] = std::fabs(vel[1]);
-		if (ranges[1] < std::fabs(vel[2])) ranges[1] = std::fabs(vel[2]);
-		if (ranges[2] < std::fabs(mag[0])) ranges[2] = std::fabs(mag[0]);
-		if (ranges[2] < std::fabs(mag[1])) ranges[2] = std::fabs(mag[1]);
-		if (ranges[2] < std::fabs(mag[2])) ranges[2] = std::fabs(mag[2]);
-		if (ranges[3] < p) ranges[3] = p;
-	}
-	// don't divide by 0
-	for (auto& range: ranges) {
-		if (range == 0) {
-			range = 1;
-		}
-	}
 	gnuplot_file
 		<< "set term png enhanced\nset output '"
 		<< plot_file_name
-		<< "'\nset xlabel 'X / X_0 (X_0 = "
-		<< boost::lexical_cast<std::string>(get_grid_end() - get_grid_start())
-		<< " m)'\nset ylabel 'F / F_{max}'\n"
+		<< "'\nset xlabel 'position'\n"
+		   "set format y '%1.2e'\n"
+		   "set format y2 '%1.2e'\n"
+		   "set ylabel 'density/pressure'\n"
+		   "set ytics nomirror\n"
+		   "set y2tics nomirror\n"
 		   "set key horizontal outside bottom\n"
-		   "set yrange [0 : 1.05]\n"
 		   "plot "
 		     "'-' using 1:2 with line linewidth 2 title 'density', "
-		     "'-' u 1:2 w l lw 2 t 'pressure'\n"
+		     "'-' u 1:2 axis x1y2 w l lw 2 t 'pressure'\n"
 		     ;
 
 	// mass density
 	for (size_t cell_i = 0; cell_i < std::tuple_size<Grid>::value; cell_i++) {
-		const auto& cell = grid[cell_i];
+		auto& cell_data = grid[cell_i];
 		const double x
 			= get_cell_center(cell_i)
 			/ (get_grid_end() - get_grid_start());
-		gnuplot_file << x << " "
-			<< cell[MHD_T()][Mass_Density_T()] / ranges[0] << "\n";
+		gnuplot_file << x << " " << Mas(cell_data) << "\n";
 	}
 	gnuplot_file << "end\n";
 	// pressure
 	for (size_t cell_i = 0; cell_i < std::tuple_size<Grid>::value; cell_i++) {
-		const auto& cell_data = grid[cell_i];
-		const auto& state = cell_data[MHD_T()];
+		auto& cell_data = grid[cell_i];
 		const double x = get_cell_center(cell_i) / (get_grid_end() - get_grid_start());
 		gnuplot_file
 			<< x << " "
 			<< pamhd::mhd::get_pressure(
-				state[Mass_Density_T()],
-				state[Momentum_Density_T()],
-				state[Total_Energy_Density_T()],
-				state[Magnetic_Field_T()],
+				Mas(cell_data),
+				Mom(cell_data),
+				Nrj(cell_data),
+				Mag(cell_data),
 				adiabatic_index,
 				vacuum_permeability
-			) / ranges[3]
+			)
 			<< "\n";
 	}
 	gnuplot_file << "end\n";
 
-	normalization_string << std::scientific << std::setprecision(1);
-	normalization_string << ranges[1];
 	gnuplot_file
 		<< "set term png enhanced\nset output '"
 		<< v_plot_file_name
-		<< "'\nset xlabel 'X / X_{max} (X_{max} = "
-		<< boost::lexical_cast<std::string>(get_grid_end() - get_grid_start())
-		<< " m)'\nset ylabel 'V / V_{max} (V_{max} = "
-		<< normalization_string.str()
-		<< " m/s)'\nset key horizontal outside bottom\n"
-		   "set yrange [-1.05 : 1.05]\n"
+		<< "'\nset xlabel 'position'\n"
+		   "set ylabel 'velocity'\n"
+		   "unset y2tics\n"
+		   "set key horizontal outside bottom\n"
 		   "plot "
 		     "'-' u 1:2 w l lw 2 t 'v_x', "
 		     "'-' u 1:2 w l lw 2 t 'v_y', "
@@ -499,53 +452,35 @@ template <
 		;
 	// vx
 	for (size_t cell_i = 0; cell_i < std::tuple_size<Grid>::value; cell_i++) {
-		const auto& cell_data = grid[cell_i];
-		const auto& state = cell_data[MHD_T()];
-		const auto& m = state[Momentum_Density_T()];
-		const auto& rho = state[Mass_Density_T()];
-		const auto v(m / rho);
-		const double x = get_cell_center(cell_i) / (get_grid_end() - get_grid_start());
-		gnuplot_file << x << " "
-			<< v[0] / ranges[1] << "\n";
+		const double
+			x = get_cell_center(cell_i) / (get_grid_end() - get_grid_start()),
+			vx = Mom(grid[cell_i])[0] / Mas(grid[cell_i]);
+		gnuplot_file << x << " " << vx << "\n";
 	}
 	gnuplot_file << "end\n";
 	// vy
 	for (size_t cell_i = 0; cell_i < std::tuple_size<Grid>::value; cell_i++) {
-		const auto& cell_data = grid[cell_i];
-		const auto& state = cell_data[MHD_T()];
-		const auto& m = state[Momentum_Density_T()];
-		const auto& rho = state[Mass_Density_T()];
-		const auto v(m / rho);
-		const double x = get_cell_center(cell_i) / (get_grid_end() - get_grid_start());
-		gnuplot_file << x << " "
-			<< v[1] / ranges[1] << "\n";
+		const double
+			x = get_cell_center(cell_i) / (get_grid_end() - get_grid_start()),
+			vy = Mom(grid[cell_i])[1] / Mas(grid[cell_i]);
+		gnuplot_file << x << " " << vy << "\n";
 	}
 	gnuplot_file << "end\n";
 	// vz
 	for (size_t cell_i = 0; cell_i < std::tuple_size<Grid>::value; cell_i++) {
-		const auto& cell_data = grid[cell_i];
-		const auto& state = cell_data[MHD_T()];
-		const auto& m = state[Momentum_Density_T()];
-		const auto& rho = state[Mass_Density_T()];
-		const auto v(m / rho);
-		const double x = get_cell_center(cell_i) / (get_grid_end() - get_grid_start());
-		gnuplot_file << x << " "
-			<< v[2] / ranges[1] << "\n";
+		const double
+			x = get_cell_center(cell_i) / (get_grid_end() - get_grid_start()),
+			vz = Mom(grid[cell_i])[2] / Mas(grid[cell_i]);
+		gnuplot_file << x << " " << vz << "\n";
 	}
 	gnuplot_file << "end\n";
 
-	normalization_string.str("");
-	normalization_string << ranges[2];
 	gnuplot_file
 		<< "set term png enhanced\nset output '"
 		<< B_plot_file_name
-		<< "'\nset xlabel 'X / X_0 (X_0 = "
-		<< boost::lexical_cast<std::string>(get_grid_end() - get_grid_start())
-		<< " m)'\nset ylabel 'B / B_{max} (B_{max} = "
-		<< normalization_string.str()
-		<< " T)'\nset key horizontal outside bottom\n"
+		<< "'\nset xlabel 'position'\n"
+		   "set ylabel 'magnetic field'\n"
 		   "set key horizontal outside bottom\n"
-		   "set yrange [-1.05 : 1.05]\n"
 		   "plot "
 		     "'-' u 1:2 w l lw 2 t 'B_x', "
 		     "'-' u 1:2 w l lw 2 t 'B_y', "
@@ -556,8 +491,7 @@ template <
 		const double x
 			= get_cell_center(cell_i)
 			/ (get_grid_end() - get_grid_start());
-		gnuplot_file << x << " "
-			<< grid[cell_i][MHD_T()][Magnetic_Field_T()][0] / ranges[2] << "\n";
+		gnuplot_file << x << " " << Mag(grid[cell_i])[0] << "\n";
 	}
 	gnuplot_file << "end\n";
 	// By
@@ -565,8 +499,7 @@ template <
 		const double x
 			= get_cell_center(cell_i)
 			/ (get_grid_end() - get_grid_start());
-		gnuplot_file << x << " "
-			<< grid[cell_i][MHD_T()][Magnetic_Field_T()][1] / ranges[2] << "\n";
+		gnuplot_file << x << " " << Mag(grid[cell_i])[1] << "\n";
 	}
 	gnuplot_file << "end\n";
 	// Bz
@@ -574,8 +507,7 @@ template <
 		const double x
 			= get_cell_center(cell_i)
 			/ (get_grid_end() - get_grid_start());
-		gnuplot_file << x << " "
-			<< grid[cell_i][MHD_T()][Magnetic_Field_T()][2] / ranges[2] << "\n";
+		gnuplot_file << x << " " << Mag(grid[cell_i])[2] << "\n";
 	}
 	gnuplot_file << "end\n";
 
@@ -588,32 +520,25 @@ Writes given advection simulation to an ascii file.
 Returns the name of the file written which
 is derived from given solver name.
 */
-template <
-	class MHD_T,
-	class Mass_Density_T,
-	class Momentum_Density_T,
-	class Total_Energy_Density_T,
-	class Magnetic_Field_T
-> void save_mhd(
+void save_mhd(
 	const std::string& solver,
-	const Grid& grid
+	Grid& grid
 ) {
 	const std::string file_name("mhd_" + solver + ".dat");
 
 	std::ofstream outfile(file_name);
 	outfile << std::setprecision(16) << std::scientific;
 
-	for (const auto& cell_data: grid) {
-		const auto& state = cell_data[MHD_T()];
+	for (auto& cell_data: grid) {
 		outfile
-			<< state[Mass_Density_T()] << " "
-			<< state[Momentum_Density_T()][0] << " "
-			<< state[Momentum_Density_T()][1] << " "
-			<< state[Momentum_Density_T()][2] << " "
-			<< state[Total_Energy_Density_T()] << " "
-			<< state[Magnetic_Field_T()][0] << " "
-			<< state[Magnetic_Field_T()][1] << " "
-			<< state[Magnetic_Field_T()][2] << "\n";
+			<< Mas(cell_data) << " "
+			<< Mom(cell_data)[0] << " "
+			<< Mom(cell_data)[1] << " "
+			<< Mom(cell_data)[2] << " "
+			<< Nrj(cell_data) << " "
+			<< Mag(cell_data)[0] << " "
+			<< Mag(cell_data)[1] << " "
+			<< Mag(cell_data)[2] << "\n";
 	}
 	outfile << std::endl;
 }
@@ -629,14 +554,8 @@ template <class T> T get_relative_error(const T a, const T b)
 }
 
 
-template <
-	class MHD_T,
-	class Mass_Density_T,
-	class Momentum_Density_T,
-	class Total_Energy_Density_T,
-	class Magnetic_Field_T
-> void verify_mhd(
-	const Grid& grid,
+void verify_mhd(
+	Grid& grid,
 	const std::string& file_name
 ) {
 	std::ifstream infile(file_name);
@@ -659,11 +578,16 @@ template <
 		min_value = 1e-25;
 
 	for (size_t cell_i = 0; cell_i < std::tuple_size<Grid>::value; cell_i++) {
-		typename Mass_Density_T::data_type ref_rho;
-		typename Momentum_Density_T::data_type ref_mom;
-		typename Total_Energy_Density_T::data_type ref_nrj;
-		typename Magnetic_Field_T::data_type ref_mag;
+		auto& cell = grid[cell_i];
+		const auto rho = Mas(cell);
+		const auto mom = Mom(cell);
+		const auto nrj = Nrj(cell);
+		const auto mag = Mag(cell);
 
+		auto ref_rho = rho;
+		auto ref_mom = mom;
+		auto ref_nrj = nrj;
+		auto ref_mag = mag;
 		infile
 			>> ref_rho
 			>> ref_mom[0]
@@ -673,12 +597,6 @@ template <
 			>> ref_mag[0]
 			>> ref_mag[1]
 			>> ref_mag[2];
-
-		const auto& state = grid[cell_i][MHD_T()];
-		const auto rho = state[Mass_Density_T()];
-		const auto mom = state[Momentum_Density_T()];
-		const auto nrj = state[Total_Energy_Density_T()];
-		const auto mag = state[Magnetic_Field_T()];
 
 		if (
 			(rho > min_value or ref_rho > min_value)
@@ -868,13 +786,7 @@ int main(int argc, char* argv[])
 
 	if (plot) {
 		const std::string mhd_gnuplot_file_name
-			= plot_mhd<
-				pamhd::mhd::MHD_State_Conservative,
-				pamhd::mhd::Mass_Density,
-				pamhd::mhd::Momentum_Density,
-				pamhd::mhd::Total_Energy_Density,
-				pamhd::mhd::Magnetic_Field
-			>(grid, 0, adiabatic_index, vacuum_permeability);
+			= plot_mhd(grid, 0, adiabatic_index, vacuum_permeability);
 		system(("gnuplot " + mhd_gnuplot_file_name).c_str());
 		if (verbose) {
 			cout << "Initial state plotted from file " << mhd_gnuplot_file_name << endl;
@@ -924,14 +836,14 @@ int main(int argc, char* argv[])
 			if (verbose) {
 				cout << "Plotting simulation at time " << simulation_time << endl;
 			}
-			const std::string mhd_gnuplot_file_name
-				= plot_mhd<
-					pamhd::mhd::MHD_State_Conservative,
-					pamhd::mhd::Mass_Density,
-					pamhd::mhd::Momentum_Density,
-					pamhd::mhd::Total_Energy_Density,
-					pamhd::mhd::Magnetic_Field
-				>(grid, simulation_time, adiabatic_index, vacuum_permeability);
+			const std::string
+				mhd_gnuplot_file_name
+					= plot_mhd(
+						grid,
+						simulation_time,
+						adiabatic_index,
+						vacuum_permeability
+					);
 			system(("gnuplot " + mhd_gnuplot_file_name).c_str());
 		}
 	}
@@ -940,13 +852,7 @@ int main(int argc, char* argv[])
 		if (verbose) {
 			cout << "Saving MHD at time " << simulation_time << endl;
 		}
-		save_mhd<
-			pamhd::mhd::MHD_State_Conservative,
-			pamhd::mhd::Mass_Density,
-			pamhd::mhd::Momentum_Density,
-			pamhd::mhd::Total_Energy_Density,
-			pamhd::mhd::Magnetic_Field
-		>(solver_str, grid);
+		save_mhd(solver_str, grid);
 	}
 
 	if (not no_verify) {
@@ -956,13 +862,7 @@ int main(int argc, char* argv[])
 			cout << "Verifying result against file " << reference_name << endl;
 		}
 
-		verify_mhd<
-			pamhd::mhd::MHD_State_Conservative,
-			pamhd::mhd::Mass_Density,
-			pamhd::mhd::Momentum_Density,
-			pamhd::mhd::Total_Energy_Density,
-			pamhd::mhd::Magnetic_Field
-		>(grid, reference_name);
+		verify_mhd(grid, reference_name);
 	}
 
 	if (verbose) {

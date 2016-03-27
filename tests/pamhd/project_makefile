@@ -43,10 +43,10 @@ TEST_PAMHD_COMMON_DEPS = \
   source/boundaries/variable_to_option.hpp \
   source/boundaries/variable_to_option_vector.hpp \
   source/mhd/common.hpp \
-  source/mhd/hll_athena.hpp \
+  source/mhd/N_hll_athena.hpp \
   source/mhd/initialize.hpp \
   source/mhd/save.hpp \
-  source/mhd/solve.hpp \
+  source/mhd/N_solve.hpp \
   source/mhd/variables.hpp \
   source/particle/accumulate.hpp \
   source/particle/accumulate_dccrg.hpp \
@@ -55,7 +55,8 @@ TEST_PAMHD_COMMON_DEPS = \
   source/particle/initialize.hpp \
   source/particle/save.hpp \
   source/particle/solve_dccrg.hpp \
-  source/particle/variables.hpp
+  source/particle/variables.hpp \
+  source/pamhd/initialize.hpp
 
 TEST_PAMHD_COMPILE_COMMOM = \
   $< -o $@ \

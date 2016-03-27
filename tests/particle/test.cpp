@@ -44,6 +44,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "grid_options.hpp"
 #include "mhd/boundaries.hpp"
 #include "mhd/common.hpp"
+#include "mhd/save.hpp"
 #include "mhd/solve.hpp"
 #include "mhd/hll_athena.hpp"
 #include "mhd/hlld_athena.hpp"
@@ -253,6 +254,16 @@ const auto Mag_div
 	= [](Cell& cell_data)->typename pamhd::mhd::Magnetic_Field_Divergence::data_type&{
 		return cell_data[pamhd::mhd::Magnetic_Field_Divergence()];
 	};
+// electrical resistivity
+const auto Res
+	= [](Cell& cell_data)->typename pamhd::mhd::Resistivity::data_type&{
+		return cell_data[pamhd::mhd::Resistivity()];
+	};
+// adjustment to magnetic field due to resistivity
+const auto Mag_res
+	= [](Cell& cell_data)->typename pamhd::mhd::Magnetic_Field_Resistive::data_type&{
+		return cell_data[pamhd::mhd::Magnetic_Field_Resistive()];
+	};
 // magnetic field for propagating particles
 const auto Mag_part
 	= [](Cell& cell_data)->typename pamhd::mhd::Magnetic_Field::data_type&{
@@ -391,6 +402,11 @@ int main(int argc, char* argv[])
 		std::array<double, 3>
 	> copy_bdy_particle;
 
+	mup::Value J_val;
+	mup::Variable J_var(&J_val);
+	pamhd::boundaries::Variable_To_Option<pamhd::mhd::Resistivity> resistivity_bdy;
+	resistivity_bdy.add_variable(pamhd::mhd::Resistivity(), "J", J_var);
+
 	pamhd::grid::Options grid_options;
 	grid_options.data.set_expression(pamhd::grid::Number_Of_Cells(), "{1, 1, 1}");
 	grid_options.data.set_expression(pamhd::grid::Volume(), "{1, 1, 1}");
@@ -404,6 +420,7 @@ int main(int argc, char* argv[])
 		nr_initial_populations = 1;
 	double
 		max_time_step = std::numeric_limits<double>::infinity(),
+		save_mhd_n = -1,
 		save_particle_n = -1,
 		start_time = 0,
 		end_time = 1,
@@ -420,7 +437,8 @@ int main(int argc, char* argv[])
 		mhd_solver_str("roe_athena"),
 		config_file_name(""),
 		lb_name("RCB"),
-		output_directory("./");
+		output_directory("./"),
+		resistivity("0");
 
 	boost::program_options::options_description
 		general_options("Usage: program_name [options], where options are"),
@@ -455,7 +473,12 @@ int main(int argc, char* argv[])
 		("save-particle-n",
 			boost::program_options::value<double>(&save_particle_n)
 				->default_value(save_particle_n),
-			"Save results every arg seconds, 0 saves "
+			"Save particle results every arg seconds, 0 saves "
+			"initial and final states, -1 doesn't save")
+		("save-mhd-n",
+			boost::program_options::value<double>(&save_mhd_n)
+				->default_value(save_mhd_n),
+			"Save fluid results every arg seconds, 0 saves "
 			"initial and final states, -1 doesn't save")
 		("nr-initial-populations",
 			boost::program_options::value<size_t>(&nr_initial_populations)
@@ -473,6 +496,12 @@ int main(int argc, char* argv[])
 			boost::program_options::value<double>(&vacuum_permeability)
 				->default_value(vacuum_permeability),
 			"https://en.wikipedia.org/wiki/Vacuum_permeability in V*s/(A*m)")
+		/*TODO ("resistivity",
+			boost::program_options::value<std::string>(&resistivity)
+				->default_value(resistivity),
+			"Use expression arg as electric resistivity (>= 0, can reference "
+			"simulation time with t, current cell position with r[0], r[1], "
+			"r[2] and electric current density with J)")*/
 		("adiabatic-index",
 			boost::program_options::value<double>(&adiabatic_index)
 				->default_value(adiabatic_index),
@@ -865,6 +894,7 @@ int main(int argc, char* argv[])
 	}
 
 	grid.balance_load();
+	const auto& cell_data_pointers = grid.get_cell_data_pointers();
 
 	// create copies of remote neighbor cells' data
 	grid.update_copies_of_remote_neighbors();
@@ -941,6 +971,7 @@ int main(int argc, char* argv[])
 		cout << "done." << endl;
 	}
 
+	resistivity_bdy.set_expression(pamhd::mhd::Resistivity(), resistivity);
 
 	const auto mhd_solver
 		= [&mhd_solver_str](){
@@ -988,6 +1019,7 @@ int main(int argc, char* argv[])
 		max_dt = 0,
 		simulation_time = start_time,
 		next_particle_save = simulation_time + save_particle_n,
+		next_mhd_save = simulation_time + save_mhd_n,
 		next_rem_div_B = simulation_time + remove_div_B_n;
 	size_t simulated_steps = 0;
 
@@ -1012,6 +1044,31 @@ int main(int argc, char* argv[])
 		value_bdy_field,
 		copy_bdy_field
 	);
+
+	// set resistivity before start until it's implemented
+	for (const auto& cell_item: cell_data_pointers) {
+		const auto& cell_id = get<0>(cell_item);
+		if (cell_id == dccrg::error_cell) {
+			continue;
+		}
+
+		// skip neighbor cells
+		const auto& offset = get<2>(cell_item);
+		if (offset[0] != 0 or offset[1] != 0 or offset[2] != 0) {
+			continue;
+		}
+
+		auto& cell_data = *get<1>(cell_item);
+
+		const auto cell_center = grid.geometry.get_center(cell_id);
+		Res(cell_data) = resistivity_bdy.get_data(
+			pamhd::mhd::Resistivity(),
+				cell_center,
+				simulation_time
+			);
+
+		Mag_res(cell_data) *= -Res(cell_data);
+	}
 
 	while (simulation_time < end_time) {
 		simulated_steps++;
@@ -1100,16 +1157,6 @@ int main(int argc, char* argv[])
 			Cur(*cell_data) /= vacuum_permeability;
 		}
 
-		// local: use MHD B for propagating particles
-		for (const auto& cell: cell_ids) {
-			auto* const cell_data = grid[cell];
-			if (cell_data == nullptr) {
-				std::cerr <<  __FILE__ << "(" << __LINE__ << ")" << std::endl;
-				abort();
-			}
-			Mag_part(*cell_data) = Mag(*cell_data);
-		}
-
 		grid.wait_remote_neighbor_copy_update_receives();
 
 		// outer: J for E = (J - V) x B
@@ -1126,16 +1173,6 @@ int main(int argc, char* argv[])
 				abort();
 			}
 			Cur(*cell_data) /= vacuum_permeability;
-		}
-
-		// remote B also required for propagating local particles
-		for (const auto& cell: remote_cell_ids) {
-			auto* const cell_data = grid[cell];
-			if (cell_data == nullptr) {
-				std::cerr <<  __FILE__ << "(" << __LINE__ << ")" << std::endl;
-				abort();
-			}
-			Mag_part(*cell_data) = Mag(*cell_data);
 		}
 
 		grid.wait_remote_neighbor_copy_update_sends();
@@ -1314,7 +1351,7 @@ int main(int argc, char* argv[])
 		);
 
 		pamhd::particle::incorporate_external_particles<
-			pamhd::particle::Nr_Particles_External,
+			pamhd::particle::Nr_Particles_Internal,
 			pamhd::particle::Particles_Internal,
 			pamhd::particle::Particles_External,
 			pamhd::particle::Destination_Cell
@@ -1323,7 +1360,7 @@ int main(int argc, char* argv[])
 		grid.wait_remote_neighbor_copy_update_receives();
 
 		pamhd::particle::incorporate_external_particles<
-			pamhd::particle::Nr_Particles_External,
+			pamhd::particle::Nr_Particles_Internal,
 			pamhd::particle::Particles_Internal,
 			pamhd::particle::Particles_External,
 			pamhd::particle::Destination_Cell
@@ -1442,8 +1479,6 @@ int main(int argc, char* argv[])
 		/*
 		Boundaries
 		*/
-
-		const auto& cell_data_pointers = grid.get_cell_data_pointers();
 
 		// value boundaries
 		for (const auto& cell_item: cell_data_pointers) {
@@ -1578,14 +1613,39 @@ int main(int argc, char* argv[])
 			true,
 			pamhd::mhd::MHD_State_Conservative(),
 			pamhd::particle::Cell_Type_Field(),
-			pamhd::particle::Cell_Type_Particle()
+			pamhd::particle::Cell_Type_Particle(),
+			pamhd::particle::Nr_Particles_External(),
+			pamhd::particle::Nr_Particles_Internal()
 		);
 		grid.update_copies_of_remote_neighbors();
 		Cell::set_transfer_all(
 			false,
 			pamhd::mhd::MHD_State_Conservative(),
 			pamhd::particle::Cell_Type_Field(),
-			pamhd::particle::Cell_Type_Particle()
+			pamhd::particle::Cell_Type_Particle(),
+			pamhd::particle::Nr_Particles_External(),
+			pamhd::particle::Nr_Particles_Internal()
+		);
+
+		// update particle lists
+		pamhd::particle::resize_receiving_containers<
+			pamhd::particle::Nr_Particles_Internal,
+			pamhd::particle::Particles_Internal
+		>(remote_cell_ids, grid);
+		pamhd::particle::resize_receiving_containers<
+			pamhd::particle::Nr_Particles_External,
+			pamhd::particle::Particles_External
+		>(remote_cell_ids, grid);
+		Cell::set_transfer_all(
+			true,
+			pamhd::particle::Particles_Internal(),
+			pamhd::particle::Particles_External()
+		);
+		grid.update_copies_of_remote_neighbors();
+		Cell::set_transfer_all(
+			false,
+			pamhd::particle::Particles_Internal(),
+			pamhd::particle::Particles_External()
 		);
 
 		// copy boundaries
@@ -1744,6 +1804,48 @@ int main(int argc, char* argv[])
 					<< std::endl;
 				MPI_Finalize();
 				return EXIT_FAILURE;
+			}
+
+			if (verbose && rank == 0) {
+				cout << "done." << endl;
+			}
+		}
+
+
+		if (
+			(save_mhd_n >= 0 and (simulation_time == 0 or simulation_time >= end_time))
+			or (save_mhd_n > 0 and simulation_time >= next_mhd_save)
+		) {
+			if (next_mhd_save <= simulation_time) {
+				next_mhd_save += save_mhd_n;
+			}
+
+			if (verbose && rank == 0) {
+				cout << "Saving fluid at time " << simulation_time << "... ";
+			}
+
+			if (
+				not pamhd::mhd::save(
+					boost::filesystem::canonical(
+						boost::filesystem::path(output_directory)
+					).append("mhd_").generic_string(),
+					grid,
+					1,
+					simulation_time,
+					adiabatic_index,
+					proton_mass,
+					vacuum_permeability,
+					pamhd::mhd::MHD_State_Conservative(),
+					pamhd::mhd::Electric_Current_Density(),
+					pamhd::particle::Cell_Type_Field(),
+					pamhd::mhd::MPI_Rank(),
+					pamhd::mhd::Resistivity()
+				)
+			) {
+				std::cerr <<  __FILE__ << "(" << __LINE__ << "): "
+					"Couldn't save mhd result."
+					<< std::endl;
+				abort();
 			}
 
 			if (verbose && rank == 0) {

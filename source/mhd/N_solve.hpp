@@ -1,5 +1,5 @@
 /*
-Solves the MHD part of PAMHD using an external flux function.
+Particle-assisted version of solve.hpp.
 
 Copyright 2014, 2015 Ilja Honkonen
 All rights reserved.
@@ -30,8 +30,8 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef PAMHD_MHD_SOLVE_HPP
-#define PAMHD_MHD_SOLVE_HPP
+#ifndef PAMHD_MHD_N_SOLVE_HPP
+#define PAMHD_MHD_N_SOLVE_HPP
 
 
 #include "cmath"
@@ -51,36 +51,39 @@ namespace mhd {
 /*!
 Advances MHD solution for one time step of length dt with given solver.
 
+*_Getters should be a pair of objects that return a reference to given variable
+of population 1 and 2 respectively when given a reference to simulation cell data. 
+
 Returns the maximum allowed length of time step for the next step on this process.
 */
 template <
 	class Solver,
 	class Cell,
 	class Geometry,
-	class Mass_Density_Getter,
-	class Momentum_Density_Getter,
-	class Total_Energy_Density_Getter,
+	class Mass_Density_Getters,
+	class Momentum_Density_Getters,
+	class Total_Energy_Density_Getters,
 	class Magnetic_Field_Getter,
-	class Mass_Density_Flux_Getter,
-	class Momentum_Density_Flux_Getter,
-	class Total_Energy_Density_Flux_Getter,
+	class Mass_Density_Flux_Getters,
+	class Momentum_Density_Flux_Getters,
+	class Total_Energy_Density_Flux_Getters,
 	class Magnetic_Field_Flux_Getter,
 	class Cell_Type_Getter,
 	class Cell_Type
-> std::pair<double, size_t> solve(
+> std::pair<double, size_t> N_solve(
 	const Solver solver,
 	const size_t solve_start_index,
 	dccrg::Dccrg<Cell, Geometry>& grid,
 	const double dt,
 	const double adiabatic_index,
 	const double vacuum_permeability,
-	const Mass_Density_Getter Mas,
-	const Momentum_Density_Getter Mom,
-	const Total_Energy_Density_Getter Nrj,
+	const Mass_Density_Getters Mas,
+	const Momentum_Density_Getters Mom,
+	const Total_Energy_Density_Getters Nrj,
 	const Magnetic_Field_Getter Mag,
-	const Mass_Density_Flux_Getter Mas_f,
-	const Momentum_Density_Flux_Getter Mom_f,
-	const Total_Energy_Density_Flux_Getter Nrj_f,
+	const Mass_Density_Flux_Getters Mas_f,
+	const Momentum_Density_Flux_Getters Mom_f,
+	const Total_Energy_Density_Flux_Getters Nrj_f,
 	const Magnetic_Field_Flux_Getter Mag_f,
 	const Cell_Type_Getter Cell_t,
 	const Cell_Type normal_cell,
@@ -229,35 +232,36 @@ template <
 				);
 			}
 
+			// returns total plasma state with rotated vectors for solver
+			const auto get_total_state
+				= [&](Cell& cell_data) {
+					MHD_Conservative state;
+					state[mas_int] = Mas.first(cell_data) + Mas.second(cell_data);
+					state[mom_int]
+						= get_rotated_vector(Mom.first(cell_data), abs(neighbor_dir))
+						+ get_rotated_vector(Mom.second(cell_data), abs(neighbor_dir));
+					state[nrj_int] = Nrj.first(cell_data) + Nrj.second(cell_data);
+					state[mag_int] = get_rotated_vector(Mag(cell_data), abs(neighbor_dir));
+					return state;
+				};
+
 			// take into account direction of neighbor from cell
 			MHD_Conservative state_neg, state_pos;
+			double nrj_correction_neg, nrj_correction_pos;
 			if (neighbor_dir > 0) {
-				state_neg[mas_int] = Mas(*cell_data);
-				state_neg[mom_int] = get_rotated_vector(Mom(*cell_data), abs(neighbor_dir));
-				state_neg[nrj_int] = Nrj(*cell_data);
-				state_neg[mag_int] = get_rotated_vector(Mag(*cell_data), abs(neighbor_dir));
-
-				state_pos[mas_int] = Mas(*neighbor_data);
-				state_pos[mom_int] = get_rotated_vector(Mom(*neighbor_data), abs(neighbor_dir));
-				state_pos[nrj_int] = Nrj(*neighbor_data);
-				state_pos[mag_int] = get_rotated_vector(Mag(*neighbor_data), abs(neighbor_dir));
+				state_neg = get_total_state(*cell_data);
+				state_pos = get_total_state(*neighbor_data);
 			} else {
-				state_pos[mas_int] = Mas(*cell_data);
-				state_pos[mom_int] = get_rotated_vector(Mom(*cell_data), abs(neighbor_dir));
-				state_pos[nrj_int] = Nrj(*cell_data);
-				state_pos[mag_int] = get_rotated_vector(Mag(*cell_data), abs(neighbor_dir));
-
-				state_neg[mas_int] = Mas(*neighbor_data);
-				state_neg[mom_int] = get_rotated_vector(Mom(*neighbor_data), abs(neighbor_dir));
-				state_neg[nrj_int] = Nrj(*neighbor_data);
-				state_neg[mag_int] = get_rotated_vector(Mag(*neighbor_data), abs(neighbor_dir));
+				state_pos = get_total_state(*cell_data);
+				state_neg = get_total_state(*neighbor_data);
 			}
 
-			MHD_Conservative flux;
+			MHD_Conservative flux_neg, flux_pos;
 			double max_vel;
 			try {
 				std::tie(
-					flux,
+					flux_neg,
+					flux_pos,
 					max_vel
 				) = solver(
 					state_neg,
@@ -274,15 +278,15 @@ template <
 					<< " at " << grid.geometry.get_center(cell_id)
 					<< " and " << grid.geometry.get_center(neighbor_id)
 					<< " in direction " << neighbor_dir
-					<< " with states (mass, momentum, total energy, magnetic field): "
-					<< Mas(*cell_data) << ", "
-					<< Mom(*cell_data) << ", "
-					<< Nrj(*cell_data) << ", "
-					<< Mag(*cell_data) << " and "
-					<< Mas(*neighbor_data) << ", "
-					<< Mom(*neighbor_data) << ", "
-					<< Nrj(*neighbor_data) << ", "
-					<< Mag(*neighbor_data)
+					<< " with rotated states (mass, momentum, total energy, magnetic field): "
+					<< state_neg[mas_int] << ", "
+					<< state_neg[mom_int] << ", "
+					<< state_neg[nrj_int] << ", "
+					<< state_neg[mag_int] << " and "
+					<< state_pos[mas_int] << ", "
+					<< state_pos[mom_int] << ", "
+					<< state_pos[nrj_int] << ", "
+					<< state_pos[mag_int]
 					<< " because: " << error.what()
 					<< std::endl;
 				abort();
@@ -291,26 +295,97 @@ template <
 			max_dt = std::min(max_dt, cell_length[neighbor_dim] / max_vel);
 
 			// rotate flux back
-			flux[mom_int] = get_rotated_vector(flux[mom_int], -abs(neighbor_dir));
-			flux[mag_int] = get_rotated_vector(flux[mag_int], -abs(neighbor_dir));
+			flux_neg[mom_int] = get_rotated_vector(flux_neg[mom_int], -abs(neighbor_dir));
+			flux_pos[mom_int] = get_rotated_vector(flux_pos[mom_int], -abs(neighbor_dir));
+			flux_neg[mag_int] = get_rotated_vector(flux_neg[mag_int], -abs(neighbor_dir));
+			flux_pos[mag_int] = get_rotated_vector(flux_pos[mag_int], -abs(neighbor_dir));
+
+			// names assume neighbor is in positive direction
+			const auto
+				mass_frac_spec1_neg
+					= Mas.first(*cell_data)
+					/ (Mas.first(*cell_data) + Mas.second(*cell_data)),
+				mass_frac_spec2_neg
+					= Mas.second(*cell_data)
+					/ (Mas.first(*cell_data) + Mas.second(*cell_data)),
+				mass_frac_spec1_pos
+					= Mas.first(*neighbor_data)
+					/ (Mas.first(*neighbor_data) + Mas.second(*neighbor_data)),
+				mass_frac_spec2_pos
+					= Mas.second(*neighbor_data)
+					/ (Mas.first(*neighbor_data) + Mas.second(*neighbor_data));
 
 			if (neighbor_dir > 0) {
-				Mas_f(*cell_data) -= flux[mas_int];
-				Mom_f(*cell_data) -= flux[mom_int];
-				Nrj_f(*cell_data) -= flux[nrj_int];
-				Mag_f(*cell_data) -= flux[mag_int];
+				Mag_f(*cell_data) -= flux_neg[mag_int] + flux_pos[mag_int];
+
+				Mas_f.first(*cell_data)
+					-= mass_frac_spec1_neg * flux_neg[mas_int]
+					+ mass_frac_spec1_pos * flux_pos[mas_int];
+				Mom_f.first(*cell_data)
+					-= mass_frac_spec1_neg * flux_neg[mom_int]
+					+ mass_frac_spec1_pos * flux_pos[mom_int];
+				Nrj_f.first(*cell_data)
+					-= mass_frac_spec1_neg * flux_neg[nrj_int]
+					+ mass_frac_spec1_pos * flux_pos[nrj_int];
+
+				Mas_f.second(*cell_data)
+					-= mass_frac_spec2_neg * flux_neg[mas_int]
+					+ mass_frac_spec2_pos * flux_pos[mas_int];
+				Mom_f.second(*cell_data)
+					-= mass_frac_spec2_neg * flux_neg[mom_int]
+					+ mass_frac_spec2_pos * flux_pos[mom_int];
+				Nrj_f.second(*cell_data)
+					-= mass_frac_spec2_neg * flux_neg[nrj_int]
+					+ mass_frac_spec2_pos * flux_pos[nrj_int];
 
 				if (grid.is_local(neighbor_id)) {
-					Mas_f(*neighbor_data) += flux[mas_int];
-					Mom_f(*neighbor_data) += flux[mom_int];
-					Nrj_f(*neighbor_data) += flux[nrj_int];
-					Mag_f(*neighbor_data) += flux[mag_int];
+					Mag_f(*neighbor_data) += flux_neg[mag_int] + flux_pos[mag_int];
+
+					Mas_f.first(*neighbor_data)
+						+= mass_frac_spec1_neg * flux_neg[mas_int]
+						+ mass_frac_spec1_pos * flux_pos[mas_int];
+					Mom_f.first(*neighbor_data)
+						+= mass_frac_spec1_neg * flux_neg[mom_int]
+						+ mass_frac_spec1_pos * flux_pos[mom_int];
+					Nrj_f.first(*neighbor_data)
+						+= mass_frac_spec1_neg * flux_neg[nrj_int]
+						+ mass_frac_spec1_pos * flux_pos[nrj_int];
+
+					Mas_f.second(*neighbor_data)
+						+= mass_frac_spec2_neg * flux_neg[mas_int]
+						+ mass_frac_spec2_pos * flux_pos[mas_int];
+					Mom_f.second(*neighbor_data)
+						+= mass_frac_spec2_neg * flux_neg[mom_int]
+						+ mass_frac_spec2_pos * flux_pos[mom_int];
+					Nrj_f.second(*neighbor_data)
+						+= mass_frac_spec2_neg * flux_neg[nrj_int]
+						+ mass_frac_spec2_pos * flux_pos[nrj_int];
 				}
+
 			} else {
-				Mas_f(*cell_data) += flux[mas_int];
-				Mom_f(*cell_data) += flux[mom_int];
-				Nrj_f(*cell_data) += flux[nrj_int];
-				Mag_f(*cell_data) += flux[mag_int];
+
+				Mag_f(*cell_data) += flux_neg[mag_int] + flux_pos[mag_int];
+
+				// swap fractions because neighbor in negative direction
+				Mas_f.first(*cell_data)
+					+= mass_frac_spec1_pos * flux_neg[mas_int]
+					+ mass_frac_spec1_neg * flux_pos[mas_int];
+				Mom_f.first(*cell_data)
+					+= mass_frac_spec1_pos * flux_neg[mom_int]
+					+ mass_frac_spec1_neg * flux_pos[mom_int];
+				Nrj_f.first(*cell_data)
+					+= mass_frac_spec1_pos * flux_neg[nrj_int]
+					+ mass_frac_spec1_neg * flux_pos[nrj_int];
+
+				Mas_f.second(*cell_data)
+					+= mass_frac_spec2_pos * flux_neg[mas_int]
+					+ mass_frac_spec2_neg * flux_pos[mas_int];
+				Mom_f.second(*cell_data)
+					+= mass_frac_spec2_pos * flux_neg[mom_int]
+					+ mass_frac_spec2_neg * flux_pos[mom_int];
+				Nrj_f.second(*cell_data)
+					+= mass_frac_spec2_pos * flux_neg[nrj_int]
+					+ mass_frac_spec2_neg * flux_pos[nrj_int];
 
 				if (grid.is_local(neighbor_id)) {
 					std::cerr <<  __FILE__ << "(" << __LINE__ << ") "
@@ -336,27 +411,25 @@ Returns 1 + last index where solution was applied.
 template <
 	class Cell,
 	class Geometry,
-	class Mass_Density_Getter,
-	class Momentum_Density_Getter,
-	class Total_Energy_Density_Getter,
+	class Mass_Density_Getters,
+	class Momentum_Density_Getters,
+	class Total_Energy_Density_Getters,
 	class Magnetic_Field_Getter,
-	class Mass_Density_Flux_Getter,
-	class Momentum_Density_Flux_Getter,
-	class Total_Energy_Density_Flux_Getter,
+	class Mass_Density_Flux_Getters,
+	class Momentum_Density_Flux_Getters,
+	class Total_Energy_Density_Flux_Getters,
 	class Magnetic_Field_Flux_Getter,
 	class Cell_Type_Getter,
 	class Cell_Type
-> void apply_fluxes(
+> void apply_fluxes_N(
 	dccrg::Dccrg<Cell, Geometry>& grid,
-	const double adiabatic_index,
-	const double vacuum_permeability,
-	const Mass_Density_Getter Mas,
-	const Momentum_Density_Getter Mom,
-	const Total_Energy_Density_Getter Nrj,
+	const Mass_Density_Getters Mas,
+	const Momentum_Density_Getters Mom,
+	const Total_Energy_Density_Getters Nrj,
 	const Magnetic_Field_Getter Mag,
-	const Mass_Density_Flux_Getter Mas_f,
-	const Momentum_Density_Flux_Getter Mom_f,
-	const Total_Energy_Density_Flux_Getter Nrj_f,
+	const Mass_Density_Flux_Getters Mas_f,
+	const Momentum_Density_Flux_Getters Mom_f,
+	const Total_Energy_Density_Flux_Getters Nrj_f,
 	const Magnetic_Field_Flux_Getter Mag_f,
 	const Cell_Type_Getter Cell_t,
 	const Cell_Type normal_cell
@@ -367,7 +440,6 @@ template <
 	for (size_t i = 0 ; i < cell_data_pointers.size(); i++) {
 		const auto& cell_id = get<0>(cell_data_pointers[i]);
 
-		// process only inner xor outer cells
 		if (cell_id == dccrg::error_cell) {
 			continue;
 		}
@@ -384,51 +456,27 @@ template <
 
 		const auto length = grid.geometry.get_length(cell_id);
 		const double inverse_volume = 1.0 / (length[0] * length[1] * length[2]);
-		try {
-			apply_fluxes(
-				*cell_data,
-				inverse_volume,
-				adiabatic_index,
-				vacuum_permeability,
-				Mas, Mom, Nrj, Mag,
-				Mas_f, Mom_f, Nrj_f, Mag_f
-			);
-		} catch (const std::domain_error& error) {
-			std::cerr <<  __FILE__ << "(" << __LINE__
-				<< ") New MHD state for cell " << cell_id
-				<< " at " << grid.geometry.get_center(cell_id)
-				<< " would be unphysical because (" << error.what()
-				<< ") with flux (* " << inverse_volume << "):\n"
-				<< Mas_f(*cell_data) * inverse_volume << ", "
-				<< Mom_f(*cell_data) * inverse_volume << ", "
-				<< Nrj_f(*cell_data) * inverse_volume << ", "
-				<< Mag_f(*cell_data) * inverse_volume
-				<< "\ngiving:\n"
-				<< Mas(*cell_data) << ", "
-				<< Mom(*cell_data) << ", "
-				<< Nrj(*cell_data) << ", "
-				<< Mag(*cell_data)
-				<< "\nwith pressure: "
-				<< get_pressure(
-					Mas(*cell_data),
-					Mom(*cell_data),
-					Nrj(*cell_data),
-					Mag(*cell_data),
-					adiabatic_index,
-					vacuum_permeability
-				)
-				<< std::endl;
-			abort();
-		}
 
-		Mas_f(*cell_data)    =
-		Mom_f(*cell_data)[0] =
-		Mom_f(*cell_data)[1] =
-		Mom_f(*cell_data)[2] =
-		Nrj_f(*cell_data)    =
-		Mag_f(*cell_data)[0] =
-		Mag_f(*cell_data)[1] =
-		Mag_f(*cell_data)[2] = 0;
+		apply_fluxes_N(
+			*cell_data,
+			inverse_volume,
+			Mas, Mom, Nrj, Mag,
+			Mas_f, Mom_f, Nrj_f, Mag_f
+		);
+
+		Mas_f.first(*cell_data)     =
+		Mom_f.first(*cell_data)[0]  =
+		Mom_f.first(*cell_data)[1]  =
+		Mom_f.first(*cell_data)[2]  =
+		Nrj_f.first(*cell_data)     =
+		Mas_f.second(*cell_data)    =
+		Mom_f.second(*cell_data)[0] =
+		Mom_f.second(*cell_data)[1] =
+		Mom_f.second(*cell_data)[2] =
+		Nrj_f.second(*cell_data)    =
+		Mag_f(*cell_data)[0]        =
+		Mag_f(*cell_data)[1]        =
+		Mag_f(*cell_data)[2]        = 0;
 	}
 }
 
@@ -436,4 +484,4 @@ template <
 }} // namespaces
 
 
-#endif // ifndef PAMHD_MHD_SOLVE_HPP
+#endif // ifndef PAMHD_MHD_N_SOLVE_HPP

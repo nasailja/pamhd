@@ -72,6 +72,13 @@ struct Magnetic_Field {
 	static const std::string get_option_help() { return {"Plasma magnetic field (T)"}; }
 };
 
+struct Magnetic_Field_Flux {
+	using data_type = Eigen::Vector3d;
+	static const std::string get_name() { return {"magnetic field flux"}; }
+	static const std::string get_option_name() { return {"magnetic-field-flux"}; }
+	static const std::string get_option_help() { return {"Flux of magnetic field (T)"}; }
+};
+
 //! stores B before divergence removal so B can be restored after failed removal
 struct Magnetic_Field_Temp {
 	using data_type = Eigen::Vector3d;
@@ -211,6 +218,7 @@ struct MHD_Flux_Conservative {
 	}
 };
 
+// cell type for MHD test program
 using Cell = gensimcell::Cell<
 	gensimcell::Optional_Transfer,
 	MHD_State_Conservative,
@@ -247,6 +255,33 @@ struct Copy_Source_Fluid2 { using data_type = unsigned long long int; };
 struct Copy_Source_Field { using data_type = unsigned long long int; };
 struct Value_Boundary_Id_Fluid2 { using data_type = int; };
 struct Value_Boundary_Id_Field { using data_type = int; };
+
+// cell type for multipopulation MHD test program
+using Cell2 = gensimcell::Cell<
+	gensimcell::Optional_Transfer,
+	pamhd::mhd::HD1_State,
+	pamhd::mhd::HD2_State,
+	pamhd::mhd::Magnetic_Field,
+	pamhd::mhd::Electric_Current_Density,
+	pamhd::mhd::Cell_Type,
+	pamhd::mhd::Copy_Source,
+	pamhd::mhd::Value_Boundary_Id,
+	pamhd::mhd::Cell_Type_Fluid2,
+	pamhd::mhd::Copy_Source_Fluid2,
+	pamhd::mhd::Value_Boundary_Id_Fluid2,
+	pamhd::mhd::Cell_Type_Field,
+	pamhd::mhd::Value_Boundary_Id_Field,
+	pamhd::mhd::Copy_Source_Field,
+	pamhd::mhd::MPI_Rank,
+	pamhd::mhd::Resistivity,
+	pamhd::mhd::Magnetic_Field_Resistive,
+	pamhd::mhd::Magnetic_Field_Temp,
+	pamhd::mhd::Magnetic_Field_Divergence,
+	pamhd::mhd::Scalar_Potential_Gradient,
+	pamhd::mhd::HD1_Flux,
+	pamhd::mhd::HD2_Flux,
+	pamhd::mhd::Magnetic_Field_Flux
+>;
 
 
 }} // namespaces
