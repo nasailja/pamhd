@@ -58,9 +58,6 @@ int main()
 	const Vector3d
 		volume_min{-5, 4, 9},
 		volume_max{-1, 8, 33};
-	const double
-		particle_temp_nrj_ratio = 0.25,
-		adiabatic_index = 5.0 / 3.0;
 
 	std::mt19937 random_source;
 	random_source.seed(997);
