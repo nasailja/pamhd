@@ -89,7 +89,6 @@ void create_particles(
 	for (const auto& cell_id: cell_ids) {
 		const auto
 			cell_min = grid.geometry.get_min(cell_id),
-			cell_max = grid.geometry.get_max(cell_id),
 			cell_length = grid.geometry.get_length(cell_id),
 			cell_center = grid.geometry.get_center(cell_id);
 
