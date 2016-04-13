@@ -161,10 +161,6 @@ boost::optional<std::array<double, 4>> read_data(
 			cell_id = item.first,
 			file_address = item.second;
 
-		const auto
-			cell_start = geometry.get_min(cell_id),
-			cell_end = geometry.get_max(cell_id);
-
 		simulation_data[cell_id];
 		auto& cell_data = simulation_data.at(cell_id);
 
