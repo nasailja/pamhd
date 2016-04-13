@@ -247,7 +247,6 @@ template <
 
 			// take into account direction of neighbor from cell
 			MHD_Conservative state_neg, state_pos;
-			double nrj_correction_neg, nrj_correction_pos;
 			if (neighbor_dir > 0) {
 				state_neg = get_total_state(*cell_data);
 				state_pos = get_total_state(*neighbor_data);
