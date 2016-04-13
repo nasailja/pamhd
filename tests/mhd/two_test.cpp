@@ -278,7 +278,7 @@ int main(int argc, char* argv[])
 	Program options
 	*/
 
-	bool verbose = false, save_fluxes = false;
+	bool verbose = false;
 	size_t
 		poisson_iterations_max = 1000,
 		poisson_iterations_min = 0;
@@ -384,8 +384,7 @@ int main(int argc, char* argv[])
 			boost::program_options::value<double>(&save_mhd_n)
 				->default_value(save_mhd_n),
 			"Save results every arg seconds, 0 saves "
-			"initial and final states, -1 doesn't save")
-		("save-mhd-fluxes", "Save fluxes of MHD variables");
+			"initial and final states, -1 doesn't save");
 
 	grid_options.add_options("grid.", options);
 	initial_field.add_initialization_options("initial-field.", options);
@@ -427,10 +426,6 @@ int main(int argc, char* argv[])
 
 	if (option_variables.count("verbose") > 0) {
 		verbose = true;
-	}
-
-	if (option_variables.count("save-mhd-fluxes") > 0) {
-		save_fluxes = true;
 	}
 
 	if (config_file_name != "") {
@@ -558,10 +553,6 @@ int main(int argc, char* argv[])
 
 	if (option_variables.count("verbose") > 0) {
 		verbose = true;
-	}
-
-	if (option_variables.count("save-mhd-fluxes") > 0) {
-		save_fluxes = true;
 	}
 
 	const auto mhd_solver
