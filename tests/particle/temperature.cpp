@@ -68,9 +68,7 @@ int main()
 	const Vector3d
 		volume_min(-5, 4, 9),
 		volume_max(-1, 8, 33);
-	const double
-		particle_temp_nrj_ratio = 0.25,
-		adiabatic_index = 5.0 / 3.0;
+	const double particle_temp_nrj_ratio = 0.25;
 
 	std::mt19937 random_source;
 	random_source.seed(997);
@@ -137,7 +135,6 @@ int main()
 			particle_temp_nrj_ratio,
 			random_source
 		);
-	const auto bulk_vel2 = get_bulk_velocity<Mass, Velocity, Species_Mass>(particles2);
 	const auto scalar_temp2
 		= get_temperature<Mass, Velocity, Species_Mass>(particles2, particle_temp_nrj_ratio);
 	if (abs(ref_temp1 - scalar_temp2) / ref_temp1 > 1e-2) {
