@@ -1849,7 +1849,6 @@ int main(int argc, char* argv[])
 			// add magnetic nrj to fluid boundary cells
 			if ((*cell_data)[pamhd::mhd::Cell_Type()] == bdy_classifier_fluid1.value_boundary_cell) {
 				const auto& bdy_id = (*cell_data)[pamhd::mhd::Value_Boundary_Id()];
-				const auto cell_center = grid.geometry.get_center(cell_id);
 
 				const auto mass_frac
 					= Mas1(*cell_data)
