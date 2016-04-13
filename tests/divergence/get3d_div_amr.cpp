@@ -243,9 +243,7 @@ int main(int argc, char* argv[])
 			}
 		);
 
-		const double
-			p_of_norm = 2,
-			norm = get_max_norm(solve_cells, grid);
+		const double norm = get_max_norm(solve_cells, grid);
 
 		if (norm > old_norm) {
 			if (grid.get_rank() == 0) {
