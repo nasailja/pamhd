@@ -356,7 +356,6 @@ int main(int argc, char* argv[])
 	MPI_Comm_size(comm, &comm_size);
 
 	// program options
-	bool verbose = false, relative = false;
 	std::vector<std::string> input_files;
 	std::string
 		vertical_variable("N"),
@@ -379,7 +378,6 @@ int main(int argc, char* argv[])
 		options("Usage: program_name [options], where options are");
 	options.add_options()
 		("help", "Print this help message")
-		("verbose", "Print run time information")
 		("input-file",
 			boost::program_options::value<>(&input_files)
 				->default_value(input_files),
@@ -501,14 +499,6 @@ int main(int argc, char* argv[])
 		return EXIT_FAILURE;
 	}
 
-
-	if (var_map.count("verbose") > 0) {
-		verbose = true;
-	}
-
-	if (var_map.count("relative") > 0) {
-		relative = true;
-	}
 
 	if (rank != 0) {
 		MPI_Finalize();
