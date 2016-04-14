@@ -33,9 +33,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef PAMHD_GRID_OPTIONS_HPP
 #define PAMHD_GRID_OPTIONS_HPP
 
-#include "array"
 
-#include "boundaries/variable_to_option.hpp"
+#include "array"
+#include "cstdint"
+#include "stdexcept"
+
+#include "rapidjson/document.h"
+
+#include "boundaries/simulation_variable_expression.hpp"
 
 
 namespace pamhd {
@@ -111,24 +116,111 @@ struct Periodic {
 
 class Options
 {
-public:
+private:
 
-	void add_options(
-		const std::string& option_name_prefix,
-		boost::program_options::options_description& options
-	) {
-		this->data.add_options(
-			option_name_prefix,
-			options
-		);
-	}
-
-	boundaries::Variable_To_Option<
+	boundaries::Simulation_Variable_Expression<
 		Number_Of_Cells,
 		Volume,
 		Start,
 		Periodic
 	> data;
+
+
+public:
+
+	Options()
+	{
+		data.set_expression(Number_Of_Cells(), "{1, 1, 1}");
+		data.set_expression(Volume(), "{1, 1, 1}");
+		data.set_expression(Start(), "{0, 0, 0}");
+		data.set_expression(Periodic(), "{false, false, false}");
+	}
+
+
+	template<class Variable_T> typename Variable_T::data_type get_data(const Variable_T& v) {
+		return this->data.get_data(v);
+	}
+
+
+	// muparserx doesn't support uint64_t so convert from int
+	std::array<uint64_t, 3> get_data(const Number_Of_Cells& v) {
+		auto tmp = this->data.get_data(v);
+		return {uint64_t(tmp[0]), uint64_t(tmp[1]), uint64_t(tmp[2])};
+	}
+
+
+	void set_expressions(const rapidjson::Document& document)
+	{
+		if (not document.IsObject()) {
+			return;
+		}
+
+		const auto grid_iter = document.FindMember("grid");
+		if (grid_iter == document.MemberEnd()) {
+			return;
+		}
+
+		const auto& grid = document["grid"];
+
+		const auto periodic = grid.FindMember(
+			Periodic::get_option_name().c_str()
+		);
+		if (periodic != document.MemberEnd()) {
+			if (periodic->value.IsString()) {
+				data.set_expression(Periodic(), periodic->value.GetString());
+			} else {
+				throw std::invalid_argument(
+					"Value of " + Periodic::get_option_name() + " variable is not a string."
+				);
+			}
+		}
+
+		const auto nr_cells = grid.FindMember(
+			Number_Of_Cells::get_option_name().c_str()
+		);
+		if (nr_cells != document.MemberEnd()) {
+			if (nr_cells->value.IsString()) {
+				data.set_expression(Number_Of_Cells(), nr_cells->value.GetString());
+			} else {
+				throw std::invalid_argument(
+					"Value of " + Number_Of_Cells::get_option_name() + " variable is not a string."
+				);
+			}
+		}
+
+		const auto volume = grid.FindMember(
+			Volume::get_option_name().c_str()
+		);
+		if (volume != document.MemberEnd()) {
+			if (volume->value.IsString()) {
+				data.set_expression(
+					Volume(),
+					volume->value.GetString()
+				);
+			} else {
+				throw std::invalid_argument(
+					"Value of " + Volume::get_option_name() + " variable is not a string."
+				);
+			}
+		}
+
+		const auto start = grid.FindMember(
+			Start::get_option_name().c_str()
+		);
+		if (start != document.MemberEnd()) {
+			if (start->value.IsString()) {
+				data.set_expression(
+					Start(),
+					start->value.GetString()
+				);
+			} else {
+				throw std::invalid_argument(
+					"Value of " + Start::get_option_name() + " variable is not a string."
+				);
+			}
+		}
+	}
+
 };
 
 }} // namespaces

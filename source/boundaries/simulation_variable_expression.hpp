@@ -30,8 +30,8 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef PAMHD_VARIABLE_TO_OPTION_HPP
-#define PAMHD_VARIABLE_TO_OPTION_HPP
+#ifndef PAMHD_SIMULATION_VARIABLE_EXPRESSION_HPP
+#define PAMHD_SIMULATION_VARIABLE_EXPRESSION_HPP
 
 
 #include "array"
@@ -39,9 +39,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "stdexcept"
 #include "type_traits"
 
-#include "boost/program_options.hpp"
-#include "prettyprint.hpp"
+#include "boost/lexical_cast.hpp"
 #include "mpParser.h"
+#include "prettyprint.hpp"
 
 #include "boundaries/common.hpp"
 
@@ -50,23 +50,23 @@ namespace pamhd {
 namespace boundaries {
 
 
-template<class... Variables> class Variable_To_Option {};
+template<class... Variables> class Simulation_Variable_Expression {};
 
 
 
 template<
 	class Current_Variable,
 	class... Rest_Of_Variables
-> class Variable_To_Option<Current_Variable, Rest_Of_Variables...> :
-	public Variable_To_Option<Rest_Of_Variables...>
+> class Simulation_Variable_Expression<Current_Variable, Rest_Of_Variables...> :
+	public Simulation_Variable_Expression<Rest_Of_Variables...>
 {
 public:
-	using Variable_To_Option<Rest_Of_Variables...>::set_expression;
-	using Variable_To_Option<Rest_Of_Variables...>::get_data;
+	using Simulation_Variable_Expression<Rest_Of_Variables...>::set_expression;
+	using Simulation_Variable_Expression<Rest_Of_Variables...>::get_data;
 
 
-	Variable_To_Option<Current_Variable, Rest_Of_Variables...>() :
-		Variable_To_Option<Rest_Of_Variables...>(),
+	Simulation_Variable_Expression<Current_Variable, Rest_Of_Variables...>() :
+		Simulation_Variable_Expression<Rest_Of_Variables...>(),
 		r_var(&r_val),
 		t_var(&t_val)
 	{
@@ -75,28 +75,11 @@ public:
 	}
 
 
-	void add_variable(
-		const Current_Variable&,
-		const std::string& name,
-		mup::Variable& variable
-	) {
-		this->parser.DefineVar(name, variable);
-	}
-
-
-	void add_options(
-		const std::string& prefix,
-		boost::program_options::options_description& options
-	) {
-		this->add_options_impl(prefix, options);
-	}
-
-
 	void set_expression(
 		const Current_Variable&,
-		const std::string given_expression
+		const std::string& given_expression
 	) {
-		this->expression = given_expression;
+		this->parser.SetExpr(given_expression);
 	}
 
 
@@ -105,8 +88,6 @@ public:
 		const std::array<double, 3>& given_position,
 		const double given_time
 	) {
-		this->parser.SetExpr(this->expression);
-
 		try {
 			return this->get_parsed_value<
 				typename Current_Variable::data_type
@@ -137,28 +118,8 @@ public:
 
 
 
-protected:
-
-	using Variable_To_Option<Rest_Of_Variables...>::add_options_impl;
-
-	void add_options_impl(
-		const std::string& prefix,
-		boost::program_options::options_description& options
-	) {
-		options.add_options()
-			((prefix + Current_Variable::get_option_name()).c_str(),
-				boost::program_options::value<std::string>(&this->expression)
-					->default_value(this->expression),
-				Current_Variable::get_option_help().c_str());
-
-		Variable_To_Option<Rest_Of_Variables...>::add_options_impl(prefix, options);
-	}
-
-
-
 private:
 
-	std::string expression;
 	mup::ParserX parser = mup::ParserX(mup::pckCOMMON | mup::pckNON_COMPLEX | mup::pckMATRIX | mup::pckUNIT);
 	mup::Value r_val, t_val;
 	mup::Variable r_var, t_var;
@@ -596,11 +557,11 @@ private:
 
 
 
-template<class Last_Variable> class Variable_To_Option<Last_Variable>
+template<class Last_Variable> class Simulation_Variable_Expression<Last_Variable>
 {
 public:
 
-	Variable_To_Option<Last_Variable>() :
+	Simulation_Variable_Expression<Last_Variable>() :
 		r_var(&r_val),
 		t_var(&t_val)
 	{
@@ -609,28 +570,11 @@ public:
 	}
 
 
-	void add_variable(
-		const Last_Variable&,
-		const std::string& name,
-		mup::Variable& variable
-	) {
-		this->parser.DefineVar(name, variable);
-	}
-
-
 	void set_expression(
 		const Last_Variable&,
-		const std::string given_expression
+		const std::string& given_expression
 	) {
-		this->expression = given_expression;
-	}
-
-
-	void add_options(
-		const std::string& prefix,
-		boost::program_options::options_description& options
-	) {
-		this->add_options_impl(prefix, options);
+		this->parser.SetExpr(given_expression);
 	}
 
 
@@ -639,8 +583,6 @@ public:
 		const std::array<double, 3>& given_position,
 		const double given_time
 	) {
-		this->parser.SetExpr(this->expression);
-
 		return this->get_parsed_value<
 			typename Last_Variable::data_type
 		>(given_position, given_time);
@@ -654,24 +596,8 @@ public:
 
 
 
-protected:
-
-	void add_options_impl(
-		const std::string& prefix,
-		boost::program_options::options_description& options
-	) {
-		options.add_options()
-			((prefix + Last_Variable::get_option_name()).c_str(),
-				boost::program_options::value<std::string>(&this->expression)
-					->default_value(this->expression),
-				Last_Variable::get_option_help().c_str());
-	}
-
-
-
 private:
 
-	std::string expression;
 	mup::ParserX parser = mup::ParserX(mup::pckCOMMON | mup::pckNON_COMPLEX | mup::pckMATRIX | mup::pckUNIT);
 	mup::Value r_val, t_val;
 	mup::Variable r_var, t_var;
@@ -1113,4 +1039,4 @@ private:
 
 }} // namespaces
 
-#endif // ifndef PAMHD_VARIABLE_TO_OPTION_HPP
+#endif // ifndef PAMHD_SIMULATION_VARIABLE_EXPRESSION_HPP
