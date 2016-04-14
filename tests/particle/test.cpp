@@ -910,7 +910,7 @@ int main(int argc, char* argv[])
 	*/
 
 	if (verbose and rank == 0) {
-		cout << "Initializing magnetic field... " << endl;
+		cout << "Initializing magnetic field... ";
 	}
 	pamhd::initialize_field(
 		initial_field,
@@ -927,7 +927,7 @@ int main(int argc, char* argv[])
 	std::mt19937_64 random_source;
 
 	if (verbose and rank == 0) {
-		cout << "Initializing particles... " << endl;
+		cout << "Initializing particles..." << endl;
 	}
 	for (size_t i = 0; i < initial_particles.size(); i++) {
 		bool replace = false;
@@ -968,7 +968,7 @@ int main(int argc, char* argv[])
 		next_particle_id += nr_particles_created * grid.get_comm_size();
 	}
 	if (verbose and rank == 0) {
-		cout << "done." << endl;
+		cout << "...done." << endl;
 	}
 
 	resistivity_bdy.set_expression(pamhd::mhd::Resistivity(), resistivity);
