@@ -5,7 +5,7 @@ ENVIRONMENT_MAKEFILE = makefiles/homedir
 #
 # The lines below are not intended to be modified by users
 #
-CXXFLAGS = -std=c++11 -W -Wall -Wextra -pedantic -O3
+CXXFLAGS = -std=c++11 -W -Wall -Wextra -pedantic -O3 -DBOOST_SYSTEM_NO_DEPRECATED
 CPPFLAGS = -I source
 include $(ENVIRONMENT_MAKEFILE)
 
