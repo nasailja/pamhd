@@ -2,6 +2,7 @@ TESTS_BOUNDARIES_EXECUTABLES = \
   tests/boundaries/sphere.exe \
   tests/boundaries/sphere_eigen.exe \
   tests/boundaries/box.exe \
+  tests/boundaries/boxes_from_json.exe \
   tests/boundaries/box_eigen.exe \
   tests/boundaries/one_variable_boundary.exe \
   tests/boundaries/one_variable_boundary_eigen.exe \
@@ -24,6 +25,7 @@ TESTS_BOUNDARIES_TESTS = \
   tests/boundaries/sphere.tst \
   tests/boundaries/sphere_eigen.tst \
   tests/boundaries/box.tst \
+  tests/boundaries/boxes_from_json.tst \
   tests/boundaries/box_eigen.tst \
   tests/boundaries/one_variable_boundary.tst \
   tests/boundaries/one_variable_boundary_eigen.tst \
@@ -58,13 +60,13 @@ CLEAN += tests/boundaries_clean
 
 TESTS_BOUNDARIES_COMMON_DEPS = \
   source/boundaries/box.hpp \
-  source/boundaries/boxes.hpp \
+  source/boundaries/boxes_from_json.hpp \
   source/boundaries/initial_condition.hpp \
   source/boundaries/copy_boundary.hpp \
   source/boundaries/sphere.hpp \
   source/boundaries/spheres.hpp \
   source/boundaries/value_boundaries.hpp \
-  source/boundaries/variable_to_option.hpp \
+  source/boundaries/simulation_variable_expression.hpp \
   source/boundaries/variable_to_option_vector.hpp \
   tests/boundaries/project_makefile \
   $(ENVIRONMENT_MAKEFILE) \
@@ -78,6 +80,7 @@ TESTS_BOUNDARIES_COMPILE_COMMAND = \
   $(BOOST_CPPFLAGS) \
   $(BOOST_LDFLAGS) \
   $(BOOST_LIBS) \
+  $(RAPIDJSON_CPPFLAGS) \
   $(PRETTYPRINT_CPPFLAGS)
 
 TESTS_BOUNDARIES_COMPILE_COMMAND_EIGEN = \
@@ -108,6 +111,11 @@ tests/boundaries/sphere_eigen.exe: \
 
 tests/boundaries/box.exe: \
   tests/boundaries/box.cpp \
+  $(TESTS_BOUNDARIES_COMMON_DEPS)
+	$(TESTS_BOUNDARIES_COMPILE_COMMAND)
+
+tests/boundaries/boxes_from_json.exe: \
+  tests/boundaries/boxes_from_json.cpp \
   $(TESTS_BOUNDARIES_COMMON_DEPS)
 	$(TESTS_BOUNDARIES_COMPILE_COMMAND)
 

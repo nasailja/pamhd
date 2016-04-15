@@ -56,18 +56,28 @@ template<class Vector_T> class Box
 {
 public:
 
-	//! Class can read only one instance using boost::program_options
-	static constexpr bool scalar = true;
+	Box() :
+		start(start_rw),
+		end(end_rw)
+	{}
 
+	Box(const Box<Vector_T>& other) :
+		start(start_rw),
+		end(end_rw),
+		start_rw(other.start),
+		end_rw(other.end)
+	{}
 
-	size_t get_number_of_instances() const
-	{
-		return 1;
-	}
+	Box(Box<Vector_T>&& other) :
+		start(start_rw),
+		end(end_rw),
+		start_rw(std::move(other.start_rw)),
+		end_rw(std::move(other.end_rw))
+	{}
 
 
 	/*!
-	Returns true if cell spanning given volume overlaps
+	Returns true if cube spanning given volume overlaps
 	this box, false otherwise.
 	*/
 	bool overlaps(
@@ -77,7 +87,7 @@ public:
 		for (size_t i = 0; i < size_t(cell_start.size()); i++) {
 			if (cell_start[i] > cell_end[i]) {
 				std::cerr <<  __FILE__ << "(" << __LINE__<< ") "
-					<< "Starting coordinate of cell at index " << i
+					<< "Starting coordinate of box at index " << i
 					<< " is larger than ending coordinate: "
 					<< cell_start[i] << " > " << cell_end[i]
 					<< std::endl;
@@ -100,21 +110,6 @@ public:
 	}
 
 
-	void add_options(
-		const std::string& option_name_prefix,
-		boost::program_options::options_description& options
-	) {
-		options.add_options()
-			((option_name_prefix + "start").c_str(),
-				boost::program_options::value<Vector_T>(&this->start)
-					->default_value(this->start),
-				"Start coordinate of box")
-			((option_name_prefix + "end").c_str(),
-				boost::program_options::value<Vector_T>(&this->end)
-					->default_value(this->end),
-				"End coordinate of box");
-	}
-
 	bool set_geometry(
 		const Vector_T& given_start,
 		const Vector_T& given_end
@@ -125,25 +120,22 @@ public:
 			}
 		}
 
-		this->start = given_start;
-		this->end = given_end;
+		this->start_rw = given_start;
+		this->end_rw = given_end;
 		return true;
 	}
 
-	const Vector_T& get_start() const
-	{
-		return this->start;
-	}
 
-	const Vector_T& get_end() const
-	{
-		return this->end;
-	}
+	const Vector_T
+		//! start coordinates of box
+		&start,
+		//! end coordinates of box
+		&end;
 
 
 private:
 
-	Vector_T start, end;
+	Vector_T start_rw, end_rw;
 };
 
 }} // namespaces
