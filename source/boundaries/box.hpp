@@ -1,5 +1,5 @@
 /*
-Box geometry class of PAMHD.
+Box boundary geometry class of PAMHD.
 
 Copyright 2014, 2015, 2016 Ilja Honkonen
 All rights reserved.
@@ -35,14 +35,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define PAMHD_BOUNDARIES_BOX_HPP
 
 
-#include "cstdlib"
-#include "iostream"
-#include "string"
+#include "stdexcept"
+#include "vector"
 
-#include "boost/program_options.hpp"
-#include "prettyprint.hpp"
-
-#include "program_options_validators.hpp"
+#include "rapidjson/document.h"
 
 
 namespace pamhd {
@@ -50,48 +46,93 @@ namespace boundaries {
 
 
 /*!
-Vector_T is assumed to be std::array or similar.
+Vector is assumed to be std::array or similar.
 */
-template<class Vector_T> class Box
+template<class Vector, class Cell_Id> class Box
 {
 public:
 
 	Box() :
 		start(start_rw),
-		end(end_rw)
+		end(end_rw),
+		cells(cells_rw)
 	{}
 
-	Box(const Box<Vector_T>& other) :
+	Box(
+		const Vector& box_start,
+		const Vector& box_end
+	) :
 		start(start_rw),
 		end(end_rw),
-		start_rw(other.start),
-		end_rw(other.end)
+		cells(cells_rw)
+	{
+		this->set_geometry(box_start, box_end);
+	}
+
+	Box(const rapidjson::Value& object) :
+		start(start_rw),
+		end(end_rw),
+		cells(cells_rw)
+	{
+		this->set_geometry(object);
+	}
+
+	Box(const Box<Vector, Cell_Id>& other) :
+		start(start_rw),
+		end(end_rw),
+		cells(cells_rw),
+		start_rw(other.start_rw),
+		end_rw(other.end_rw),
+		cells_rw(other.cells_rw)
 	{}
 
-	Box(Box<Vector_T>&& other) :
+	Box(Box<Vector, Cell_Id>&& other) :
 		start(start_rw),
 		end(end_rw),
+		cells(cells_rw),
 		start_rw(std::move(other.start_rw)),
-		end_rw(std::move(other.end_rw))
+		end_rw(std::move(other.end_rw)),
+		cells_rw(std::move(other.cells_rw))
 	{}
+
+
+	Box& operator =(const Box<Vector, Cell_Id>& other)
+	{
+		if (this != &other) {
+			this->start_rw = other.start_rw;
+			this->end_rw = other.end_rw;
+			this->cells_rw = other.cells_rw;
+		}
+
+		return *this;
+	}
+
+
+	Box& operator =(Box<Vector, Cell_Id>&& other)
+	{
+		if (this != &other) {
+			this->start_rw = std::move(other.start_rw);
+			this->end_rw = std::move(other.end_rw);
+			this->cells_rw = std::move(other.cells_rw);
+		}
+
+		return *this;
+	}
 
 
 	/*!
-	Returns true if cube spanning given volume overlaps
-	this box, false otherwise.
+	Returns true if given simulation cell overlaps this box, false otherwise.
+
+	If given cell overlaps it's id is added to this->cells.
 	*/
 	bool overlaps(
-		const Vector_T& cell_start,
-		const Vector_T& cell_end
+		const Vector& cell_start,
+		const Vector& cell_end,
+		const Cell_Id& cell_id
 	) {
 		for (size_t i = 0; i < size_t(cell_start.size()); i++) {
 			if (cell_start[i] > cell_end[i]) {
-				std::cerr <<  __FILE__ << "(" << __LINE__<< ") "
-					<< "Starting coordinate of box at index " << i
-					<< " is larger than ending coordinate: "
-					<< cell_start[i] << " > " << cell_end[i]
-					<< std::endl;
-				abort();
+				throw std::invalid_argument(__FILE__ ": Given cell ends before it starts.");
 			}
 		}
 
@@ -106,36 +147,101 @@ public:
 			}
 		}
 
+		if (overlaps) {
+			this->cells_rw.push_back(cell_id);
+		}
+
 		return overlaps;
 	}
 
 
-	bool set_geometry(
-		const Vector_T& given_start,
-		const Vector_T& given_end
+	void clear_cells() {
+		this->cells_rw.clear();
+	}
+
+
+	void set_geometry(
+		const Vector& given_start,
+		const Vector& given_end
 	) {
 		for (size_t i = 0; i < size_t(given_start.size()); i++) {
 			if (given_end[i] <= given_start[i]) {
-				return false;
+				throw std::invalid_argument(__FILE__ ": Given box ends before it starts.");
 			}
 		}
 
 		this->start_rw = given_start;
 		this->end_rw = given_end;
-		return true;
 	}
 
 
-	const Vector_T
+	/*!
+	Sets box geometry from given rapidjson object.
+
+	Given object must have "start" and "end" items
+	and both must be arrays of 3 numbers.
+	*/
+	void set_geometry(const rapidjson::Value& object)
+	{
+		const auto& obj_start_i = object.FindMember("start");
+		if (obj_start_i == object.MemberEnd()) {
+			throw std::invalid_argument(__FILE__ ": Given object doesn't have a start item.");
+		}
+		const auto& obj_start = obj_start_i->value;
+
+		if (not obj_start.IsArray()) {
+			throw std::invalid_argument(__FILE__ ": Start item isn't an array.");
+		}
+
+		if (obj_start.Size() != 3) {
+			throw std::invalid_argument(__FILE__ ": Start item doesn't have a length of 3.");
+		}
+
+		this->start_rw[0] = obj_start[0].GetDouble();
+		this->start_rw[1] = obj_start[1].GetDouble();
+		this->start_rw[2] = obj_start[2].GetDouble();
+
+		const auto& obj_end_i = object.FindMember("end");
+		if (obj_end_i == object.MemberEnd()) {
+			throw std::invalid_argument(__FILE__ ": Given object doesn't have an end item.");
+		}
+		const auto& obj_end = obj_end_i->value;
+
+		if (not obj_end.IsArray()) {
+			throw std::invalid_argument(__FILE__ ": End item isn't an array.");
+		}
+
+		if (obj_end.Size() != 3) {
+			throw std::invalid_argument(__FILE__ ": End item doesn't have a length of 3.");
+		}
+
+		this->end_rw[0] = obj_end[0].GetDouble();
+		this->end_rw[1] = obj_end[1].GetDouble();
+		this->end_rw[2] = obj_end[2].GetDouble();
+
+		for (size_t i = 0; i < 3; i++) {
+			if (this->end_rw[i] <= this->start_rw[i]) {
+				throw std::invalid_argument(__FILE__ ": Given object ends before it starts.");
+			}
+		}
+	}
+
+
+	const Vector
 		//! start coordinates of box
 		&start,
 		//! end coordinates of box
 		&end;
 
+	//! simulation cells overlapping with this box
+	const std::vector<Cell_Id>& cells;
+
 
 private:
 
-	Vector_T start_rw, end_rw;
+	Vector start_rw, end_rw;
+
+	std::vector<Cell_Id> cells_rw;
 };
 
 }} // namespaces

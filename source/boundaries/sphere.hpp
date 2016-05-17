@@ -1,5 +1,5 @@
 /*
-Sphere geometry class of PAMHD.
+Sphere boundary geometry class of PAMHD.
 
 Copyright 2014, 2015, 2016 Ilja Honkonen
 All rights reserved.
@@ -36,14 +36,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "cmath"
-#include "cstdlib"
-#include "iostream"
-#include "string"
-
-#include "boost/program_options.hpp"
-#include "prettyprint.hpp"
-
-#include "program_options_validators.hpp"
+#include "vector"
 
 
 namespace pamhd {
@@ -52,17 +45,76 @@ namespace boundaries {
 /*!
 Vector_T is assumed to be std::array or similar.
 */
-template<class Vector_T, class Scalar_T> class Sphere
+template<class Vector, class Scalar, class Cell_Id> class Sphere
 {
 public:
 
-	//! Class can read only one instance using boost::program_options
-	static constexpr bool scalar = true;
 
+	Sphere() :
+		center(center_rw),
+		radius(radius_rw),
+		cells(cells_rw)
+	{}
 
-	size_t get_number_of_instances() const
+	Sphere(
+		const Vector& sphere_center,
+		const Scalar& sphere_radius
+	) :
+		center(center_rw),
+		radius(radius_rw),
+		cells(cells_rw)
 	{
-		return 1;
+		this->set_geometry(sphere_center, sphere_radius);
+	}
+
+	Sphere(const rapidjson::Value& object) :
+		center(center_rw),
+		radius(radius_rw),
+		cells(cells_rw)
+	{
+		this->set_geometry(object);
+	}
+
+	Sphere(const Sphere<Vector, Scalar, Cell_Id>& other) :
+		center(center_rw),
+		radius(radius_rw),
+		cells(cells_rw),
+		center_rw(other.center_rw),
+		radius_rw(other.radius_rw),
+		cells_rw(other.cells_rw)
+	{}
+
+	Sphere(Sphere<Vector, Scalar, Cell_Id>&& other) :
+		center(center_rw),
+		radius(radius_rw),
+		cells(cells_rw),
+		center_rw(std::move(other.center_rw)),
+		radius_rw(std::move(other.radius_rw)),
+		cells_rw(std::move(other.cells_rw))
+	{}
+
+
+	Sphere& operator =(const Sphere<Vector, Scalar, Cell_Id>& other)
+	{
+		if (this != &other) {
+			this->center_rw = other.center_rw;
+			this->radius_rw = other.radius_rw;
+			this->cells_rw = other.cells_rw;
+		}
+
+		return *this;
+	}
+
+
+	Sphere& operator =(Sphere<Vector, Scalar, Cell_Id>&& other)
+	{
+		if (this != &other) {
+			this->center_rw = std::move(other.center_rw);
+			this->radius_rw = std::move(other.radius_rw);
+			this->cells_rw = std::move(other.cells_rw);
+		}
+
+		return *this;
 	}
 
 
@@ -71,22 +123,18 @@ public:
 	this sphere, false otherwise.
 	*/
 	bool overlaps(
-		const Vector_T& cell_start,
-		const Vector_T& cell_end
+		const Vector& cell_start,
+		const Vector& cell_end,
+		const Cell_Id& cell_id
 	) {
 		for (size_t i = 0; i < size_t(cell_start.size()); i++) {
 			if (cell_start[i] > cell_end[i]) {
-				std::cerr <<  __FILE__ << "(" << __LINE__<< ") "
-					<< "Starting coordinate of cell at index " << i
-					<< " is larger than ending coordinate: "
-					<< cell_start[i] << " > " << cell_end[i]
-					<< std::endl;
-				abort();
+				throw std::invalid_argument(__FILE__ ": Given box ends before it starts.");
 			}
 		}
 
 		// https://stackoverflow.com/questions/4578967
-		Scalar_T distance2 = 0;
+		Scalar distance2 = 0;
 		for (size_t i = 0; i < size_t(cell_start.size()); i++) {
 			if (this->center[i] < cell_start[i]) {
 				distance2 += std::pow(this->center[i] - cell_start[i], 2);
@@ -95,56 +143,93 @@ public:
 			}
 		}
 
-		return distance2 < std::pow(this->radius, 2);
-	}
+		const bool overlaps = distance2 < std::pow(this->radius, 2);
 
-
-	void add_options(
-		const std::string& option_name_prefix,
-		boost::program_options::options_description& options
-	) {
-		options.add_options()
-			((option_name_prefix + "center").c_str(),
-				boost::program_options::value<
-					Vector_T
-				>(&this->center)->default_value(this->center),
-				"Center of the sphere")
-			((option_name_prefix + "radius").c_str(),
-				boost::program_options::value<
-					Scalar_T
-				>(&this->radius)->default_value(this->radius),
-				"Radius of the sphere");
-	}
-
-
-	bool set_geometry(
-		const Vector_T& given_center,
-		const Scalar_T& given_radius
-	) {
-		if (given_radius <= 0) {
-			return false;
+		if (overlaps) {
+			this->cells_rw.push_back(cell_id);
 		}
 
-		this->center = given_center;
-		this->radius = given_radius;
-		return true;
+		return overlaps;
 	}
 
-	const Vector_T& get_center() const
-	{
-		return this->center;
+
+	void set_geometry(
+		const Vector& given_center,
+		const Scalar& given_radius
+	) {
+		if (given_radius <= 0) {
+			throw std::invalid_argument(__FILE__ ": Non-positive radius given.");
+		}
+
+		this->center_rw = given_center;
+		this->radius_rw = given_radius;
 	}
 
-	const Scalar_T& get_radius() const
+
+	/*!
+	Sets sphere geometry from given rapidjson object.
+
+	Given object must have "center" and "radius" items
+	of array of 3 numbers and double respectively.
+	*/
+	void set_geometry(const rapidjson::Value& object)
 	{
-		return this->radius;
+		const auto& obj_center_i = object.FindMember("center");
+		if (obj_center_i == object.MemberEnd()) {
+			throw std::invalid_argument(__FILE__ ": Given object doesn't have a center item.");
+		}
+		const auto& obj_center = obj_center_i->value;
+
+		if (not obj_center.IsArray()) {
+			throw std::invalid_argument(__FILE__ ": Center item isn't an array.");
+		}
+
+		if (obj_center.Size() != 3) {
+			throw std::invalid_argument(__FILE__ ": Center item doesn't have a length of 3.");
+		}
+
+		this->center_rw[0] = obj_center[0].GetDouble();
+		this->center_rw[1] = obj_center[1].GetDouble();
+		this->center_rw[2] = obj_center[2].GetDouble();
+
+		const auto& obj_radius_i = object.FindMember("radius");
+		if (obj_radius_i == object.MemberEnd()) {
+			throw std::invalid_argument(__FILE__ ": Given object doesn't have an radius item.");
+		}
+		const auto& obj_radius = obj_radius_i->value;
+
+		if (not obj_radius.IsNumber()) {
+			throw std::invalid_argument(__FILE__ ": Radius item isn't a number.");
+		}
+
+		this->radius_rw = obj_radius.GetDouble();
+
+		if (this->radius_rw <= 0) {
+			throw std::invalid_argument(__FILE__ ": Given object's radius isn't positive.");
+		}
 	}
+
+
+	void clear_cells() {
+		this->cells_rw.clear();
+	}
+
+
+	//! center coordinate of sphere
+	const Vector &center;
+	//! radius of sphere
+	const Scalar& radius;
+
+	//! simulation cells overlapping with this sphere
+	const std::vector<Cell_Id>& cells;
 
 
 private:
 
-	Vector_T center;
-	Scalar_T radius;
+	Vector center_rw;
+	Scalar radius_rw;
+
+	std::vector<Cell_Id> cells_rw;
 };
 
 }} // namespaces

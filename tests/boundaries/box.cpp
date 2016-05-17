@@ -1,5 +1,5 @@
 /*
-Box geometry test of PAMHD.
+Box boundary geometry test of PAMHD.
 
 Copyright 2014, 2015, 2016 Ilja Honkonen
 All rights reserved.
@@ -33,82 +33,124 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "array"
 #include "cstdlib"
 #include "iostream"
-#include "string"
 
-#include "boost/program_options.hpp"
-#ifdef HAVE_EIGEN
-#include "Eigen/Core" // must be included before box.hpp
-#endif
-
-#include "boundaries/box.hpp"
-
-
-#ifdef HAVE_EIGEN
+#ifdef USE_EIGEN
+#include "Eigen/Core"
 #define MAKE_BOX(a, b, c, d, e, f) {a, b, c}, {d, e, f}
 #else
 #define MAKE_BOX(a, b, c, d, e, f) {{a, b, c}}, {{d, e, f}}
 #endif
 
+#include "rapidjson/document.h"
+
+#include "boundaries/box.hpp"
+
 
 using namespace pamhd::boundaries;
 
-int main(int argc, char* argv[])
+int main()
 {
-	#ifdef HAVE_EIGEN
-	Box<Eigen::Vector3d> box;
-	#else
-	Box<std::array<double, 3>> box;
-	#endif
+	const char json[] = "{"
+		"\"asdf\": ["
+			"{\"box\": {"
+				"\"start\": [-1, -2, -3],"
+				"\"end\": [1, 2, 3]"
+			"}},"
+			"{\"sphere\": {"
+				"\"center\": [-1, -2, -3],"
+				"\"radius\": 0.01"
+			"}},"
+			"{\"box\": {"
+				"\"start\": [1, 2, 3],"
+				"\"end\": [-1, -2, -3]"
+			"}}"
+		"]"
+	"}";
 
-	if (not box.set_geometry(MAKE_BOX(-1, -2, -3, 1, 2, 3))) {
+	rapidjson::Document document;
+	document.Parse(json);
+	if (document.HasParseError()) {
+		std::cerr << "Couldn't parse json data: " << json << std::endl;
+		return EXIT_FAILURE;
+	}
+
+	try {
+		const auto box_fail = Box<
+			#ifdef HAVE_EIGEN
+			Eigen::Vector3d,
+			#else
+			std::array<double, 3>,
+			#endif
+			int
+		>(document["asdf"][2]["box"]);
+
 		std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
-			<< "Couldn't set geometry."
+			<< "Could create box from rapidjson object."
 			<< std::endl;
-		abort();
+		return EXIT_FAILURE;
+	} catch (...) {
 	}
 
-	boost::program_options::options_description options(
-		"Usage: program_name [options], where options are:"
-	);
-	options.add_options()
-		("help", "Print options and their descriptions");
-	box.add_options("", options);
 
-	boost::program_options::variables_map option_variables;
-	boost::program_options::store(
-		boost::program_options::parse_command_line<char>(
-			argc,
-			argv,
-			options
-		),
-		option_variables
-	);
-	boost::program_options::notify(option_variables);
+	Box<
+		#ifdef HAVE_EIGEN
+		Eigen::Vector3d,
+		#else
+		std::array<double, 3>,
+		#endif
+		int
+	> box;
 
-	if (option_variables.count("help") > 0) {
-		std::cout << options << std::endl;
-		return EXIT_SUCCESS;
+	try {
+		box = Box<
+			#ifdef HAVE_EIGEN
+			Eigen::Vector3d,
+			#else
+			std::array<double, 3>,
+			#endif
+			int
+		>(document["asdf"][0]["box"]);
+	} catch (...) {
+		std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
+			<< "Couldn't create box from rapidjson object."
+			<< std::endl;
+		return EXIT_FAILURE;
 	}
 
-	if (box.overlaps(MAKE_BOX(-2, -3, -4, -1.1, -2.1, -3.1))) {
+	if (box.overlaps(MAKE_BOX(-2, -3, -4, -1.1, -2.1, -3.1), 1)) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
 			<< "Cell overlaps box."
 			<< std::endl;
-		abort();
+		return EXIT_FAILURE;
 	}
 
-	if (box.overlaps(MAKE_BOX(1.1, 2.1, 3.1, 2, 3, 4))) {
+	if (box.overlaps(MAKE_BOX(1.1, 2.1, 3.1, 2, 3, 4), 2)) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
 			<< "Cell overlaps box."
 			<< std::endl;
-		abort();
+		return EXIT_FAILURE;
 	}
 
-	if (not box.overlaps(MAKE_BOX(0, 1, 2, 5, 5, 5))) {
+	if (not box.overlaps(MAKE_BOX(0, 1, 2, 5, 5, 5), 3)) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
 			<< "Cell does not overlap box."
 			<< std::endl;
-		abort();
+		return EXIT_FAILURE;
+	}
+
+	if (box.cells.size() != 1) {
+		std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
+			<< "Wrong number of cells in box's list of overlapping cells: "
+			<< box.cells.size() << ", should be 1."
+			<< std::endl;
+		return EXIT_FAILURE;
+	}
+	if (box.cells[0] != 3) {
+		std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
+			<< "Wrong cell in box's list of overlapping cells: "
+			<< box.cells[0] << ", should be 3."
+			<< std::endl;
+		return EXIT_FAILURE;
 	}
 
 

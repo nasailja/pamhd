@@ -1,5 +1,5 @@
 /*
-Sphere geometry test of PAMHD.
+Sphere boundary geometry test of PAMHD.
 
 Copyright 2014, 2015, 2016 Ilja Honkonen
 All rights reserved.
@@ -33,84 +33,127 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "array"
 #include "cstdlib"
 #include "iostream"
-#include "string"
 
-#include "boost/program_options.hpp"
-#ifdef HAVE_EIGEN
-#include "Eigen/Core" // must be included before sphere.hpp
+#include "rapidjson/document.h"
+
+#ifdef USE_EIGEN
+#include "Eigen/Core"
+#define MAKE_BOX(a, b, c, d, e, f) {a, b, c}, {d, e, f}
+#else
+#define MAKE_BOX(a, b, c, d, e, f) {{a, b, c}}, {{d, e, f}}
 #endif
 
 #include "boundaries/sphere.hpp"
 
 
-#ifdef HAVE_EIGEN
-#define MAKE_VECTOR(a, b, c) {a, b, c}
-#define MAKE_BOX(a, b, c, d, e, f) {a, b, c}, {d, e, f}
-#else
-#define MAKE_VECTOR(a, b, c) {{a, b, c}}
-#define MAKE_BOX(a, b, c, d, e, f) {{a, b, c}}, {{d, e, f}}
-#endif
-
-
 using namespace pamhd::boundaries;
 
-int main(int argc, char* argv[])
+int main()
 {
-	#ifdef HAVE_EIGEN
-	Sphere<Eigen::Vector3d, double> sphere;
-	#else
-	Sphere<std::array<double, 3>, double> sphere;
-	#endif
+	const char json[] = "{"
+		"\"asdf\": ["
+			"{\"box\": {"
+				"\"start\": [-1, -2, -3],"
+				"\"end\": [1, 2, 3]"
+			"}},"
+			"{\"sphere\": {"
+				"\"center\": [1, 2, 3],"
+				"\"radius\": 1"
+			"}},"
+			"{\"sphere\": {"
+				"\"center\": [-1, -2, -3],"
+				"\"radius\": -4"
+			"}}"
+		"]"
+	"}";
 
-	if (not sphere.set_geometry(MAKE_VECTOR(1, 2, 3), 1)) {
+	rapidjson::Document document;
+	document.Parse(json);
+	if (document.HasParseError()) {
+		std::cerr << "Couldn't parse json data: " << json << std::endl;
+		return EXIT_FAILURE;
+	}
+
+	try {
+		const auto sphere_fail = Sphere<
+			#ifdef HAVE_EIGEN
+			Eigen::Vector3d,
+			#else
+			std::array<double, 3>,
+			#endif
+			double,
+			int
+		>(document["asdf"][2]["sphere"]);
+
 		std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
-			<< "Couldn't set geometry."
+			<< "Could create sphere from rapidjson object."
 			<< std::endl;
-		abort();
+		return EXIT_FAILURE;
+	} catch (...) {
 	}
 
-	boost::program_options::options_description options(
-		"Usage: program_name [options], where options are:"
-	);
-	options.add_options()
-		("help", "Print options and their descriptions");
-	sphere.add_options("", options);
 
-	boost::program_options::variables_map option_variables;
-	boost::program_options::store(
-		boost::program_options::parse_command_line<char>(
-			argc,
-			argv,
-			options
-		),
-		option_variables
-	);
-	boost::program_options::notify(option_variables);
+	Sphere<
+		#ifdef HAVE_EIGEN
+		Eigen::Vector3d,
+		#else
+		std::array<double, 3>,
+		#endif
+		double,
+		int
+	> sphere;
 
-	if (option_variables.count("help") > 0) {
-		std::cout << options << std::endl;
-		return EXIT_SUCCESS;
+	try {
+		sphere = Sphere<
+			#ifdef HAVE_EIGEN
+			Eigen::Vector3d,
+			#else
+			std::array<double, 3>,
+			#endif
+			double,
+			int
+		>(document["asdf"][1]["sphere"]);
+	} catch (...) {
+		std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
+			<< "Couldn't create sphere from rapidjson object."
+			<< std::endl;
+		return EXIT_FAILURE;
 	}
 
-	if (sphere.overlaps(MAKE_BOX(0, 0, 0, 1, 1, 1))) {
+	if (sphere.overlaps(MAKE_BOX(0, 0, 0, 1, 1, 1), 1)) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
 			<< "Cell overlaps sphere."
 			<< std::endl;
-		abort();
+		return EXIT_FAILURE;
 	}
 
-	if (sphere.overlaps(MAKE_BOX(-1, -2, -3, -0.1, 0.9, 1.9))) {
+	if (sphere.overlaps(MAKE_BOX(-1, -2, -3, -0.1, 0.9, 1.9), 2)) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
 			<< "Cell overlaps sphere."
 			<< std::endl;
-		abort();
+		return EXIT_FAILURE;
 	}
 
-	if (not sphere.overlaps(MAKE_BOX(0, 0, 0, 0.5, 1.5, 2.5))) {
+	if (not sphere.overlaps(MAKE_BOX(0, 0, 0, 0.5, 1.5, 2.5), 3)) {
 		std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
 			<< "Cell does not overlap sphere."
 			<< std::endl;
-		abort();
+		return EXIT_FAILURE;
+	}
+
+	if (sphere.cells.size() != 1) {
+		std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
+			<< "Wrong number of cells in sphere's list of overlapping cells: "
+			<< sphere.cells.size() << ", should be 1."
+			<< std::endl;
+		return EXIT_FAILURE;
+	}
+	if (sphere.cells[0] != 3) {
+		std::cerr <<  __FILE__ << "(" << __LINE__<< "): "
+			<< "Wrong cell in sphere's list of overlapping cells: "
+			<< sphere.cells[0] << ", should be 3."
+			<< std::endl;
+		return EXIT_FAILURE;
 	}
 
 

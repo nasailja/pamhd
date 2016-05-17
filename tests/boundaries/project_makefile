@@ -1,9 +1,10 @@
 TESTS_BOUNDARIES_EXECUTABLES = \
+  tests/boundaries/rapidjson.exe \
+  tests/boundaries/box.exe \
+  tests/boundaries/box_eigen.exe \
   tests/boundaries/sphere.exe \
   tests/boundaries/sphere_eigen.exe \
-  tests/boundaries/box.exe \
-  tests/boundaries/boxes_from_json.exe \
-  tests/boundaries/box_eigen.exe \
+  tests/boundaries/geometries_from_json.exe \
   tests/boundaries/one_variable_boundary.exe \
   tests/boundaries/one_variable_boundary_eigen.exe \
   tests/boundaries/many_variable_boundary.exe \
@@ -22,11 +23,11 @@ TESTS_BOUNDARIES_EXECUTABLES = \
   tests/boundaries/value_boundaries_eigen.exe
 
 TESTS_BOUNDARIES_TESTS = \
+  tests/boundaries/box.tst \
+  tests/boundaries/box_eigen.tst \
   tests/boundaries/sphere.tst \
   tests/boundaries/sphere_eigen.tst \
-  tests/boundaries/box.tst \
-  tests/boundaries/boxes_from_json.tst \
-  tests/boundaries/box_eigen.tst \
+  tests/boundaries/geometries_from_json.tst \
   tests/boundaries/one_variable_boundary.tst \
   tests/boundaries/one_variable_boundary_eigen.tst \
   tests/boundaries/many_variable_boundary.tst \
@@ -60,7 +61,6 @@ CLEAN += tests/boundaries_clean
 
 TESTS_BOUNDARIES_COMMON_DEPS = \
   source/boundaries/box.hpp \
-  source/boundaries/boxes_from_json.hpp \
   source/boundaries/initial_condition.hpp \
   source/boundaries/copy_boundary.hpp \
   source/boundaries/sphere.hpp \
@@ -72,134 +72,139 @@ TESTS_BOUNDARIES_COMMON_DEPS = \
   $(ENVIRONMENT_MAKEFILE) \
   Makefile
 
-TESTS_BOUNDARIES_COMPILE_COMMAND = \
+
+TESTS_BOUNDARIES_COMPILE = \
   @printf "CXX $<\n" && $(CXX) $< -o $@ \
   $(CPPFLAGS) \
   $(CXXFLAGS) \
-  $(LDFLAGS) \
-  $(BOOST_CPPFLAGS) \
-  $(BOOST_LDFLAGS) \
-  $(BOOST_LIBS) \
-  $(RAPIDJSON_CPPFLAGS) \
-  $(PRETTYPRINT_CPPFLAGS)
+  $(LDFLAGS)
 
-TESTS_BOUNDARIES_COMPILE_COMMAND_EIGEN = \
-  $(TESTS_BOUNDARIES_COMPILE_COMMAND) \
+TESTS_BOUNDARIES_COMPILE_EIGEN = \
+  $(TESTS_BOUNDARIES_COMPILE) \
   $(EIGEN_CPPFLAGS) \
-  -DHAVE_EIGEN
+  -DUSE_EIGEN
 
-TESTS_BOUNDARIES_COMPILE_COMMAND_PARSED = \
-  $(TESTS_BOUNDARIES_COMPILE_COMMAND) \
+TESTS_BOUNDARIES_COMPILE_PARSED = \
+  $(TESTS_BOUNDARIES_COMPILE) \
   $(MUPARSERX_CPPFLAGS) \
   $(MUPARSERX_LDFLAGS) \
   $(MUPARSERX_LIBS)
 
-TESTS_BOUNDARIES_COMPILE_COMMAND_PARSED_EIGEN = \
-  $(TESTS_BOUNDARIES_COMPILE_COMMAND_PARSED) \
+TESTS_BOUNDARIES_COMPILE_PARSED_EIGEN = \
+  $(TESTS_BOUNDARIES_COMPILE_PARSED) \
   $(EIGEN_CPPFLAGS) \
   -DHAVE_EIGEN
 
-tests/boundaries/sphere.exe: \
-  tests/boundaries/sphere.cpp \
-  $(TESTS_BOUNDARIES_COMMON_DEPS)
-	$(TESTS_BOUNDARIES_COMPILE_COMMAND)
 
-tests/boundaries/sphere_eigen.exe: \
-  tests/boundaries/sphere.cpp \
-  $(TESTS_BOUNDARIES_COMMON_DEPS)
-	$(TESTS_BOUNDARIES_COMPILE_COMMAND_EIGEN)
+tests/boundaries/rapidjson.exe: \
+  tests/boundaries/rapidjson.cpp
+	$(TESTS_BOUNDARIES_COMPILE) \
+		$(RAPIDJSON_CPPFLAGS)
 
 tests/boundaries/box.exe: \
   tests/boundaries/box.cpp \
   $(TESTS_BOUNDARIES_COMMON_DEPS)
-	$(TESTS_BOUNDARIES_COMPILE_COMMAND)
-
-tests/boundaries/boxes_from_json.exe: \
-  tests/boundaries/boxes_from_json.cpp \
-  $(TESTS_BOUNDARIES_COMMON_DEPS)
-	$(TESTS_BOUNDARIES_COMPILE_COMMAND)
+	$(TESTS_BOUNDARIES_COMPILE) $(RAPIDJSON_CPPFLAGS)
 
 tests/boundaries/box_eigen.exe: \
   tests/boundaries/box.cpp \
   $(TESTS_BOUNDARIES_COMMON_DEPS)
-	$(TESTS_BOUNDARIES_COMPILE_COMMAND_EIGEN)
+	$(TESTS_BOUNDARIES_COMPILE) $(RAPIDJSON_CPPFLAGS) $(EIGEN_CPPFLAGS) -DUSE_EIGEN
+
+
+tests/boundaries/sphere.exe: \
+  tests/boundaries/sphere.cpp \
+  $(TESTS_BOUNDARIES_COMMON_DEPS)
+	$(TESTS_BOUNDARIES_COMPILE) $(RAPIDJSON_CPPFLAGS)
+
+tests/boundaries/sphere_eigen.exe: \
+  tests/boundaries/sphere.cpp \
+  $(TESTS_BOUNDARIES_COMMON_DEPS)
+	$(TESTS_BOUNDARIES_COMPILE) $(RAPIDJSON_CPPFLAGS) $(EIGEN_CPPFLAGS) -DUSE_EIGEN
+
+
+tests/boundaries/geometries_from_json.exe: \
+  tests/boundaries/geometries_from_json.cpp \
+  source/boundaries/geometries.hpp \
+  $(TESTS_BOUNDARIES_COMMON_DEPS)
+	$(TESTS_BOUNDARIES_COMPILE)
 
 tests/boundaries/one_variable_boundary.exe: \
   tests/boundaries/one_variable_boundary.cpp \
   $(TESTS_BOUNDARIES_COMMON_DEPS)
-	$(TESTS_BOUNDARIES_COMPILE_COMMAND_PARSED)
+	$(TESTS_BOUNDARIES_COMPILE_PARSED)
 
 tests/boundaries/one_variable_boundary_eigen.exe: \
   tests/boundaries/one_variable_boundary.cpp \
   $(TESTS_BOUNDARIES_COMMON_DEPS)
-	$(TESTS_BOUNDARIES_COMPILE_COMMAND_PARSED_EIGEN)
+	$(TESTS_BOUNDARIES_COMPILE_PARSED_EIGEN)
 
 tests/boundaries/many_variable_boundary.exe: \
   tests/boundaries/many_variable_boundary.cpp \
   $(TESTS_BOUNDARIES_COMMON_DEPS)
-	$(TESTS_BOUNDARIES_COMPILE_COMMAND_PARSED)
+	$(TESTS_BOUNDARIES_COMPILE_PARSED)
 
 tests/boundaries/many_variable_boundary_eigen.exe: \
   tests/boundaries/many_variable_boundary.cpp \
   $(TESTS_BOUNDARIES_COMMON_DEPS)
-	$(TESTS_BOUNDARIES_COMPILE_COMMAND_PARSED_EIGEN)
+	$(TESTS_BOUNDARIES_COMPILE_PARSED_EIGEN)
 
 tests/boundaries/initial_condition.exe: \
   tests/boundaries/initial_condition.cpp \
   $(TESTS_BOUNDARIES_COMMON_DEPS)
-	$(TESTS_BOUNDARIES_COMPILE_COMMAND_PARSED)
+	$(TESTS_BOUNDARIES_COMPILE_PARSED)
 
 tests/boundaries/initial_condition_eigen.exe: \
   tests/boundaries/initial_condition.cpp \
   $(TESTS_BOUNDARIES_COMMON_DEPS)
-	$(TESTS_BOUNDARIES_COMPILE_COMMAND_PARSED_EIGEN)
+	$(TESTS_BOUNDARIES_COMPILE_PARSED_EIGEN)
 
 tests/boundaries/copy_boundary.exe: \
   tests/boundaries/copy_boundary.cpp \
   $(TESTS_BOUNDARIES_COMMON_DEPS)
-	$(TESTS_BOUNDARIES_COMPILE_COMMAND_PARSED)
+	$(TESTS_BOUNDARIES_COMPILE_PARSED)
 
 tests/boundaries/game_of_life/initial_condition.exe: \
   tests/boundaries/game_of_life/initial_condition.cpp \
   $(TESTS_BOUNDARIES_COMMON_DEPS)
-	$(TESTS_BOUNDARIES_COMPILE_COMMAND_PARSED)
+	$(TESTS_BOUNDARIES_COMPILE_PARSED)
 
 tests/boundaries/game_of_life/copy_boundary.exe: \
   tests/boundaries/game_of_life/copy_boundary.cpp \
   $(TESTS_BOUNDARIES_COMMON_DEPS)
-	$(TESTS_BOUNDARIES_COMPILE_COMMAND_PARSED)
+	$(TESTS_BOUNDARIES_COMPILE_PARSED)
 
 tests/boundaries/boundary_td_box.exe: \
   tests/boundaries/boundary_td_box.cpp \
   $(TESTS_BOUNDARIES_COMMON_DEPS)
-	$(TESTS_BOUNDARIES_COMPILE_COMMAND_PARSED)
+	$(TESTS_BOUNDARIES_COMPILE_PARSED)
 
 tests/boundaries/boundary_td_box_eigen.exe: \
   tests/boundaries/boundary_td_box.cpp \
   $(TESTS_BOUNDARIES_COMMON_DEPS)
-	$(TESTS_BOUNDARIES_COMPILE_COMMAND_PARSED_EIGEN)
+	$(TESTS_BOUNDARIES_COMPILE_PARSED_EIGEN)
 
 tests/boundaries/boundary_td_sphere.exe: \
   tests/boundaries/boundary_td_sphere.cpp \
   $(TESTS_BOUNDARIES_COMMON_DEPS)
-	$(TESTS_BOUNDARIES_COMPILE_COMMAND_PARSED)
+	$(TESTS_BOUNDARIES_COMPILE_PARSED)
 
 tests/boundaries/boundary_td_sphere_eigen.exe: \
   tests/boundaries/boundary_td_sphere.cpp \
   $(TESTS_BOUNDARIES_COMMON_DEPS)
-	$(TESTS_BOUNDARIES_COMPILE_COMMAND_PARSED_EIGEN)
+	$(TESTS_BOUNDARIES_COMPILE_PARSED_EIGEN)
 
 tests/boundaries/game_of_life/time_dependent.exe: \
   tests/boundaries/game_of_life/time_dependent.cpp \
   $(TESTS_BOUNDARIES_COMMON_DEPS)
-	$(TESTS_BOUNDARIES_COMPILE_COMMAND_PARSED)
+	$(TESTS_BOUNDARIES_COMPILE_PARSED)
 
 tests/boundaries/value_boundaries.exe: \
   tests/boundaries/value_boundaries.cpp \
   $(TESTS_BOUNDARIES_COMMON_DEPS)
-	$(TESTS_BOUNDARIES_COMPILE_COMMAND_PARSED)
+	$(TESTS_BOUNDARIES_COMPILE_PARSED)
 
 tests/boundaries/value_boundaries_eigen.exe: \
   tests/boundaries/value_boundaries.cpp \
   $(TESTS_BOUNDARIES_COMMON_DEPS)
-	$(TESTS_BOUNDARIES_COMPILE_COMMAND_PARSED_EIGEN)
+	$(TESTS_BOUNDARIES_COMPILE_PARSED_EIGEN)
