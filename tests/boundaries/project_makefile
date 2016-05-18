@@ -4,7 +4,7 @@ TESTS_BOUNDARIES_EXECUTABLES = \
   tests/boundaries/box_eigen.exe \
   tests/boundaries/sphere.exe \
   tests/boundaries/sphere_eigen.exe \
-  tests/boundaries/geometries_from_json.exe \
+  tests/boundaries/geometries.exe \
   tests/boundaries/one_variable_boundary.exe \
   tests/boundaries/one_variable_boundary_eigen.exe \
   tests/boundaries/many_variable_boundary.exe \
@@ -27,7 +27,7 @@ TESTS_BOUNDARIES_TESTS = \
   tests/boundaries/box_eigen.tst \
   tests/boundaries/sphere.tst \
   tests/boundaries/sphere_eigen.tst \
-  tests/boundaries/geometries_from_json.tst \
+  tests/boundaries/geometries.tst \
   tests/boundaries/one_variable_boundary.tst \
   tests/boundaries/one_variable_boundary_eigen.tst \
   tests/boundaries/many_variable_boundary.tst \
@@ -123,11 +123,11 @@ tests/boundaries/sphere_eigen.exe: \
 	$(TESTS_BOUNDARIES_COMPILE) $(RAPIDJSON_CPPFLAGS) $(EIGEN_CPPFLAGS) -DUSE_EIGEN
 
 
-tests/boundaries/geometries_from_json.exe: \
-  tests/boundaries/geometries_from_json.cpp \
+tests/boundaries/geometries.exe: \
+  tests/boundaries/geometries.cpp \
   source/boundaries/geometries.hpp \
   $(TESTS_BOUNDARIES_COMMON_DEPS)
-	$(TESTS_BOUNDARIES_COMPILE)
+	$(TESTS_BOUNDARIES_COMPILE) $(RAPIDJSON_CPPFLAGS)
 
 tests/boundaries/one_variable_boundary.exe: \
   tests/boundaries/one_variable_boundary.cpp \
