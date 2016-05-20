@@ -15,7 +15,7 @@ TESTS_BOUNDARIES_EXECUTABLES = \
   tests/boundaries/initial_condition.exe \
   tests/boundaries/initial_condition_eigen.exe \
   tests/boundaries/copy_boundary.exe \
-  tests/boundaries/game_of_life/initial_condition.exe \
+  tests/boundaries/game_of_life/init_3d_grid.exe \
   tests/boundaries/game_of_life/copy_boundary.exe \
   tests/boundaries/boundary_td_box.exe \
   tests/boundaries/boundary_td_box_eigen.exe \
@@ -41,7 +41,7 @@ TESTS_BOUNDARIES_TESTS = \
   tests/boundaries/initial_condition.tst \
   tests/boundaries/initial_condition_eigen.tst \
   tests/boundaries/copy_boundary.tst \
-  tests/boundaries/game_of_life/initial_condition.tst \
+  tests/boundaries/game_of_life/init_3d_grid.tst \
   tests/boundaries/game_of_life/copy_boundary.tst \
   tests/boundaries/boundary_td_box.tst \
   tests/boundaries/boundary_td_box_eigen.tst \
@@ -156,6 +156,13 @@ tests/boundaries/initial_condition_vector_eigen.exe: \
 	$(TESTS_BOUNDARIES_COMPILE) $(RAPIDJSON_CPPFLAGS) $(MUPARSERX_CPPFLAGS) $(MUPARSERX_LDFLAGS) $(MUPARSERX_LIBS) $(EIGEN_CPPFLAGS) -DUSE_EIGEN
 
 
+tests/boundaries/game_of_life/init_3d_grid.exe: \
+  tests/boundaries/game_of_life/init_3d_grid.cpp \
+  $(TESTS_BOUNDARIES_COMMON_DEPS)
+	$(TESTS_BOUNDARIES_COMPILE_PARSED) $(RAPIDJSON_CPPFLAGS) $(MUPARSERX_CPPFLAGS) $(MUPARSERX_LDFLAGS) $(MUPARSERX_LIBS)
+
+
+
 tests/boundaries/one_variable_boundary.exe: \
   tests/boundaries/one_variable_boundary.cpp \
   $(TESTS_BOUNDARIES_COMMON_DEPS)
@@ -188,11 +195,6 @@ tests/boundaries/initial_condition_eigen.exe: \
 
 tests/boundaries/copy_boundary.exe: \
   tests/boundaries/copy_boundary.cpp \
-  $(TESTS_BOUNDARIES_COMMON_DEPS)
-	$(TESTS_BOUNDARIES_COMPILE_PARSED)
-
-tests/boundaries/game_of_life/initial_condition.exe: \
-  tests/boundaries/game_of_life/initial_condition.cpp \
   $(TESTS_BOUNDARIES_COMMON_DEPS)
 	$(TESTS_BOUNDARIES_COMPILE_PARSED)
 

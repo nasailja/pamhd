@@ -1,5 +1,5 @@
 /*
-Class for setting the initial condition of a simulation.
+Class for handling the initial condition of a simulation in one region.
 
 Copyright 2014, 2015, 2016 Ilja Honkonen
 All rights reserved.
