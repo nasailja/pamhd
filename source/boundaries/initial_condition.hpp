@@ -33,14 +33,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef PAMHD_BOUNDARIES_INITIAL_CONDITION_HPP
 #define PAMHD_BOUNDARIES_INITIAL_CONDITION_HPP
 
+
+#include "algorithm"
+#include "array"
+#include "iterator"
 #include "stdexcept"
 #include "string"
+#include "type_traits"
 #include "utility"
 
-#include "boost/lexical_cast.hpp"
-#include "boost/optional.hpp"
-
-#include "boundaries/boundary.hpp"
+#include "rapidjson/document.h"
+#include "mpParser.h"
 
 
 namespace pamhd {
@@ -51,340 +54,626 @@ namespace boundaries {
 Collection of boundaries creatable from arguments given on command line.
 */
 template<
-	class Cell_T,
-	class Scalar_T,
-	class Vector_T,
-	class... Variables
+	class Geometry_Id,
+	class Variable
 > class Initial_Condition
 {
 public:
 
-	/*!
-	Must not be called after add_options().
-	*/
-	void set_number_of_boxes(const size_t given_nr_of_boxes)
+
+	Initial_Condition() :
+		t_var(&t_val),
+		x_var(&x_val), y_var(&y_val), z_var(&z_val),
+		radius_var(&radius_val), lat_var(&lat_val), lon_var(&lon_val)
 	{
-		this->number_of_boxes = given_nr_of_boxes;
-		this->boxes.resize(this->number_of_boxes);
+		this->parser.DefineVar("t", this->t_var);
+		this->parser.DefineVar("x", this->x_var);
+		this->parser.DefineVar("y", this->y_var);
+		this->parser.DefineVar("z", this->z_var);
+		this->parser.DefineVar("radius", this->radius_var);
+		this->parser.DefineVar("lat", this->lat_var);
+		this->parser.DefineVar("lon", this->lon_var);
 	}
 
+	Initial_Condition(const Initial_Condition& other) = delete;
+	Initial_Condition(Initial_Condition&& other) = delete;
+
+
 	/*!
-	Must not be called after add_options().
-	*/
-	void set_number_of_spheres(const size_t given_nr_of_spheres)
+	Prepares initial condition from given rapidjson object.
+
+	Given object must have "geometry_id" key with integer
+	value and "value"
+	key with either integer, string or object as value. If
+	object then it must have keys denoting coordinate planes
+	where data points are located and a "data" key.
+	Coordinates and data are arrays of numbers.
+	Coordinate keys are either "x", "y" and "z" for
+	cartesian geometry or "radius", "lat" and "lon" for
+	spherical data. "data" is in order
+	(x_1, y_1, z_1), (x_2, y_1, z_1), ...
+
+	Geometry ids refer to geometries of
+	source/boundaries/geometries.hpp
+
+	Example jsons which could be given as object:
+	\verbatim
+	{"geometry_id": 0, "value": 123}
+	\endverbatim
+	\verbatim
+	{"geometry_id": 1, "value": "sin(t)"}
+	\endverbatim
+	\verbatim
 	{
-		this->number_of_spheres = given_nr_of_spheres;
-		this->spheres.resize(this->number_of_spheres);
+		"geometry_id": 0,
+		"value": {
+			"x": [1, 2, 3, 4],
+			"y": [-3, 2, 5, 8],
+			"z": [0.1, 0.2, 40, 123],
+			"data": [1, 2, 3, ..., 64]
+		}
+	}
+	\endverbatim
+	*/
+	void set(const rapidjson::Value& object)
+	{
+		if (not object.HasMember("geometry_id")) {
+			throw std::invalid_argument(__FILE__ ": object doesn't have a geometry_id key.");
+		}
+		const auto& geometry_id = object["geometry_id"];
+
+		if (not geometry_id.IsUint()) {
+			throw std::invalid_argument(__FILE__ ": geometry_id is not unsigned int.");
+		}
+
+		if (not object.HasMember("value")) {
+			throw std::invalid_argument(__FILE__ ": object doesn't have a value key.");
+		}
+		const auto& value = object["value"];
+
+		// one scalar or vector value
+		if (value.IsNumber() or value.IsArray()) {
+
+			this->number_value = this->get_json_value(value);
+			this->init_cond_type = 1;
+
+		// math expression
+		} else if (value.IsString()) {
+
+			this->parser.SetExpr(value.GetString());
+			this->init_cond_type = 2;
+
+		// 3d grid of scalar values
+		} else if (value.IsObject()) {
+
+			if (value.HasMember("x")) {
+				this->coordinate_type = 1;
+			} else if (value.HasMember("radius")) {
+				this->coordinate_type = 2;
+			} else {
+				throw std::invalid_argument(__FILE__ ": value object doesn't have either x or radius key.");
+			}
+
+			std::array<const char*, 3> components{"x", "y", "z"};
+			if (this->coordinate_type == 2) {
+				components[0] = "radius";
+				components[1] = "lat";
+				components[2] = "lon";
+			}
+
+			// load coordinates of data points
+			size_t component_i = 0;
+			for (const auto& component: components) {
+				if (not value.HasMember(component)) {
+					throw std::invalid_argument(__FILE__ ": value object doesn't have required key.");
+				}
+
+				const auto& coord = value[component];
+				if (not coord.IsArray()) {
+					throw std::invalid_argument(__FILE__ ": coordinate in first dimension isn't array.");
+				}
+
+				this->coordinates[component_i].clear();
+				for (auto i = coord.Begin(); i != coord.End(); i++) {
+					this->coordinates[component_i].push_back(i->GetDouble());
+				}
+
+				component_i++;
+			}
+
+			// load data
+			if (value.HasMember("data")) {
+				const auto& data = value["data"];
+
+				if (not data.IsArray()) {
+					throw std::invalid_argument(__FILE__ ": data isn't array.");
+				}
+
+				this->data.clear();
+				for (auto i = data.Begin(); i != data.End(); i++) {
+					this->data.push_back(i->GetDouble());
+				}
+			} else {
+				throw std::invalid_argument(__FILE__ ": value object doesn't have a x or radius key.");
+			}
+
+			if (this->coordinates[0].size() * this->coordinates[1].size() * this->coordinates[2].size() != this->data.size()) {
+				throw std::invalid_argument(__FILE__ ": value's data has invalid size.");
+			}
+
+			this->init_cond_type = 3;
+
+		} else {
+			throw std::invalid_argument(__FILE__ ": value's type isn't supported.");
+		}
 	}
 
 
-	/*!
-	Must not be called after add_options().
-	*/
-	void add_initialization_options(
-		const std::string& option_name_prefix,
-		boost::program_options::options_description& options
+	typename Variable::data_type get_data(
+		const double& t,
+		const double& x,
+		const double& y,
+		const double& z,
+		const double& radius,
+		const double& latitude,
+		const double& longitude
 	) {
-		options.add_options()
-			((option_name_prefix + "nr-boxes").c_str(),
-				boost::program_options::value<size_t>(&this->number_of_boxes)
-					->default_value(this->number_of_boxes),
-				"Number of boxes in initial condition")
-			((option_name_prefix + "nr-spheres").c_str(),
-				boost::program_options::value<size_t>(&this->number_of_spheres)
-					->default_value(this->number_of_spheres),
-				"Number of spheres in initial condition");
+		switch (this->init_cond_type) {
+		case 1:
+			return this->number_value;
+
+		case 2:
+			this->t_val = t;
+			this->x_val = x;
+			this->y_val = y;
+			this->z_val = z;
+			this->radius_val = radius;
+			this->lat_val = latitude;
+			this->lon_val = longitude;
+			return this->get_parsed_value();
+
+		// nearest neighbor interpolation in point cloud
+		case 3: {
+			std::array<double, 3> coord{x, y, z};
+
+			switch (this->coordinate_type) {
+			case 1:
+				break;
+			case 2:
+				coord[0] = radius;
+				coord[1] = latitude;
+				coord[2] = longitude;
+				break;
+			default:
+				throw std::out_of_range(__FILE__ ": Invalid coordinate type.");
+			}
+
+			std::array<size_t, 3> coordinate_index{0, 0, 0};
+			for (size_t i = 0; i < coordinates.size(); i++) {
+				// location of first value not smaller than data point coordinate
+				const auto after = std::lower_bound(
+					coordinates[i].cbegin(),
+					coordinates[i].cend(),
+					coord[i]
+				);
+
+				if (after == coordinates[i].cbegin()) {
+					continue;
+				} else if (after == coordinates[i].cend()) {
+					coordinate_index[i] = coordinates[i].size() - 1;
+				} else {
+					const auto before = after - 1;
+					if (std::abs(coord[i] - *before) <= std::abs(coord[i] - *after)) {
+						coordinate_index[i] = std::distance(coordinates[i].cbegin(), before);
+					} else {
+						coordinate_index[i] = std::distance(coordinates[i].cbegin(), after);
+					}
+				}
+			}
+
+			const size_t data_i
+				= coordinate_index[0]
+				+ coordinate_index[1] * coordinates[0].size()
+				+ coordinate_index[2] * coordinates[0].size() * coordinates[1].size();
+
+			return this->data[data_i]; }
+
+		default:
+			throw std::out_of_range(__FILE__ ": Invalid initial condition type.");
+		}
 	}
 
 
-	/*!
-	Add options for as many boundaries as given by the nr-*
-	variables set by add_initialization_options.
-	*/
-	void add_options(
-		const std::string& option_name_prefix,
-		boost::program_options::options_description& options
-	) {
-		this->default_data.add_options(option_name_prefix + "default.", options);
+	void set_geometry_id(const Geometry_Id& id)
+	{
+		this->geometry_id = id;
+	}
 
-		this->boxes.resize(this->number_of_boxes);
-		this->spheres.resize(this->number_of_spheres);
 
-		size_t counter;
+private:
 
-		counter = 0;
-		for (auto& box: this->boxes) {
-			counter++;
-			box.add_options(
-				option_name_prefix
-					+ "box"
-					+ boost::lexical_cast<std::string>(counter)
-					+ ".",
-				options
+	// region where this initial condition is applied
+	Geometry_Id geometry_id;
+
+	// initial condition if a number was given in json file
+	typename Variable::data_type number_value;
+
+	// initial conditino if a string was given in json file
+	mup::ParserX parser = mup::ParserX(mup::pckCOMMON | mup::pckNON_COMPLEX | mup::pckMATRIX | mup::pckUNIT);
+	mup::Value t_val, x_val, y_val, z_val, radius_val, lat_val, lon_val;
+	mup::Variable t_var, x_var, y_var, z_var, radius_var, lat_var, lon_var;
+
+	// initial condition if an object was given in json file
+	std::array<std::vector<double>, 3> coordinates; // e.g. x,y,z coordinates of points
+	int coordinate_type = -1; // cartesian == 1, geographic == 2
+
+	// data in order x[0],y[0],z[0]; x[1],y[0],z[0]; ...
+	std::vector<typename Variable::data_type> data;
+
+	int init_cond_type = -1; // number == 1, string == 2, object == 3
+
+
+	//! used to fill this->number_value if Variable::data_type is signed integral.
+	template<class V = Variable> typename std::enable_if<
+		std::is_integral<typename V::data_type>::value
+			&& std::is_signed<typename V::data_type>::value,
+		typename V::data_type
+	>::type get_json_value(const rapidjson::Value& object)
+	{
+		if (not object.IsInt64()) {
+			throw std::invalid_argument(__FILE__ ": object isn't of signed integral type.");
+		}
+		return object.GetInt64();
+	}
+
+	//! used to fill this->number_value if Variable::data_type is unsigned integral.
+	template<class V = Variable> typename std::enable_if<
+		std::is_integral<typename V::data_type>::value
+			&& !std::is_signed<typename V::data_type>::value,
+		typename V::data_type
+	>::type get_json_value(const rapidjson::Value& object)
+	{
+		if (not object.IsUint64()) {
+			throw std::invalid_argument(__FILE__ ": object isn't of unsigned integral type.");
+		}
+		return object.GetUint64();
+	}
+
+	//! used to fill this->number_value if Variable::data_type is floating point.
+	template<class V = Variable> typename std::enable_if<
+		std::is_floating_point<typename V::data_type>::value,
+		typename V::data_type
+	>::type get_json_value(const rapidjson::Value& object)
+	{
+		if (not object.IsNumber()) {
+			throw std::invalid_argument(__FILE__ ": object isn't of floating point type.");
+		}
+		return object.GetDouble();
+	}
+
+	//! used to fill this->number_value if Variable::data_type is array of 3 signed integral values.
+	template<class V = Variable> typename std::enable_if<
+		std::tuple_size<typename V::data_type>::value == 3
+			&& std::is_integral<typename V::data_type::value_type>::value
+			&& std::is_signed<typename V::data_type::value_type>::value,
+		typename V::data_type
+	>::type get_json_value(const rapidjson::Value& object)
+	{
+		if (not object.IsArray()) {
+			throw std::invalid_argument(__FILE__ ": object isn't an array.");
+		}
+		if (object.Size() != 3) {
+			throw std::invalid_argument(__FILE__ ": object isn't an array of size 3.");
+		}
+
+		typename Variable::data_type ret_val;
+		for (size_t i = 0; i < 3; i++) {
+			if (not object[i].IsInt64()) {
+				throw std::invalid_argument(__FILE__ ": element of array isn't signed integral number.");
+			}
+			ret_val[i] = object[i].GetInt64();
+		}
+		return ret_val;
+	}
+
+	//! used to fill this->number_value if Variable::data_type is array of 3 unsigned integral values.
+	template<class V = Variable> typename std::enable_if<
+		std::tuple_size<typename V::data_type>::value == 3
+			&& std::is_integral<typename V::data_type::value_type>::value
+			&& !std::is_signed<typename V::data_type::value_type>::value,
+		typename V::data_type
+	>::type get_json_value(const rapidjson::Value& object)
+	{
+		if (not object.IsArray()) {
+			throw std::invalid_argument(__FILE__ ": object isn't an array.");
+		}
+		if (object.Size() != 3) {
+			throw std::invalid_argument(__FILE__ ": object isn't an array of size 3.");
+		}
+
+		typename Variable::data_type ret_val;
+		for (size_t i = 0; i < 3; i++) {
+			if (not object[i].IsUint64()) {
+				throw std::invalid_argument(__FILE__ ": element of array isn't unsigned integral number.");
+			}
+			ret_val[i] = object[i].GetUint64();
+		}
+		return ret_val;
+	}
+
+	//! used to fill this->number_value if Variable::data_type is array of 3 floating point values.
+	template<class V = Variable> typename std::enable_if<
+		std::tuple_size<typename V::data_type>::value == 3
+			&& std::is_floating_point<typename V::data_type::value_type>::value,
+		typename V::data_type
+	>::type get_json_value(const rapidjson::Value& object)
+	{
+		if (not object.IsArray()) {
+			throw std::invalid_argument(__FILE__ ": object isn't an array.");
+		}
+		if (object.Size() != 3) {
+			throw std::invalid_argument(__FILE__ ": object isn't an array of size 3.");
+		}
+
+		typename Variable::data_type ret_val;
+		for (size_t i = 0; i < 3; i++) {
+			if (not object[i].IsDouble()) {
+				throw std::invalid_argument(__FILE__ ": element of array isn't floating point number.");
+			}
+			ret_val[i] = object[i].GetDouble();
+		}
+		return ret_val;
+	}
+
+
+	//! used to evaluate math expression if Variable::data_type is integral
+	template<class V = Variable> typename std::enable_if<
+		std::is_integral<typename V::data_type>::value,
+		typename V::data_type
+	>::type get_parsed_value()
+	{
+		try {
+			const auto& evaluated = this->parser.Eval();
+			if (evaluated.GetType() != 'i' and evaluated.GetType() != 'f') {
+				throw std::invalid_argument(
+					std::string("Expression \"")
+					+ this->parser.GetExpr()
+					+ std::string("\" is neither integer nor floating point.")
+				);
+			}
+
+			return evaluated.GetInteger();
+
+		} catch(mup::ParserError &error) {
+			std::cerr <<  __FILE__ << "(" << __LINE__<< ") "
+				<< "Could not evaluate expression \"" << this->parser.GetExpr()
+				<< "\" for variable " << Variable::get_name()
+				<< ": " << error.GetMsg()
+				<< std::endl;
+			throw;
+		}
+	}
+
+
+	//! used to evaluate math expression if Variable::data_type is floating point
+	template<class V = Variable> typename std::enable_if<
+		std::is_floating_point<typename V::data_type>::value,
+		typename V::data_type
+	>::type get_parsed_value()
+	{
+		try {
+			const auto& evaluated = this->parser.Eval();
+			if (evaluated.GetType() != 'i' and evaluated.GetType() != 'f') {
+				throw std::invalid_argument(
+					std::string("Expression \"")
+					+ this->parser.GetExpr()
+					+ std::string("\" is neither integer nor floating point.")
+				);
+			}
+
+			return evaluated.GetFloat();
+
+		} catch(mup::ParserError &error) {
+			std::cerr <<  __FILE__ << "(" << __LINE__<< ") "
+				<< "Could not evaluate expression \"" << this->parser.GetExpr()
+				<< "\" for variable " << Variable::get_name()
+				<< ": " << error.GetMsg()
+				<< std::endl;
+			throw;
+		}
+	}
+
+
+	//! used to evaluate math expression if Variable::data_type is array of floating point numbers
+	template<class V = Variable> typename std::enable_if<
+		std::tuple_size<typename V::data_type>::value >= 0
+			&& std::is_floating_point<typename V::data_type::value_type>::value,
+		typename V::data_type
+	>::type get_parsed_value()
+	{
+		const auto& evaluated
+			= [this](){
+				try {
+					const auto& temp = this->parser.Eval();
+					if (temp.GetType() != 'm') {
+						throw std::invalid_argument(
+							std::string("Expression \"")
+							+ this->parser.GetExpr()
+							+ std::string("\" is not an array.")
+						);
+					}
+
+					return temp.GetArray();
+
+				} catch(mup::ParserError &error) {
+					std::cerr <<  __FILE__ << "(" << __LINE__<< ") "
+						<< "Could not evaluate expression \"" << this->parser.GetExpr()
+						<< "\" for variable " << Variable::get_name()
+						<< ": " << error.GetMsg()
+						<< std::endl;
+					throw;
+				}
+			}();
+
+		// TODO: merge with identical code in int version
+		if (evaluated.GetRows() != 1) {
+			throw std::invalid_argument(
+				std::string("Invalid number of rows in expression \"")
+				+ parser.GetExpr()
+				+ std::string("\" for variable ")
+				+ Variable::get_name()
+				+ std::string(", should be 1\n")
 			);
 		}
 
-		counter = 0;
-		for (auto& sphere: this->spheres) {
-			counter++;
-			sphere.add_options(
-				option_name_prefix
-					+ "sphere"
-					+ boost::lexical_cast<std::string>(counter)
-					+ ".",
-				options
+		constexpr size_t N = std::tuple_size<typename V::data_type>::value;
+
+		if (evaluated.GetCols() != N) {
+			throw std::invalid_argument(
+				std::string("Invalid number of columns in expression \"")
+				+ parser.GetExpr()
+				+ std::string("\" for variable ")
+				+ Variable::get_name()
+				+ std::string("\n")
 			);
 		}
-	}
 
-
-	/*!
-	geometry_parameters is given to the overlaps function of each geometry
-	object, see their documentation for the required parameters.
-
-	Returns number of boundaries to which given cell was added.
-	*/
-	template<class... Geometry_Parameters> size_t add_cell(
-		const Cell_T& cell,
-		Geometry_Parameters&&... geometry_parameters
-	) {
-		size_t ret_val = 0;
-
-		for (auto& box: this->boxes) {
-			if (
-				box.add_cell(
-					cell,
-					std::forward<Geometry_Parameters>(geometry_parameters)...
-				)
-			) {
-				ret_val++;
-			}
-		}
-
-		for (auto& sphere: this->spheres) {
-			if (
-				sphere.add_cell(
-					cell,
-					std::forward<Geometry_Parameters>(geometry_parameters)...
-				)
-			) {
-				ret_val++;
-			}
+		std::array<double, N> ret_val;
+		for (size_t i = 0; i < N; i++) {
+			ret_val[i] = evaluated.At(int(i)).GetFloat();
 		}
 
 		return ret_val;
 	}
 
 
-	//! Returns number of existing boundaries
-	size_t get_number_of_boundaries() const
+	//! used to evaluate math expression if Variable::data_type is array of integral numbers
+	template<class V = Variable> typename std::enable_if<
+		std::tuple_size<typename V::data_type>::value >= 0
+			&& std::is_integral<typename V::data_type::value_type>::value,
+		typename V::data_type
+	>::type get_parsed_value()
 	{
-		return this->boxes.size() + this->spheres.size();
+		const auto& evaluated
+			= [this](){
+				try {
+					const auto& temp = this->parser.Eval();
+					if (temp.GetType() != 'm') {
+						throw std::invalid_argument(
+							std::string("Expression \"")
+							+ this->parser.GetExpr()
+							+ std::string("\" is not an array.")
+						);
+					}
+
+					return temp.GetArray();
+
+				} catch(mup::ParserError &error) {
+					std::cerr <<  __FILE__ << "(" << __LINE__<< ") "
+						<< "Could not evaluate expression \""
+						<< this->parser.GetExpr() << "\": " << error.GetMsg()
+						<< " for variable " << Variable::get_name()
+						<< std::endl;
+					throw;
+				}
+			}();
+
+		if (evaluated.GetRows() != 1) {
+			throw std::invalid_argument(
+				std::string("Invalid number of rows in expression \"")
+				+ parser.GetExpr()
+				+ std::string("\" for variable ")
+				+ Variable::get_name()
+				+ std::string(", should be 1\n")
+			);
+		}
+
+		constexpr size_t N = std::tuple_size<typename Variable::data_type>::value;
+
+		if (evaluated.GetCols() != N) {
+			throw std::invalid_argument(
+				std::string("Invalid number of columns in expression \"")
+				+ parser.GetExpr()
+				+ std::string("\" for variable ")
+				+ Variable::get_name()
+				+ std::string("\n")
+			);
+		}
+
+		std::array<int, N> ret_val;
+		for (size_t i = 0; i < N; i++) {
+			ret_val[i] = evaluated.At(int(i)).GetInteger();
+		}
+
+		return ret_val;
 	}
 
 
-	/*!
-	Returns cells which belong to given boundary.
+	#ifdef EIGEN_WORLD_VERSION
 
-	Boundary indices are in the range [0, get_number_of_boundaries()[.
-	*/
-	const std::vector<Cell_T>& get_cells(
-		size_t boundary_index
-	) const {
-		if (boundary_index < this->boxes.size()) {
-			return this->boxes[boundary_index].get_cells();
-		}
-		boundary_index -= this->boxes.size();
-
-		if (boundary_index < this->spheres.size()) {
-			return this->spheres[boundary_index].get_cells();
-		}
-
-		throw std::out_of_range(
-			std::string("Too large boundary index given to get_cells(): ")
-			+ boost::lexical_cast<std::string>(boundary_index)
-			+ std::string(", should be at most: ")
-			+ boost::lexical_cast<std::string>(this->boxes.size() + this->spheres.size() - 1)
-			+ std::string("\n")
-		);
-	}
-
-
-	void clear_cells()
+	//! used to evaluate math expression if Variable::data_type is Eigen::Matrix<double, N, 1>
+	template<class V = Variable> typename std::enable_if<
+		V::ColsAtCompileTime == 1
+			&& V::RowsAtCompileTime >= 1
+			&& std::is_integral<typename V::data_type::value_type>::value,
+		typename V::data_type
+	>::type get_parsed_value()
 	{
-		for (auto& box: this->boxes) {
-			box.clear_cells();
-		}
+		const auto& evaluated
+			= [this](){
+				try {
+					const auto& temp = this->parser.Eval();
+					if (temp.GetType() != 'm') {
+						throw std::invalid_argument(
+							std::string("Expression ")
+							+ this->parser.GetExpr()
+							+ std::string(" is not an array.")
+						);
+					}
 
-		for (auto& sphere: this->spheres) {
-			sphere.clear_cells();
-		}
-	}
+					return temp.GetArray();
 
+				} catch(mup::ParserError &error) {
+					std::cerr <<  __FILE__ << "(" << __LINE__<< ") "
+						<< "Could not evaluate expression \""
+						<< this->parser.GetExpr() << "\": " << error.GetMsg()
+						<< " of variable " << Variable::get_name()
+						<< std::endl;
+					throw;
+				}
+			}();
 
-	//! Returns data of given variable in given boundary at given time & position
-	template<class Variable> typename Variable::data_type get_data(
-		const Variable& variable,
-		size_t boundary_index,
-		const std::array<double, 3>& given_position,
-		const double given_time
-	) {
-		if (boundary_index < this->boxes.size()) {
-			try {
-				return this->boxes[boundary_index].boundary_data.get_data(
-					variable,
-					given_position,
-					given_time
-				);
-			} catch (std::exception& error) {
-				std::cerr <<  __FILE__ << "(" << __LINE__<< ") "
-					<< "Couldn't get data for initial condition box "
-					<< boundary_index
-					<< std::endl;
-				throw;
-			}
-		}
-		boundary_index -= this->boxes.size();
-
-		if (boundary_index < this->spheres.size()) {
-			try {
-				return this->spheres[boundary_index].boundary_data.get_data(
-					variable,
-					given_position,
-					given_time
-				);
-			} catch (std::exception& error) {
-				std::cerr <<  __FILE__ << "(" << __LINE__<< ") "
-					<< "Couldn't get data for initial condition sphere "
-					<< boundary_index
-					<< std::endl;
-				throw;
-			}
-		}
-
-		throw std::out_of_range(
-			std::string("Too large boundary index given to get_data(): ")
-			+ boost::lexical_cast<std::string>(boundary_index)
-			+ std::string(", should be at most: ")
-			+ boost::lexical_cast<std::string>(this->boxes.size() + this->spheres.size() - 1)
-			+ std::string("\n")
-		);
-	}
-
-
-	//! Sets expression for given variable in given boundary
-	template<
-		class Variable
-	> void set_expression(
-		const Variable& variable,
-		size_t boundary_index,
-		const std::string& given_expression
-	) {
-		if (boundary_index < this->boxes.size()) {
-			this->boxes[boundary_index].boundary_data.set_expression(
-				variable,
-				given_expression
+		if (evaluated.GetRows() != 1) {
+			throw std::invalid_argument(
+				std::string("Invalid number of rows in expression ")
+				+ parser.GetExpr()
+				+ std::string(" for variable ")
+				+ Variable::get_name()
+				+ std::string(", should be 1\n")
 			);
-
-			return;
 		}
-		boundary_index -= this->boxes.size();
 
-		if (boundary_index < this->spheres.size()) {
-			this->spheres[boundary_index].boundary_data.set_expression(
-				variable,
-				given_expression
+		constexpr size_t N = V::RowsAtCompileTime;
+
+		if (evaluated.GetCols() != N) {
+			throw std::invalid_argument(
+				std::string("Invalid number of columns in expression ")
+				+ parser.GetExpr()
+				+ std::string(" for variable ")
+				+ Variable::get_name()
+				+ std::string("\n")
 			);
-
-			return;
 		}
 
-		throw std::out_of_range(
-			std::string("Too large boundary index given to set_expression: ")
-			+ boost::lexical_cast<std::string>(boundary_index)
-			+ std::string(", should be at most: ")
-			+ boost::lexical_cast<std::string>(this->boxes.size() + this->spheres.size() - 1)
-			+ std::string("\n")
-		);
+		Eigen::Matrix<double, N, 1> ret_val;
+		for (size_t i = 0; i < N; i++) {
+			ret_val(i) = evaluated.At(int(i)).GetFloat();
+		}
+
+		return ret_val;
 	}
 
-
-	/*!
-	geometry_parameters is given to the set_geometry function of new box,
-	see its documentation for the required parameters.
-
-	Invalidates previous boundary ids.
-	Returns boundary index of added boundary if successfull.
-
-	Use set_boundary_expression() to set data of variables of added boundary.
-	*/
-	template<class... Geometry_Parameters> boost::optional<size_t> add_box(
-		Geometry_Parameters&&... geometry_parameters
-	) {
-		Boundary<Box<Vector_T>, Cell_T, Variables...> new_box;
-
-		new_box.geometry.set_geometry(
-			std::forward<Geometry_Parameters>(geometry_parameters)...
-		);
-
-		this->boxes.push_back(new_box);
-		this->number_of_boxes = this->boxes.size();
-
-		return boost::optional<size_t>(this->number_of_boxes - 1);
-	}
-
-
-	/*!
-	Same as add_box() but adds a sphere boundary.
-	*/
-	template<class... Geometry_Parameters> boost::optional<size_t> add_sphere(
-		Geometry_Parameters&&... geometry_parameters
-	) {
-		Boundary<Sphere<Vector_T, Scalar_T>, Cell_T, Variables...> new_sphere;
-
-		new_sphere.geometry.set_geometry(
-			std::forward<Geometry_Parameters>(geometry_parameters)...
-		);
-
-		this->spheres.push_back(new_sphere);
-		this->number_of_spheres = this->spheres.size();
-
-		return boost::optional<size_t>(
-			this->number_of_boxes + this->number_of_spheres - 1
-		);
-	}
-
-
-
-	/*!
-	Default initial data of a cell unless it belongs to a boundary.
-	*/
-	Variable_To_Option<Variables...> default_data;
-
-
-
-private:
-
-	size_t
-		number_of_boxes = 0,
-		number_of_spheres = 0;
-
-
-	std::vector<
-		Boundary<
-			Box<Vector_T>,
-			Cell_T,
-			Variables...
-		>
-	> boxes;
-
-	std::vector<
-		Boundary<
-			Sphere<Vector_T, Scalar_T>,
-			Cell_T,
-			Variables...
-		>
-	> spheres;
+	#endif // ifdef EIGEN_WORLD_VERSION
 };
 
 }} // namespaces
