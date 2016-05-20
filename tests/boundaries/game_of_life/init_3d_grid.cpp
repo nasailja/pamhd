@@ -31,7 +31,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 Uses one instance of initial condition class which fills entire game board
-with 
+with 3d grid data in json format.
 */
 
 #include "array"
