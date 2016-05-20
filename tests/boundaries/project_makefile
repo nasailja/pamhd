@@ -6,6 +6,8 @@ TESTS_BOUNDARIES_EXECUTABLES = \
   tests/boundaries/sphere_eigen.exe \
   tests/boundaries/geometries.exe \
   tests/boundaries/initial_condition_scalar.exe \
+  tests/boundaries/initial_condition_vector.exe \
+  tests/boundaries/initial_condition_vector_eigen.exe \
   tests/boundaries/one_variable_boundary.exe \
   tests/boundaries/one_variable_boundary_eigen.exe \
   tests/boundaries/many_variable_boundary.exe \
@@ -30,6 +32,8 @@ TESTS_BOUNDARIES_TESTS = \
   tests/boundaries/sphere_eigen.tst \
   tests/boundaries/geometries.tst \
   tests/boundaries/initial_condition_scalar.tst \
+  tests/boundaries/initial_condition_vector.tst \
+  tests/boundaries/initial_condition_vector_eigen.tst \
   tests/boundaries/one_variable_boundary.tst \
   tests/boundaries/one_variable_boundary_eigen.tst \
   tests/boundaries/many_variable_boundary.tst \
@@ -139,6 +143,17 @@ tests/boundaries/initial_condition_scalar.exe: \
   source/boundaries/initial_condition.hpp \
   $(TESTS_BOUNDARIES_COMMON_DEPS)
 	$(TESTS_BOUNDARIES_COMPILE) $(RAPIDJSON_CPPFLAGS) $(MUPARSERX_CPPFLAGS) $(MUPARSERX_LDFLAGS) $(MUPARSERX_LIBS)
+
+tests/boundaries/initial_condition_vector.exe: \
+  tests/boundaries/initial_condition_vector.cpp \
+  source/boundaries/initial_condition.hpp \
+  $(TESTS_BOUNDARIES_COMMON_DEPS)
+	$(TESTS_BOUNDARIES_COMPILE) $(RAPIDJSON_CPPFLAGS) $(MUPARSERX_CPPFLAGS) $(MUPARSERX_LDFLAGS) $(MUPARSERX_LIBS)
+tests/boundaries/initial_condition_vector_eigen.exe: \
+  tests/boundaries/initial_condition_vector.cpp \
+  source/boundaries/initial_condition.hpp \
+  $(TESTS_BOUNDARIES_COMMON_DEPS)
+	$(TESTS_BOUNDARIES_COMPILE) $(RAPIDJSON_CPPFLAGS) $(MUPARSERX_CPPFLAGS) $(MUPARSERX_LDFLAGS) $(MUPARSERX_LIBS) $(EIGEN_CPPFLAGS) -DUSE_EIGEN
 
 
 tests/boundaries/one_variable_boundary.exe: \

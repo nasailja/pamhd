@@ -191,7 +191,7 @@ public:
 
 				this->data.clear();
 				for (auto i = data.Begin(); i != data.End(); i++) {
-					this->data.push_back(i->GetDouble());
+					this->data.push_back(this->get_json_value(*i));
 				}
 			} else {
 				throw std::invalid_argument(__FILE__ ": value object doesn't have a x or radius key.");
@@ -313,7 +313,25 @@ private:
 	int init_cond_type = -1; // number == 1, string == 2, object == 3
 
 
-	//! used to fill this->number_value if Variable::data_type is signed integral.
+	/*!
+	Returns value of type Variable::data_type when it's signed integral.
+
+	Reads a signed integral number from given rapidjson object, throws
+	if given object contains a value of different type.
+
+	Object is interpreted as signed 64 bit integer, if it doesn't fit
+	into Variable::data_type this function should be specialized for
+	smaller integers (use https://github.com/nasailja/pamhd/pulls or
+	submit https://github.com/nasailja/pamhd/issues).
+
+	Example:
+	\verbatim
+	// Variable = struct {using data_type = int};
+	const char* json = "[123]"
+	rapidjson::Document doc; doc.Parse(json);
+	typename Variable::data_type var = this->get_json_value(doc[0]);
+	\endverbatim
+	*/
 	template<class V = Variable> typename std::enable_if<
 		std::is_integral<typename V::data_type>::value
 			&& std::is_signed<typename V::data_type>::value,
@@ -326,7 +344,7 @@ private:
 		return object.GetInt64();
 	}
 
-	//! used to fill this->number_value if Variable::data_type is unsigned integral.
+	//! returns value of type Variable::data_type when it's unsigned integral.
 	template<class V = Variable> typename std::enable_if<
 		std::is_integral<typename V::data_type>::value
 			&& !std::is_signed<typename V::data_type>::value,
@@ -339,7 +357,7 @@ private:
 		return object.GetUint64();
 	}
 
-	//! used to fill this->number_value if Variable::data_type is floating point.
+	//! returns value of type Variable::data_type when it's floating point.
 	template<class V = Variable> typename std::enable_if<
 		std::is_floating_point<typename V::data_type>::value,
 		typename V::data_type
@@ -351,23 +369,25 @@ private:
 		return object.GetDouble();
 	}
 
-	//! used to fill this->number_value if Variable::data_type is array of 3 signed integral values.
+	//! returns value of type Variable::data_type when it's array of signed integral values.
 	template<class V = Variable> typename std::enable_if<
-		std::tuple_size<typename V::data_type>::value == 3
+		std::tuple_size<typename V::data_type>::value >= 0
 			&& std::is_integral<typename V::data_type::value_type>::value
 			&& std::is_signed<typename V::data_type::value_type>::value,
 		typename V::data_type
 	>::type get_json_value(const rapidjson::Value& object)
 	{
+		constexpr auto size = std::tuple_size<typename V::data_type>::value;
+
 		if (not object.IsArray()) {
 			throw std::invalid_argument(__FILE__ ": object isn't an array.");
 		}
-		if (object.Size() != 3) {
-			throw std::invalid_argument(__FILE__ ": object isn't an array of size 3.");
+		if (object.Size() != size) {
+			throw std::invalid_argument(__FILE__ ": array has wrong size.");
 		}
 
 		typename Variable::data_type ret_val;
-		for (size_t i = 0; i < 3; i++) {
+		for (size_t i = 0; i < size; i++) {
 			if (not object[i].IsInt64()) {
 				throw std::invalid_argument(__FILE__ ": element of array isn't signed integral number.");
 			}
@@ -376,23 +396,25 @@ private:
 		return ret_val;
 	}
 
-	//! used to fill this->number_value if Variable::data_type is array of 3 unsigned integral values.
+	//! returns value of type Variable::data_type when it's array of unsigned integral values.
 	template<class V = Variable> typename std::enable_if<
-		std::tuple_size<typename V::data_type>::value == 3
+		std::tuple_size<typename V::data_type>::value >= 0
 			&& std::is_integral<typename V::data_type::value_type>::value
 			&& !std::is_signed<typename V::data_type::value_type>::value,
 		typename V::data_type
 	>::type get_json_value(const rapidjson::Value& object)
 	{
+		constexpr auto size = std::tuple_size<typename V::data_type>::value;
+
 		if (not object.IsArray()) {
 			throw std::invalid_argument(__FILE__ ": object isn't an array.");
 		}
-		if (object.Size() != 3) {
-			throw std::invalid_argument(__FILE__ ": object isn't an array of size 3.");
+		if (object.Size() != size) {
+			throw std::invalid_argument(__FILE__ ": array has wrong size.");
 		}
 
 		typename Variable::data_type ret_val;
-		for (size_t i = 0; i < 3; i++) {
+		for (size_t i = 0; i < size; i++) {
 			if (not object[i].IsUint64()) {
 				throw std::invalid_argument(__FILE__ ": element of array isn't unsigned integral number.");
 			}
@@ -401,29 +423,63 @@ private:
 		return ret_val;
 	}
 
-	//! used to fill this->number_value if Variable::data_type is array of 3 floating point values.
+	//! returns value of type Variable::data_type when it's array of floating point values.
 	template<class V = Variable> typename std::enable_if<
-		std::tuple_size<typename V::data_type>::value == 3
+		std::tuple_size<typename V::data_type>::value >= 0
 			&& std::is_floating_point<typename V::data_type::value_type>::value,
 		typename V::data_type
 	>::type get_json_value(const rapidjson::Value& object)
 	{
+		constexpr auto size = std::tuple_size<typename V::data_type>::value;
+
 		if (not object.IsArray()) {
 			throw std::invalid_argument(__FILE__ ": object isn't an array.");
 		}
-		if (object.Size() != 3) {
-			throw std::invalid_argument(__FILE__ ": object isn't an array of size 3.");
+		if (object.Size() != size) {
+			throw std::invalid_argument(__FILE__ ": array has wrong size.");
 		}
 
 		typename Variable::data_type ret_val;
-		for (size_t i = 0; i < 3; i++) {
-			if (not object[i].IsDouble()) {
-				throw std::invalid_argument(__FILE__ ": element of array isn't floating point number.");
+		for (size_t i = 0; i < size; i++) {
+			if (not object[i].IsNumber()) {
+				throw std::invalid_argument(__FILE__ ": element of array isn't a number.");
 			}
 			ret_val[i] = object[i].GetDouble();
 		}
 		return ret_val;
 	}
+
+
+	#ifdef EIGEN_WORLD_VERSION
+
+	//! returns value of type Variable::data_type when it's Eigen::Vector of floating point values with compile time size.
+	template<class V = Variable> typename std::enable_if<
+		V::data_type::ColsAtCompileTime == 1
+			&& V::data_type::RowsAtCompileTime >= 1
+			&& std::is_floating_point<typename V::data_type::value_type>::value,
+		typename V::data_type
+	>::type get_json_value(const rapidjson::Value& object)
+	{
+		constexpr auto size = V::data_type::RowsAtCompileTime;
+
+		if (not object.IsArray()) {
+			throw std::invalid_argument(__FILE__ ": object isn't an array.");
+		}
+		if (object.Size() != size) {
+			throw std::invalid_argument(__FILE__ ": array has wrong size.");
+		}
+
+		typename Variable::data_type ret_val;
+		for (size_t i = 0; i < size; i++) {
+			if (not object[i].IsNumber()) {
+				throw std::invalid_argument(__FILE__ ": element of array isn't a number.");
+			}
+			ret_val(i) = object[i].GetDouble();
+		}
+		return ret_val;
+	}
+
+	#endif
 
 
 	//! used to evaluate math expression if Variable::data_type is integral
@@ -538,7 +594,7 @@ private:
 			);
 		}
 
-		std::array<double, N> ret_val;
+		typename Variable::data_type ret_val;
 		for (size_t i = 0; i < N; i++) {
 			ret_val[i] = evaluated.At(int(i)).GetFloat();
 		}
@@ -600,7 +656,7 @@ private:
 			);
 		}
 
-		std::array<int, N> ret_val;
+		typename Variable::data_type ret_val;
 		for (size_t i = 0; i < N; i++) {
 			ret_val[i] = evaluated.At(int(i)).GetInteger();
 		}
@@ -611,11 +667,11 @@ private:
 
 	#ifdef EIGEN_WORLD_VERSION
 
-	//! used to evaluate math expression if Variable::data_type is Eigen::Matrix<double, N, 1>
+	//! used to evaluate math expression if Variable::data_type is Eigen::Matrix<double or float, N, 1>
 	template<class V = Variable> typename std::enable_if<
-		V::ColsAtCompileTime == 1
-			&& V::RowsAtCompileTime >= 1
-			&& std::is_integral<typename V::data_type::value_type>::value,
+		V::data_type::ColsAtCompileTime == 1
+			&& V::data_type::RowsAtCompileTime >= 1
+			&& std::is_floating_point<typename V::data_type::value_type>::value,
 		typename V::data_type
 	>::type get_parsed_value()
 	{
@@ -653,7 +709,7 @@ private:
 			);
 		}
 
-		constexpr size_t N = V::RowsAtCompileTime;
+		constexpr size_t N = V::data_type::RowsAtCompileTime;
 
 		if (evaluated.GetCols() != N) {
 			throw std::invalid_argument(
@@ -665,7 +721,7 @@ private:
 			);
 		}
 
-		Eigen::Matrix<double, N, 1> ret_val;
+		typename Variable::data_type ret_val;
 		for (size_t i = 0; i < N; i++) {
 			ret_val(i) = evaluated.At(int(i)).GetFloat();
 		}
