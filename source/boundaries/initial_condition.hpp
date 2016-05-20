@@ -170,12 +170,20 @@ public:
 
 				const auto& coord = value[component];
 				if (not coord.IsArray()) {
-					throw std::invalid_argument(__FILE__ ": coordinate in first dimension isn't array.");
+					throw std::invalid_argument(__FILE__ ": coordinate isn't array.");
 				}
 
 				this->coordinates[component_i].clear();
 				for (auto i = coord.Begin(); i != coord.End(); i++) {
 					this->coordinates[component_i].push_back(i->GetDouble());
+				}
+
+				if (
+					not std::is_sorted(
+						this->coordinates[component_i].cbegin(), this->coordinates[component_i].cend()
+					)
+				) {
+					throw std::invalid_argument(__FILE__ ": coordinates aren't sorted in non-descending order.");
 				}
 
 				component_i++;
