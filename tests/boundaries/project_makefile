@@ -8,6 +8,8 @@ TESTS_BOUNDARIES_EXECUTABLES = \
   tests/boundaries/initial_condition_scalar.exe \
   tests/boundaries/initial_condition_vector.exe \
   tests/boundaries/initial_condition_vector_eigen.exe \
+  tests/boundaries/game_of_life/init_3d_grid.exe \
+  tests/boundaries/game_of_life/init_expression.exe \
   tests/boundaries/one_variable_boundary.exe \
   tests/boundaries/one_variable_boundary_eigen.exe \
   tests/boundaries/many_variable_boundary.exe \
@@ -15,7 +17,6 @@ TESTS_BOUNDARIES_EXECUTABLES = \
   tests/boundaries/initial_condition.exe \
   tests/boundaries/initial_condition_eigen.exe \
   tests/boundaries/copy_boundary.exe \
-  tests/boundaries/game_of_life/init_3d_grid.exe \
   tests/boundaries/game_of_life/copy_boundary.exe \
   tests/boundaries/boundary_td_box.exe \
   tests/boundaries/boundary_td_box_eigen.exe \
@@ -34,6 +35,8 @@ TESTS_BOUNDARIES_TESTS = \
   tests/boundaries/initial_condition_scalar.tst \
   tests/boundaries/initial_condition_vector.tst \
   tests/boundaries/initial_condition_vector_eigen.tst \
+  tests/boundaries/game_of_life/init_3d_grid.tst \
+  tests/boundaries/game_of_life/init_expression.tst \
   tests/boundaries/one_variable_boundary.tst \
   tests/boundaries/one_variable_boundary_eigen.tst \
   tests/boundaries/many_variable_boundary.tst \
@@ -41,7 +44,6 @@ TESTS_BOUNDARIES_TESTS = \
   tests/boundaries/initial_condition.tst \
   tests/boundaries/initial_condition_eigen.tst \
   tests/boundaries/copy_boundary.tst \
-  tests/boundaries/game_of_life/init_3d_grid.tst \
   tests/boundaries/game_of_life/copy_boundary.tst \
   tests/boundaries/boundary_td_box.tst \
   tests/boundaries/boundary_td_box_eigen.tst \
@@ -158,6 +160,11 @@ tests/boundaries/initial_condition_vector_eigen.exe: \
 
 tests/boundaries/game_of_life/init_3d_grid.exe: \
   tests/boundaries/game_of_life/init_3d_grid.cpp \
+  $(TESTS_BOUNDARIES_COMMON_DEPS)
+	$(TESTS_BOUNDARIES_COMPILE_PARSED) $(RAPIDJSON_CPPFLAGS) $(MUPARSERX_CPPFLAGS) $(MUPARSERX_LDFLAGS) $(MUPARSERX_LIBS)
+
+tests/boundaries/game_of_life/init_expression.exe: \
+  tests/boundaries/game_of_life/init_expression.cpp \
   $(TESTS_BOUNDARIES_COMMON_DEPS)
 	$(TESTS_BOUNDARIES_COMPILE_PARSED) $(RAPIDJSON_CPPFLAGS) $(MUPARSERX_CPPFLAGS) $(MUPARSERX_LDFLAGS) $(MUPARSERX_LIBS)
 
