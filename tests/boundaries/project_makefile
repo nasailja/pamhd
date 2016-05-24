@@ -8,6 +8,7 @@ TESTS_BOUNDARIES_EXECUTABLES = \
   tests/boundaries/initial_condition_scalar.exe \
   tests/boundaries/initial_condition_vector.exe \
   tests/boundaries/initial_condition_vector_eigen.exe \
+  tests/boundaries/initial_conditions_scalar.exe \
   tests/boundaries/game_of_life/init_3d_grid.exe \
   tests/boundaries/game_of_life/init_expression.exe \
   tests/boundaries/one_variable_boundary.exe \
@@ -35,6 +36,7 @@ TESTS_BOUNDARIES_TESTS = \
   tests/boundaries/initial_condition_scalar.tst \
   tests/boundaries/initial_condition_vector.tst \
   tests/boundaries/initial_condition_vector_eigen.tst \
+  tests/boundaries/initial_conditions_scalar.tst \
   tests/boundaries/game_of_life/init_3d_grid.tst \
   tests/boundaries/game_of_life/init_expression.tst \
   tests/boundaries/one_variable_boundary.tst \
@@ -119,7 +121,7 @@ tests/boundaries/box.exe: \
 tests/boundaries/box_eigen.exe: \
   tests/boundaries/box.cpp \
   $(TESTS_BOUNDARIES_COMMON_DEPS)
-	$(TESTS_BOUNDARIES_COMPILE) $(RAPIDJSON_CPPFLAGS) $(EIGEN_CPPFLAGS) -DUSE_EIGEN
+	$(TESTS_BOUNDARIES_COMPILE) $(EIGEN_CPPFLAGS) -DUSE_EIGEN $(RAPIDJSON_CPPFLAGS)
 
 
 tests/boundaries/sphere.exe: \
@@ -130,7 +132,7 @@ tests/boundaries/sphere.exe: \
 tests/boundaries/sphere_eigen.exe: \
   tests/boundaries/sphere.cpp \
   $(TESTS_BOUNDARIES_COMMON_DEPS)
-	$(TESTS_BOUNDARIES_COMPILE) $(RAPIDJSON_CPPFLAGS) $(EIGEN_CPPFLAGS) -DUSE_EIGEN
+	$(TESTS_BOUNDARIES_COMPILE) $(EIGEN_CPPFLAGS) -DUSE_EIGEN $(RAPIDJSON_CPPFLAGS)
 
 
 tests/boundaries/geometries.exe: \
@@ -142,31 +144,48 @@ tests/boundaries/geometries.exe: \
 
 tests/boundaries/initial_condition_scalar.exe: \
   tests/boundaries/initial_condition_scalar.cpp \
+  source/boundaries/math_expression.hpp \
   source/boundaries/initial_condition.hpp \
   $(TESTS_BOUNDARIES_COMMON_DEPS)
-	$(TESTS_BOUNDARIES_COMPILE) $(RAPIDJSON_CPPFLAGS) $(MUPARSERX_CPPFLAGS) $(MUPARSERX_LDFLAGS) $(MUPARSERX_LIBS)
+	$(TESTS_BOUNDARIES_COMPILE) $(MUPARSERX_CPPFLAGS) $(MUPARSERX_LDFLAGS) $(MUPARSERX_LIBS) $(RAPIDJSON_CPPFLAGS)
 
 tests/boundaries/initial_condition_vector.exe: \
   tests/boundaries/initial_condition_vector.cpp \
+  source/boundaries/math_expression.hpp \
   source/boundaries/initial_condition.hpp \
   $(TESTS_BOUNDARIES_COMMON_DEPS)
-	$(TESTS_BOUNDARIES_COMPILE) $(RAPIDJSON_CPPFLAGS) $(MUPARSERX_CPPFLAGS) $(MUPARSERX_LDFLAGS) $(MUPARSERX_LIBS)
+	$(TESTS_BOUNDARIES_COMPILE) $(MUPARSERX_CPPFLAGS) $(MUPARSERX_LDFLAGS) $(MUPARSERX_LIBS) $(RAPIDJSON_CPPFLAGS)
 tests/boundaries/initial_condition_vector_eigen.exe: \
   tests/boundaries/initial_condition_vector.cpp \
+  source/boundaries/math_expression.hpp \
   source/boundaries/initial_condition.hpp \
   $(TESTS_BOUNDARIES_COMMON_DEPS)
-	$(TESTS_BOUNDARIES_COMPILE) $(RAPIDJSON_CPPFLAGS) $(MUPARSERX_CPPFLAGS) $(MUPARSERX_LDFLAGS) $(MUPARSERX_LIBS) $(EIGEN_CPPFLAGS) -DUSE_EIGEN
+	$(TESTS_BOUNDARIES_COMPILE) $(EIGEN_CPPFLAGS) -DUSE_EIGEN $(MUPARSERX_CPPFLAGS) $(MUPARSERX_LDFLAGS) $(MUPARSERX_LIBS) $(RAPIDJSON_CPPFLAGS)
+
+
+tests/boundaries/initial_conditions_scalar.exe: \
+  tests/boundaries/initial_conditions_scalar.cpp \
+  source/boundaries/math_expression.hpp \
+  source/boundaries/initial_condition.hpp \
+  source/boundaries/initial_conditions.hpp \
+  $(TESTS_BOUNDARIES_COMMON_DEPS)
+	$(TESTS_BOUNDARIES_COMPILE) $(MUPARSERX_CPPFLAGS) $(MUPARSERX_LDFLAGS) $(MUPARSERX_LIBS) $(RAPIDJSON_CPPFLAGS)
 
 
 tests/boundaries/game_of_life/init_3d_grid.exe: \
   tests/boundaries/game_of_life/init_3d_grid.cpp \
   $(TESTS_BOUNDARIES_COMMON_DEPS)
-	$(TESTS_BOUNDARIES_COMPILE_PARSED) $(RAPIDJSON_CPPFLAGS) $(MUPARSERX_CPPFLAGS) $(MUPARSERX_LDFLAGS) $(MUPARSERX_LIBS)
+	$(TESTS_BOUNDARIES_COMPILE_PARSED) $(MUPARSERX_CPPFLAGS) $(MUPARSERX_LDFLAGS) $(MUPARSERX_LIBS) $(RAPIDJSON_CPPFLAGS)
 
 tests/boundaries/game_of_life/init_expression.exe: \
   tests/boundaries/game_of_life/init_expression.cpp \
   $(TESTS_BOUNDARIES_COMMON_DEPS)
-	$(TESTS_BOUNDARIES_COMPILE_PARSED) $(RAPIDJSON_CPPFLAGS) $(MUPARSERX_CPPFLAGS) $(MUPARSERX_LDFLAGS) $(MUPARSERX_LIBS)
+	$(TESTS_BOUNDARIES_COMPILE_PARSED) $(MUPARSERX_CPPFLAGS) $(MUPARSERX_LDFLAGS) $(MUPARSERX_LIBS) $(RAPIDJSON_CPPFLAGS)
+
+tests/boundaries/game_of_life/init_many_geometries.exe: \
+  tests/boundaries/game_of_life/init_many_geometries.cpp \
+  $(TESTS_BOUNDARIES_COMMON_DEPS)
+	$(TESTS_BOUNDARIES_COMPILE_PARSED) $(MUPARSERX_CPPFLAGS) $(MUPARSERX_LDFLAGS) $(MUPARSERX_LIBS) $(PRETTYPRINT_CPPFLAGS) $(RAPIDJSON_CPPFLAGS)
 
 
 
