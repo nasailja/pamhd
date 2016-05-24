@@ -67,14 +67,16 @@ constexpr size_t
 
 /*!
 Grid[y position][x position]
+
+On screen x and y position and index increases
+from left to right and top to bottom respectively
 */
 using Grid = array<array<Cell, width>, height>;
 Grid grid;
 
 
 /*!
-cell[0] == horizontal position on screen from left to right,
-cell[1] == vertical position from bottom to top
+cell[0] == x , cell[1] == y
 */
 array<double, 3> get_cell_center(
 	const Grid& grid,
@@ -84,17 +86,18 @@ array<double, 3> get_cell_center(
 		cell[1] >= grid.size()
 		or cell[0] >= grid[cell[1]].size()
 	) {
-		return {{
+		return {
+			std::numeric_limits<double>::quiet_NaN(),
 			std::numeric_limits<double>::quiet_NaN(),
 			std::numeric_limits<double>::quiet_NaN()
-		}};
+		};
 	}
 
-	return {{
+	return {
 		-1.0 + (0.5 + cell[0]) * 2.0 / grid[cell[1]].size(),
-		1.0 - (0.5 + cell[1]) * 2.0 / grid.size(),
+		-1.0 + (0.5 + cell[1]) * 2.0 / grid.size(),
 		0
-	}};
+	};
 }
 
 
@@ -104,8 +107,8 @@ using 0 for live cells and . for dead cells.
 */
 void print_game(const Grid& grid)
 {
-	for (size_t row_i_r = 1; row_i_r <= grid.size(); row_i_r++) {
-		for (const auto& cell: grid[grid.size() - row_i_r]) {
+	for (const auto& row: grid) {
+		for (const auto& cell: row) {
 			if (cell.is_alive > 0) {
 				cout << "0";
 			} else {
@@ -163,7 +166,7 @@ int main()
 
 	Initial_Condition<int, Is_Alive> initial_condition;
 	initial_condition.set(document.GetObject());
-	for (size_t row_i = 0; row_i < grid.size(); row_i++)
+	for (size_t row_i = 0; row_i < grid.size(); row_i++) {
 	for (size_t cell_i = 0; cell_i < grid[row_i].size(); cell_i++) {
 		const auto center = get_cell_center(grid, {cell_i, row_i});
 
@@ -173,7 +176,7 @@ int main()
 				center[0], center[1], center[2],
 				0, 0, 0
 			);
-	}
+	}}
 
 	const size_t live_cells = get_number_of_live_cells(grid);
 
