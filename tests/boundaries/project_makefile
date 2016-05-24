@@ -11,6 +11,7 @@ TESTS_BOUNDARIES_EXECUTABLES = \
   tests/boundaries/initial_conditions_scalar.exe \
   tests/boundaries/game_of_life/init_3d_grid.exe \
   tests/boundaries/game_of_life/init_expression.exe \
+  tests/boundaries/game_of_life/init_many_geometries.exe \
   tests/boundaries/one_variable_boundary.exe \
   tests/boundaries/one_variable_boundary_eigen.exe \
   tests/boundaries/many_variable_boundary.exe \
@@ -39,6 +40,7 @@ TESTS_BOUNDARIES_TESTS = \
   tests/boundaries/initial_conditions_scalar.tst \
   tests/boundaries/game_of_life/init_3d_grid.tst \
   tests/boundaries/game_of_life/init_expression.tst \
+  tests/boundaries/game_of_life/init_many_geometries.tst \
   tests/boundaries/one_variable_boundary.tst \
   tests/boundaries/one_variable_boundary_eigen.tst \
   tests/boundaries/many_variable_boundary.tst \
@@ -174,16 +176,25 @@ tests/boundaries/initial_conditions_scalar.exe: \
 
 tests/boundaries/game_of_life/init_3d_grid.exe: \
   tests/boundaries/game_of_life/init_3d_grid.cpp \
+  source/boundaries/math_expression.hpp \
+  source/boundaries/initial_condition.hpp \
+  source/boundaries/initial_conditions.hpp \
   $(TESTS_BOUNDARIES_COMMON_DEPS)
 	$(TESTS_BOUNDARIES_COMPILE_PARSED) $(MUPARSERX_CPPFLAGS) $(MUPARSERX_LDFLAGS) $(MUPARSERX_LIBS) $(RAPIDJSON_CPPFLAGS)
 
 tests/boundaries/game_of_life/init_expression.exe: \
   tests/boundaries/game_of_life/init_expression.cpp \
+  source/boundaries/math_expression.hpp \
+  source/boundaries/initial_condition.hpp \
+  source/boundaries/initial_conditions.hpp \
   $(TESTS_BOUNDARIES_COMMON_DEPS)
 	$(TESTS_BOUNDARIES_COMPILE_PARSED) $(MUPARSERX_CPPFLAGS) $(MUPARSERX_LDFLAGS) $(MUPARSERX_LIBS) $(RAPIDJSON_CPPFLAGS)
 
 tests/boundaries/game_of_life/init_many_geometries.exe: \
   tests/boundaries/game_of_life/init_many_geometries.cpp \
+  source/boundaries/math_expression.hpp \
+  source/boundaries/initial_condition.hpp \
+  source/boundaries/initial_conditions.hpp \
   $(TESTS_BOUNDARIES_COMMON_DEPS)
 	$(TESTS_BOUNDARIES_COMPILE_PARSED) $(MUPARSERX_CPPFLAGS) $(MUPARSERX_LDFLAGS) $(MUPARSERX_LIBS) $(PRETTYPRINT_CPPFLAGS) $(RAPIDJSON_CPPFLAGS)
 
