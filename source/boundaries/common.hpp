@@ -389,10 +389,9 @@ data[0] corresponds to point (x[0], y[0], z[0]) and if
 x.size() == N then data[2*N] corresponds to point
 (x[0], y[2], z[0]), etc.
 */
-template<class Variable> typename Variable::data_type find_and_get_data(
+size_t find_data(
 	const std::array<double, 3>& request_coordinate,
-	const std::array<std::vector<double>, 3>& all_coordinates,
-	const std::vector<typename Variable::data_type>& data
+	const std::array<std::vector<double>, 3>& all_coordinates
 ) {
 	std::array<size_t, 3> index{0, 0, 0};
 	for (size_t i = 0; i < all_coordinates.size(); i++) {
@@ -405,7 +404,7 @@ template<class Variable> typename Variable::data_type find_and_get_data(
 
 		if (after == all_coordinates[i].cbegin()) {
 			continue;
-		} else if (after ==all_coordinates[i].cend()) {
+		} else if (after == all_coordinates[i].cend()) {
 			index[i] = all_coordinates[i].size() - 1;
 		} else {
 			const auto before = after - 1;
@@ -425,9 +424,8 @@ template<class Variable> typename Variable::data_type find_and_get_data(
 		+ index[1] * all_coordinates[0].size()
 		+ index[2] * all_coordinates[0].size() * all_coordinates[1].size();
 
-	return data[data_i];
+	return data_i;
 }
-
 
 
 }} // namespaces

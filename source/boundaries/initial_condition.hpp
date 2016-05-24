@@ -158,22 +158,23 @@ public:
 
 		// nearest neighbor interpolation in point cloud
 		case 3:
-			return find_and_get_data<Variable>(
-				[&]()
-					-> std::array<double, 3>
-				{
-					switch (this->coordinate_type) {
-					case 1:
-						return {x, y, z};
-					case 2:
-						return {radius, latitude, longitude};
-					default:
-						throw std::out_of_range(__FILE__ ": Invalid coordinate type.");
-					}
-				}(),
-				this->coordinates,
-				this->data
-			);
+			return this->data[
+				find_data(
+					[&]()
+						-> std::array<double, 3>
+					{
+						switch (this->coordinate_type) {
+						case 1:
+							return {x, y, z};
+						case 2:
+							return {radius, latitude, longitude};
+						default:
+							throw std::out_of_range(__FILE__ ": Invalid coordinate type.");
+						}
+					}(),
+					this->coordinates
+				)
+			];
 
 		default:
 			throw std::out_of_range(__FILE__ ": Invalid initial condition type.");
