@@ -173,6 +173,14 @@ public:
 		return this->regions.size();
 	}
 
+	/*!
+	Region id is in range 0..number of regions - 1
+	*/
+	const Initial_Condition<Geometry_Id, Variable>& get_initial_condition(const size_t& region_id) const
+	{
+		return this->regions[region_id];
+	}
+
 
 	typename Variable::data_type get_data(
 		const size_t& region_index,
