@@ -173,7 +173,7 @@ public:
 	}
 
 
-	std::vector<unsigned int> get_geometry_ids()
+	std::vector<unsigned int> get_geometry_ids() const
 	{
 		std::vector<unsigned int> ids;
 		ids.reserve(this->boxes.size() + this->spheres.size());
