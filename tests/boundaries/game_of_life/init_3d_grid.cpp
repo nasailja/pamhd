@@ -37,6 +37,7 @@ with 3d grid data in json format.
 #include "array"
 #include "cstdlib"
 #include "iostream"
+#include "iterator"
 #include "set"
 #include "string"
 #include "vector"
@@ -64,10 +65,17 @@ constexpr size_t
 	width = 8,
 	height = 8;
 
+/*!
+Grid[y position][x position]
+*/
 using Grid = array<array<Cell, width>, height>;
 Grid grid;
 
 
+/*!
+cell[0] == horizontal position on screen from left to right,
+cell[1] == vertical position from bottom to top
+*/
 array<double, 3> get_cell_center(
 	const Grid& grid,
 	const array<size_t, 2>& cell
@@ -85,7 +93,7 @@ array<double, 3> get_cell_center(
 	return {{
 		-1.0 + (0.5 + cell[0]) * 2.0 / grid[cell[1]].size(),
 		1.0 - (0.5 + cell[1]) * 2.0 / grid.size(),
-		-1
+		0
 	}};
 }
 
@@ -96,8 +104,8 @@ using 0 for live cells and . for dead cells.
 */
 void print_game(const Grid& grid)
 {
-	for (const auto& row: grid) {
-		for (const auto& cell: row) {
+	for (size_t row_i_r = 1; row_i_r <= grid.size(); row_i_r++) {
+		for (const auto& cell: grid[grid.size() - row_i_r]) {
 			if (cell.is_alive > 0) {
 				cout << "0";
 			} else {
@@ -134,12 +142,12 @@ int main()
 			"\"z\": [0],"
 			"\"data\": ["
 				"0, 0, 0, 0, 0, 0, 0, 0,"
-				"0, 0, 0, 0, 0, 0, 0, 0,"
-				"0, 0, 0, 0, 0, 0, 0, 0,"
-				"0, 0, 0, 0, 0, 0, 0, 0,"
-				"0, 0, 1, 1, 0, 0, 0, 0,"
-				"0, 1, 0, 1, 0, 0, 0, 0,"
+				"0, 0, 1, 0, 0, 0, 0, 0,"
 				"0, 0, 0, 1, 0, 0, 0, 0,"
+				"0, 1, 1, 1, 0, 0, 0, 0,"
+				"0, 0, 0, 0, 0, 0, 0, 0,"
+				"0, 0, 0, 0, 0, 0, 0, 0,"
+				"0, 0, 0, 0, 0, 0, 0, 0,"
 				"0, 0, 0, 0, 0, 0, 0, 0"
 			"]"
 		"}"
@@ -157,7 +165,7 @@ int main()
 	initial_condition.set(document.GetObject());
 	for (size_t row_i = 0; row_i < grid.size(); row_i++)
 	for (size_t cell_i = 0; cell_i < grid[row_i].size(); cell_i++) {
-		const auto center = get_cell_center(grid, {row_i, cell_i});
+		const auto center = get_cell_center(grid, {cell_i, row_i});
 
 		grid[row_i][cell_i].is_alive
 			= initial_condition.get_data(
