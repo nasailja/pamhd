@@ -41,8 +41,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "mpParser.h"
 
-#include "boundaries/common.hpp"
-
 
 namespace pamhd {
 namespace boundaries {
@@ -112,7 +110,17 @@ public:
 		this->radius_val = radius;
 		this->lat_val = latitude;
 		this->lon_val = longitude;
-		return this->evaluate_impl();
+
+		try {
+			return this->evaluate_impl();
+		} catch(const mup::ParserError& error) {
+			throw std::invalid_argument(
+				std::string(__FILE__ "(") + std::to_string(__LINE__) + "): "
+				+ "Couldn't evaluate expression \"" + this->parser.GetExpr()
+				+ "\" for variable " + Variable::get_name()
+				+ ": " + error.GetMsg()
+			);
+		}
 	}
 
 
@@ -129,26 +137,15 @@ private:
 		typename V::data_type
 	>::type evaluate_impl()
 	{
-		try {
-			const auto& evaluated = this->parser.Eval();
-			if (evaluated.GetType() != 'i' and evaluated.GetType() != 'f') {
-				throw std::invalid_argument(
-					std::string("Expression \"")
-					+ this->parser.GetExpr()
-					+ std::string("\" is neither integer nor floating point.")
-				);
-			}
-
-			return evaluated.GetInteger();
-
-		} catch(mup::ParserError &error) {
-			std::cerr <<  __FILE__ << "(" << __LINE__<< ") "
-				<< "Could not evaluate expression \"" << this->parser.GetExpr()
-				<< "\" for variable " << Variable::get_name()
-				<< ": " << error.GetMsg()
-				<< std::endl;
-			throw;
+		const auto& evaluated = this->parser.Eval();
+		if (evaluated.GetType() != 'i' and evaluated.GetType() != 'f') {
+			throw std::invalid_argument(
+				std::string("Expression \"")
+				+ this->parser.GetExpr()
+				+ std::string("\" is neither integer nor floating point.")
+			);
 		}
+		return evaluated.GetInteger();
 	}
 
 
@@ -158,26 +155,15 @@ private:
 		typename V::data_type
 	>::type evaluate_impl()
 	{
-		try {
-			const auto& evaluated = this->parser.Eval();
-			if (evaluated.GetType() != 'i' and evaluated.GetType() != 'f') {
-				throw std::invalid_argument(
-					std::string("Expression \"")
-					+ this->parser.GetExpr()
-					+ std::string("\" is neither integer nor floating point.")
-				);
-			}
-
-			return evaluated.GetFloat();
-
-		} catch(mup::ParserError &error) {
-			std::cerr <<  __FILE__ << "(" << __LINE__<< ") "
-				<< "Could not evaluate expression \"" << this->parser.GetExpr()
-				<< "\" for variable " << Variable::get_name()
-				<< ": " << error.GetMsg()
-				<< std::endl;
-			throw;
+		const auto& evaluated = this->parser.Eval();
+		if (evaluated.GetType() != 'i' and evaluated.GetType() != 'f') {
+			throw std::invalid_argument(
+				std::string("Expression \"")
+				+ this->parser.GetExpr()
+				+ std::string("\" is neither integer nor floating point.")
+			);
 		}
+		return evaluated.GetFloat();
 	}
 
 
@@ -190,26 +176,15 @@ private:
 	{
 		const auto& evaluated
 			= [this](){
-				try {
-					const auto& temp = this->parser.Eval();
-					if (temp.GetType() != 'm') {
-						throw std::invalid_argument(
-							std::string("Expression \"")
-							+ this->parser.GetExpr()
-							+ std::string("\" is not an array.")
-						);
-					}
-
-					return temp.GetArray();
-
-				} catch(mup::ParserError &error) {
-					std::cerr <<  __FILE__ << "(" << __LINE__<< ") "
-						<< "Could not evaluate expression \"" << this->parser.GetExpr()
-						<< "\" for variable " << Variable::get_name()
-						<< ": " << error.GetMsg()
-						<< std::endl;
-					throw;
+				const auto& temp = this->parser.Eval();
+				if (temp.GetType() != 'm') {
+					throw std::invalid_argument(
+						std::string("Expression \"")
+						+ this->parser.GetExpr()
+						+ std::string("\" is not an array.")
+					);
 				}
+				return temp.GetArray();
 			}();
 
 		// TODO: merge with identical code in int version
@@ -253,26 +228,15 @@ private:
 	{
 		const auto& evaluated
 			= [this](){
-				try {
-					const auto& temp = this->parser.Eval();
-					if (temp.GetType() != 'm') {
-						throw std::invalid_argument(
-							std::string("Expression \"")
-							+ this->parser.GetExpr()
-							+ std::string("\" is not an array.")
-						);
-					}
-
-					return temp.GetArray();
-
-				} catch(mup::ParserError &error) {
-					std::cerr <<  __FILE__ << "(" << __LINE__<< ") "
-						<< "Could not evaluate expression \""
-						<< this->parser.GetExpr() << "\": " << error.GetMsg()
-						<< " for variable " << Variable::get_name()
-						<< std::endl;
-					throw;
+				const auto& temp = this->parser.Eval();
+				if (temp.GetType() != 'm') {
+					throw std::invalid_argument(
+						std::string("Expression \"")
+						+ this->parser.GetExpr()
+						+ std::string("\" is not an array.")
+					);
 				}
+				return temp.GetArray();
 			}();
 
 		if (evaluated.GetRows() != 1) {
@@ -318,26 +282,15 @@ private:
 	{
 		const auto& evaluated
 			= [this](){
-				try {
-					const auto& temp = this->parser.Eval();
-					if (temp.GetType() != 'm') {
-						throw std::invalid_argument(
-							std::string("Expression ")
-							+ this->parser.GetExpr()
-							+ std::string(" is not an array.")
-						);
-					}
-
-					return temp.GetArray();
-
-				} catch(mup::ParserError &error) {
-					std::cerr <<  __FILE__ << "(" << __LINE__<< ") "
-						<< "Could not evaluate expression \""
-						<< this->parser.GetExpr() << "\": " << error.GetMsg()
-						<< " of variable " << Variable::get_name()
-						<< std::endl;
-					throw;
+				const auto& temp = this->parser.Eval();
+				if (temp.GetType() != 'm') {
+					throw std::invalid_argument(
+						std::string("Expression ")
+						+ this->parser.GetExpr()
+						+ std::string(" is not an array.")
+					);
 				}
+				return temp.GetArray();
 			}();
 
 		if (evaluated.GetRows() != 1) {
