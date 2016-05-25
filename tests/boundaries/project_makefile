@@ -13,22 +13,7 @@ TESTS_BOUNDARIES_EXECUTABLES = \
   tests/boundaries/value_boundaries_scalar.exe \
   tests/boundaries/game_of_life/init_3d_grid.exe \
   tests/boundaries/game_of_life/init_expression.exe \
-  tests/boundaries/game_of_life/init_many_geometries.exe \
-  tests/boundaries/one_variable_boundary.exe \
-  tests/boundaries/one_variable_boundary_eigen.exe \
-  tests/boundaries/many_variable_boundary.exe \
-  tests/boundaries/many_variable_boundary_eigen.exe \
-  tests/boundaries/initial_condition.exe \
-  tests/boundaries/initial_condition_eigen.exe \
-  tests/boundaries/copy_boundary.exe \
-  tests/boundaries/game_of_life/copy_boundary.exe \
-  tests/boundaries/boundary_td_box.exe \
-  tests/boundaries/boundary_td_box_eigen.exe \
-  tests/boundaries/boundary_td_sphere.exe \
-  tests/boundaries/boundary_td_sphere_eigen.exe \
-  tests/boundaries/game_of_life/time_dependent.exe \
-  tests/boundaries/value_boundaries.exe \
-  tests/boundaries/value_boundaries_eigen.exe
+  tests/boundaries/game_of_life/init_many_geometries.exe
 
 TESTS_BOUNDARIES_TESTS = \
   tests/boundaries/box.tst \
@@ -44,22 +29,7 @@ TESTS_BOUNDARIES_TESTS = \
   tests/boundaries/value_boundaries_scalar.tst \
   tests/boundaries/game_of_life/init_3d_grid.tst \
   tests/boundaries/game_of_life/init_expression.tst \
-  tests/boundaries/game_of_life/init_many_geometries.tst \
-  tests/boundaries/one_variable_boundary.tst \
-  tests/boundaries/one_variable_boundary_eigen.tst \
-  tests/boundaries/many_variable_boundary.tst \
-  tests/boundaries/many_variable_boundary_eigen.tst \
-  tests/boundaries/initial_condition.tst \
-  tests/boundaries/initial_condition_eigen.tst \
-  tests/boundaries/copy_boundary.tst \
-  tests/boundaries/game_of_life/copy_boundary.tst \
-  tests/boundaries/boundary_td_box.tst \
-  tests/boundaries/boundary_td_box_eigen.tst \
-  tests/boundaries/boundary_td_sphere.tst \
-  tests/boundaries/boundary_td_sphere_eigen.tst \
-  tests/boundaries/game_of_life/time_dependent.tst \
-  tests/boundaries/value_boundaries.tst \
-  tests/boundaries/value_boundaries_eigen.tst
+  tests/boundaries/game_of_life/init_many_geometries.tst
 
 tests/boundaries_executables: $(TESTS_BOUNDARIES_EXECUTABLES)
 
@@ -94,22 +64,6 @@ TESTS_BOUNDARIES_COMPILE = \
   $(CPPFLAGS) \
   $(CXXFLAGS) \
   $(LDFLAGS)
-
-TESTS_BOUNDARIES_COMPILE_EIGEN = \
-  $(TESTS_BOUNDARIES_COMPILE) \
-  $(EIGEN_CPPFLAGS) \
-  -DUSE_EIGEN
-
-TESTS_BOUNDARIES_COMPILE_PARSED = \
-  $(TESTS_BOUNDARIES_COMPILE) \
-  $(MUPARSERX_CPPFLAGS) \
-  $(MUPARSERX_LDFLAGS) \
-  $(MUPARSERX_LIBS)
-
-TESTS_BOUNDARIES_COMPILE_PARSED_EIGEN = \
-  $(TESTS_BOUNDARIES_COMPILE_PARSED) \
-  $(EIGEN_CPPFLAGS) \
-  -DHAVE_EIGEN
 
 
 
@@ -200,7 +154,7 @@ tests/boundaries/game_of_life/init_3d_grid.exe: \
   source/boundaries/initial_condition.hpp \
   source/boundaries/initial_conditions.hpp \
   $(TESTS_BOUNDARIES_COMMON_DEPS)
-	$(TESTS_BOUNDARIES_COMPILE_PARSED) $(MUPARSERX_CPPFLAGS) $(MUPARSERX_LDFLAGS) $(MUPARSERX_LIBS) $(RAPIDJSON_CPPFLAGS)
+	$(TESTS_BOUNDARIES_COMPILE) $(MUPARSERX_CPPFLAGS) $(MUPARSERX_LDFLAGS) $(MUPARSERX_LIBS) $(RAPIDJSON_CPPFLAGS)
 
 tests/boundaries/game_of_life/init_expression.exe: \
   tests/boundaries/game_of_life/init_expression.cpp \
@@ -208,7 +162,7 @@ tests/boundaries/game_of_life/init_expression.exe: \
   source/boundaries/initial_condition.hpp \
   source/boundaries/initial_conditions.hpp \
   $(TESTS_BOUNDARIES_COMMON_DEPS)
-	$(TESTS_BOUNDARIES_COMPILE_PARSED) $(MUPARSERX_CPPFLAGS) $(MUPARSERX_LDFLAGS) $(MUPARSERX_LIBS) $(RAPIDJSON_CPPFLAGS)
+	$(TESTS_BOUNDARIES_COMPILE) $(MUPARSERX_CPPFLAGS) $(MUPARSERX_LDFLAGS) $(MUPARSERX_LIBS) $(RAPIDJSON_CPPFLAGS)
 
 tests/boundaries/game_of_life/init_many_geometries.exe: \
   tests/boundaries/game_of_life/init_many_geometries.cpp \
@@ -216,81 +170,4 @@ tests/boundaries/game_of_life/init_many_geometries.exe: \
   source/boundaries/initial_condition.hpp \
   source/boundaries/initial_conditions.hpp \
   $(TESTS_BOUNDARIES_COMMON_DEPS)
-	$(TESTS_BOUNDARIES_COMPILE_PARSED) $(MUPARSERX_CPPFLAGS) $(MUPARSERX_LDFLAGS) $(MUPARSERX_LIBS) $(PRETTYPRINT_CPPFLAGS) $(RAPIDJSON_CPPFLAGS)
-
-
-
-tests/boundaries/one_variable_boundary.exe: \
-  tests/boundaries/one_variable_boundary.cpp \
-  $(TESTS_BOUNDARIES_COMMON_DEPS)
-	$(TESTS_BOUNDARIES_COMPILE_PARSED)
-
-tests/boundaries/one_variable_boundary_eigen.exe: \
-  tests/boundaries/one_variable_boundary.cpp \
-  $(TESTS_BOUNDARIES_COMMON_DEPS)
-	$(TESTS_BOUNDARIES_COMPILE_PARSED_EIGEN)
-
-tests/boundaries/many_variable_boundary.exe: \
-  tests/boundaries/many_variable_boundary.cpp \
-  $(TESTS_BOUNDARIES_COMMON_DEPS)
-	$(TESTS_BOUNDARIES_COMPILE_PARSED)
-
-tests/boundaries/many_variable_boundary_eigen.exe: \
-  tests/boundaries/many_variable_boundary.cpp \
-  $(TESTS_BOUNDARIES_COMMON_DEPS)
-	$(TESTS_BOUNDARIES_COMPILE_PARSED_EIGEN)
-
-tests/boundaries/initial_condition.exe: \
-  tests/boundaries/initial_condition.cpp \
-  $(TESTS_BOUNDARIES_COMMON_DEPS)
-	$(TESTS_BOUNDARIES_COMPILE_PARSED)
-
-tests/boundaries/initial_condition_eigen.exe: \
-  tests/boundaries/initial_condition.cpp \
-  $(TESTS_BOUNDARIES_COMMON_DEPS)
-	$(TESTS_BOUNDARIES_COMPILE_PARSED_EIGEN)
-
-tests/boundaries/copy_boundary.exe: \
-  tests/boundaries/copy_boundary.cpp \
-  $(TESTS_BOUNDARIES_COMMON_DEPS)
-	$(TESTS_BOUNDARIES_COMPILE_PARSED)
-
-tests/boundaries/game_of_life/copy_boundary.exe: \
-  tests/boundaries/game_of_life/copy_boundary.cpp \
-  $(TESTS_BOUNDARIES_COMMON_DEPS)
-	$(TESTS_BOUNDARIES_COMPILE_PARSED)
-
-tests/boundaries/boundary_td_box.exe: \
-  tests/boundaries/boundary_td_box.cpp \
-  $(TESTS_BOUNDARIES_COMMON_DEPS)
-	$(TESTS_BOUNDARIES_COMPILE_PARSED)
-
-tests/boundaries/boundary_td_box_eigen.exe: \
-  tests/boundaries/boundary_td_box.cpp \
-  $(TESTS_BOUNDARIES_COMMON_DEPS)
-	$(TESTS_BOUNDARIES_COMPILE_PARSED_EIGEN)
-
-tests/boundaries/boundary_td_sphere.exe: \
-  tests/boundaries/boundary_td_sphere.cpp \
-  $(TESTS_BOUNDARIES_COMMON_DEPS)
-	$(TESTS_BOUNDARIES_COMPILE_PARSED)
-
-tests/boundaries/boundary_td_sphere_eigen.exe: \
-  tests/boundaries/boundary_td_sphere.cpp \
-  $(TESTS_BOUNDARIES_COMMON_DEPS)
-	$(TESTS_BOUNDARIES_COMPILE_PARSED_EIGEN)
-
-tests/boundaries/game_of_life/time_dependent.exe: \
-  tests/boundaries/game_of_life/time_dependent.cpp \
-  $(TESTS_BOUNDARIES_COMMON_DEPS)
-	$(TESTS_BOUNDARIES_COMPILE_PARSED)
-
-tests/boundaries/value_boundaries.exe: \
-  tests/boundaries/value_boundaries.cpp \
-  $(TESTS_BOUNDARIES_COMMON_DEPS)
-	$(TESTS_BOUNDARIES_COMPILE_PARSED)
-
-tests/boundaries/value_boundaries_eigen.exe: \
-  tests/boundaries/value_boundaries.cpp \
-  $(TESTS_BOUNDARIES_COMMON_DEPS)
-	$(TESTS_BOUNDARIES_COMPILE_PARSED_EIGEN)
+	$(TESTS_BOUNDARIES_COMPILE) $(MUPARSERX_CPPFLAGS) $(MUPARSERX_LDFLAGS) $(MUPARSERX_LIBS) $(PRETTYPRINT_CPPFLAGS) $(RAPIDJSON_CPPFLAGS)
