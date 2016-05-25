@@ -53,7 +53,7 @@ namespace boundaries {
 
 
 /*!
-Collection of boundaries creatable from arguments given on command line.
+Simulation value boundary creatable json data.
 */
 template<
 	class Geometry_Id,
