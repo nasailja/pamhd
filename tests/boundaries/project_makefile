@@ -10,6 +10,7 @@ TESTS_BOUNDARIES_EXECUTABLES = \
   tests/boundaries/initial_condition_vector_eigen.exe \
   tests/boundaries/initial_conditions_scalar.exe \
   tests/boundaries/value_boundary_scalar.exe \
+  tests/boundaries/value_boundaries_scalar.exe \
   tests/boundaries/game_of_life/init_3d_grid.exe \
   tests/boundaries/game_of_life/init_expression.exe \
   tests/boundaries/game_of_life/init_many_geometries.exe \
@@ -40,6 +41,7 @@ TESTS_BOUNDARIES_TESTS = \
   tests/boundaries/initial_condition_vector_eigen.tst \
   tests/boundaries/initial_conditions_scalar.tst \
   tests/boundaries/value_boundary_scalar.tst \
+  tests/boundaries/value_boundaries_scalar.tst \
   tests/boundaries/game_of_life/init_3d_grid.tst \
   tests/boundaries/game_of_life/init_expression.tst \
   tests/boundaries/game_of_life/init_many_geometries.tst \
@@ -180,6 +182,14 @@ tests/boundaries/value_boundary_scalar.exe: \
   tests/boundaries/value_boundary_scalar.cpp \
   source/boundaries/math_expression.hpp \
   source/boundaries/value_boundary.hpp \
+  $(TESTS_BOUNDARIES_COMMON_DEPS)
+	$(TESTS_BOUNDARIES_COMPILE) $(MUPARSERX_CPPFLAGS) $(MUPARSERX_LDFLAGS) $(MUPARSERX_LIBS) $(RAPIDJSON_CPPFLAGS)
+
+tests/boundaries/value_boundaries_scalar.exe: \
+  tests/boundaries/value_boundaries_scalar.cpp \
+  source/boundaries/math_expression.hpp \
+  source/boundaries/value_boundary.hpp \
+  source/boundaries/value_boundaries.hpp \
   $(TESTS_BOUNDARIES_COMMON_DEPS)
 	$(TESTS_BOUNDARIES_COMPILE) $(MUPARSERX_CPPFLAGS) $(MUPARSERX_LDFLAGS) $(MUPARSERX_LIBS) $(RAPIDJSON_CPPFLAGS)
 

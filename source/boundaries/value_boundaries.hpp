@@ -1,5 +1,5 @@
 /*
-PAMHD collection of time-dependent boundaries setting variables from external file.
+Class for handling all initial conditions of a simulation.
 
 Copyright 2014, 2015, 2016 Ilja Honkonen
 All rights reserved.
@@ -30,294 +30,108 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+#ifndef PAMHD_BOUNDARIES_VALUE_BOUNDARIES_HPP
+#define PAMHD_BOUNDARIES_VALUE_BOUNDARIES_HPP
 
-#ifndef PAMHD_BOUNDARIES_VALUE_BOUNDARY_HPP
-#define PAMHD_BOUNDARIES_VALUE_BOUNDARY_HPP
 
-
-#include "cstdlib"
-#include "iostream"
+#include "algorithm"
+#include "array"
+#include "stdexcept"
 #include "string"
+#include "type_traits"
 #include "utility"
 
-#include "boost/optional.hpp"
-#include "boost/program_options.hpp"
-#include "prettyprint.hpp"
+#include "rapidjson/document.h"
+#include "mpParser.h"
 
-#include "boundaries/boundary_time_dependent.hpp"
-#include "boundaries/boxes.hpp"
-#include "boundaries/spheres.hpp"
+#include "boundaries/geometries.hpp"
+#include "boundaries/math_expression.hpp"
+#include "boundaries/value_boundary.hpp"
 
 
 namespace pamhd {
 namespace boundaries {
 
 
+/*!
+Collection of boundaries creatable from arguments given on command line.
+*/
 template<
-	class Cell_T,
-	class Time_T,
-	class Scalar_T,
-	class Vector_T,
-	class... Variables
+	class Geometry_Id,
+	class Variable
 > class Value_Boundaries
 {
 public:
 
-	std::vector<
-		Boundary_Time_Dependent<
-			Boxes<Vector_T>,
-			Cell_T,
-			Time_T,
-			Variables...
-		>
-	> boxes;
-
-	std::vector<
-		Boundary_Time_Dependent<
-			Spheres<Vector_T, Scalar_T>,
-			Cell_T,
-			Time_T,
-			Variables...
-		>
-	> spheres;
-
-
-
 	/*!
-	Adds options for setting the number of boundaries.
+	Prepares value boundaries from given rapidjson object.
 
-	Use to query the number of boundaries to create whose options
-	can then be added with add_options().
-
-	Must not be called after add_options().
-	*/
-	void add_initialization_options(
-		const std::string& option_name_prefix,
-		boost::program_options::options_description& options
-	) {
-		options.add_options()
-			((option_name_prefix + "nr-boxes").c_str(),
-				boost::program_options::value<size_t>(&this->number_of_boxes)
-					->default_value(this->number_of_boxes),
-				"Number of boxes in value boundary condition")
-			((option_name_prefix + "nr-spheres").c_str(),
-				boost::program_options::value<size_t>(&this->number_of_spheres)
-					->default_value(this->number_of_spheres),
-				"Number of spheres in value boundary condition");
+	Example json object:
+	\verbatim
+	{
+		"value_boundaries": [
+			{"geometry_id": 0, "time_stamps": [1], "values": [123]}
+			{"geometry_id": 1, "time_stamps": [-1, 2], "values": ["sin(t)", "cos(x)"]}
+		]
 	}
-
-
-	/*!
-	Add options for as many boundaries as given by the nr-*
-	variables set by add_initialization_options.
+	\endverbatim
 	*/
-	void add_options(
-		const std::string& option_name_prefix,
-		boost::program_options::options_description& options
-	) {
-		this->boxes.resize(this->number_of_boxes);
-		this->spheres.resize(this->number_of_spheres);
+	void set(const rapidjson::Value& object)
+	{
+		if (not object.HasMember("value_boundaries")) {
+			return;
+		}
+		const auto& json_bdys = object["value_boundaries"];
 
-		size_t counter;
-
-		counter = 0;
-		for (auto& box: this->boxes) {
-			counter++;
-			box.add_options(
-				option_name_prefix
-					+ "box"
-					+ boost::lexical_cast<std::string>(counter)
-					+ ".",
-				options
-			);
+		if (not json_bdys.IsArray()) {
+			throw std::invalid_argument(__FILE__ ": value_boundaries is not an array.");
 		}
 
-		counter = 0;
-		for (auto& sphere: this->spheres) {
-			counter++;
-			sphere.add_options(
-				option_name_prefix
-					+ "sphere"
-					+ boost::lexical_cast<std::string>(counter)
-					+ ".",
-				options
-			);
+		this->boundaries.clear();
+		this->boundaries.resize(json_bdys.Size());
+
+		for (size_t i = 0; i < json_bdys.Size(); i++) {
+			this->boundaries[i].set(json_bdys[i]);
 		}
 	}
 
 
-	/*!
-	geometry_parameters is given to the overlaps function of each geometry
-	object, see their documentation for the required parameters.
-
-	Returns number of boundaries at given time to which given cell was added.
-
-	Use clear_cells() to remove cells from all boundaries, for example, if
-	(some) boundaries have moved and previous classifications aren't correct.
-	*/
-	template<class... Geometry_Parameters> size_t add_cell(
-		const Time_T& time,
-		const Cell_T& cell,
-		Geometry_Parameters&&... geometry_parameters
-	) {
-		size_t ret_val = 0;
-
-		for (auto& box: this->boxes) {
-			if (
-				box.add_cell(
-					time,
-					cell,
-					std::forward<Geometry_Parameters>(geometry_parameters)...
-				)
-			) {
-				ret_val++;
-			}
-		}
-
-		for (auto& sphere: this->spheres) {
-			if (
-				sphere.add_cell(
-					time,
-					cell,
-					std::forward<Geometry_Parameters>(geometry_parameters)...
-				)
-			) {
-				ret_val++;
-			}
-		}
-
-		return ret_val;
-	}
-
-
-	//! Returns number of existing boundaries
 	size_t get_number_of_boundaries() const
 	{
-		return this->boxes.size() + this->spheres.size();
+		return this->boundaries.size();
 	}
-
 
 	/*!
-	Returns cells which belong to given boundary.
-
-	Boundary indices are in the range [0, get_number_of_boundaries()[.
+	Boundary id is in range 0..number of boundaries - 1
 	*/
-	const std::vector<Cell_T>& get_cells(
-		size_t boundary_index
-	) const {
-		if (boundary_index < this->boxes.size()) {
-			return this->boxes[boundary_index].get_cells();
-		}
-		boundary_index -= this->boxes.size();
-
-		if (boundary_index < this->spheres.size()) {
-			return this->spheres[boundary_index].get_cells();
-		}
-
-		std::cerr <<  __FILE__ << "(" << __LINE__<< ") "
-			<< "Too large boundary index given: " << boundary_index
-			<< ", should be at most: "
-			<< this->boxes.size() + this->spheres.size() - 1
-			<< std::endl;
-		abort();
-	}
-
-
-	void clear_cells()
+	const Value_Boundary<Geometry_Id, Variable>& get_value_boundary(const size_t& boundary_id) const
 	{
-		for (auto& box: this->boxes) {
-			box.clear_cells();
-		}
-
-		for (auto& sphere: this->spheres) {
-			sphere.clear_cells();
-		}
+		return this->boundaries[boundary_id];
 	}
 
 
-	void clear_boundaries()
-	{
-		this->boxes.clear();
-		this->spheres.clear();
-	}
-
-
-	//! Returns data of given variable in given boundary at given time & position
-	template<class Variable> typename Variable::data_type get_data(
-		const Variable& variable,
-		size_t boundary_index,
-		const std::array<double, 3>& given_position,
-		const Time_T& given_time
+	typename Variable::data_type get_data(
+		const size_t& boundary_index,
+		const double& t,
+		const double& x,
+		const double& y,
+		const double& z,
+		const double& radius,
+		const double& latitude,
+		const double& longitude
 	) {
-		if (boundary_index < this->boxes.size()) {
-			return this->boxes[boundary_index].get_data(
-				variable,
-				given_position,
-				given_time
-			);
-		}
-		boundary_index -= this->boxes.size();
-
-		if (boundary_index < this->spheres.size()) {
-			return this->spheres[boundary_index].get_data(
-				variable,
-				given_position,
-				given_time
-			);
-		}
-
-		std::cerr <<  __FILE__ << "(" << __LINE__<< ") "
-			<< "Too large boundary index given: "
-			<< this->boxes.size() + boundary_index
-			<< ", should be at most: "
-			<< this->boxes.size() + this->spheres.size() - 1
-			<< std::endl;
-		abort();
-	}
-
-
-	/*!
-	Invalidates previous boundary ids.
-	Returns boundary index of added boundary if successfull.
-
-	See functions in boundary_time_dependent.hpp on how to set
-	geometry and variable data of added boundary.
-	*/
-	boost::optional<size_t> add_box()
-	{
-		this->boxes.push_back(
-			Boundary_Time_Dependent<Boxes<Vector_T>, Cell_T, Time_T, Variables...>()
-		);
-		this->number_of_boxes = this->boxes.size();
-
-		return boost::optional<size_t>(this->number_of_boxes - 1);
-	}
-
-
-	/*!
-	Same as add_box() but adds a sphere boundary.
-	*/
-	boost::optional<size_t> add_sphere()
-	{
-		this->spheres.push_back(
-			Boundary_Time_Dependent<Spheres<Vector_T, Scalar_T>, Cell_T, Time_T, Variables...>()
-		);
-		this->number_of_spheres = this->spheres.size();
-
-		return boost::optional<size_t>(
-			this->number_of_boxes + this->number_of_spheres - 1
+		return this->boundaries[boundary_index].get_data(
+			t, x, y, z, radius, latitude, longitude
 		);
 	}
-
 
 
 private:
 
-	size_t
-		number_of_boxes = 0,
-		number_of_spheres = 0;
+	std::vector<Value_Boundary<Geometry_Id, Variable>> boundaries;
+
 };
 
 }} // namespaces
 
-#endif // ifndef PAMHD_BOUNDARIES_VALUE_BOUNDARY_HPP
+#endif // ifndef PAMHD_BOUNDARIES_VALUE_BOUNDARIES_HPP
