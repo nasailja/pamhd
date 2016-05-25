@@ -236,15 +236,88 @@ template<class Variable> typename std::enable_if<
 
 
 /*!
+Fills given variables from given json data, throws in case of error.
+
+\see fill_variable_value_from_json().
+*/
+template<class Variable> void fill_variable_from_json_grid_data(
+	const rapidjson::Value& object,
+	std::array<std::vector<double>, 3>& coordinates,
+	int& coordinate_type,
+	std::vector<typename Variable::data_type>& data
+) {
+	if (object.HasMember("x")) {
+		coordinate_type = 1;
+	} else if (object.HasMember("radius")) {
+		coordinate_type = 2;
+	} else {
+		throw std::invalid_argument(__FILE__ ": object doesn't have either x or radius key.");
+	}
+
+	std::array<const char*, 3> components{"x", "y", "z"};
+	if (coordinate_type == 2) {
+		components[0] = "radius";
+		components[1] = "lat";
+		components[2] = "lon";
+	}
+
+	// load coordinates of data points
+	size_t component_i = 0;
+	for (const auto& component: components) {
+		if (not object.HasMember(component)) {
+			throw std::invalid_argument(__FILE__ ": object object doesn't have required key.");
+		}
+
+		const auto& coord = object[component];
+		if (not coord.IsArray()) {
+			throw std::invalid_argument(__FILE__ ": coordinate isn't array.");
+		}
+
+		coordinates[component_i].clear();
+		for (auto i = coord.Begin(); i != coord.End(); i++) {
+			coordinates[component_i].push_back(i->GetDouble());
+		}
+
+		if (
+			not std::is_sorted(
+				coordinates[component_i].cbegin(),
+				coordinates[component_i].cend()
+			)
+		) {
+			throw std::invalid_argument(__FILE__ ": coordinates aren't sorted in non-descending order.");
+		}
+
+		component_i++;
+	}
+
+	// load data
+	if (object.HasMember("data")) {
+		const auto& json_data = object["data"];
+
+		if (not json_data.IsArray()) {
+			throw std::invalid_argument(__FILE__ ": data isn't array.");
+		}
+
+		data.clear();
+		for (auto i = json_data.Begin(); i != json_data.End(); i++) {
+			data.push_back(get_json_value<Variable>(*i));
+		}
+	} else {
+		throw std::invalid_argument(__FILE__ ": object doesn't have a x or radius key.");
+	}
+}
+
+
+/*!
 Fills one of given arguments based on given rapidjson object.
 
-If given object is a number init_cond_type is set to 1 and
+If given object is a number value_type is set to 1 and
 number_value is set to the number.
 
-If given object is a string init_cond_type is set to 2 and
+If given object is a string value_type is set to 2 and
 math_expression is initialized to the string.
 
-If given object is an object init_cond_type is set to 3 and
+If given object is an object value_type is set to 3 and
 coordinates, coordinate_type and data are set. In this case
 given object must have a "data" key and either "x", "y", "z"
 or "radius", "lat", "lon" keys. All values behind keys must be
@@ -274,7 +347,7 @@ Example jsons which could be given as object:
 */
 template<class Variable> void fill_variable_value_from_json(
 	const rapidjson::Value& object,
-	int& init_cond_type,
+	int& value_type,
 	typename Variable::data_type& number_value,
 	Math_Expression<Variable>& math_expression,
 	std::array<std::vector<double>, 3>& coordinates,
@@ -284,91 +357,82 @@ template<class Variable> void fill_variable_value_from_json(
 	// one scalar or vector value
 	if (object.IsNumber() or object.IsArray()) {
 
+		value_type = 1;
 		number_value = get_json_value<Variable>(object);
-		init_cond_type = 1;
 
 	// math expression
 	} else if (object.IsString()) {
 
+		value_type = 2;
 		math_expression.set_expression(object.GetString());
-		init_cond_type = 2;
 
 	// 3d grid of scalar values
 	} else if (object.IsObject()) {
 
-		if (object.HasMember("x")) {
-			coordinate_type = 1;
-		} else if (object.HasMember("radius")) {
-			coordinate_type = 2;
-		} else {
-			throw std::invalid_argument(__FILE__ ": object object doesn't have either x or radius key.");
-		}
-
-		std::array<const char*, 3> components{"x", "y", "z"};
-		if (coordinate_type == 2) {
-			components[0] = "radius";
-			components[1] = "lat";
-			components[2] = "lon";
-		}
-
-		// load coordinates of data points
-		size_t component_i = 0;
-		for (const auto& component: components) {
-			if (not object.HasMember(component)) {
-				throw std::invalid_argument(__FILE__ ": object object doesn't have required key.");
-			}
-
-			const auto& coord = object[component];
-			if (not coord.IsArray()) {
-				throw std::invalid_argument(__FILE__ ": coordinate isn't array.");
-			}
-
-			coordinates[component_i].clear();
-			for (auto i = coord.Begin(); i != coord.End(); i++) {
-				coordinates[component_i].push_back(i->GetDouble());
-			}
-
-			if (
-				not std::is_sorted(
-					coordinates[component_i].cbegin(),
-					coordinates[component_i].cend()
-				)
-			) {
-				throw std::invalid_argument(__FILE__ ": coordinates aren't sorted in non-descending order.");
-			}
-
-			component_i++;
-		}
-
-		// load data
-		if (object.HasMember("data")) {
-			const auto& json_data = object["data"];
-
-			if (not json_data.IsArray()) {
-				throw std::invalid_argument(__FILE__ ": data isn't array.");
-			}
-
-			data.clear();
-			for (auto i = json_data.Begin(); i != json_data.End(); i++) {
-				data.push_back(get_json_value<Variable>(*i));
-			}
-		} else {
-			throw std::invalid_argument(__FILE__ ": object doesn't have a x or radius key.");
-		}
-
-		if (
-			coordinates[0].size()
-				* coordinates[1].size()
-				* coordinates[2].size()
-			!= data.size()
-		) {
-			throw std::invalid_argument(__FILE__ ": object's data has invalid size.");
-		}
-
-		init_cond_type = 3;
+		value_type = 3;
+		fill_variable_from_json_grid_data<Variable>(
+			object,
+			coordinates,
+			coordinate_type,
+			data
+		);
 
 	} else {
 		throw std::invalid_argument(__FILE__ ": Invalid object type.");
+	}
+}
+
+
+/*!
+Time series version of fill_variable_value_from_json()
+*/
+template<class Variable> void fill_variable_value_from_json(
+	const rapidjson::Value& object,
+	int& value_type,
+	std::vector<typename Variable::data_type>& number_values,
+	std::vector<Math_Expression<Variable>>& math_expressions,
+	std::array<std::vector<double>, 3>& coordinates,
+	int& coordinate_type,
+	std::vector<typename Variable::data_type>& data
+) {
+	if (not object.IsArray() and not object.IsObject()) {
+		throw std::invalid_argument(__FILE__ ": not given an array or object.");
+	}
+
+	if (object.IsArray()) {
+		if (object.Size() == 0) {
+			throw std::invalid_argument(__FILE__ ": array is empty.");
+		}
+
+		if (object[0].IsNumber() or object[0].IsArray()) {
+			value_type = 1;
+
+			number_values.clear();
+			number_values.reserve(object.Size());
+			for (size_t i = 0; i < object.Size(); i++) {
+				number_values.push_back(get_json_value<Variable>(object[i]));
+			}
+
+		} else if (object[0].IsString()) {
+			value_type = 2;
+
+			math_expressions.clear();
+			math_expressions.resize(object.Size());
+			for (size_t i = 0; i < object.Size(); i++) {
+				math_expressions[i].set_expression(object[i].GetString());
+			}
+		} else {
+			throw std::invalid_argument(__FILE__ ": first object has invalid type.");
+		}
+
+	} else {
+		value_type = 3;
+		fill_variable_from_json_grid_data<Variable>(
+			object,
+			coordinates,
+			coordinate_type,
+			data
+		);
 	}
 }
 
