@@ -1,5 +1,5 @@
 /*
-Class for handling all initial conditions of a simulation.
+Class for handling all value boundaries of a simulation.
 
 Copyright 2014, 2015, 2016 Ilja Honkonen
 All rights reserved.
