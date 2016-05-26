@@ -41,6 +41,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "rapidjson/document.h"
 
+#include "boundaries/copy_boundaries.hpp"
+
 
 namespace pamhd {
 namespace boundaries {
@@ -85,7 +87,7 @@ public:
 	\verbatim
 	{
 		"copy_boundaries": [
-			{"geometry_id": 0}
+			{"geometry_id": 0},
 			{"geometry_id": 1}
 		]
 	}
@@ -102,8 +104,8 @@ public:
 			throw std::invalid_argument(__FILE__ ": copy_boundaries is not an array.");
 		}
 
-		this->geometry_ids.clear();
-		this->geometry_ids.resize(json_bdys.Size());
+		this->geometry_ids_rw.clear();
+		this->geometry_ids_rw.reserve(json_bdys.Size());
 
 		for (size_t i = 0; i < json_bdys.Size(); i++) {
 			const auto& json_bdy = json_bdys[i];
@@ -115,7 +117,7 @@ public:
 				);
 			}
 
-			this->geometry_ids.push_back(json_bdy["geometry_id"].GetUint64());
+			this->geometry_ids_rw.push_back(json_bdy["geometry_id"].GetUint64());
 		}
 	}
 
