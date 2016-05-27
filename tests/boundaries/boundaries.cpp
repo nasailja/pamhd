@@ -40,6 +40,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "mpi.h"
 
 #include "boundaries/boundaries.hpp"
+#include "boundaries/geometries.hpp"
 
 
 using namespace pamhd::boundaries;
