@@ -9,6 +9,7 @@ TESTS_BOUNDARIES_EXECUTABLES = \
   tests/boundaries/initial_condition_vector.exe \
   tests/boundaries/initial_condition_vector_eigen.exe \
   tests/boundaries/initial_conditions_scalar.exe \
+  tests/boundaries/initial_conditions_vector.exe \
   tests/boundaries/value_boundary_scalar.exe \
   tests/boundaries/value_boundaries_scalar.exe \
   tests/boundaries/copy_boundaries.exe \
@@ -27,6 +28,7 @@ TESTS_BOUNDARIES_TESTS = \
   tests/boundaries/initial_condition_vector.tst \
   tests/boundaries/initial_condition_vector_eigen.tst \
   tests/boundaries/initial_conditions_scalar.tst \
+  tests/boundaries/initial_conditions_vector.tst \
   tests/boundaries/value_boundary_scalar.tst \
   tests/boundaries/value_boundaries_scalar.tst \
   tests/boundaries/copy_boundaries.tst \
@@ -51,6 +53,7 @@ CLEAN += tests/boundaries_clean
 
 TESTS_BOUNDARIES_COMMON_DEPS = \
   source/boundaries/box.hpp \
+  source/boundaries/common.hpp \
   source/boundaries/sphere.hpp \
   tests/boundaries/project_makefile \
   $(ENVIRONMENT_MAKEFILE) \
@@ -129,6 +132,14 @@ tests/boundaries/initial_condition_vector_eigen.exe: \
 
 tests/boundaries/initial_conditions_scalar.exe: \
   tests/boundaries/initial_conditions_scalar.cpp \
+  source/boundaries/math_expression.hpp \
+  source/boundaries/initial_condition.hpp \
+  source/boundaries/initial_conditions.hpp \
+  $(TESTS_BOUNDARIES_COMMON_DEPS)
+	$(TESTS_BOUNDARIES_COMPILE) $(MUPARSERX_CPPFLAGS) $(MUPARSERX_LDFLAGS) $(MUPARSERX_LIBS) $(RAPIDJSON_CPPFLAGS)
+
+tests/boundaries/initial_conditions_vector.exe: \
+  tests/boundaries/initial_conditions_vector.cpp \
   source/boundaries/math_expression.hpp \
   source/boundaries/initial_condition.hpp \
   source/boundaries/initial_conditions.hpp \
