@@ -63,6 +63,17 @@ template<
 {
 public:
 
+	Value_Boundaries<Geometry_Id, Variable>() : boundaries(boundaries_rw) {}
+
+	Value_Boundaries<Geometry_Id, Variable>(
+		const Value_Boundaries<Geometry_Id, Variable>& other
+	) : boundaries(boundaries_rw), boundaries_rw(other.boundaries_rw) {}
+
+	Value_Boundaries<Geometry_Id, Variable>(
+		Value_Boundaries<Geometry_Id, Variable>&& other
+	) : boundaries(boundaries_rw), boundaries_rw(std::move(other.boundaries_rw)) {}
+
+
 	/*!
 	Prepares value boundaries from given rapidjson object.
 
@@ -87,11 +98,11 @@ public:
 			throw std::invalid_argument(__FILE__ ": value_boundaries is not an array.");
 		}
 
-		this->boundaries.clear();
-		this->boundaries.resize(json_bdys.Size());
+		this->boundaries_rw.clear();
+		this->boundaries_rw.resize(json_bdys.Size());
 
 		for (size_t i = 0; i < json_bdys.Size(); i++) {
-			this->boundaries[i].set(json_bdys[i]);
+			this->boundaries_rw[i].set(json_bdys[i]);
 		}
 	}
 
@@ -120,15 +131,19 @@ public:
 		const double& latitude,
 		const double& longitude
 	) {
-		return this->boundaries[boundary_index].get_data(
+		return this->boundaries_rw[boundary_index].get_data(
 			t, x, y, z, radius, latitude, longitude
 		);
 	}
 
 
+	//! all value boundaries of one simulation variable
+	const std::vector<Value_Boundary<Geometry_Id, Variable>>& boundaries;
+
+
 private:
 
-	std::vector<Value_Boundary<Geometry_Id, Variable>> boundaries;
+	std::vector<Value_Boundary<Geometry_Id, Variable>> boundaries_rw;
 
 };
 

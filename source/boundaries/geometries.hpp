@@ -56,6 +56,7 @@ namespace boundaries {
 Vector_T is assumed to be std::array or similar.
 */
 template<
+	class Geometry_Id,
 	class Vector,
 	class Scalar,
 	class Cell_Id
@@ -63,11 +64,17 @@ template<
 {
 public:
 
-	Geometries<Vector, Scalar, Cell_Id>() = default;
-	Geometries<Vector, Scalar, Cell_Id>(const Geometries<Vector, Scalar, Cell_Id>&) = default;
-	Geometries<Vector, Scalar, Cell_Id>(Geometries<Vector, Scalar, Cell_Id>&&) = default;
+	Geometries<Geometry_Id, Vector, Scalar, Cell_Id>() = default;
 
-	Geometries<Vector, Scalar, Cell_Id>(const rapidjson::Value& object)
+	Geometries<Geometry_Id, Vector, Scalar, Cell_Id>(
+		const Geometries<Geometry_Id, Vector, Scalar, Cell_Id>&
+	) = default;
+
+	Geometries<Geometry_Id, Vector, Scalar, Cell_Id>(
+		Geometries<Geometry_Id, Vector, Scalar, Cell_Id>&&
+	) = default;
+
+	Geometries<Geometry_Id, Vector, Scalar, Cell_Id>(const rapidjson::Value& object)
 	{
 		this->set_geometries(object);
 	}
@@ -79,10 +86,9 @@ public:
 	Given object must be an array of objects each of which
 	contains a supported geometry object.
 
-	Example json from which "geometries" would be given as object:
+	Example json object:
 	\verbatim
 	{
-		...,
 		"geometries": [
 			{"box": {
 				"start": [0, 0, 0],
@@ -92,29 +98,42 @@ public:
 				"center": [-1, -2, -3],
 				"radius": 0.01
 			}}
-		],
-		...
+		]
 	}
 	\endverbatim
 	*/
-	void set_geometries(const rapidjson::Value& object)
+	void set(const rapidjson::Value& object)
 	{
-		if (not object.IsArray()) {
+		if (not object.HasMember("geometries")) {
+			throw std::invalid_argument(
+				"Given object doesn't have a geometries key."
+			);
+		}
+		const auto& json_geometries = object["geometries"];
+
+		if (not json_geometries.IsArray()) {
 			throw std::invalid_argument("geometries item is not an array (\"geometries\": [...]).");
 		}
 
-		for (rapidjson::SizeType i = 0; i < object.Size(); i++) {
+		for (rapidjson::SizeType i = 0; i < json_geometries.Size(); i++) {
 			this->boxes.erase(i);
 			this->spheres.erase(i);
 
-			if (object[i].HasMember("box")) {
-				this->boxes[i] = Box<Vector, Cell_Id>(object[i]["box"]);
-			} else if (object[i].HasMember("sphere")) {
-				this->spheres[i] = Sphere<Vector, Scalar, Cell_Id>(object[i]["sphere"]);
+			if (json_geometries[i].HasMember("box")) {
+				this->boxes[i]
+					= Box<Vector, Cell_Id>(
+						json_geometries[i]["box"]
+					);
+			} else if (json_geometries[i].HasMember("sphere")) {
+				this->spheres[i]
+					= Sphere<Vector, Scalar, Cell_Id>(
+						json_geometries[i]["sphere"]
+					);
 			} else {
-				throw std::invalid_argument(__FILE__ ": Item in geometries array is not of a supported type.");
+				throw std::invalid_argument(
+					__FILE__ ": Item in geometries array is not of a supported type."
+				);
 			}
-
 		}
 	}
 
@@ -126,7 +145,7 @@ public:
 	returns true as well as id of that geometry, otherwise
 	returns false.
 	*/
-	std::pair<bool, unsigned int> overlaps(
+	std::pair<bool, Geometry_Id> overlaps(
 		const Vector& cell_start,
 		const Vector& cell_end,
 		const Cell_Id& cell_id
@@ -143,39 +162,39 @@ public:
 			}
 		}
 
-		return std::make_pair(false, std::numeric_limits<unsigned int>::max());
+		return std::make_pair(false, std::numeric_limits<Geometry_Id>::max());
 	}
 
 
 	/*!
-	Returns cells belonging to given boundary id.
+	Returns cells belonging to given geometry id.
 
-	Throws an exception if given boundary id doesn't exist.
+	Throws an exception if given geometry id doesn't exist.
 	*/
-	const std::vector<Cell_Id>& get_cells(const unsigned int boundary_id) const
+	const std::vector<Cell_Id>& get_cells(const Geometry_Id& geometry) const
 	{
-		if (this->boxes.count(boundary_id) > 0) {
-			return this->boxes.at(boundary_id).cells;
-		} else if (this->spheres.count(boundary_id) > 0) {
-			return this->spheres.at(boundary_id).cells;
+		if (this->boxes.count(geometry) > 0) {
+			return this->boxes.at(geometry).cells;
+		} else if (this->spheres.count(geometry) > 0) {
+			return this->spheres.at(geometry).cells;
 		}
 
-		throw std::invalid_argument(__FILE__ ": Given boundary id doesn't exist.");
+		throw std::invalid_argument(__FILE__ ": Given geometry id doesn't exist.");
 	}
 
 
-	void clear_cells(const unsigned int boundary_id) {
-		if (this->boxes.count(boundary_id) > 0) {
-			this->boxes.at(boundary_id).second.clear();
-		} else if (this->spheres.count(boundary_id) > 0) {
-			this->spheres.at(boundary_id).clear();
+	void clear_cells(const Geometry_Id& geometry) {
+		if (this->boxes.count(geometry) > 0) {
+			this->boxes.at(geometry).second.clear();
+		} else if (this->spheres.count(geometry) > 0) {
+			this->spheres.at(geometry).clear();
 		}
 	}
 
 
-	std::vector<unsigned int> get_geometry_ids() const
+	std::vector<Geometry_Id> get_geometry_ids() const
 	{
-		std::vector<unsigned int> ids;
+		std::vector<Geometry_Id> ids;
 		ids.reserve(this->boxes.size() + this->spheres.size());
 
 		for (const auto& box: this->boxes) {
@@ -193,12 +212,12 @@ public:
 private:
 
 	std::map<
-		unsigned int, // geometry id shared between all geometries
+		Geometry_Id, // geometry id shared between all geometries
 		Box<Vector, Cell_Id>
 	> boxes;
 
 	std::map<
-		unsigned int,
+		Geometry_Id,
 		Sphere<Vector, Scalar, Cell_Id>
 	> spheres;
 

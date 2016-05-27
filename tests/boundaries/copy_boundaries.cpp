@@ -62,7 +62,7 @@ int main()
 		return EXIT_FAILURE;
 	}
 
-	Copy_Boundaries<size_t, Mass_Density> boundary;
+	Copy_Boundaries<int, size_t, Mass_Density> boundary;
 	boundary.set(document);
 
 	if (boundary.geometry_ids.size() != 2) {

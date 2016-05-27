@@ -14,7 +14,8 @@ TESTS_BOUNDARIES_EXECUTABLES = \
   tests/boundaries/copy_boundaries.exe \
   tests/boundaries/game_of_life/init_3d_grid.exe \
   tests/boundaries/game_of_life/init_expression.exe \
-  tests/boundaries/game_of_life/init_many_geometries.exe
+  tests/boundaries/game_of_life/init_many_geometries.exe \
+  tests/boundaries/boundaries.exe
 
 TESTS_BOUNDARIES_TESTS = \
   tests/boundaries/box.tst \
@@ -31,7 +32,8 @@ TESTS_BOUNDARIES_TESTS = \
   tests/boundaries/copy_boundaries.tst \
   tests/boundaries/game_of_life/init_3d_grid.tst \
   tests/boundaries/game_of_life/init_expression.tst \
-  tests/boundaries/game_of_life/init_many_geometries.tst
+  tests/boundaries/game_of_life/init_many_geometries.tst \
+  tests/boundaries/boundaries.mtst
 
 tests/boundaries_executables: $(TESTS_BOUNDARIES_EXECUTABLES)
 
@@ -57,6 +59,12 @@ TESTS_BOUNDARIES_COMMON_DEPS = \
 
 TESTS_BOUNDARIES_COMPILE = \
   @printf "CXX $<\n" && $(CXX) $< -o $@ \
+  $(CPPFLAGS) \
+  $(CXXFLAGS) \
+  $(LDFLAGS)
+
+TESTS_BOUNDARIES_MPI_COMPILE = \
+  @printf "MPICXX $<\n" && $(MPICXX) $< -o $@ \
   $(CPPFLAGS) \
   $(CXXFLAGS) \
   $(LDFLAGS)
@@ -174,3 +182,15 @@ tests/boundaries/game_of_life/init_many_geometries.exe: \
   source/boundaries/initial_conditions.hpp \
   $(TESTS_BOUNDARIES_COMMON_DEPS)
 	$(TESTS_BOUNDARIES_COMPILE) $(MUPARSERX_CPPFLAGS) $(MUPARSERX_LDFLAGS) $(MUPARSERX_LIBS) $(PRETTYPRINT_CPPFLAGS) $(RAPIDJSON_CPPFLAGS)
+
+
+tests/boundaries/boundaries.exe: \
+  tests/boundaries/boundaries.cpp \
+  source/boundaries/math_expression.hpp \
+  source/boundaries/geometries.hpp \
+  source/boundaries/value_boundary.hpp \
+  source/boundaries/value_boundaries.hpp \
+  source/boundaries/copy_boundaries.hpp \
+  source/boundaries/boundaries.hpp \
+  $(TESTS_BOUNDARIES_COMMON_DEPS)
+	$(TESTS_BOUNDARIES_MPI_COMPILE) $(DCCRG_CPPFLAGS) $(MUPARSERX_CPPFLAGS) $(MUPARSERX_LDFLAGS) $(MUPARSERX_LIBS) $(RAPIDJSON_CPPFLAGS) $(ZOLTAN_CPPFLAGS) $(ZOLTAN_LDFLAGS) $(ZOLTAN_LIBS)

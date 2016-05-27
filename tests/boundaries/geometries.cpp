@@ -66,8 +66,13 @@ int main()
 	}
 
 
-	pamhd::boundaries::Geometries<std::array<double, 3>, double, int> geometries;
-	geometries.set_geometries(document["geometries"]);
+	pamhd::boundaries::Geometries<
+		unsigned int,
+		std::array<double, 3>,
+		double,
+		unsigned int
+	> geometries;
+	geometries.set(document);
 
 	const auto ids = geometries.get_geometry_ids();
 	if (ids.size() != 3) {
@@ -76,7 +81,7 @@ int main()
 			<< std::endl;
 		return EXIT_FAILURE;
 	}
-	const std::set<unsigned int> ids_set(ids.cbegin(), ids.cend());
+	const std::set<int> ids_set(ids.cbegin(), ids.cend());
 	for (unsigned int id = 0; id < ids.size(); id++) {
 		if (ids_set.count(id) == 0) {
 			std::cerr << "geometry id " << id << " doesn't exist"

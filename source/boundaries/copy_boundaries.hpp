@@ -34,6 +34,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define PAMHD_BOUNDARIES_COPY_BOUNDARIES_HPP
 
 
+#include "array"
 #include "stdexcept"
 #include "string"
 #include "utility"
@@ -52,6 +53,7 @@ namespace boundaries {
 Collection of simulation copy boundaries creatable from json data.
 */
 template<
+	class Cell_Id,
 	class Geometry_Id,
 	class Variable
 > class Copy_Boundaries
@@ -59,23 +61,31 @@ template<
 public:
 
 	Copy_Boundaries<
+		Cell_Id,
 		Geometry_Id,
 		Variable
-	>() : geometry_ids(geometry_ids_rw) {}
+	>() :
+		geometry_ids(geometry_ids_rw),
+		copy_sources(copy_sources_rw)
+	{}
 
 	Copy_Boundaries<
+		Cell_Id,
 		Geometry_Id,
 		Variable
 	>(const Copy_Boundaries& other) :
 		geometry_ids(geometry_ids_rw),
+		copy_sources(copy_sources_rw),
 		geometry_ids_rw(other.geometry_ids_rw)
 	{}
 
 	Copy_Boundaries<
+		Cell_Id,
 		Geometry_Id,
 		Variable
 	>(Copy_Boundaries&& other) :
 		geometry_ids(geometry_ids_rw),
+		copy_sources(copy_sources_rw),
 		geometry_ids_rw(std::move(other.geometry_ids_rw))
 	{}
 
@@ -122,15 +132,33 @@ public:
 	}
 
 
-	/*!
-	Geometry id of each corresponding (by position in vector) copy boundary.
-	*/
+	//! geometry id for each copy boundary.
 	const std::vector<Geometry_Id>& geometry_ids;
+
+	/*!
+	Data source of each cell located in a copy boundary.
+
+	copy_sources[N][0] == target cell inside copy boundary
+	copy_sources[N][1] == source cell outside of copy boundary
+	*/
+	const std::vector<std::array<Cell_Id, 2>>& copy_sources;
+
+
+	/*!
+	Adds given copy cell and source cell to existing list of sources.
+	*/
+	void push_back_source(const std::array<Cell_Id, 2>& source)
+	{
+		this->copy_sources_rw.push_back(source);
+	}
+
+
 
 private:
 
 	std::vector<Geometry_Id> geometry_ids_rw;
 
+	std::vector<std::array<Cell_Id, 2>> copy_sources_rw;
 };
 
 }} // namespaces

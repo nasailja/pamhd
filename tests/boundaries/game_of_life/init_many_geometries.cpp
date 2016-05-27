@@ -241,11 +241,12 @@ int main()
 	}
 
 	pamhd::boundaries::Geometries<
+		int, // geometry id type
 		std::array<double, 3>, // vector type for geometries
 		double, // scalar type for geometries
 		Cell_Id 
 	> geometries;
-	geometries.set_geometries(document["geometries"]);
+	geometries.set(document);
 
 	for (size_t row_i = 0; row_i < grid.size(); row_i++)
 	for (size_t cell_i = 0; cell_i < grid[row_i].size(); cell_i++) {
