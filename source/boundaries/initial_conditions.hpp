@@ -1,5 +1,5 @@
 /*
-Class for handling all initial conditions of a simulation.
+Class for handling all initial conditions of one simulation variable.
 
 Copyright 2016 Ilja Honkonen
 All rights reserved.
@@ -44,7 +44,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "rapidjson/document.h"
 #include "mpParser.h"
 
-#include "boundaries/geometries.hpp"
 #include "boundaries/initial_condition.hpp"
 #include "boundaries/math_expression.hpp"
 

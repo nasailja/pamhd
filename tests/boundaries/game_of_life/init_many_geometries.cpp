@@ -41,6 +41,7 @@ with data parsed from a mathematical expression.
 #include "string"
 #include "vector"
 
+#include "boundaries/geometries.hpp"
 #include "boundaries/initial_conditions.hpp"
 #include "prettyprint.hpp"
 #include "rapidjson/document.h"
