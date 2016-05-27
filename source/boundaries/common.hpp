@@ -74,8 +74,8 @@ template<class Variable> typename std::enable_if<
 {
 	if (not object.IsInt64()) {
 		throw std::invalid_argument(
-			std::string(__FILE__ "(") + std::to_string(__LINE__)
-			+ "): object isn't of signed integral type."
+			std::string(__FILE__ "(") + std::to_string(__LINE__) + "): "
+			+ "Object isn't of signed integral type."
 		);
 	}
 	return object.GetInt64();
@@ -90,8 +90,8 @@ template<class Variable> typename std::enable_if<
 {
 	if (not object.IsUint64()) {
 		throw std::invalid_argument(
-			std::string(__FILE__ "(") + std::to_string(__LINE__)
-			+ "): object isn't of unsigned integral type."
+			std::string(__FILE__ "(") + std::to_string(__LINE__) + "): "
+			+ "Object isn't of unsigned integral type."
 		);
 	}
 	return object.GetUint64();
@@ -105,8 +105,8 @@ template<class Variable> typename std::enable_if<
 {
 	if (not object.IsNumber()) {
 		throw std::invalid_argument(
-			std::string(__FILE__ "(") + std::to_string(__LINE__)
-			+ "): object isn't of floating point type."
+			std::string(__FILE__ "(") + std::to_string(__LINE__) + "): "
+			+ "Object isn't of floating point type."
 		);
 	}
 	return object.GetDouble();
@@ -124,14 +124,14 @@ template<class Variable> typename std::enable_if<
 
 	if (not object.IsArray()) {
 		throw std::invalid_argument(
-			std::string(__FILE__ "(") + std::to_string(__LINE__)
-			+ "): object isn't an array."
+			std::string(__FILE__ "(") + std::to_string(__LINE__) + "): "
+			+ "Object isn't an array."
 		);
 	}
 	if (object.Size() != size) {
 		throw std::invalid_argument(
-			std::string(__FILE__ "(") + std::to_string(__LINE__)
-			+ "): array has wrong size: " + std::to_string(object.Size())
+			std::string(__FILE__ "(") + std::to_string(__LINE__) + "): "
+			+ "Array has wrong size: " + std::to_string(object.Size())
 			+ ", should be " + std::to_string(size)
 		);
 	}
@@ -139,10 +139,10 @@ template<class Variable> typename std::enable_if<
 	typename Variable::data_type ret_val;
 	for (size_t i = 0; i < size; i++) {
 		if (not object[i].IsInt64()) {
-		throw std::invalid_argument(
-			std::string(__FILE__ "(") + std::to_string(__LINE__)
-			+ "): element of array isn't signed integral number."
-		);
+			throw std::invalid_argument(
+				std::string(__FILE__ "(") + std::to_string(__LINE__) + "): "
+				+ "Element of array isn't signed integral number."
+			);
 		}
 		ret_val[i] = object[i].GetInt64();
 	}
@@ -160,16 +160,26 @@ template<class Variable> typename std::enable_if<
 	constexpr auto size = std::tuple_size<typename Variable::data_type>::value;
 
 	if (not object.IsArray()) {
-		throw std::invalid_argument(__FILE__ ": object isn't an array.");
+		throw std::invalid_argument(
+			std::string(__FILE__ "(") + std::to_string(__LINE__) + "): "
+			+ "Object isn't an array."
+		);
 	}
 	if (object.Size() != size) {
-		throw std::invalid_argument(__FILE__ ": array has wrong size.");
+		throw std::invalid_argument(
+			std::string(__FILE__ "(") + std::to_string(__LINE__) + "): "
+			+ "Array has wrong size: " + std::to_string(object.Size())
+			+ ", should be " + std::to_string(size)
+		);
 	}
 
 	typename Variable::data_type ret_val;
 	for (size_t i = 0; i < size; i++) {
 		if (not object[i].IsUint64()) {
-			throw std::invalid_argument(__FILE__ ": element of array isn't unsigned integral number.");
+			throw std::invalid_argument(
+				std::string(__FILE__ "(") + std::to_string(__LINE__) + "): "
+				+ "Element of array isn't unsigned integral number."
+			);
 		}
 		ret_val[i] = object[i].GetUint64();
 	}
@@ -186,16 +196,26 @@ template<class Variable> typename std::enable_if<
 	constexpr auto size = std::tuple_size<typename Variable::data_type>::value;
 
 	if (not object.IsArray()) {
-		throw std::invalid_argument(__FILE__ ": object isn't an array.");
+		throw std::invalid_argument(
+			std::string(__FILE__ "(") + std::to_string(__LINE__) + "): "
+			+ "Object isn't an array."
+		);
 	}
 	if (object.Size() != size) {
-		throw std::invalid_argument(__FILE__ ": array has wrong size.");
+		throw std::invalid_argument(
+			std::string(__FILE__ "(") + std::to_string(__LINE__) + "): "
+			+ "Array has wrong size: " + std::to_string(object.Size())
+			+ ", should be " + std::to_string(size)
+		);
 	}
 
 	typename Variable::data_type ret_val;
 	for (size_t i = 0; i < size; i++) {
 		if (not object[i].IsNumber()) {
-			throw std::invalid_argument(__FILE__ ": element of array isn't a number.");
+			throw std::invalid_argument(
+				std::string(__FILE__ "(") + std::to_string(__LINE__) + "): "
+				+ "Element of array isn't a number."
+			);
 		}
 		ret_val[i] = object[i].GetDouble();
 	}
@@ -216,16 +236,26 @@ template<class Variable> typename std::enable_if<
 	constexpr auto size = Variable::data_type::RowsAtCompileTime;
 
 	if (not object.IsArray()) {
-		throw std::invalid_argument(__FILE__ ": object isn't an array.");
+		throw std::invalid_argument(
+			std::string(__FILE__ "(") + std::to_string(__LINE__) + "): "
+			+ "Object isn't an array."
+		);
 	}
 	if (object.Size() != size) {
-		throw std::invalid_argument(__FILE__ ": array has wrong size.");
+		throw std::invalid_argument(
+			std::string(__FILE__ "(") + std::to_string(__LINE__) + "): "
+			+ "Array has wrong size: " + std::to_string(object.Size())
+			+ ", should be " + std::to_string(size)
+		);
 	}
 
 	typename Variable::data_type ret_val;
 	for (size_t i = 0; i < size; i++) {
 		if (not object[i].IsNumber()) {
-			throw std::invalid_argument(__FILE__ ": element of array isn't a number.");
+			throw std::invalid_argument(
+				std::string(__FILE__ "(") + std::to_string(__LINE__) + "): "
+				+ "Element of array isn't a number."
+			);
 		}
 		ret_val(i) = object[i].GetDouble();
 	}
@@ -378,7 +408,10 @@ template<class Variable> void fill_variable_value_from_json(
 		);
 
 	} else {
-		throw std::invalid_argument(__FILE__ ": Invalid object type.");
+		throw std::invalid_argument(
+			std::string(__FILE__ "(") + std::to_string(__LINE__) + "): "
+			+ "Invalid object type."
+		);
 	}
 }
 
@@ -396,12 +429,18 @@ template<class Variable> void fill_variable_value_from_json(
 	std::vector<typename Variable::data_type>& data
 ) {
 	if (not object.IsArray() and not object.IsObject()) {
-		throw std::invalid_argument(__FILE__ ": not given an array or object.");
+		throw std::invalid_argument(
+			std::string(__FILE__ "(") + std::to_string(__LINE__) + "): "
+			+ "Not given an array or object."
+		);
 	}
 
 	if (object.IsArray()) {
 		if (object.Size() == 0) {
-			throw std::invalid_argument(__FILE__ ": array is empty.");
+			throw std::invalid_argument(
+				std::string(__FILE__ "(") + std::to_string(__LINE__) + "): "
+				+ "Array is empty."
+			);
 		}
 
 		if (object[0].IsNumber() or object[0].IsArray()) {
@@ -422,7 +461,10 @@ template<class Variable> void fill_variable_value_from_json(
 				math_expressions[i].set_expression(object[i].GetString());
 			}
 		} else {
-			throw std::invalid_argument(__FILE__ ": first object has invalid type.");
+			throw std::invalid_argument(
+				std::string(__FILE__ "(") + std::to_string(__LINE__) + "): "
+				+ "First object has invalid type."
+			);
 		}
 
 	} else {
