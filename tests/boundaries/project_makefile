@@ -11,7 +11,9 @@ TESTS_BOUNDARIES_EXECUTABLES = \
   tests/boundaries/initial_conditions_scalar.exe \
   tests/boundaries/initial_conditions_vector.exe \
   tests/boundaries/value_boundary_scalar.exe \
+  tests/boundaries/value_boundary_vector.exe \
   tests/boundaries/value_boundaries_scalar.exe \
+  tests/boundaries/value_boundaries_vector.exe \
   tests/boundaries/copy_boundaries.exe \
   tests/boundaries/game_of_life/init_3d_grid.exe \
   tests/boundaries/game_of_life/init_expression.exe \
@@ -30,7 +32,9 @@ TESTS_BOUNDARIES_TESTS = \
   tests/boundaries/initial_conditions_scalar.tst \
   tests/boundaries/initial_conditions_vector.tst \
   tests/boundaries/value_boundary_scalar.tst \
+  tests/boundaries/value_boundary_vector.tst \
   tests/boundaries/value_boundaries_scalar.tst \
+  tests/boundaries/value_boundaries_vector.tst \
   tests/boundaries/copy_boundaries.tst \
   tests/boundaries/game_of_life/init_3d_grid.tst \
   tests/boundaries/game_of_life/init_expression.tst \
@@ -154,8 +158,24 @@ tests/boundaries/value_boundary_scalar.exe: \
   $(TESTS_BOUNDARIES_COMMON_DEPS)
 	$(TESTS_BOUNDARIES_COMPILE) $(MUPARSERX_CPPFLAGS) $(MUPARSERX_LDFLAGS) $(MUPARSERX_LIBS) $(RAPIDJSON_CPPFLAGS)
 
+tests/boundaries/value_boundary_vector.exe: \
+  tests/boundaries/value_boundary_vector.cpp \
+  source/boundaries/math_expression.hpp \
+  source/boundaries/value_boundary.hpp \
+  $(TESTS_BOUNDARIES_COMMON_DEPS)
+	$(TESTS_BOUNDARIES_COMPILE) $(MUPARSERX_CPPFLAGS) $(MUPARSERX_LDFLAGS) $(MUPARSERX_LIBS) $(RAPIDJSON_CPPFLAGS)
+
+
 tests/boundaries/value_boundaries_scalar.exe: \
   tests/boundaries/value_boundaries_scalar.cpp \
+  source/boundaries/math_expression.hpp \
+  source/boundaries/value_boundary.hpp \
+  source/boundaries/value_boundaries.hpp \
+  $(TESTS_BOUNDARIES_COMMON_DEPS)
+	$(TESTS_BOUNDARIES_COMPILE) $(MUPARSERX_CPPFLAGS) $(MUPARSERX_LDFLAGS) $(MUPARSERX_LIBS) $(RAPIDJSON_CPPFLAGS)
+
+tests/boundaries/value_boundaries_vector.exe: \
+  tests/boundaries/value_boundaries_vector.cpp \
   source/boundaries/math_expression.hpp \
   source/boundaries/value_boundary.hpp \
   source/boundaries/value_boundaries.hpp \

@@ -1,5 +1,5 @@
 /*
-Tests value boundary class of PAMHD with scalar simulation variable.
+Tests value boundary class of PAMHD with vector simulation variable.
 
 Copyright 2016 Ilja Honkonen
 All rights reserved.
@@ -30,6 +30,7 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+#include "array"
 #include "cstdlib"
 #include "iostream"
 #include "string"
@@ -40,9 +41,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using namespace pamhd::boundaries;
 
 
-struct Mass_Density {
-	using data_type = double;
-	static const std::string get_name(){ return {"mass density"}; }
+struct Momentum_Density {
+	using data_type = std::array<double, 2>;
+	static const std::string get_name(){ return {"momentum density"}; }
 };
 
 int main()
@@ -51,12 +52,12 @@ int main()
 		"{"
 			"\"geometry_id\": 1,"
 			"\"time_stamps\": [-3, -2, -1],"
-			"\"values\": [1, 2, 3]"
+			"\"values\": [[1, -1], [2, -2], [3, -3]]"
 		"},"
 		"{"
 			"\"geometry_id\": 3,"
 			"\"time_stamps\": [1, 4, 4.25],"
-			"\"values\": [\"t\", \"t*t\", \"2*t\"]"
+			"\"values\": [\"{t, -t}\", \"{t*t, -t*t}\", \"{2*t, -2*t}\"]"
 		"},"
 		"{"
 			"\"geometry_id\": 8,"
@@ -65,7 +66,7 @@ int main()
 				"\"x\": [1],"
 				"\"y\": [-2],"
 				"\"z\": [0.1],"
-				"\"data\": [-1, 8, -33]"
+				"\"data\": [[-1, 1], [8, -8], [-33, 33]]"
 			"}"
 		"},"
 		"{"
@@ -75,7 +76,8 @@ int main()
 				"\"x\": [1],"
 				"\"y\": [-2, -1, 1],"
 				"\"z\": [0.1],"
-				"\"data\": [-1, 0, 1, 2, -2, -4, 10, 20, 30]"
+				"\"data\": [[-1, 1], [0, 0], [1, -1], [2, -2], "
+					"[-2, 2], [-4, 4], [10, -10], [20, -20], [30, -30]]"
 			"}"
 		"}"
 	"]";
@@ -87,131 +89,101 @@ int main()
 		return EXIT_FAILURE;
 	}
 
-	typename Mass_Density::data_type mass;
+	typename Momentum_Density::data_type momentum;
 
-	Value_Boundary<unsigned int, Mass_Density> bdy0, bdy1, bdy2, bdy3;
+	Value_Boundary<unsigned int, Momentum_Density> bdy0, bdy1, bdy2, bdy3;
 
-	/*{
-		"geometry_id": 1,
-		"time_stamps": [-3, -2, -1],
-		"values": [1, 2, 3]
-	}*/
 	bdy0.set(document[0]);
-	mass = bdy0.get_data(0, 0, 0, 0, 0, 0, 0);
-	if (mass != 3) {
+	momentum = bdy0.get_data(0, 0, 0, 0, 0, 0, 0);
+	if (momentum[1] != -3) {
 		std::cerr << __FILE__ "(" << __LINE__ << "): Wrong value for variable: "
-			<< mass << ", should be 3"
+			<< momentum[1] << ", should be -3"
 			<< std::endl;
 		return EXIT_FAILURE;
 	}
-	mass = bdy0.get_data(-1.51, 0, 0, 0, 0, 0, 0);
-	if (mass != 2) {
+	momentum = bdy0.get_data(-1.51, 0, 0, 0, 0, 0, 0);
+	if (momentum[1] != -2) {
 		std::cerr << __FILE__ "(" << __LINE__ << "): Wrong value for variable: "
-			<< mass << ", should be 2"
+			<< momentum[1] << ", should be -2"
 			<< std::endl;
 		return EXIT_FAILURE;
 	}
-	mass = bdy0.get_data(-123, 0, 0, 0, 0, 0, 0);
-	if (mass != 1) {
+	momentum = bdy0.get_data(-123, 0, 0, 0, 0, 0, 0);
+	if (momentum[1] != -1) {
 		std::cerr << __FILE__ "(" << __LINE__ << "): Wrong value for variable: "
-			<< mass << ", should be 1"
+			<< momentum[1] << ", should be -1"
 			<< std::endl;
 		return EXIT_FAILURE;
 	}
 
 
-	/*{
-		"geometry_id": 3,
-		"time_stamps": [1, 4, 4.25],
-		"values": ["t", "t*t", "2*t"]
-	}*/
 	bdy1.set(document[1]);
-	mass = bdy1.get_data(0.125, 0, 0, 0, 0, 0, 0);
-	if (mass != 0.125) {
+	momentum = bdy1.get_data(0.125, 0, 0, 0, 0, 0, 0);
+	if (momentum[1] != -0.125) {
 		std::cerr << __FILE__ "(" << __LINE__ << "): Wrong value for variable: "
-			<< mass << ", should be 0.125"
+			<< momentum[1] << ", should be -0.125"
 			<< std::endl;
 		return EXIT_FAILURE;
 	}
-	mass = bdy1.get_data(2.75, 2, 3, 4, 5, 6, 7);
-	if (mass != 7.5625) {
+	momentum = bdy1.get_data(2.75, 2, 3, 4, 5, 6, 7);
+	if (momentum[1] != -7.5625) {
 		std::cerr << __FILE__ "(" << __LINE__ << "): Wrong value for variable: "
-			<< mass << ", should be 7.5625"
+			<< momentum[1] << ", should be -7.5625"
 			<< std::endl;
 		return EXIT_FAILURE;
 	}
-	mass = bdy1.get_data(4.126, -2, -3, -4, -5, -6, -7);
-	if (mass != 8.252) {
+	momentum = bdy1.get_data(4.126, -2, -3, -4, -5, -6, -7);
+	if (momentum[1] != -8.252) {
 		std::cerr << __FILE__ "(" << __LINE__ << "): Wrong value for variable: "
-			<< mass << ", should be 8.252"
+			<< momentum[1] << ", should be -8.252"
 			<< std::endl;
 		return EXIT_FAILURE;
 	}
 
 
-	/*{
-			"geometry_id": 8,
-			"time_stamps": [1, 3, 5],
-			"values": {
-				"x": [1],
-				"y": [-2],
-				"z": [0.1],
-				"data": [-1, 8, -33]
-			}
-	}*/
 	bdy2.set(document[2]);
-	mass = bdy2.get_data(1.99, 0, -3, 0, 0, 0, 0);
-	if (mass != -1) {
+	momentum = bdy2.get_data(1.99, 0, -3, 0, 0, 0, 0);
+	if (momentum[1] != 1) {
 		std::cerr << __FILE__ "(" << __LINE__ << "): Wrong value for variable: "
-			<< mass << ", should be -1"
+			<< momentum[1] << ", should be 1"
 			<< std::endl;
 		return EXIT_FAILURE;
 	}
-	mass = bdy2.get_data(4.01, 0, -1.51, 0, 0, 0, 0);
-	if (mass != -33) {
+	momentum = bdy2.get_data(4.01, 0, -1.51, 0, 0, 0, 0);
+	if (momentum[1] != 33) {
 		std::cerr << __FILE__ "(" << __LINE__ << "): Wrong value for variable: "
-			<< mass << ", should be -33"
+			<< momentum[1] << ", should be 33"
 			<< std::endl;
 		return EXIT_FAILURE;
 	}
 
 
-	/*{
-		"geometry_id": 8,
-		"time_stamps": [-100, 100, 100100],
-		"values": {
-			"x": [1],
-			"y": [-2, -1, 1],
-			"z": [0.1],
-			"data": [-1, 0, 1, 2, -2, -4, 10, 20, 30]
-		}
-	}*/
 	bdy3.set(document[3]);
-	mass = bdy3.get_data(-1, 0, -1.51, 0, 0, 0, 0);
-	if (mass != -1) {
+	momentum = bdy3.get_data(-1, 0, -1.51, 0, 0, 0, 0);
+	if (momentum[1] != 1) {
 		std::cerr << __FILE__ "(" << __LINE__ << "): Wrong value for variable: "
-			<< mass << ", should be -1"
+			<< momentum[1] << ", should be 1"
 			<< std::endl;
 		return EXIT_FAILURE;
 	}
-	mass = bdy3.get_data(1, 0, -0.1, 0, 0, 0, 0);
-	if (mass != -2) {
+	momentum = bdy3.get_data(1, 0, -0.1, 0, 0, 0, 0);
+	if (momentum[1] != 2) {
 		std::cerr << __FILE__ "(" << __LINE__ << "): Wrong value for variable: "
-			<< mass << ", should be -2"
+			<< momentum[1] << ", should be 2"
 			<< std::endl;
 		return EXIT_FAILURE;
 	}
-	mass = bdy3.get_data(100000, 0, -0.01, 0, 0, 0, 0);
-	if (mass != 20) {
+	momentum = bdy3.get_data(100000, 0, -0.01, 0, 0, 0, 0);
+	if (momentum[1] != -20) {
 		std::cerr << __FILE__ "(" << __LINE__ << "): Wrong value for variable: "
-			<< mass << ", should be 20"
+			<< momentum[1] << ", should be -20"
 			<< std::endl;
 		return EXIT_FAILURE;
 	}
-	mass = bdy3.get_data(100000, 0, 0.01, 0, 0, 0, 0);
-	if (mass != 30) {
+	momentum = bdy3.get_data(100000, 0, 0.01, 0, 0, 0, 0);
+	if (momentum[1] != -30) {
 		std::cerr << __FILE__ "(" << __LINE__ << "): Wrong value for variable: "
-			<< mass << ", should be 30"
+			<< momentum[1] << ", should be -30"
 			<< std::endl;
 		return EXIT_FAILURE;
 	}
