@@ -1,5 +1,5 @@
 /*
-Class for handling all copy boundaries of a simulation.
+Class for handling all copy boundaries of one simulation variable.
 
 Copyright 2014, 2015, 2016 Ilja Honkonen
 All rights reserved.

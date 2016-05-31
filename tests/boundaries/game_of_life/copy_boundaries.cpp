@@ -58,6 +58,8 @@ With uncommented print_games prints:
 ............
 
 ...
+
+where 0 and . are normal cells, and O and , are copy boundary cells.
 */
 
 #include "array"

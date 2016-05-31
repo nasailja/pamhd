@@ -17,6 +17,7 @@ TESTS_BOUNDARIES_EXECUTABLES = \
   tests/boundaries/value_boundaries_vector.exe \
   tests/boundaries/multivar_val_bdy.exe \
   tests/boundaries/copy_boundaries.exe \
+  tests/boundaries/multivar_cpy_bdy.exe \
   tests/boundaries/game_of_life/init_3d_grid.exe \
   tests/boundaries/game_of_life/init_expression.exe \
   tests/boundaries/game_of_life/init_many_geometries.exe \
@@ -41,6 +42,7 @@ TESTS_BOUNDARIES_TESTS = \
   tests/boundaries/value_boundaries_vector.tst \
   tests/boundaries/multivar_val_bdy.tst \
   tests/boundaries/copy_boundaries.tst \
+  tests/boundaries/multivar_cpy_bdy.tst \
   tests/boundaries/game_of_life/init_3d_grid.tst \
   tests/boundaries/game_of_life/init_expression.tst \
   tests/boundaries/game_of_life/init_many_geometries.tst \
@@ -212,6 +214,13 @@ tests/boundaries/multivar_val_bdy.exe: \
 tests/boundaries/copy_boundaries.exe: \
   tests/boundaries/copy_boundaries.cpp \
   source/boundaries/copy_boundaries.hpp \
+  $(TESTS_BOUNDARIES_COMMON_DEPS)
+	$(TESTS_BOUNDARIES_COMPILE) $(RAPIDJSON_CPPFLAGS)
+
+tests/boundaries/multivar_cpy_bdy.exe: \
+  tests/boundaries/multivar_cpy_bdy.cpp \
+  source/boundaries/copy_boundaries.hpp \
+  source/boundaries/multivariable_copy_boundaries.hpp \
   $(TESTS_BOUNDARIES_COMMON_DEPS)
 	$(TESTS_BOUNDARIES_COMPILE) $(RAPIDJSON_CPPFLAGS)
 
