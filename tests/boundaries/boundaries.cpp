@@ -62,7 +62,7 @@ struct Cell_Data {
 	}
 };
 
-// returns a reference to given cell's mass density data
+// returns a reference to given cell's type data
 const auto Type
 	= [](Cell_Data& cell_data)
 		->typename Cell_Type::data_type&
