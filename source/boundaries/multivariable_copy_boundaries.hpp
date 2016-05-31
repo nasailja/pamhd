@@ -109,8 +109,9 @@ public:
 
 
 	//! geometry id for each copy boundary of given simulation variable.
-	const std::vector<Geometry_Id>& get_geometry_ids(const Current_Variable&)
-	{
+	const std::vector<Geometry_Id>& get_geometry_ids(
+		const Current_Variable&
+	) const {
 		return this->copy_boundaries.geometry_ids;
 	}
 
@@ -119,8 +120,9 @@ public:
 
 	\see Copy_Boundaries::copy_sources
 	*/
-	const std::vector<std::array<Cell_Id, 2>>& get_copy_sources(const Current_Variable&)
-	{
+	const std::vector<std::array<Cell_Id, 2>>& get_copy_sources(
+		const Current_Variable&
+	) const {
 		return this->copy_boundaries.copy_sources;
 	}
 
