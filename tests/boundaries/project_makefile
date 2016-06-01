@@ -23,7 +23,8 @@ TESTS_BOUNDARIES_EXECUTABLES = \
   tests/boundaries/game_of_life/init_many_geometries.exe \
   tests/boundaries/game_of_life/copy_boundaries.exe \
   tests/boundaries/game_of_life/multivar_cpy_bdy.exe \
-  tests/boundaries/boundaries.exe
+  tests/boundaries/boundaries.exe \
+  tests/boundaries/multivariable_boundaries.exe
 
 TESTS_BOUNDARIES_TESTS = \
   tests/boundaries/box.tst \
@@ -49,7 +50,8 @@ TESTS_BOUNDARIES_TESTS = \
   tests/boundaries/game_of_life/init_many_geometries.tst \
   tests/boundaries/game_of_life/copy_boundaries.tst \
   tests/boundaries/game_of_life/multivar_cpy_bdy.tst \
-  tests/boundaries/boundaries.mtst
+  tests/boundaries/boundaries.mtst \
+  tests/boundaries/multivariable_boundaries.mtst
 
 tests/boundaries_executables: $(TESTS_BOUNDARIES_EXECUTABLES)
 
@@ -273,5 +275,19 @@ tests/boundaries/boundaries.exe: \
   source/boundaries/value_boundaries.hpp \
   source/boundaries/copy_boundaries.hpp \
   source/boundaries/boundaries.hpp \
+  $(TESTS_BOUNDARIES_COMMON_DEPS)
+	$(TESTS_BOUNDARIES_MPI_COMPILE) $(DCCRG_CPPFLAGS) $(MUPARSERX_CPPFLAGS) $(MUPARSERX_LDFLAGS) $(MUPARSERX_LIBS) $(RAPIDJSON_CPPFLAGS) $(ZOLTAN_CPPFLAGS) $(ZOLTAN_LDFLAGS) $(ZOLTAN_LIBS)
+
+tests/boundaries/multivariable_boundaries.exe: \
+  tests/boundaries/multivariable_boundaries.cpp \
+  source/boundaries/math_expression.hpp \
+  source/boundaries/geometries.hpp \
+  source/boundaries/value_boundary.hpp \
+  source/boundaries/value_boundaries.hpp \
+  source/boundaries/multivariable_value_boundaries.hpp \
+  source/boundaries/copy_boundaries.hpp \
+  source/boundaries/multivariable_copy_boundaries.hpp \
+  source/boundaries/boundaries.hpp \
+  source/boundaries/multivariable_boundaries.hpp \
   $(TESTS_BOUNDARIES_COMMON_DEPS)
 	$(TESTS_BOUNDARIES_MPI_COMPILE) $(DCCRG_CPPFLAGS) $(MUPARSERX_CPPFLAGS) $(MUPARSERX_LDFLAGS) $(MUPARSERX_LIBS) $(RAPIDJSON_CPPFLAGS) $(ZOLTAN_CPPFLAGS) $(ZOLTAN_LDFLAGS) $(ZOLTAN_LIBS)
