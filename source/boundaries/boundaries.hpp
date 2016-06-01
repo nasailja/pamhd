@@ -67,8 +67,26 @@ public:
 	*/
 	void set(const rapidjson::Value& object)
 	{
-		this->value_boundaries.set(object);
-		this->copy_boundaries.set(object);
+		try {
+			this->value_boundaries.set(object);
+		} catch (const std::invalid_argument& error) {
+			throw std::invalid_argument(
+				std::string(__FILE__ "(") + std::to_string(__LINE__) + "): "
+				+ "Couldn't set value boundaries of variable "
+				+ Variable::get_option_name() + ": "
+				+ error.what()
+			);
+		}
+		try {
+			this->copy_boundaries.set(object);
+		} catch (const std::invalid_argument& error) {
+			throw std::invalid_argument(
+				std::string(__FILE__ "(") + std::to_string(__LINE__) + "): "
+				+ "Couldn't set copy boundaries of variable "
+				+ Variable::get_option_name() + ": "
+				+ error.what()
+			);
+		}
 	}
 
 
@@ -125,6 +143,11 @@ public:
 					}
 					break;
 				}
+			}
+
+			// no boundary refers to current geometry
+			if (type_to_assign == 0) {
+				continue;
 			}
 
 			for (const auto& cell_id: geometries.get_cells(geometry_id)) {
