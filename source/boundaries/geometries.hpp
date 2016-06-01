@@ -35,6 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define PAMHD_GEOMETRIES_HPP
 
 
+#include "algorithm"
 #include "cstdlib"
 #include "exception"
 #include "iostream"
@@ -141,24 +142,47 @@ public:
 	/*!
 	Calls overlaps function of each existing geometry.
 
-	If cube spanning given volume overlaps one or more geometry
-	returns true as well as id of that geometry, otherwise
-	returns false.
+	If given volume overlaps a geometry returns true
+	as well as id of first geometry that overlaps,
+	otherwise returns false.
+
+	Geometries are processed in ascending order of their ids.
 	*/
 	std::pair<bool, Geometry_Id> overlaps(
-		const Vector& cell_start,
-		const Vector& cell_end,
+		const Vector& start,
+		const Vector& end,
 		const Cell_Id& cell_id
 	) {
-		for (auto& box: this->boxes) {
-			if (box.second.overlaps(cell_start, cell_end, cell_id)) {
-				return std::make_pair(true, box.first);
-			}
+		std::vector<Geometry_Id> geometry_ids;
+		geometry_ids.reserve(this->boxes.size() + this->spheres.size());
+		for (const auto& box: this->boxes) {
+			geometry_ids.push_back(box.first);
+		}
+		for (const auto& sphere: this->spheres) {
+			geometry_ids.push_back(sphere.first);
 		}
 
-		for (auto& sphere: this->spheres) {
-			if (sphere.second.overlaps(cell_start, cell_end, cell_id)) {
-				return std::make_pair(true, sphere.first);
+		if (geometry_ids.size() == 0) {
+			return std::make_pair(false, std::numeric_limits<Geometry_Id>::max());
+		}
+
+		std::sort(geometry_ids.begin(), geometry_ids.end());
+
+		for (const auto& geometry_id: geometry_ids) {
+
+			if (this->boxes.count(geometry_id) > 0) {
+				if (this->boxes.at(geometry_id).overlaps(start, end, cell_id)) {
+					return std::make_pair(true, geometry_id);
+				}
+			} else if (this->spheres.count(geometry_id) > 0) {
+				if (this->spheres.at(geometry_id).overlaps(start, end, cell_id)) {
+					return std::make_pair(true, geometry_id);
+				}
+			} else {
+				throw std::out_of_range(
+					std::string(__FILE__ "(") + std::to_string(__LINE__) + "): "
+					+ "Internal error"
+				);
 			}
 		}
 

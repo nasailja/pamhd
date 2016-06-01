@@ -50,6 +50,7 @@ using namespace pamhd::boundaries;
 struct Cell_Type {
 	using data_type = int;
 	static const std::string get_name(){ return {"cell type"}; }
+	static const std::string get_option_name(){ return {"cell_type"}; }
 };
 
 // simulation cell type used in this test
@@ -147,10 +148,9 @@ int main(int argc, char* argv[])
 
 	// check that cells have been assigned to correct geometries
 	const std::set<uint64_t>
-		ref_geom0_cells{1, 5, 9, 13, 17, 21, 25, 29, 33, 37, 41, 45},
+		ref_geom0_cells{1, 5, 9, 13, 17, 21, 25, 29, 33, 37, 41, 45, 49, 53, 57, 61},
 		ref_geom1_cells{43},
-		ref_geom2_cells{50, 51, 52, 54, 55, 56, 58, 59, 60, 62, 63, 64},
-		ref_geom02_cells{49, 53, 57, 61}; // these might end up in either one
+		ref_geom2_cells{50, 51, 52, 54, 55, 56, 58, 59, 60, 62, 63, 64};
 
 	const auto geom_ids = geometries.get_geometry_ids();
 	if (geom_ids.size() != 3) {
@@ -182,10 +182,7 @@ int main(int argc, char* argv[])
 	}
 
 	for (const auto& cell: geom0_cells) {
-		if (
-			ref_geom0_cells.count(cell) == 0
-			and ref_geom02_cells.count(cell) == 0
-		) {
+		if (ref_geom0_cells.count(cell) == 0) {
 			std::cerr << __FILE__ << ":" << __LINE__
 				<< ": Cell " << cell << " not in geometries 0 or 2"
 				<< std::endl;
@@ -243,10 +240,7 @@ int main(int argc, char* argv[])
 	}
 
 	for (const auto& cell: geom2_cells) {
-		if (
-			ref_geom2_cells.count(cell) == 0
-			and ref_geom02_cells.count(cell) == 0
-		) {
+		if (ref_geom2_cells.count(cell) == 0) {
 			std::cerr << __FILE__ << ":" << __LINE__
 				<< ": Cell " << cell << " not in geometries 0 or 2"
 				<< std::endl;
@@ -285,7 +279,6 @@ int main(int argc, char* argv[])
 			ref_geom0_cells.count(cell) > 0
 			or ref_geom1_cells.count(cell) > 0
 			or ref_geom2_cells.count(cell) > 0
-			or ref_geom02_cells.count(cell) > 0
 		) {
 			std::cerr << __FILE__ << ":" << __LINE__
 				<< ": Normal cell " << cell << " belongs to a boundary geometry."
@@ -320,7 +313,6 @@ int main(int argc, char* argv[])
 		if (
 			ref_geom0_cells.count(cell) == 0
 			and ref_geom1_cells.count(cell) == 0
-			and ref_geom02_cells.count(cell) == 0
 		) {
 			std::cerr << __FILE__ << ":" << __LINE__
 				<< ": Value boundary cell " << cell << " not in geometries 0 or 1."
@@ -391,12 +383,14 @@ int main(int argc, char* argv[])
 		return EXIT_FAILURE;
 	}
 
-	for (const auto& cell: boundaries.get_dont_solve_cells())
-		if (ref_geom02_cells.count(cell) == 0 and cell != 59) {
-		std::cerr << __FILE__ << ":" << __LINE__
-			<< ": Dont solve cell not in geometry 02 and not 59"
-			<< std::endl;
-		return EXIT_FAILURE;
+	const std::set<uint64_t> ref_dont_solve_cells{49, 53, 57, 59, 61};
+	for (const auto& cell: boundaries.get_dont_solve_cells()) {
+		if (ref_dont_solve_cells.count(cell) == 0) {
+			std::cerr << __FILE__ << ":" << __LINE__
+				<< ": Incorrect dont solve cell: " << cell
+				<< std::endl;
+			return EXIT_FAILURE;
+		}
 	}
 
 
