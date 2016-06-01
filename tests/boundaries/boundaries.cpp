@@ -173,10 +173,10 @@ int main(int argc, char* argv[])
 		MPI_COMM_WORLD
 	);
 
-	if (geom0_cells_size < ref_geom0_cells.size()) {
+	if (geom0_cells_size != ref_geom0_cells.size()) {
 		std::cerr << __FILE__ << ":" << __LINE__
 			<< ": Too few cells in geometry 0: " << geom0_cells_size
-			<< ", should be at least " << ref_geom0_cells.size()
+			<< ", should be " << ref_geom0_cells.size()
 			<< std::endl;
 		return EXIT_FAILURE;
 	}
@@ -231,10 +231,10 @@ int main(int argc, char* argv[])
 		MPI_COMM_WORLD
 	);
 
-	if (geom2_cells_size < ref_geom2_cells.size()) {
+	if (geom2_cells_size != ref_geom2_cells.size()) {
 		std::cerr << __FILE__ << ":" << __LINE__
 			<< ": Too few cells in geometry 2: " << geom2_cells_size
-			<< ", should be at least " << ref_geom2_cells.size()
+			<< ", should be " << ref_geom2_cells.size()
 			<< std::endl;
 		return EXIT_FAILURE;
 	}
@@ -300,11 +300,11 @@ int main(int argc, char* argv[])
 		MPI_COMM_WORLD
 	);
 
-	if (value_cells_size < 13) {
+	if (value_cells_size != 13) {
 		std::cerr << __FILE__ << ":" << __LINE__
 			<< ": Wrong number of value boundary cells: "
 			<< value_cells_size
-			<< ", should be at least 13"
+			<< ", should be 13"
 			<< std::endl;
 		return EXIT_FAILURE;
 	}
@@ -334,11 +334,11 @@ int main(int argc, char* argv[])
 		MPI_COMM_WORLD
 	);
 
-	if (copy_cells_size < 11) {
+	if (copy_cells_size != 11) {
 		std::cerr << __FILE__ << ":" << __LINE__
 			<< ": Wrong number of copy boundary cells: "
 			<< copy_cells_size
-			<< ", should be at least 11"
+			<< ", should be 11"
 			<< std::endl;
 		return EXIT_FAILURE;
 	}
