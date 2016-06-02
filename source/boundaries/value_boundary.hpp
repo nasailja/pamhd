@@ -93,43 +93,58 @@ public:
 	}
 	\endverbatim
 	*/
-	void set(const rapidjson::Value& object)
-	{
-		if (not object.HasMember("geometry_id")) {
-			throw std::invalid_argument(__FILE__ ": object doesn't have a geometry_id key.");
-		}
-		const auto& json_geometry_id = object["geometry_id"];
+	void set(
+		const rapidjson::Value& object,
+		const std::string& geometry_id_name = "geometry_id",
+		const std::string& time_stamps_name = "time_stamps",
+		const std::string& values_name = "values"
+	) {
+		if (geometry_id_name != "") {
+			if (not object.HasMember("geometry_id")) {
+				throw std::invalid_argument(__FILE__ ": object doesn't have a geometry_id key.");
+			}
+			const auto& json_geometry_id = object["geometry_id"];
 
-		if (not json_geometry_id.IsUint()) {
-			throw std::invalid_argument(__FILE__ ": geometry_id is not unsigned int.");
-		}
-		this->geometry_id = json_geometry_id.GetUint();
-
-
-		if (not object.HasMember("time_stamps")) {
-			throw std::invalid_argument(__FILE__ ": object doesn't have a time_stamps key.");
-		}
-		const auto& json_time_stamps = object["time_stamps"];
-
-		if (not json_time_stamps.IsArray()) {
-			throw std::invalid_argument(__FILE__ ": time_stamps is not an array.");
-		}
-
-		this->time_stamps.clear();
-		this->time_stamps.reserve(json_time_stamps.Size());
-		for (size_t i = 0; i < json_time_stamps.Size(); i++) {
-			this->time_stamps.push_back(json_time_stamps[i].GetDouble());
-		}
-
-		if (not std::is_sorted(this->time_stamps.cbegin(), this->time_stamps.cend())) {
-			throw std::invalid_argument(__FILE__ ": time stamps aren't sorted in non-descending order.");
+			if (not json_geometry_id.IsUint()) {
+				throw std::invalid_argument(__FILE__ ": geometry_id is not unsigned int.");
+			}
+			this->geometry_id = json_geometry_id.GetUint();
+		} else {
+			this->geometry_id = 0;
 		}
 
 
-		if (not object.HasMember("values")) {
-			throw std::invalid_argument(__FILE__ ": object doesn't have a values key.");
+		if (time_stamps_name != "") {
+			if (not object.HasMember("time_stamps")) {
+				throw std::invalid_argument(__FILE__ ": object doesn't have a time_stamps key.");
+			}
+			const auto& json_time_stamps = object["time_stamps"];
+
+			if (not json_time_stamps.IsArray()) {
+				throw std::invalid_argument(__FILE__ ": time_stamps is not an array.");
+			}
+
+			this->time_stamps.clear();
+			this->time_stamps.reserve(json_time_stamps.Size());
+			for (size_t i = 0; i < json_time_stamps.Size(); i++) {
+				this->time_stamps.push_back(json_time_stamps[i].GetDouble());
+			}
+
+			if (not std::is_sorted(this->time_stamps.cbegin(), this->time_stamps.cend())) {
+				throw std::invalid_argument(__FILE__ ": time stamps aren't sorted in non-descending order.");
+			}
+		} else {
+			this->time_stamps.push_back(0);
 		}
-		const auto& values = object["values"];
+
+
+		if (not object.HasMember(values_name.c_str())) {
+			throw std::invalid_argument(
+				std::string(__FILE__ "(") + std::to_string(__LINE__) + "): "
+				+ "Object doesn't have a " + values_name + " key."
+			);
+		}
+		const auto& values = object[values_name.c_str()];
 
 		try {
 			fill_variable_value_from_json(
