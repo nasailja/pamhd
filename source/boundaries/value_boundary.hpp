@@ -265,6 +265,14 @@ public:
 	}
 
 
+	void add_expression_variable(
+		const std::string& name,
+		mup::Variable& variable
+	) {
+		this->math_expression(name, variable);
+	}
+
+
 	Geometry_Id get_geometry_id() const
 	{
 		return this->geometry_id;

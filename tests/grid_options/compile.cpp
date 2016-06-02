@@ -31,7 +31,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 
-#include "boundaries/simulation_variable_expression.hpp"
+#include "rapidjson/document.h"
+
 #include "grid_options.hpp"
 
 
@@ -39,6 +40,6 @@ int main()
 {
 	rapidjson::Document document;
 	pamhd::grid::Options options;
-	options.set_expressions(document);
+	options.set(document);
 	return EXIT_SUCCESS;
 }

@@ -31,31 +31,32 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 
-#include "boundaries/simulation_variable_expression.hpp"
-#include "grid_options.hpp"
 #include "prettyprint.hpp"
+#include "rapidjson/document.h"
+
+#include "grid_options.hpp"
 
 
 int main()
 {
-	const char json[] = "{"
-		"\"grid\": {"
+	const char json1[] = "{"
+		"\"grid_options\": {"
 			"\"periodic\": \"{false, true, false}\","
-			"\"nr-cells\": \"{1+1, 2+2, 3+3}\","
-			"\"volume\": \"{4+4, 5+5, 6+6}\","
-			"\"start\": \"{7-7, 8-8, 9-9}\""
+			"\"cells\": \"{1+1, 2+2, 3+3}\","
+			"\"volume\": \"{4+4 + cells[2], 5+5, 6+6 + cells[0]}\","
+			"\"start\": \"{7 - volume[1] + cells[2], 8-8, 9-9}\""
 		"}"
 	"}";
 	rapidjson::Document document;
-	document.Parse(json);
+	document.Parse(json1);
 	if (document.HasParseError()) {
 		return EXIT_FAILURE;
 	}
 
 	pamhd::grid::Options options;
-	options.set_expressions(document);
+	options.set(document);
 
-	const auto periodic = options.get_data(pamhd::grid::Periodic());
+	const auto& periodic = options.get_periodic();
 	if (periodic[0] != false or periodic[1] != true or periodic[2] != false) {
 		std::cerr << "Incorrect number of simulation cells: "
 			<< periodic << ", should be [0, 1, 0]"
@@ -63,7 +64,7 @@ int main()
 		return EXIT_FAILURE;
 	}
 
-	const auto nr_cells = options.get_data(pamhd::grid::Number_Of_Cells());
+	const auto& nr_cells = options.get_number_of_cells();
 	if (nr_cells[0] != 2 or nr_cells[1] != 4 or nr_cells[2] != 6) {
 		std::cerr << "Incorrect number of simulation cells: "
 			<< nr_cells << ", should be [2, 4, 6]"
@@ -71,18 +72,18 @@ int main()
 		return EXIT_FAILURE;
 	}
 
-	const auto volume = options.get_data(pamhd::grid::Volume());
-	if (volume[0] != 8 or volume[1] != 10 or volume[2] != 12) {
+	const auto& volume = options.get_volume();
+	if (volume[0] != 14 or volume[1] != 10 or volume[2] != 14) {
 		std::cerr << "Incorrect simulation volume: "
-			<< nr_cells << ", should be [8, 10, 12]"
+			<< volume << ", should be [14, 10, 14]"
 			<< std::endl;
 		return EXIT_FAILURE;
 	}
 
-	const auto start = options.get_data(pamhd::grid::Start());
-	if (start[0] != 0 or start[1] != 0 or start[2] != 0) {
-		std::cerr << "Incorrect simulation volume: "
-			<< nr_cells << ", should be [0, 0, 0]"
+	const auto& start = options.get_start();
+	if (start[0] != 3 or start[1] != 0 or start[2] != 0) {
+		std::cerr << "Incorrect simulation start: "
+			<< start << ", should be [3, 0, 0]"
 			<< std::endl;
 		return EXIT_FAILURE;
 	}

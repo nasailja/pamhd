@@ -38,189 +38,258 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cstdint"
 #include "stdexcept"
 
+#include "mpParser.h"
 #include "rapidjson/document.h"
-
-#include "boundaries/simulation_variable_expression.hpp"
 
 
 namespace pamhd {
 namespace grid {
 
 struct Number_Of_Cells {
-	using data_type = std::array<int, 3>;
-
-	static const std::string get_name()
-	{
-		return {"number of cells"};
-	}
-	static const std::string get_option_name()
-	{
-		return {"nr-cells"};
-	}
-	static const std::string get_option_help()
-	{
-		return {"Number of grid cells of refinement level 0"};
-	}
+	using data_type = std::array<uint64_t, 3>;
+	static const std::string get_name() { return {"number of cells"}; }
+	static const std::string get_option_name() { return {"cells"}; }
 };
 
 struct Volume {
 	using data_type = std::array<double, 3>;
-
-	static const std::string get_name()
-	{
-		return {"volume"};
-	}
-	static const std::string get_option_name()
-	{
-		return {"volume"};
-	}
-	static const std::string get_option_help()
-	{
-		return {"Volume of simulation grid"};
-	}
+	static const std::string get_name() { return {"volume"}; }
+	static const std::string get_option_name() { return {"volume"}; }
 };
 
 struct Start {
 	using data_type = std::array<double, 3>;
-
-	static const std::string get_name()
-	{
-		return {"start"};
-	}
-	static const std::string get_option_name()
-	{
-		return {"start"};
-	}
-	static const std::string get_option_help()
-	{
-		return {"Starting coordinate of simulation grid"};
-	}
+	static const std::string get_name() { return {"start"}; }
+	static const std::string get_option_name() { return {"start"}; }
 };
 
 struct Periodic {
 	using data_type = std::array<bool, 3>;
-
-	static const std::string get_name()
-	{
-		return {"periodic"};
-	}
-	static const std::string get_option_name()
-	{
-		return {"periodic"};
-	}
-	static const std::string get_option_help()
-	{
-		return {"Whether grid is periodic (true) or not (false)"};
-	}
+	static const std::string get_name() { return {"periodic"}; }
+	static const std::string get_option_name() { return {"periodic"}; }
 };
+
 
 class Options
 {
-private:
-
-	boundaries::Simulation_Variable_Expression<
-		Number_Of_Cells,
-		Volume,
-		Start,
-		Periodic
-	> data;
-
-
 public:
 
-	Options()
+	void set(const rapidjson::Value& object)
 	{
-		data.set_expression(Number_Of_Cells(), "{1, 1, 1}");
-		data.set_expression(Volume(), "{1, 1, 1}");
-		data.set_expression(Start(), "{0, 0, 0}");
-		data.set_expression(Periodic(), "{false, false, false}");
+		if (not object.HasMember("grid_options")) {
+			throw std::invalid_argument(
+				std::string(__FILE__ "(") + std::to_string(__LINE__) + "): "
+				+ "Object doesn't have a grid_options key."
+			);
+		}
+		const auto& grid_options = object["grid_options"];
+
+
+		// grid periodicity
+		const auto periodic_name = Periodic::get_option_name();
+		if (not grid_options.HasMember(periodic_name.c_str())) {
+			throw std::invalid_argument(
+				std::string(__FILE__ "(") + std::to_string(__LINE__) + "): "
+				+ "grid_options doesn't have a " + periodic_name + " key."
+			);
+		}
+		const auto& periodic_json = grid_options[periodic_name.c_str()];
+
+		if (not periodic_json.IsString()) {
+			throw std::invalid_argument(
+				std::string(__FILE__ "(") + std::to_string(__LINE__) + "): "
+				+ "Expression for grid periodicity isn't a string '"
+				+ parser.GetExpr()
+			);
+		}
+
+		this->parser.SetExpr(periodic_json.GetString());
+		auto evaluated = this->parser.Eval().GetArray();
+		if (evaluated.GetRows() != 1) {
+			throw std::invalid_argument(
+				std::string(__FILE__ "(") + std::to_string(__LINE__) + "): "
+				+ "Invalid number of rows in expression '" + parser.GetExpr()
+				+ "': " + std::to_string(evaluated.GetRows()) + ", should be 1"
+			);
+		}
+		if (evaluated.GetCols() != 3) {
+			throw std::invalid_argument(
+				std::string(__FILE__ "(") + std::to_string(__LINE__) + "): "
+				+ "Invalid number of columns in expression '" + parser.GetExpr()
+				+ "': " + std::to_string(evaluated.GetRows()) + ", should be 3"
+			);
+		}
+
+		this->periodic[0] = evaluated.At(0).GetBool();
+		this->periodic[1] = evaluated.At(1).GetBool();
+		this->periodic[2] = evaluated.At(2).GetBool();
+
+
+		// number of grid cells
+		const auto nr_cells_name = Number_Of_Cells::get_option_name();
+		if (not grid_options.HasMember(nr_cells_name.c_str())) {
+			throw std::invalid_argument(
+				std::string(__FILE__ "(") + std::to_string(__LINE__) + "): "
+				+ "grid_options doesn't have a " + nr_cells_name + " key."
+			);
+		}
+		const auto& nr_cells_json = grid_options[nr_cells_name.c_str()];
+
+		if (not nr_cells_json.IsString()) {
+			throw std::invalid_argument(
+				std::string(__FILE__ "(") + std::to_string(__LINE__) + "): "
+				+ "Expression for number of cells isn't a string '"
+				+ parser.GetExpr()
+			);
+		}
+
+		this->parser.SetExpr(nr_cells_json.GetString());
+		evaluated = this->parser.Eval().GetArray();
+		if (evaluated.GetRows() != 1) {
+			throw std::invalid_argument(
+				std::string(__FILE__ "(") + std::to_string(__LINE__) + "): "
+				+ "Invalid number of rows in expression '" + parser.GetExpr()
+				+ "': " + std::to_string(evaluated.GetRows()) + ", should be 1"
+			);
+		}
+		if (evaluated.GetCols() != 3) {
+			throw std::invalid_argument(
+				std::string(__FILE__ "(") + std::to_string(__LINE__) + "): "
+				+ "Invalid number of columns in expression '" + parser.GetExpr()
+				+ "': " + std::to_string(evaluated.GetRows()) + ", should be 3"
+			);
+		}
+
+		this->cells[0] = evaluated.At(0).GetFloat();
+		this->cells[1] = evaluated.At(1).GetFloat();
+		this->cells[2] = evaluated.At(2).GetFloat();
+
+
+		// grid volume
+		mup::Value cells_val(3, 0);
+		cells_val.At(0) = mup::int_type(this->cells[0]);
+		cells_val.At(1) = mup::int_type(this->cells[1]);
+		cells_val.At(2) = mup::int_type(this->cells[2]);
+		mup::Variable cells_var{&cells_val};
+		this->parser.DefineVar("cells", cells_var);
+
+		const auto volume_name = Volume::get_option_name();
+		if (not grid_options.HasMember(volume_name.c_str())) {
+			throw std::invalid_argument(
+				std::string(__FILE__ "(") + std::to_string(__LINE__) + "): "
+				+ "grid_options doesn't have a " + volume_name + " key."
+			);
+		}
+		const auto& volume_json = grid_options[volume_name.c_str()];
+
+		if (not volume_json.IsString()) {
+			throw std::invalid_argument(
+				std::string(__FILE__ "(") + std::to_string(__LINE__) + "): "
+				+ "Expression for grid volume isn't a string '"
+				+ parser.GetExpr()
+			);
+		}
+
+		this->parser.SetExpr(volume_json.GetString());
+		evaluated = this->parser.Eval().GetArray();
+		if (evaluated.GetRows() != 1) {
+			throw std::invalid_argument(
+				std::string(__FILE__ "(") + std::to_string(__LINE__) + "): "
+				+ "Invalid number of rows in expression '" + parser.GetExpr()
+				+ "': " + std::to_string(evaluated.GetRows()) + ", should be 1"
+			);
+		}
+		if (evaluated.GetCols() != 3) {
+			throw std::invalid_argument(
+				std::string(__FILE__ "(") + std::to_string(__LINE__) + "): "
+				+ "Invalid number of columns in expression '" + parser.GetExpr()
+				+ "': " + std::to_string(evaluated.GetRows()) + ", should be 3"
+			);
+		}
+
+		this->volume[0] = evaluated.At(0).GetFloat();
+		this->volume[1] = evaluated.At(1).GetFloat();
+		this->volume[2] = evaluated.At(2).GetFloat();
+
+
+		// grid starting coordinate
+		mup::Value volume_val(3, 0);
+		volume_val.At(0) = this->volume[0];
+		volume_val.At(1) = this->volume[1];
+		volume_val.At(2) = this->volume[2];
+		mup::Variable volume_var{&volume_val};
+		this->parser.DefineVar("volume", volume_var);
+
+		const auto start_name = Start::get_option_name();
+		if (not grid_options.HasMember(start_name.c_str())) {
+			throw std::invalid_argument(
+				std::string(__FILE__ "(") + std::to_string(__LINE__) + "): "
+				+ "grid_options doesn't have a " + start_name + " key."
+			);
+		}
+		const auto& start_json = grid_options[start_name.c_str()];
+
+		if (not start_json.IsString()) {
+			throw std::invalid_argument(
+				std::string(__FILE__ "(") + std::to_string(__LINE__) + "): "
+				+ "Expression for grid start isn't a string '"
+				+ parser.GetExpr()
+			);
+		}
+
+		this->parser.SetExpr(start_json.GetString());
+		evaluated = this->parser.Eval().GetArray();
+		if (evaluated.GetRows() != 1) {
+			throw std::invalid_argument(
+				std::string(__FILE__ "(") + std::to_string(__LINE__) + "): "
+				+ "Invalid number of rows in expression '" + parser.GetExpr()
+				+ "': " + std::to_string(evaluated.GetRows()) + ", should be 1"
+			);
+		}
+		if (evaluated.GetCols() != 3) {
+			throw std::invalid_argument(
+				std::string(__FILE__ "(") + std::to_string(__LINE__) + "): "
+				+ "Invalid number of columns in expression '" + parser.GetExpr()
+				+ "': " + std::to_string(evaluated.GetRows()) + ", should be 3"
+			);
+		}
+
+		this->start[0] = evaluated.At(0).GetFloat();
+		this->start[1] = evaluated.At(1).GetFloat();
+		this->start[2] = evaluated.At(2).GetFloat();
 	}
 
 
-	template<class Variable_T> typename Variable_T::data_type get_data(const Variable_T& v) {
-		return this->data.get_data(v);
-	}
-
-
-	// muparserx doesn't support uint64_t so convert from int
-	std::array<uint64_t, 3> get_data(const Number_Of_Cells& v) {
-		auto tmp = this->data.get_data(v);
-		return {uint64_t(tmp[0]), uint64_t(tmp[1]), uint64_t(tmp[2])};
-	}
-
-
-	void set_expressions(const rapidjson::Document& document)
+	const typename Periodic::data_type& get_periodic() const
 	{
-		if (not document.IsObject()) {
-			return;
-		}
-
-		const auto grid_iter = document.FindMember("grid");
-		if (grid_iter == document.MemberEnd()) {
-			return;
-		}
-
-		const auto& grid = document["grid"];
-
-		const auto periodic = grid.FindMember(
-			Periodic::get_option_name().c_str()
-		);
-		if (periodic != document.MemberEnd()) {
-			if (periodic->value.IsString()) {
-				data.set_expression(Periodic(), periodic->value.GetString());
-			} else {
-				throw std::invalid_argument(
-					"Value of " + Periodic::get_option_name() + " variable is not a string."
-				);
-			}
-		}
-
-		const auto nr_cells = grid.FindMember(
-			Number_Of_Cells::get_option_name().c_str()
-		);
-		if (nr_cells != document.MemberEnd()) {
-			if (nr_cells->value.IsString()) {
-				data.set_expression(Number_Of_Cells(), nr_cells->value.GetString());
-			} else {
-				throw std::invalid_argument(
-					"Value of " + Number_Of_Cells::get_option_name() + " variable is not a string."
-				);
-			}
-		}
-
-		const auto volume = grid.FindMember(
-			Volume::get_option_name().c_str()
-		);
-		if (volume != document.MemberEnd()) {
-			if (volume->value.IsString()) {
-				data.set_expression(
-					Volume(),
-					volume->value.GetString()
-				);
-			} else {
-				throw std::invalid_argument(
-					"Value of " + Volume::get_option_name() + " variable is not a string."
-				);
-			}
-		}
-
-		const auto start = grid.FindMember(
-			Start::get_option_name().c_str()
-		);
-		if (start != document.MemberEnd()) {
-			if (start->value.IsString()) {
-				data.set_expression(
-					Start(),
-					start->value.GetString()
-				);
-			} else {
-				throw std::invalid_argument(
-					"Value of " + Start::get_option_name() + " variable is not a string."
-				);
-			}
-		}
+		return this->periodic;
 	}
 
+	const typename Number_Of_Cells::data_type& get_number_of_cells() const
+	{
+		return this->cells;
+	}
+
+	const typename Volume::data_type& get_volume() const
+	{
+		return this->volume;
+	}
+
+	const typename Start::data_type& get_start() const
+	{
+		return this->start;
+	}
+
+
+
+private:
+
+	typename Periodic::data_type periodic;
+	typename Number_Of_Cells::data_type cells;
+	typename Volume::data_type volume;
+	typename Start::data_type start;
+
+	mup::ParserX parser = mup::ParserX(mup::pckCOMMON | mup::pckNON_COMPLEX | mup::pckMATRIX | mup::pckUNIT);
 };
 
 }} // namespaces

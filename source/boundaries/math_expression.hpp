@@ -71,16 +71,37 @@ public:
 	}
 
 	Math_Expression(const Math_Expression& other) :
-		parser(other.parser),
 		t_val(other.t_val),
 		x_val(other.x_val), y_val(other.y_val), z_val(other.z_val),
 		radius_val(other.radius_val), lat_val(other.lat_val), lon_val(other.lon_val),
 		t_var(&t_val),
 		x_var(&x_val), y_var(&y_val), z_var(&z_val),
 		radius_var(&radius_val), lat_var(&lat_val), lon_var(&lon_val)
-	{}
+	{
+		this->parser.DefineVar("t", this->t_var);
+		this->parser.DefineVar("x", this->x_var);
+		this->parser.DefineVar("y", this->y_var);
+		this->parser.DefineVar("z", this->z_var);
+		this->parser.DefineVar("radius", this->radius_var);
+		this->parser.DefineVar("lat", this->lat_var);
+		this->parser.DefineVar("lon", this->lon_var);
+	}
 
 	Math_Expression(Math_Expression&& other) = delete;
+
+
+	void add_expression_variable(
+		const std::string& name,
+		mup::Variable& variable
+	) {
+		this->parser.DefineVar(name, variable);
+	}
+
+
+	void clear_expression_variables()
+	{
+		this->parser.ClearVar();
+	}
 
 
 	void set_expression(const std::string& expression)
