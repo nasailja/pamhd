@@ -49,18 +49,18 @@ int main()
 {
 	const char json[] = "["
 		"{"
-			"\"geometry_id\": 1,"
-			"\"time_stamps\": [-3, -2, -1],"
+			"\"geometry-id\": 1,"
+			"\"time-stamps\": [-3, -2, -1],"
 			"\"values\": [1, 2, 3]"
 		"},"
 		"{"
-			"\"geometry_id\": 3,"
-			"\"time_stamps\": [1, 4, 4.25],"
+			"\"geometry-id\": 3,"
+			"\"time-stamps\": [1, 4, 4.25],"
 			"\"values\": [\"t\", \"t*t\", \"2*t\"]"
 		"},"
 		"{"
-			"\"geometry_id\": 8,"
-			"\"time_stamps\": [1, 3, 5],"
+			"\"geometry-id\": 8,"
+			"\"time-stamps\": [1, 3, 5],"
 			"\"values\": {"
 				"\"x\": [1],"
 				"\"y\": [-2],"
@@ -69,8 +69,8 @@ int main()
 			"}"
 		"},"
 		"{"
-			"\"geometry_id\": 8,"
-			"\"time_stamps\": [-100, 100, 100100],"
+			"\"geometry-id\": 8,"
+			"\"time-stamps\": [-100, 100, 100100],"
 			"\"values\": {"
 				"\"x\": [1],"
 				"\"y\": [-2, -1, 1],"
@@ -92,8 +92,8 @@ int main()
 	Value_Boundary<unsigned int, Mass_Density> bdy0, bdy1, bdy2, bdy3;
 
 	/*{
-		"geometry_id": 1,
-		"time_stamps": [-3, -2, -1],
+		"geometry-id": 1,
+		"time-stamps": [-3, -2, -1],
 		"values": [1, 2, 3]
 	}*/
 	bdy0.set(document[0]);
@@ -121,8 +121,8 @@ int main()
 
 
 	/*{
-		"geometry_id": 3,
-		"time_stamps": [1, 4, 4.25],
+		"geometry-id": 3,
+		"time-stamps": [1, 4, 4.25],
 		"values": ["t", "t*t", "2*t"]
 	}*/
 	bdy1.set(document[1]);
@@ -150,8 +150,8 @@ int main()
 
 
 	/*{
-			"geometry_id": 8,
-			"time_stamps": [1, 3, 5],
+			"geometry-id": 8,
+			"time-stamps": [1, 3, 5],
 			"values": {
 				"x": [1],
 				"y": [-2],
@@ -177,8 +177,8 @@ int main()
 
 
 	/*{
-		"geometry_id": 8,
-		"time_stamps": [-100, 100, 100100],
+		"geometry-id": 8,
+		"time-stamps": [-100, 100, 100100],
 		"values": {
 			"x": [1],
 			"y": [-2, -1, 1],

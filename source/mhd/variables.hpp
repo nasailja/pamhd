@@ -133,6 +133,34 @@ struct Cell_Type {
 	}
 };
 
+/*!
+Information for MHD solver on how to handle a simulation cell.
+
+Dont solve cells are ignored by MHD solver. In other cells
+fluxes are calculated normally but the flux of a variable
+is only applied if the cell isn't a value or copy boundary
+of that variable.
+*/
+struct Solver_Info {
+	using data_type = unsigned int;
+	/*static const std::string get_name() { return {""}; }
+	static const std::string get_option_name() { return {""}; }
+	static const std::string get_option_help() {
+		return {""};
+	}*/
+
+	/*!
+	Corresponding bit of this variable is set when a cell is
+	of a boundary type for a variable.
+	*/
+	static const unsigned int
+		dont_solve = 1 << 0,
+		mass_density_bdy = 1 << 1,
+		velocity_bdy = 1 << 2,
+		pressure_bdy = 1 << 3,
+		magnetic_field_bdy = 1 << 4;
+};
+
 struct Value_Boundary_Id {
 	using data_type = int;
 	static const std::string get_name() { return {"value boundary id"}; }
@@ -176,7 +204,7 @@ struct Electric_Current_Density {
 struct Resistivity {
 	using data_type = double;
 	static const std::string get_name() { return {"electrical resistivity"}; }
-	static const std::string get_option_name() { return {"electrical-resistivity"}; }
+	static const std::string get_option_name() { return {"resistivity"}; }
 	static const std::string get_option_help() { return {"Electrical resistivity"}; }
 };
 
@@ -223,9 +251,7 @@ using Cell = gensimcell::Cell<
 	gensimcell::Optional_Transfer,
 	MHD_State_Conservative,
 	Electric_Current_Density,
-	Cell_Type,
-	Copy_Source,
-	Value_Boundary_Id,
+	Solver_Info,
 	MPI_Rank,
 	Resistivity,
 	Magnetic_Field_Resistive,

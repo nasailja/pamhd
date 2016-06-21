@@ -80,29 +80,39 @@ public:
 	Example json object:
 	\verbatim
 	{
-		"value_boundaries": [
-			{"geometry_id": 0, "time_stamps": [1], "values": [123]}
-			{"geometry_id": 1, "time_stamps": [-1, 2], "values": ["sin(t)", "cos(x)"]}
+		"value-boundaries": [
+			{"geometry-id": 0, "time-stamps": [1], "values": [123]}
+			{"geometry-id": 1, "time-stamps": [-1, 2], "values": ["sin(t)", "cos(x)"]}
 		]
 	}
 	\endverbatim
 	*/
 	void set(const rapidjson::Value& object)
 	{
-		if (not object.HasMember("value_boundaries")) {
+		using std::to_string;
+
+		if (not object.HasMember("value-boundaries")) {
 			return;
 		}
-		const auto& json_bdys = object["value_boundaries"];
+		const auto& json_bdys = object["value-boundaries"];
 
 		if (not json_bdys.IsArray()) {
-			throw std::invalid_argument(__FILE__ ": value_boundaries is not an array.");
+			throw std::invalid_argument(__FILE__ ": value-boundaries is not an array.");
 		}
 
 		this->boundaries_rw.clear();
 		this->boundaries_rw.resize(json_bdys.Size());
 
 		for (size_t i = 0; i < json_bdys.Size(); i++) {
-			this->boundaries_rw[i].set(json_bdys[i]);
+			try {
+				this->boundaries_rw[i].set(json_bdys[i]);
+			} catch (const std::invalid_argument& error) {
+				throw std::invalid_argument(
+					std::string(__FILE__ "(") + to_string(__LINE__) + ")"
+					+ ": Couldn't set value boundary number " + to_string(i + 1) + ": "
+					+ error.what()
+				);
+			}
 		}
 	}
 
@@ -131,6 +141,14 @@ public:
 		const double& latitude,
 		const double& longitude
 	) {
+		if (boundary_index >= this->boundaries.size()) {
+			throw std::invalid_argument(
+				std::string(__FILE__ "(") + std::to_string(__LINE__) + ") "
+				+ "Invalid boundary index: " + std::to_string(boundary_index)
+				+ ", should be < " + std::to_string(this->boundaries.size())
+			);
+		}
+
 		return this->boundaries_rw[boundary_index].get_data(
 			t, x, y, z, radius, latitude, longitude
 		);

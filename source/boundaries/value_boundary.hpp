@@ -67,7 +67,7 @@ public:
 	Prepares value boundary from given rapidjson object.
 
 	Otherwise similar to Initial_Condition::set() except
-	that given object must have a "time_stamps" array of
+	that given object must have a "time-stamps" array of
 	numbers and a "values" key which points to array data
 	instead of "value" key which points to one value. Data
 	pointed to by "data" key is also in order
@@ -75,15 +75,15 @@ public:
 
 	Example jsons which could be given as object:
 	\verbatim
-	{"geometry_id": 0, "time_stamps": [1], "values": [123]}
+	{"geometry-id": 0, "time-stamps": [1], "values": [123]}
 	\endverbatim
 	\verbatim
-	{"geometry_id": 1, "time_stamps": [-1, 2], "values": ["sin(t)", "cos(x)"]}
+	{"geometry-id": 1, "time-stamps": [-1, 2], "values": ["sin(t)", "cos(x)"]}
 	\endverbatim
 	\verbatim
 	{
-		"geometry_id": 0,
-		"time_stamps": [1, 2, 3],
+		"geometry-id": 0,
+		"time-stamps": [1, 2, 3],
 		"values": {
 			"x": [1, 2],
 			"y": [-3, 2],
@@ -95,18 +95,22 @@ public:
 	*/
 	void set(
 		const rapidjson::Value& object,
-		const std::string& geometry_id_name = "geometry_id",
-		const std::string& time_stamps_name = "time_stamps",
+		const std::string& geometry_id_name = "geometry-id",
+		const std::string& time_stamps_name = "time-stamps",
 		const std::string& values_name = "values"
 	) {
+		using std::to_string;
+
 		if (geometry_id_name != "") {
-			if (not object.HasMember("geometry_id")) {
-				throw std::invalid_argument(__FILE__ ": object doesn't have a geometry_id key.");
+			if (not object.HasMember("geometry-id")) {
+				throw std::invalid_argument(
+					std::string(__FILE__ "(") + to_string(__LINE__) + ")"
+					+ ": object doesn't have a geometry-id key.");
 			}
-			const auto& json_geometry_id = object["geometry_id"];
+			const auto& json_geometry_id = object["geometry-id"];
 
 			if (not json_geometry_id.IsUint()) {
-				throw std::invalid_argument(__FILE__ ": geometry_id is not unsigned int.");
+				throw std::invalid_argument(__FILE__ ": geometry-id is not unsigned int.");
 			}
 			this->geometry_id = json_geometry_id.GetUint();
 		} else {
@@ -115,13 +119,13 @@ public:
 
 
 		if (time_stamps_name != "") {
-			if (not object.HasMember("time_stamps")) {
-				throw std::invalid_argument(__FILE__ ": object doesn't have a time_stamps key.");
+			if (not object.HasMember("time-stamps")) {
+				throw std::invalid_argument(__FILE__ ": object doesn't have a time-stamps key.");
 			}
-			const auto& json_time_stamps = object["time_stamps"];
+			const auto& json_time_stamps = object["time-stamps"];
 
 			if (not json_time_stamps.IsArray()) {
-				throw std::invalid_argument(__FILE__ ": time_stamps is not an array.");
+				throw std::invalid_argument(__FILE__ ": time-stamps is not an array.");
 			}
 
 			this->time_stamps.clear();
@@ -220,6 +224,13 @@ public:
 		const double& latitude,
 		const double& longitude
 	) {
+		if (this->time_stamps.size() == 0) {
+			throw std::invalid_argument(
+				std::string(__FILE__ "(") + std::to_string(__LINE__) + ") "
+				+ " Empty time series for variable " + Variable::get_name()
+			);
+		}
+
 		const auto after = std::lower_bound(
 			this->time_stamps.cbegin(),
 			this->time_stamps.cend(),
@@ -284,7 +295,9 @@ public:
 		const std::string& name,
 		mup::Variable& variable
 	) {
-		this->math_expression(name, variable);
+		for (auto& expression: this->math_expressions) {
+			expression.add_expression_variable(name, variable);
+		}
 	}
 
 

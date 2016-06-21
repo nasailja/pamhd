@@ -61,15 +61,15 @@ int main()
 {
 	const char json[] = "["
 		"{"
-			"\"geometry_id\": 1,"
+			"\"geometry-id\": 1,"
 			"\"value\": [1, 2]"
 		"},"
 		"{"
-			"\"geometry_id\": 3,"
+			"\"geometry-id\": 3,"
 			"\"value\": \"{t, t*t}\""
 		"},"
 		"{"
-			"\"geometry_id\": 8,"
+			"\"geometry-id\": 8,"
 			"\"value\": {"
 				"\"x\": [1],"
 				"\"y\": [-2],"
@@ -91,7 +91,7 @@ int main()
 	Initial_Condition<unsigned int, Momentum_Density> init0, init1, init2;
 
 	/*{
-		"geometry_id": 1,
+		"geometry-id": 1,
 		"value": [1, 2]
 	}*/
 	init0.set(document[0]);
@@ -111,7 +111,7 @@ int main()
 
 
 	/*{
-		"geometry_id": 3,
+		"geometry-id": 3,
 		"value": "{t, t*t}"
 	}*/
 	init1.set(document[1]);
@@ -131,7 +131,7 @@ int main()
 
 
 	/*{
-		"geometry_id": 8,
+		"geometry-id": 8,
 		"value": {
 			"x": [1],
 			"y": [-2],

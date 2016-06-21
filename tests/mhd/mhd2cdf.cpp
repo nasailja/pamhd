@@ -196,7 +196,7 @@ boost::optional<std::array<double, 4>> read_data(
 		true,
 		MHD_State_Conservative(),
 		Electric_Current_Density(),
-		Cell_Type(),
+		Solver_Info(),
 		MPI_Rank(),
 		Resistivity()
 	);

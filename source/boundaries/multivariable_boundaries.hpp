@@ -79,6 +79,8 @@ public:
 		const Cell_Type_Getter&,
 		const Geometries<Geometry_Id, Vector, Scalar, Cell_Id>&
 	) const {}
+	void get_number_of_value_boundaries() const {}
+	void get_value_boundary() const {}
 };
 
 template<
@@ -103,6 +105,8 @@ public:
 	using Multivariable_Boundaries<Cell_Id, Geometry_Id, Rest...>::get_dont_solve_cells;
 	using Multivariable_Boundaries<Cell_Id, Geometry_Id, Rest...>::get_value_boundary_cells;
 	using Multivariable_Boundaries<Cell_Id, Geometry_Id, Rest...>::get_copy_boundary_cells;
+	using Multivariable_Boundaries<Cell_Id, Geometry_Id, Rest...>::get_number_of_value_boundaries;
+	using Multivariable_Boundaries<Cell_Id, Geometry_Id, Rest...>::get_value_boundary;
 
 
 	void set(const rapidjson::Value& object)
@@ -179,6 +183,34 @@ public:
 		const Current_Variable&
 	) const {
 		return this->boundaries.get_copy_boundary_cells();
+	}
+
+
+	size_t get_number_of_value_boundaries(const Current_Variable&) const
+	{
+		return this->boundaries.get_number_of_value_boundaries();
+	}
+
+	const Value_Boundary<Geometry_Id, Current_Variable>& get_value_boundary(
+		const Current_Variable&,
+		const size_t& boundary_id
+	) const {
+		return this->boundaries.get_value_boundary(boundary_id);
+	}
+	Value_Boundary<Geometry_Id, Current_Variable>& get_value_boundary(
+		const Current_Variable&,
+		const size_t& boundary_id
+	) {
+		return const_cast<Value_Boundary<Geometry_Id, Current_Variable>&>(
+			static_cast<
+				const Multivariable_Boundaries<
+					Cell_Id,
+					Geometry_Id,
+					Current_Variable,
+					Rest...
+				>&
+			>(*this).boundaries.get_value_boundary(boundary_id)
+		);
 	}
 
 

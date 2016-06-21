@@ -49,9 +49,9 @@ struct Mass_Density {
 int main()
 {
 	const char json[] = "{"
-		"\"copy_boundaries\": ["
-			"{\"geometry_id\": 0},"
-			"{\"geometry_id\": 1}"
+		"\"copy-boundaries\": ["
+			"{\"geometry-id\": 0},"
+			"{\"geometry-id\": 1}"
 		"]"
 	"}";
 

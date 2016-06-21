@@ -49,15 +49,15 @@ struct Momentum_Density {
 
 int main()
 {
-	const char json[] = "{\"value_boundaries\": ["
+	const char json[] = "{\"value-boundaries\": ["
 		"{"
-			"\"geometry_id\": 1,"
-			"\"time_stamps\": [-3, -2, -1],"
+			"\"geometry-id\": 1,"
+			"\"time-stamps\": [-3, -2, -1],"
 			"\"values\": [[1, -1], [2, -2], [3, -3]]"
 		"},"
 		"{"
-			"\"geometry_id\": 3,"
-			"\"time_stamps\": [1, 4, 4.25],"
+			"\"geometry-id\": 3,"
+			"\"time-stamps\": [1, 4, 4.25],"
 			"\"values\": [\"{t, -t}\", \"{t*t, -t*t}\", \"{2*t, -2*t}\"]"
 		"}"
 	"]}";

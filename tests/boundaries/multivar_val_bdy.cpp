@@ -47,42 +47,42 @@ using namespace pamhd::boundaries;
 struct Mass_Density {
 	using data_type = double;
 	static const std::string get_name(){ return {"mass density"}; }
-	static const std::string get_option_name(){ return {"mass_density"}; }
+	static const std::string get_option_name(){ return {"mass-density"}; }
 };
 
 struct Momentum_Density {
 	using data_type = std::array<double, 2>;
 	static const std::string get_name(){ return {"momentum density"}; }
-	static const std::string get_option_name(){ return {"momentum_density"}; }
+	static const std::string get_option_name(){ return {"momentum-density"}; }
 };
 
 int main()
 {
 	const char json[] = "{"
-		"\"mass_density\": {"
-			"\"value_boundaries\": ["
+		"\"mass-density\": {"
+			"\"value-boundaries\": ["
 				"{"
-					"\"geometry_id\": 1,"
-					"\"time_stamps\": [-3, -2, -1],"
+					"\"geometry-id\": 1,"
+					"\"time-stamps\": [-3, -2, -1],"
 					"\"values\": [1, 2, 3]"
 				"},"
 				"{"
-					"\"geometry_id\": 3,"
-					"\"time_stamps\": [1, 4, 4.25],"
+					"\"geometry-id\": 3,"
+					"\"time-stamps\": [1, 4, 4.25],"
 					"\"values\": [\"t\", \"t*t\", \"2*t\"]"
 				"}"
 			"]"
 		"},"
-		"\"momentum_density\": {"
-			"\"value_boundaries\": ["
+		"\"momentum-density\": {"
+			"\"value-boundaries\": ["
 				"{"
-					"\"geometry_id\": 2,"
-					"\"time_stamps\": [-3],"
+					"\"geometry-id\": 2,"
+					"\"time-stamps\": [-3],"
 					"\"values\": [[1, 2]]"
 				"},"
 				"{"
-					"\"geometry_id\": 4,"
-					"\"time_stamps\": [4],"
+					"\"geometry-id\": 4,"
+					"\"time-stamps\": [4],"
 					"\"values\": [\"{t, t*t}\"]"
 				"}"
 			"]"

@@ -55,12 +55,12 @@ struct Cell_Type {
 struct Mass_Density {
 	using data_type = int;
 	static const std::string get_name(){ return {"mass density"}; }
-	static const std::string get_option_name(){ return {"mass_density"}; }
+	static const std::string get_option_name(){ return {"mass-density"}; }
 };
 struct Momentum_Density {
 	using data_type = std::array<int, 2>;
 	static const std::string get_name(){ return {"momentum density"}; }
-	static const std::string get_option_name(){ return {"momentum_density"}; }
+	static const std::string get_option_name(){ return {"momentum-density"}; }
 };
 
 // simulation cell type used in this test
@@ -115,38 +115,38 @@ int main(int argc, char* argv[])
 				"\"end\": [9, 9, 9]"
 			"}}"
 		"],"
-		"\"mass_density\": {"
-			"\"value_boundaries\": ["
+		"\"mass-density\": {"
+			"\"value-boundaries\": ["
 				"{"
-					"\"geometry_id\": 0,"
-					"\"time_stamps\": [-3],"
+					"\"geometry-id\": 0,"
+					"\"time-stamps\": [-3],"
 					"\"values\": [2]"
 				"},"
 				"{"
-					"\"geometry_id\": 1,"
-					"\"time_stamps\": [1],"
+					"\"geometry-id\": 1,"
+					"\"time-stamps\": [1],"
 					"\"values\": [\"t\"]"
 				"}"
 			"],"
-			"\"copy_boundaries\": ["
-				"{\"geometry_id\": 2}"
+			"\"copy-boundaries\": ["
+				"{\"geometry-id\": 2}"
 			"]"
 		"},"
-		"\"momentum_density\": {"
-			"\"value_boundaries\": ["
+		"\"momentum-density\": {"
+			"\"value-boundaries\": ["
 				"{"
-					"\"geometry_id\": 3,"
-					"\"time_stamps\": [-3],"
+					"\"geometry-id\": 3,"
+					"\"time-stamps\": [-3],"
 					"\"values\": [[3, 4]]"
 				"},"
 				"{"
-					"\"geometry_id\": 1,"
-					"\"time_stamps\": [1],"
+					"\"geometry-id\": 1,"
+					"\"time-stamps\": [1],"
 					"\"values\": [\"{t+1, t+2}\"]"
 				"}"
 			"],"
-			"\"copy_boundaries\": ["
-				"{\"geometry_id\": 4}"
+			"\"copy-boundaries\": ["
+				"{\"geometry-id\": 4}"
 			"]"
 		"}"
 	"}";

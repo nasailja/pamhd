@@ -52,15 +52,15 @@ int main()
 {
 	const char json[] = "["
 		"{"
-			"\"geometry_id\": 1,"
+			"\"geometry-id\": 1,"
 			"\"value\": 1"
 		"},"
 		"{"
-			"\"geometry_id\": 3,"
+			"\"geometry-id\": 3,"
 			"\"value\": \"t\""
 		"},"
 		"{"
-			"\"geometry_id\": 8,"
+			"\"geometry-id\": 8,"
 			"\"value\": {"
 				"\"x\": [1],"
 				"\"y\": [-2],"
@@ -69,7 +69,7 @@ int main()
 			"}"
 		"},"
 		"{"
-			"\"geometry_id\": 8,"
+			"\"geometry-id\": 8,"
 			"\"value\": {"
 				"\"x\": [1],"
 				"\"y\": [-2, -1, 1],"
@@ -78,7 +78,7 @@ int main()
 			"}"
 		"},"
 		"{"
-			"\"geometry_id\": 8,"
+			"\"geometry-id\": 8,"
 			"\"value\": {"
 				"\"x\": [1, 2],"
 				"\"y\": [-2, 3],"
@@ -100,7 +100,7 @@ int main()
 	Initial_Condition<unsigned int, Mass_Density> init0, init1, init2, init3, init4;
 
 	/*{
-		"geometry_id": 1,
+		"geometry-id": 1,
 		"value": 1
 	}*/
 	init0.set(document[0]);
@@ -114,7 +114,7 @@ int main()
 
 
 	/*{"
-		"geometry_id": 3,
+		"geometry-id": 3,
 		"value": "t"
 	}*/
 	init1.set(document[1]);
@@ -135,7 +135,7 @@ int main()
 
 
 	/*{
-		"geometry_id": 8,
+		"geometry-id": 8,
 		"value": {
 			"x": [1],
 			"y": [-2],
@@ -192,7 +192,7 @@ int main()
 
 
 	/*{
-		"geometry_id": 8,
+		"geometry-id": 8,
 		"value": {
 			"x": [1, 2],
 			"y": [-2, 3],

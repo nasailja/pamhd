@@ -53,9 +53,9 @@ int main()
 
 	const char json1[] =
 		"{\"default\": [-3, -4, -5],"
-		"\"regions\": ["
+		"\"initial-conditions\": ["
 			"{"
-				"\"geometry_id\": 1,"
+				"\"geometry-id\": 1,"
 				"\"value\": [1, 3, 5]"
 			"}"
 		"]}";
@@ -94,9 +94,9 @@ int main()
 
 	const char json2[] =
 		"{\"default\": \"{t+2, t+3, t+4}\","
-		"\"regions\": ["
+		"\"initial-conditions\": ["
 			"{"
-				"\"geometry_id\": 1,"
+				"\"geometry-id\": 1,"
 				"\"value\": [1, 0, -1]"
 			"}"
 		"]}";
@@ -140,9 +140,9 @@ int main()
 			"\"z\": [0.1],"
 			"\"data\": [[-1, -2, -3]]"
 		"},"
-		"\"regions\": ["
+		"\"initial-conditions\": ["
 			"{"
-				"\"geometry_id\": 1,"
+				"\"geometry-id\": 1,"
 				"\"value\": [1, 2, 3]"
 			"}"
 		"]}";

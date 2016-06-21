@@ -76,13 +76,13 @@ public:
 
 	void set(const rapidjson::Value& object)
 	{
-		if (not object.HasMember("grid_options")) {
+		if (not object.HasMember("grid-options")) {
 			throw std::invalid_argument(
 				std::string(__FILE__ "(") + std::to_string(__LINE__) + "): "
-				+ "Object doesn't have a grid_options key."
+				+ "Object doesn't have a grid-options key."
 			);
 		}
-		const auto& grid_options = object["grid_options"];
+		const auto& grid_options = object["grid-options"];
 
 
 		// grid periodicity
@@ -90,7 +90,7 @@ public:
 		if (not grid_options.HasMember(periodic_name.c_str())) {
 			throw std::invalid_argument(
 				std::string(__FILE__ "(") + std::to_string(__LINE__) + "): "
-				+ "grid_options doesn't have a " + periodic_name + " key."
+				+ "grid-options doesn't have a " + periodic_name + " key."
 			);
 		}
 		const auto& periodic_json = grid_options[periodic_name.c_str()];
@@ -130,7 +130,7 @@ public:
 		if (not grid_options.HasMember(nr_cells_name.c_str())) {
 			throw std::invalid_argument(
 				std::string(__FILE__ "(") + std::to_string(__LINE__) + "): "
-				+ "grid_options doesn't have a " + nr_cells_name + " key."
+				+ "grid-options doesn't have a " + nr_cells_name + " key."
 			);
 		}
 		const auto& nr_cells_json = grid_options[nr_cells_name.c_str()];
@@ -138,8 +138,7 @@ public:
 		if (not nr_cells_json.IsString()) {
 			throw std::invalid_argument(
 				std::string(__FILE__ "(") + std::to_string(__LINE__) + "): "
-				+ "Expression for number of cells isn't a string '"
-				+ parser.GetExpr()
+				+ "Expression for number of cells isn't a string."
 			);
 		}
 
@@ -177,7 +176,7 @@ public:
 		if (not grid_options.HasMember(volume_name.c_str())) {
 			throw std::invalid_argument(
 				std::string(__FILE__ "(") + std::to_string(__LINE__) + "): "
-				+ "grid_options doesn't have a " + volume_name + " key."
+				+ "grid-options doesn't have a " + volume_name + " key."
 			);
 		}
 		const auto& volume_json = grid_options[volume_name.c_str()];
@@ -224,7 +223,7 @@ public:
 		if (not grid_options.HasMember(start_name.c_str())) {
 			throw std::invalid_argument(
 				std::string(__FILE__ "(") + std::to_string(__LINE__) + "): "
-				+ "grid_options doesn't have a " + start_name + " key."
+				+ "grid-options doesn't have a " + start_name + " key."
 			);
 		}
 		const auto& start_json = grid_options[start_name.c_str()];

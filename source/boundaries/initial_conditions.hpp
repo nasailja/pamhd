@@ -74,9 +74,9 @@ public:
 	\verbatim
 	{
 		"default": "sin(2*pi*x/123)",
-		"regions": [
-			{"geometry_id": 0, "value": 123}
-			{"geometry_id": 1, "value": "sin(t)"}
+		"initial-conditions": [
+			{"geometry-id": 0, "value": 123}
+			{"geometry-id": 1, "value": "sin(t)"}
 		]
 	}
 	\endverbatim
@@ -106,13 +106,13 @@ public:
 			);
 		}
 
-		if (not object.HasMember("regions")) {
+		if (not object.HasMember("initial-conditions")) {
 			return;
 		}
-		const auto& json_regions = object["regions"];
+		const auto& json_regions = object["initial-conditions"];
 
 		if (not json_regions.IsArray()) {
-			throw std::invalid_argument(__FILE__ ": regions is not an array.");
+			throw std::invalid_argument(__FILE__ ": initial-conditions is not an array.");
 		}
 
 		this->regions.clear();

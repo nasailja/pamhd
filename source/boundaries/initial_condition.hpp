@@ -66,7 +66,7 @@ public:
 	/*!
 	Prepares initial condition from given rapidjson object.
 
-	Given object must have "geometry_id" key with integer
+	Given object must have "geometry-id" key with integer
 	value and "value" key with either integer, string or
 	object as value. If object then it must have keys
 	denoting coordinate planes where data points are
@@ -82,14 +82,14 @@ public:
 
 	Example jsons which could be given as object:
 	\verbatim
-	{"geometry_id": 0, "value": 123}
+	{"geometry-id": 0, "value": 123}
 	\endverbatim
 	\verbatim
-	{"geometry_id": 1, "value": "sin(t)"}
+	{"geometry-id": 1, "value": "sin(t)"}
 	\endverbatim
 	\verbatim
 	{
-		"geometry_id": 0,
+		"geometry-id": 0,
 		"value": {
 			"x": [1, 2, 3, 4],
 			"y": [-3, 2, 5, 8],
@@ -101,13 +101,13 @@ public:
 	*/
 	void set(const rapidjson::Value& object)
 	{
-		if (not object.HasMember("geometry_id")) {
-			throw std::invalid_argument(__FILE__ ": object doesn't have a geometry_id key.");
+		if (not object.HasMember("geometry-id")) {
+			throw std::invalid_argument(__FILE__ ": object doesn't have a geometry-id key.");
 		}
-		const auto& geometry_id = object["geometry_id"];
+		const auto& geometry_id = object["geometry-id"];
 
 		if (not geometry_id.IsUint()) {
-			throw std::invalid_argument(__FILE__ ": geometry_id is not unsigned int.");
+			throw std::invalid_argument(__FILE__ ": geometry-id is not unsigned int.");
 		}
 
 		this->geometry_id = geometry_id.GetUint();

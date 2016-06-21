@@ -137,7 +137,7 @@ size_t get_number_of_live_cells(const Grid& grid)
 int main()
 {
 	const char json[] = "{"
-		"\"geometry_id\": 2147483647,"
+		"\"geometry-id\": 2147483647,"
 		"\"value\": \"abs(y - 0.1) < 0.1 ? 1 : 0\""
 	"}";
 

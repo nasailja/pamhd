@@ -96,19 +96,19 @@ public:
 	Example json object:
 	\verbatim
 	{
-		"copy_boundaries": [
-			{"geometry_id": 0},
-			{"geometry_id": 1}
+		"copy-boundaries": [
+			{"geometry-id": 0},
+			{"geometry-id": 1}
 		]
 	}
 	\endverbatim
 	*/
 	void set(const rapidjson::Value& object)
 	{
-		if (not object.HasMember("copy_boundaries")) {
+		if (not object.HasMember("copy-boundaries")) {
 			return;
 		}
-		const auto& json_bdys = object["copy_boundaries"];
+		const auto& json_bdys = object["copy-boundaries"];
 
 		if (not json_bdys.IsArray()) {
 			throw std::invalid_argument(__FILE__ ": copy_boundaries is not an array.");
@@ -119,15 +119,15 @@ public:
 
 		for (size_t i = 0; i < json_bdys.Size(); i++) {
 			const auto& json_bdy = json_bdys[i];
-			if (not json_bdy.HasMember("geometry_id")) {
+			if (not json_bdy.HasMember("geometry-id")) {
 				throw std::invalid_argument(
 					std::string(__FILE__ "(") + std::to_string(__LINE__) + "): "
 					+ std::to_string(i + 1)
-					+ "th object in copy_boundaries doesn't have a geometry_id item."
+					+ "th object in copy_boundaries doesn't have a geometry-id item."
 				);
 			}
 
-			this->geometry_ids_rw.push_back(json_bdy["geometry_id"].GetUint64());
+			this->geometry_ids_rw.push_back(json_bdy["geometry-id"].GetUint64());
 		}
 	}
 

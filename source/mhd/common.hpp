@@ -98,14 +98,14 @@ template <
 
 
 template<
-	class Momentum,
-	class Mass
-> Momentum get_velocity(
-	Momentum& mom,
-	Mass& mas
+	class Vector,
+	class Scalar
+> Vector get_velocity(
+	Vector& momentum,
+	Scalar& mass
 ) {
-	if (mas > 0) {
-		return mom / mas;
+	if (mass > 0) {
+		return momentum / mass;
 	} else {
 		return {0, 0, 0};
 	}

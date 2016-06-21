@@ -46,7 +46,7 @@ using namespace pamhd::boundaries;
 struct Mass_Density {
 	using data_type = double;
 	static const std::string get_name(){ return {"mass density"}; }
-	static const std::string get_option_name(){ return {"mass_density"}; }
+	static const std::string get_option_name(){ return {"mass-density"}; }
 };
 struct Momentum_Density {
 	using data_type = std::array<int, 4>;
@@ -63,20 +63,20 @@ int main()
 	typename Momentum_Density::data_type momentum;
 
 	const char json1[] = "{"
-		"\"mass_density\": {"
+		"\"mass-density\": {"
 			"\"default\": -3,"
-			"\"regions\": ["
+			"\"initial-conditions\": ["
 				"{"
-					"\"geometry_id\": 1,"
+					"\"geometry-id\": 1,"
 					"\"value\": 1"
 				"}"
 			"]"
 		"},"
 		"\"momentum_density\": {"
 			"\"default\": [-3, -2, -1, 0],"
-			"\"regions\": ["
+			"\"initial-conditions\": ["
 				"{"
-					"\"geometry_id\": 1,"
+					"\"geometry-id\": 1,"
 					"\"value\": [1, 2, 4, 6]"
 				"}"
 			"]"

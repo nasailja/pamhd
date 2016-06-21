@@ -44,29 +44,29 @@ using namespace pamhd::boundaries;
 struct Mass_Density {
 	using data_type = double;
 	static const std::string get_name(){ return {"mass density"}; }
-	static const std::string get_option_name(){ return {"mass_density"}; }
+	static const std::string get_option_name(){ return {"mass-density"}; }
 };
 
 struct Momentum_Density {
 	using data_type = std::array<double, 4>;
 	static const std::string get_name(){ return {"momentum density"}; }
-	static const std::string get_option_name(){ return {"momentum_density"}; }
+	static const std::string get_option_name(){ return {"momentum-density"}; }
 };
 
 int main()
 {
 	const char json[] = "{"
-		"\"mass_density\": {"
-			"\"copy_boundaries\": ["
-				"{\"geometry_id\": 0},"
-				"{\"geometry_id\": 1}"
+		"\"mass-density\": {"
+			"\"copy-boundaries\": ["
+				"{\"geometry-id\": 0},"
+				"{\"geometry-id\": 1}"
 			"]"
 		"},"
-		"\"momentum_density\": {"
-			"\"copy_boundaries\": ["
-				"{\"geometry_id\": 2},"
-				"{\"geometry_id\": 4},"
-				"{\"geometry_id\": 6}"
+		"\"momentum-density\": {"
+			"\"copy-boundaries\": ["
+				"{\"geometry-id\": 2},"
+				"{\"geometry-id\": 4},"
+				"{\"geometry-id\": 6}"
 			"]"
 		"}"
 	"}";

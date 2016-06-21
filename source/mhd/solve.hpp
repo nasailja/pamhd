@@ -36,10 +36,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "cmath"
 #include "limits"
+#include "string"
 #include "tuple"
 #include "vector"
 
 #include "dccrg.hpp"
+#include "prettyprint.hpp"
 
 #include "mhd/variables.hpp"
 
@@ -54,6 +56,7 @@ Advances MHD solution for one time step of length dt with given solver.
 Returns the maximum allowed length of time step for the next step on this process.
 */
 template <
+	class Solver_Info,
 	class Solver,
 	class Cell,
 	class Geometry,
@@ -65,8 +68,7 @@ template <
 	class Momentum_Density_Flux_Getter,
 	class Total_Energy_Density_Flux_Getter,
 	class Magnetic_Field_Flux_Getter,
-	class Cell_Type_Getter,
-	class Cell_Type
+	class Solver_Info_Getter
 > std::pair<double, size_t> solve(
 	const Solver solver,
 	const size_t solve_start_index,
@@ -82,9 +84,7 @@ template <
 	const Momentum_Density_Flux_Getter Mom_f,
 	const Total_Energy_Density_Flux_Getter Nrj_f,
 	const Magnetic_Field_Flux_Getter Mag_f,
-	const Cell_Type_Getter Cell_t,
-	const Cell_Type normal_cell,
-	const Cell_Type dont_solve_cell
+	const Solver_Info_Getter Sol_Info
 ) {
 	using std::get;
 
@@ -148,7 +148,7 @@ template <
 			}
 
 			// don't solve between dont_solve_cell and any other
-			if (Cell_t(*cell_data) == dont_solve_cell) {
+			if (Sol_Info(*cell_data) == pamhd::mhd::Solver_Info::dont_solve) {
 				i++;
 				continue;
 			}
@@ -191,15 +191,15 @@ template <
 
 			auto* const neighbor_data = get<1>(cell_data_pointers[i]);
 
-			if (Cell_t(*neighbor_data) == dont_solve_cell) {
+			if (Sol_Info(*neighbor_data) == pamhd::mhd::Solver_Info::dont_solve) {
 				i++;
 				continue;
 			}
 
 			// don't solve between boundary cells
 			if (
-				Cell_t(*cell_data) != normal_cell
-				and Cell_t(*neighbor_data) != normal_cell
+				Sol_Info(*cell_data) > pamhd::mhd::Solver_Info::dont_solve
+				and Sol_Info(*neighbor_data) > pamhd::mhd::Solver_Info::dont_solve
 			) {
 				i++;
 				continue;
@@ -329,12 +329,11 @@ template <
 
 
 /*!
-Applies the MHD solution to given cells.
-
-Returns 1 + last index where solution was applied.
+Applies the MHD solution to normal cells of \p grid.
 */
 template <
-	class Cell,
+	class Solver_Info,
+	class Cell_Data,
 	class Geometry,
 	class Mass_Density_Getter,
 	class Momentum_Density_Getter,
@@ -344,10 +343,9 @@ template <
 	class Momentum_Density_Flux_Getter,
 	class Total_Energy_Density_Flux_Getter,
 	class Magnetic_Field_Flux_Getter,
-	class Cell_Type_Getter,
-	class Cell_Type
+	class Solver_Info_Getter
 > void apply_fluxes(
-	dccrg::Dccrg<Cell, Geometry>& grid,
+	dccrg::Dccrg<Cell_Data, Geometry>& grid,
 	const double adiabatic_index,
 	const double vacuum_permeability,
 	const Mass_Density_Getter Mas,
@@ -358,77 +356,67 @@ template <
 	const Momentum_Density_Flux_Getter Mom_f,
 	const Total_Energy_Density_Flux_Getter Nrj_f,
 	const Magnetic_Field_Flux_Getter Mag_f,
-	const Cell_Type_Getter Cell_t,
-	const Cell_Type normal_cell
+	const Solver_Info_Getter Sol_Info
 ) {
-	using std::get;
-	const auto& cell_data_pointers = grid.get_cell_data_pointers();
+	using std::to_string;
 
-	for (size_t i = 0 ; i < cell_data_pointers.size(); i++) {
-		const auto& cell_id = get<0>(cell_data_pointers[i]);
-
-		// process only inner xor outer cells
-		if (cell_id == dccrg::error_cell) {
-			continue;
-		}
-
-		const auto& offset = get<2>(cell_data_pointers[i]);
-		if (offset[0] != 0 or offset[1] != 0 or offset[2] != 0) {
-			continue;
-		}
-
-		auto* const cell_data = get<1>(cell_data_pointers[i]);
-		if (Cell_t(*cell_data) != normal_cell) {
-			continue;
-		}
-
-		const auto length = grid.geometry.get_length(cell_id);
+	for (auto& cell: grid.cells) {
+		const auto length = grid.geometry.get_length(cell.id);
 		const double inverse_volume = 1.0 / (length[0] * length[1] * length[2]);
-		try {
-			apply_fluxes(
-				*cell_data,
-				inverse_volume,
-				adiabatic_index,
-				vacuum_permeability,
-				Mas, Mom, Nrj, Mag,
-				Mas_f, Mom_f, Nrj_f, Mag_f
-			);
-		} catch (const std::domain_error& error) {
-			std::cerr <<  __FILE__ << "(" << __LINE__
-				<< ") New MHD state for cell " << cell_id
-				<< " at " << grid.geometry.get_center(cell_id)
-				<< " would be unphysical because (" << error.what()
-				<< ") with flux (* " << inverse_volume << "):\n"
-				<< Mas_f(*cell_data) * inverse_volume << ", "
-				<< Mom_f(*cell_data) * inverse_volume << ", "
-				<< Nrj_f(*cell_data) * inverse_volume << ", "
-				<< Mag_f(*cell_data) * inverse_volume
-				<< "\ngiving:\n"
-				<< Mas(*cell_data) << ", "
-				<< Mom(*cell_data) << ", "
-				<< Nrj(*cell_data) << ", "
-				<< Mag(*cell_data)
-				<< "\nwith pressure: "
-				<< get_pressure(
-					Mas(*cell_data),
-					Mom(*cell_data),
-					Nrj(*cell_data),
-					Mag(*cell_data),
-					adiabatic_index,
-					vacuum_permeability
-				)
-				<< std::endl;
-			abort();
-		}
 
-		Mas_f(*cell_data)    =
-		Mom_f(*cell_data)[0] =
-		Mom_f(*cell_data)[1] =
-		Mom_f(*cell_data)[2] =
-		Nrj_f(*cell_data)    =
-		Mag_f(*cell_data)[0] =
-		Mag_f(*cell_data)[1] =
-		Mag_f(*cell_data)[2] = 0;
+		if ((Sol_Info(*cell.data) & Solver_Info::mass_density_bdy) == 0) {
+			Mas(*cell.data) += Mas_f(*cell.data) * inverse_volume;
+		}
+		if (Mas(*cell.data) <= 0) {
+			const auto c = grid.geometry.get_center(cell.id);
+			throw std::domain_error(
+				"New state in cell " + to_string(cell.id)
+				+ " at (" + to_string(c[0]) + ", "
+				+ to_string(c[1]) + ", " + to_string(c[2])
+				+ ") has negative mass density: "
+				+ std::to_string(Mas(*cell.data)) + " with flux "
+				+ std::to_string(Mas_f(*cell.data) * inverse_volume)
+			);
+		}
+		Mas_f(*cell.data) = 0;
+
+		if ((Sol_Info(*cell.data) & Solver_Info::velocity_bdy) == 0) {
+			Mom(*cell.data) += Mom_f(*cell.data) * inverse_volume;
+		}
+		Mom_f(*cell.data)[0] =
+		Mom_f(*cell.data)[1] =
+		Mom_f(*cell.data)[2] = 0;
+
+		if ((Sol_Info(*cell.data) & Solver_Info::magnetic_field_bdy) == 0) {
+			Mag(*cell.data) += Mag_f(*cell.data) * inverse_volume;
+		}
+		Mag_f(*cell.data)[0] =
+		Mag_f(*cell.data)[1] =
+		Mag_f(*cell.data)[2] = 0;
+
+		if ((Sol_Info(*cell.data) & Solver_Info::pressure_bdy) == 0) {
+			Nrj(*cell.data) += Nrj_f(*cell.data) * inverse_volume;
+		}
+		Nrj_f(*cell.data) = 0;
+
+		const auto pressure = get_pressure(
+			Mas(*cell.data),
+			Mom(*cell.data),
+			Nrj(*cell.data),
+			Mag(*cell.data),
+			adiabatic_index,
+			vacuum_permeability
+		);
+		if (pressure <= 0) {
+			const auto c = grid.geometry.get_center(cell.id);
+			throw std::domain_error(
+				"New state in cell " + to_string(cell.id)
+				+ " at (" + to_string(c[0]) + ", "
+				+ to_string(c[1]) + ", " + to_string(c[2])
+				+ ") has negative pressure: "
+				+ std::to_string(pressure)
+			);
+		}
 	}
 }
 

@@ -195,7 +195,7 @@ boost::optional<std::array<double, 4>> read_data(
 		true,
 		MHD_State_Conservative(),
 		Electric_Current_Density(),
-		Cell_Type(),
+		Solver_Info(),
 		MPI_Rank(),
 		Resistivity()
 	);
@@ -574,7 +574,7 @@ int plot_2d(
 	const std::string& current_density_cmd,
 	const std::string& rank_cmd,
 	const std::string& resistivity_cmd,
-	const std::string& type_cmd
+	const std::string& /*type_cmd*/
 ) {
 	const auto& grid_size = geometry.length.get();
 
@@ -778,7 +778,7 @@ int plot_2d(
 	}
 
 	// type
-	if (type_cmd != "") {
+	/*if (type_cmd != "") {
 		write_gnuplot_cmd_current(
 			"type",
 			"\n" + type_cmd + "\n",
@@ -786,7 +786,7 @@ int plot_2d(
 				return cell_data[Cell_Type()];
 			}
 		);
-	}
+	}*/
 
 
 	/*

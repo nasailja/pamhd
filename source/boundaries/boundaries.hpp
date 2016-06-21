@@ -324,6 +324,17 @@ public:
 	}
 
 
+	size_t get_number_of_value_boundaries() const
+	{
+		return this->value_boundaries.get_number_of_boundaries();
+	}
+
+	const Value_Boundary<Geometry_Id, Variable>& get_value_boundary(const size_t& boundary_id) const
+	{
+		return this->value_boundaries.get_value_boundary(boundary_id);
+	}
+
+
 
 private:
 

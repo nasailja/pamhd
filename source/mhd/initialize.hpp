@@ -60,6 +60,7 @@ when given a simulation cell's data.
 \param [vacuum_permeability] https://en.wikipedia.org/wiki/Vacuum_permeability
 */
 template <
+	class Geometries,
 	class Init_Cond,
 	class Cell,
 	class Geometry,
@@ -72,7 +73,8 @@ template <
 	class Total_Energy_Density_Flux_Getter,
 	class Magnetic_Field_Flux_Getter
 > void initialize(
-	Init_Cond& init_cond,
+	const Geometries& geometries,
+	Init_Cond& initial_conditions,
 	dccrg::Dccrg<Cell, Geometry>& grid,
 	const std::vector<uint64_t>& cells,
 	const double time,
@@ -95,19 +97,8 @@ template <
 	}
 	// set default state
 	for (const auto cell_id: cells) {
-		const auto
-			cell_start = grid.geometry.get_min(cell_id),
-			cell_end = grid.geometry.get_max(cell_id),
-			cell_center = grid.geometry.get_center(cell_id);
-
-		init_cond.add_cell(
-			cell_id,
-			cell_start,
-			cell_end
-		);
-
 		auto* const cell_data = grid[cell_id];
-		if (cell_data == NULL) {
+		if (cell_data == nullptr) {
 			std::cerr <<  __FILE__ << "(" << __LINE__ << ") No data for cell: "
 				<< cell_id
 				<< std::endl;
@@ -124,43 +115,41 @@ template <
 		Mag_f(*cell_data)[1] =
 		Mag_f(*cell_data)[2] = 0;
 
+		const auto c = grid.geometry.get_center(cell_id);
+		const auto r = sqrt(c[0]*c[0] + c[1]*c[1] + c[2]*c[2]);
+		const auto
+			lat = asin(c[2] / r),
+			lon = atan2(c[1], c[0]);
+
 		const auto mass_density
 			= proton_mass
-			* [&](){
-				try {
-					return init_cond.default_data.get_data(Number_Density(), cell_center, time);
-				} catch (mup::ParserError& e) {
-					std::cout << "Couldn't get number density for default initial condition." << std::endl;
-					throw;
-				}
-			}();
+			* initial_conditions.get_default_data(
+				Number_Density(),
+				time,
+				c[0], c[1], c[2],
+				r, lat, lon
+			);
 		const auto velocity
-			= [&](){
-				try {
-					return init_cond.default_data.get_data(Velocity(), cell_center, time);
-				} catch (mup::ParserError& e) {
-					std::cout << "Couldn't get velocity for default initial condition." << std::endl;
-					throw;
-				}
-			}();
+			= initial_conditions.get_default_data(
+				Velocity(),
+				time,
+				c[0], c[1], c[2],
+				r, lat, lon
+			);
 		const auto pressure
-			= [&](){
-				try {
-					return init_cond.default_data.get_data(Pressure(), cell_center, time);
-				} catch (mup::ParserError& e) {
-					std::cout << "Couldn't get pressure for default initial condition." << std::endl;
-					throw;
-				}
-			}();
+			= initial_conditions.get_default_data(
+				Pressure(),
+				time,
+				c[0], c[1], c[2],
+				r, lat, lon
+			);
 		const auto magnetic_field
-			= [&](){
-				try {
-					return init_cond.default_data.get_data(Magnetic_Field(), cell_center, time);
-				} catch (mup::ParserError& e) {
-					std::cout << "Couldn't get magnetic field for default initial condition." << std::endl;
-				throw;
-				}
-			}();
+			= initial_conditions.get_default_data(
+				Magnetic_Field(),
+				time,
+				c[0], c[1], c[2],
+				r, lat, lon
+			);
 
 		Mas(*cell_data) = mass_density;
 		Mom(*cell_data) = mass_density * velocity;
@@ -180,71 +169,165 @@ template <
 		std::cout << "done\nSetting non-default initial MHD state... ";
 		std::cout.flush();
 	}
-	for (size_t bdy_i = 0; bdy_i < init_cond.get_number_of_boundaries(); bdy_i++) {
-		const auto& boundary_cells = init_cond.get_cells(bdy_i);
 
-		for (const auto& cell_id: boundary_cells) {
-			const auto cell_center = grid.geometry.get_center(cell_id);
+	/*
+	Set non-default initial conditions
+	*/
 
-			auto* const cell_data = grid[cell_id];
+	// mass density
+	for (
+		size_t i = 0;
+		i < initial_conditions.get_number_of_regions(Number_Density());
+		i++
+	) {
+		const auto& init_cond = initial_conditions.get_initial_condition(Number_Density(), i);
+		const auto& geometry_id = init_cond.get_geometry_id();
+		const auto& cells = geometries.get_cells(geometry_id);
+		for (const auto& cell: cells) {
+			const auto c = grid.geometry.get_center(cell);
+			const auto r = sqrt(c[0]*c[0] + c[1]*c[1] + c[2]*c[2]);
+			const auto
+				lat = asin(c[2] / r),
+				lon = atan2(c[1], c[0]);
+
+			const auto mass_density
+				= proton_mass
+				* initial_conditions.get_data(
+					Number_Density(),
+					geometry_id,
+					time,
+					c[0], c[1], c[2],
+					r, lat, lon
+				);
+
+			auto* const cell_data = grid[cell];
 			if (cell_data == NULL) {
-				std::cerr <<  __FILE__ << "(" << __LINE__ << ") No data for cell: "
-					<< cell_id
+				std::cerr <<  __FILE__ << "(" << __LINE__ << std::endl;
+				abort();
+			}
+
+			Mas(*cell_data) = mass_density;
+		}
+	}
+
+	// velocity
+	for (
+		size_t i = 0;
+		i < initial_conditions.get_number_of_regions(Velocity());
+		i++
+	) {
+		const auto& init_cond = initial_conditions.get_initial_condition(Velocity(), i);
+		const auto& geometry_id = init_cond.get_geometry_id();
+		const auto& cells = geometries.get_cells(geometry_id);
+		for (const auto& cell: cells) {
+			const auto c = grid.geometry.get_center(cell);
+			const auto r = sqrt(c[0]*c[0] + c[1]*c[1] + c[2]*c[2]);
+			const auto
+				lat = asin(c[2] / r),
+				lon = atan2(c[1], c[0]);
+
+			const auto velocity = initial_conditions.get_data(
+				Velocity(),
+				geometry_id,
+				time,
+				c[0], c[1], c[2],
+				r, lat, lon
+			);
+
+			auto* const cell_data = grid[cell];
+			if (cell_data == NULL) {
+				std::cerr <<  __FILE__ << "(" << __LINE__
+					<< ") No data for cell: " << cell
 					<< std::endl;
 				abort();
 			}
 
-			const auto mass_density
-				= proton_mass
-				* [&](){
-					try {
-						return init_cond.get_data(Number_Density(), bdy_i, cell_center, time);
-					} catch (mup::ParserError& e) {
-						std::cout << "Couldn't get density for initial condition geometry " << bdy_i << std::endl;
-						throw;
-					}
-				}();
-			const auto velocity
-				= [&](){
-					try {
-						return init_cond.get_data(Velocity(), bdy_i, cell_center, time);
-					} catch (mup::ParserError& e) {
-						std::cout << "Couldn't get velocity for initial condition geometry " << bdy_i << std::endl;
-						throw;
-					}
-				}();
-			const auto pressure
-				= [&](){
-					try {
-						return init_cond.get_data(Pressure(), bdy_i, cell_center, time);
-					} catch (mup::ParserError& e) {
-						std::cout << "Couldn't get pressure for initial condition geometry " << bdy_i << std::endl;
-						throw;
-					}
-				}();
-			const auto magnetic_field
-				= [&](){
-					try {
-						return init_cond.get_data(Magnetic_Field(), bdy_i, cell_center, time);
-					} catch (mup::ParserError& e) {
-						std::cout << "Couldn't get magnetic field for initial condition geometry " << bdy_i << std::endl;
-					throw;
-					}
-				}();
+			Mom(*cell_data) = Mas(*cell_data) * velocity;
+		}
+	}
 
-			Mas(*cell_data) = mass_density;
-			Mom(*cell_data) = mass_density * velocity;
+	// magnetic field
+	for (
+		size_t i = 0;
+		i < initial_conditions.get_number_of_regions(Magnetic_Field());
+		i++
+	) {
+		const auto& init_cond = initial_conditions.get_initial_condition(Magnetic_Field(), i);
+		const auto& geometry_id = init_cond.get_geometry_id();
+		const auto& cells = geometries.get_cells(geometry_id);
+		for (const auto& cell: cells) {
+			const auto c = grid.geometry.get_center(cell);
+			const auto r = sqrt(c[0]*c[0] + c[1]*c[1] + c[2]*c[2]);
+			const auto
+				lat = asin(c[2] / r),
+				lon = atan2(c[1], c[0]);
+
+			const auto magnetic_field = initial_conditions.get_data(
+				Magnetic_Field(),
+				geometry_id,
+				time,
+				c[0], c[1], c[2],
+				r, lat, lon
+			);
+
+			auto* const cell_data = grid[cell];
+			if (cell_data == NULL) {
+				std::cerr <<  __FILE__ << "(" << __LINE__
+					<< ") No data for cell: " << cell
+					<< std::endl;
+				abort();
+			}
+
 			Mag(*cell_data) = magnetic_field;
+		}
+	}
+
+	// pressure
+	for (
+		size_t i = 0;
+		i < initial_conditions.get_number_of_regions(Pressure());
+		i++
+	) {
+		std::cout << std::endl;
+		const auto& init_cond = initial_conditions.get_initial_condition(Pressure(), i);
+		const auto& geometry_id = init_cond.get_geometry_id();
+		std::cout << geometry_id << std::endl;
+		const auto& cells = geometries.get_cells(geometry_id);
+		std::cout << cells.size() << std::endl;
+		for (const auto& cell: cells) {
+			const auto c = grid.geometry.get_center(cell);
+			const auto r = sqrt(c[0]*c[0] + c[1]*c[1] + c[2]*c[2]);
+			const auto
+				lat = asin(c[2] / r),
+				lon = atan2(c[1], c[0]);
+
+			const auto pressure = initial_conditions.get_data(
+				Pressure(),
+				geometry_id,
+				time,
+				c[0], c[1], c[2],
+				r, lat, lon
+			);
+
+			auto* const cell_data = grid[cell];
+			if (cell_data == NULL) {
+				std::cerr <<  __FILE__ << "(" << __LINE__
+					<< ") No data for cell: " << cell
+					<< std::endl;
+				abort();
+			}
+
 			Nrj(*cell_data) = get_total_energy_density(
-				mass_density,
-				velocity,
+				Mas(*cell_data),
+				Mom(*cell_data) / Mas(*cell_data),
 				pressure,
-				magnetic_field,
+				Mag(*cell_data),
 				adiabatic_index,
 				vacuum_permeability
 			);
 		}
 	}
+
 	if (verbose and grid.get_rank() == 0) {
 		std::cout << "done" << std::endl;
 	}
