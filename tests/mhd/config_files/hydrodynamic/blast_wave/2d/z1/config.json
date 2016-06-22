@@ -18,7 +18,7 @@
 		"periodic": "{true, true, false}",
 		"cells": "{2*15, 3*15, 1}",
 		"volume": "{1, 1.5, 1}",
-		"start": "{-0.5, -0.75, -0.5}"
+		"start": "{-volume[0]/2, -volume[1]/2, -volume[2]/2}"
 	},
 	"geometries": [
 		{"sphere": {
