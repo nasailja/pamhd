@@ -574,7 +574,7 @@ int plot_2d(
 	const std::string& current_density_cmd,
 	const std::string& rank_cmd,
 	const std::string& resistivity_cmd,
-	const std::string& /*type_cmd*/
+	const std::string& bdy_cmd
 ) {
 	const auto& grid_size = geometry.length.get();
 
@@ -777,16 +777,16 @@ int plot_2d(
 		);
 	}
 
-	// type
-	/*if (type_cmd != "") {
+	// boundary info
+	if (bdy_cmd != "") {
 		write_gnuplot_cmd_current(
-			"type",
-			"\n" + type_cmd + "\n",
+			"bdy",
+			"\n" + bdy_cmd + "\n",
 			[](const Cell& cell_data){
-				return cell_data[Cell_Type()];
+				return cell_data[Solver_Info()];
 			}
 		);
-	}*/
+	}
 
 
 	/*
@@ -945,7 +945,7 @@ int main(int argc, char* argv[])
 		current_density_plot_2d("set title \"Current density"),
 		rank_plot_2d("set title \"MPI rank\""),
 		resistivity_plot_2d("set title \"Resistivity\""),
-		type_plot_2d("set title \"Type\"");
+		bdy_plot_2d("set title \"Type\"");
 
 	boost::program_options::options_description
 		options("Usage: program_name [options], where options are");
@@ -1011,10 +1011,10 @@ int main(int argc, char* argv[])
 			boost::program_options::value<std::string>(&resistivity_plot_2d)
 				->default_value(resistivity_plot_2d),
 			"Gnuplot command(s) for plotting electric resistivity in 2d")
-		("type-2d",
-			boost::program_options::value<std::string>(&type_plot_2d)
-				->default_value(type_plot_2d),
-			"Gnuplot command(s) for plotting cell type in 2d");
+		("bdy-2d",
+			boost::program_options::value<std::string>(&bdy_plot_2d)
+				->default_value(bdy_plot_2d),
+			"Gnuplot command(s) for plotting cell boundary type in 2d");
 
 	boost::program_options::positional_options_description positional_options;
 	positional_options.add("input-file", -1);
@@ -1148,7 +1148,7 @@ int main(int argc, char* argv[])
 				current_density_plot_2d,
 				rank_plot_2d,
 				resistivity_plot_2d,
-				type_plot_2d
+				bdy_plot_2d
 			);
 			break;
 		default:
