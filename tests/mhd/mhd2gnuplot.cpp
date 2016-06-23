@@ -519,7 +519,9 @@ void write_gnuplot_cmd_2d(
 		grid_start1 = grid_geom_start[dimensions[0]],
 		grid_start2 = grid_geom_start[dimensions[1]],
 		grid_length1 = grid_geom_length[dimensions[0]],
-		grid_length2 = grid_geom_length[dimensions[1]];
+		grid_length2 = grid_geom_length[dimensions[1]],
+		cell_size1 = grid_length1 / grid_size1,
+		cell_size2 = grid_length2 / grid_size2;
 
 	gnuplot_file
 		<< common_cmd
@@ -539,9 +541,9 @@ void write_gnuplot_cmd_2d(
 		<< var_cmd
 		<< "\nplot '-' using ($1 / "
 		<< grid_size1 << " * " << grid_length1 << " + "
-		<< grid_start1 << "):($2 / "
+		<< grid_start1 << " + " << cell_size1 / 2 << "):($2 / "
 		<< grid_size2 << " * " << grid_length2 << " + "
-		<< grid_start2
+		<< grid_start2 << " + " << cell_size2 / 2
 		<< "):3 matrix with image title ''\n";
 
 	for (size_t i = 0; i < cells.size(); i++) {
