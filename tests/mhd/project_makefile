@@ -54,6 +54,7 @@ TEST_MHD_PROGRAM_DEPS = \
   source/boundaries/copy_boundaries.hpp \
   source/boundaries/initial_condition.hpp \
   source/boundaries/initial_conditions.hpp \
+  source/boundaries/multivariable_boundaries.hpp \
   source/boundaries/sphere.hpp \
   source/boundaries/value_boundaries.hpp \
   source/boundaries/value_boundary.hpp \
