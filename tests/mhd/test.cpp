@@ -460,6 +460,19 @@ int main(int argc, char* argv[])
 		Res(*cell_data) = 0;
 		(*cell_data)[pamhd::mhd::MPI_Rank()] = rank;
 	}
+	pamhd::mhd::apply_boundaries(
+		grid,
+		boundaries,
+		geometries,
+		simulation_time,
+		Mas,
+		Mom,
+		Nrj,
+		Mag,
+		options_mhd.proton_mass,
+		options_mhd.adiabatic_index,
+		options_mhd.vacuum_permeability
+	);
 	if (verbose and rank == 0) {
 		cout << "Done initializing MHD" << endl;
 	}
@@ -840,7 +853,6 @@ int main(int argc, char* argv[])
 				abort();
 			}
 		}
-
 	}
 
 	if (verbose and rank == 0) {
