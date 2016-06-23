@@ -106,9 +106,7 @@ public:
 	void set(const rapidjson::Value& object)
 	{
 		if (not object.HasMember("geometries")) {
-			throw std::invalid_argument(
-				"Given object doesn't have a geometries key."
-			);
+			return;
 		}
 		const auto& json_geometries = object["geometries"];
 
