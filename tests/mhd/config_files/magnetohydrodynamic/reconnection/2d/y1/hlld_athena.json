@@ -1,10 +1,10 @@
 {
 	"comment": "README file in this directory",
-	"output-directory": "results/magnetohydrodynamic/reconnection/2d/y1/hll_athena",
+	"output-directory": "results/magnetohydrodynamic/reconnection/2d/y1/hlld_athena",
 	"time-start": 0,
-	"time-length": 5,
+	"time-length": 20,
 	"resistivity": "0",
-	"solver-mhd": "hll-athena",
+	"solver-mhd": "hlld-athena",
 	"load-balancer": "RANDOM",
 	"save-mhd-n": 1,
 	"adiabatic-index": 1.666666667,
@@ -16,9 +16,9 @@
 	"poisson-norm-increase-max": 10,
 	"grid-options": {
 		"periodic": "{true, false, false}",
-		"comment": "same behavior with up to 71 cells instead of 15",
-		"cells": "{2*15, 1, 1*15 + 2}",
-		"volume": "{25.6, 12.8, 12.8 * (1 + 2/15)}",
+		"comment": "visible artifacts up to at least 51 cells",
+		"cells": "{2*21, 1, 1*21 + 2}",
+		"volume": "{25.6, 12.8, 12.8 * (1 + 2/21)}",
 		"start": "{-12.8, -6.4, -6.4 * (1 + 2/15)}"
 	},
 	"geometries": [

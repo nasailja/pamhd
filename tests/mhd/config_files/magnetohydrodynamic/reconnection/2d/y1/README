@@ -1,0 +1,22 @@
+Reference http://dx.doi.org/10.1029/1999JA900449
+
+Grid setup:
+       --|---|---|---|---|--
+         |   |   |   |   |    ----|
+  ---  --|---|---|---|---|--      |
+   A     |   |   |   |   |        |
+   |   --|---|---|---|---|--      |   1 layer of copy
+ N normal cells   ...             |-- boundary cells
+   |   --|---|---|---|---|--      |   at top (+z) and
+   V     |   |   |   |   |        |   bottom (-z)
+  ---  --|---|---|---|---|--      |
+     ->  |   |   |   |   |  <-  --|    z
+     | --|---|---|---|---|-- |
+     |                       |         A
+     ----  periodic grid  ----         |
+                                       |
+         |<- 2*N cells ->|             ---> x
+
+Simulation box height == 12.8 + height of 2 cells
+
+Grid is centered at origin

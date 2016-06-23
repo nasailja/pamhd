@@ -1,10 +1,10 @@
 {
-	"comment": "README file in this directory",
-	"output-directory": "results/magnetohydrodynamic/reconnection/2d/y1/hll_athena",
+	"comment": "switch on uniform resistivity after a while",
+	"output-directory": "results/magnetohydrodynamic/reconnection/2d/y1/roe_athena3",
 	"time-start": 0,
-	"time-length": 5,
-	"resistivity": "0",
-	"solver-mhd": "hll-athena",
+	"time-length": 20,
+	"resistivity": "t < 10 ? 0 : 1e-1",
+	"solver-mhd": "roe-athena",
 	"load-balancer": "RANDOM",
 	"save-mhd-n": 1,
 	"adiabatic-index": 1.666666667,
@@ -16,10 +16,10 @@
 	"poisson-norm-increase-max": 10,
 	"grid-options": {
 		"periodic": "{true, false, false}",
-		"comment": "same behavior with up to 71 cells instead of 15",
-		"cells": "{2*15, 1, 1*15 + 2}",
-		"volume": "{25.6, 12.8, 12.8 * (1 + 2/15)}",
-		"start": "{-12.8, -6.4, -6.4 * (1 + 2/15)}"
+		"comment": "odd number of cells in vertical direction helps",
+		"cells": "{2*17, 1, 1*17 + 2}",
+		"volume": "{25.6, 12.8, 12.8 * (1 + 2 / (cells[2] - 2))}",
+		"start": "{-volume[0]/2, -volume[1]/2, -volume[2]/2}"
 	},
 	"geometries": [
 		{"box": {
