@@ -359,17 +359,18 @@ template <
 
 		if ((Sol_Info(*cell.data) & Solver_Info::mass_density_bdy) == 0) {
 			Mas(*cell.data) += Mas_f(*cell.data) * inverse_volume;
-		}
-		if (Mas(*cell.data) <= 0) {
-			const auto c = grid.geometry.get_center(cell.id);
-			throw std::domain_error(
-				"New state in cell " + to_string(cell.id)
-				+ " at (" + to_string(c[0]) + ", "
-				+ to_string(c[1]) + ", " + to_string(c[2])
-				+ ") has negative mass density: "
-				+ std::to_string(Mas(*cell.data)) + " with flux "
-				+ std::to_string(Mas_f(*cell.data) * inverse_volume)
-			);
+
+			if (Mas(*cell.data) <= 0) {
+				const auto c = grid.geometry.get_center(cell.id);
+				throw std::domain_error(
+					"New state in cell " + to_string(cell.id)
+					+ " at (" + to_string(c[0]) + ", "
+					+ to_string(c[1]) + ", " + to_string(c[2])
+					+ ") has negative mass density: "
+					+ std::to_string(Mas(*cell.data)) + " with flux "
+					+ std::to_string(Mas_f(*cell.data) * inverse_volume)
+				);
+			}
 		}
 		Mas_f(*cell.data) = 0;
 
@@ -391,6 +392,10 @@ template <
 			Nrj(*cell.data) += Nrj_f(*cell.data) * inverse_volume;
 		}
 		Nrj_f(*cell.data) = 0;
+
+		if ((Sol_Info(*cell.data) & Solver_Info::dont_solve) > 0) {
+			continue;
+		}
 
 		const auto pressure = get_pressure(
 			Mas(*cell.data),
