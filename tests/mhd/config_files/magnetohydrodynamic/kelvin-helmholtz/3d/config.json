@@ -1,0 +1,27 @@
+{
+	"comment": "similar to 2d version",
+	"output-directory": "results/magnetohydrodynamic/kelvin-helmholtz/3d/roe_athena",
+	"time-start": 0,
+	"time-length": 3,
+	"resistivity": "0",
+	"solver-mhd": "roe-athena",
+	"load-balancer": "RANDOM",
+	"save-mhd-n": 0.1,
+	"adiabatic-index": 1.4,
+	"vacuum-permeability": 1,
+	"proton-mass": 1,
+	"remove-div-B-n": 0.05,
+	"time-step-factor": 0.4,
+	"poisson-norm-stop": 1e-10,
+	"poisson-norm-increase-max": 10,
+	"grid-options": {
+		"periodic": "{true, true, true}",
+		"cells": "{25, 25, 25}",
+		"volume": "{1, 1, 1}",
+		"start": "{-volume[0]/2, -volume[1]/2, -volume[2]/2}"
+	},
+	"number-density": {"default": "abs(y) < 0.25 ? 2 : 1"},
+	"velocity": {"default": "{0.1 * sin(2*pi*x) + (abs(y) < 0.25 ? -0.5 : 0.5), 0.1 * cos(2*pi*x), 0}"},
+	"pressure": {"default": 3},
+	"magnetic-field": {"default": [0.25, 0, 0]}
+}
