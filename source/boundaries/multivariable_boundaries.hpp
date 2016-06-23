@@ -71,13 +71,13 @@ public:
 	template<
 		class Cell_Data,
 		class Geometry,
-		class Cell_Type_Getter,
 		class Vector,
-		class Scalar
+		class Scalar,
+		class Cell_Type_Getter
 	> void classify(
 		dccrg::Dccrg<Cell_Data, Geometry>&,
-		const Cell_Type_Getter&,
-		const Geometries<Geometry_Id, Vector, Scalar, Cell_Id>&
+		const Geometries<Geometry_Id, Vector, Scalar, Cell_Id>&,
+		const Cell_Type_Getter&
 	) const {}
 	void get_number_of_value_boundaries() const {}
 	void get_value_boundary() const {}
@@ -98,9 +98,6 @@ template<
 {
 public:
 
-	// expose inherited versions of functions
-	using Multivariable_Boundaries<Cell_Id, Geometry_Id, Rest...>::classify;
-	using Multivariable_Boundaries<Cell_Id, Geometry_Id, Rest...>::set;
 	using Multivariable_Boundaries<Cell_Id, Geometry_Id, Rest...>::get_normal_cells;
 	using Multivariable_Boundaries<Cell_Id, Geometry_Id, Rest...>::get_dont_solve_cells;
 	using Multivariable_Boundaries<Cell_Id, Geometry_Id, Rest...>::get_value_boundary_cells;
@@ -143,29 +140,23 @@ public:
 	template<
 		class Cell_Data,
 		class Geometry,
-		class Cell_Type_Getter,
 		class Vector,
-		class Scalar
+		class Scalar,
+		class Cell_Type_Getter
 	> void classify(
 		dccrg::Dccrg<Cell_Data, Geometry>& grid,
-		const Cell_Type_Getter& Cell_Type,
-		const Geometries<Geometry_Id, Vector, Scalar, Cell_Id>& geometries
+		const Geometries<Geometry_Id, Vector, Scalar, Cell_Id>& geometries,
+		const Cell_Type_Getter& Cell_Type
 	) {
-		this->boundaries.classify(grid, Cell_Type, geometries);
+		this->boundaries.classify(grid, geometries, Cell_Type);
 
 		Multivariable_Boundaries<
 			Cell_Id,
 			Geometry_Id,
 			Rest...
-		>::classify(grid, Cell_Type, geometries);
+		>::classify(grid, geometries, Cell_Type);
 	}
 
-
-	const std::vector<Cell_Id>& get_normal_cells(
-		const Current_Variable&
-	) const {
-		return this->boundaries.get_normal_cells();
-	}
 
 	const std::vector<Cell_Id>& get_dont_solve_cells(
 		const Current_Variable&

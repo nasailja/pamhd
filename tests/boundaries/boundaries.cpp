@@ -250,44 +250,9 @@ int main(int argc, char* argv[])
 
 
 
-	boundaries.classify(grid, Type, geometries);
+	boundaries.classify(grid, geometries, Type);
 
 	// check that cells have been classified correctly
-	unsigned int
-		local_normal_cells_size = boundaries.get_normal_cells().size(),
-		normal_cells_size = 0;
-	MPI_Allreduce(
-		&local_normal_cells_size,
-		&normal_cells_size,
-		1,
-		MPI_UNSIGNED,
-		MPI_SUM,
-		MPI_COMM_WORLD
-	);
-
-	if (normal_cells_size != 35) {
-		std::cerr << __FILE__ << ":" << __LINE__
-			<< ": Wrong number of normal cells: "
-			<< normal_cells_size
-			<< ", should be 35"
-			<< std::endl;
-		return EXIT_FAILURE;
-	}
-
-	for (const auto& cell: boundaries.get_normal_cells()) {
-		if (
-			ref_geom0_cells.count(cell) > 0
-			or ref_geom1_cells.count(cell) > 0
-			or ref_geom2_cells.count(cell) > 0
-		) {
-			std::cerr << __FILE__ << ":" << __LINE__
-				<< ": Normal cell " << cell << " belongs to a boundary geometry."
-				<< std::endl;
-			return EXIT_FAILURE;
-		}
-	}
-
-
 	unsigned int
 		local_value_cells_size = boundaries.get_value_boundary_cells().size(),
 		value_cells_size = 0;

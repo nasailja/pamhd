@@ -148,7 +148,7 @@ template <
 			}
 
 			// don't solve between dont_solve_cell and any other
-			if (Sol_Info(*cell_data) == pamhd::mhd::Solver_Info::dont_solve) {
+			if ((Sol_Info(*cell_data) & pamhd::mhd::Solver_Info::dont_solve) > 0) {
 				i++;
 				continue;
 			}
@@ -191,16 +191,7 @@ template <
 
 			auto* const neighbor_data = get<1>(cell_data_pointers[i]);
 
-			if (Sol_Info(*neighbor_data) == pamhd::mhd::Solver_Info::dont_solve) {
-				i++;
-				continue;
-			}
-
-			// don't solve between boundary cells
-			if (
-				Sol_Info(*cell_data) > pamhd::mhd::Solver_Info::dont_solve
-				and Sol_Info(*neighbor_data) > pamhd::mhd::Solver_Info::dont_solve
-			) {
+			if ((Sol_Info(*neighbor_data) & pamhd::mhd::Solver_Info::dont_solve) > 0) {
 				i++;
 				continue;
 			}
@@ -271,6 +262,8 @@ template <
 				std::cerr <<  __FILE__ << "(" << __LINE__ << ") "
 					<< "Solution failed between cells " << cell_id
 					<< " and " << neighbor_id
+					<< " of boundary type " << Sol_Info(*cell_data)
+					<< " and " << Sol_Info(*cell_data)
 					<< " at " << grid.geometry.get_center(cell_id)
 					<< " and " << grid.geometry.get_center(neighbor_id)
 					<< " in direction " << neighbor_dir
@@ -411,6 +404,7 @@ template <
 			const auto c = grid.geometry.get_center(cell.id);
 			throw std::domain_error(
 				"New state in cell " + to_string(cell.id)
+				+ " of type " + to_string(Sol_Info(*cell.data))
 				+ " at (" + to_string(c[0]) + ", "
 				+ to_string(c[1]) + ", " + to_string(c[2])
 				+ ") has negative pressure: "
@@ -419,7 +413,6 @@ template <
 		}
 	}
 }
-
 
 }} // namespaces
 

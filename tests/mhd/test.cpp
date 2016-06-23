@@ -389,16 +389,12 @@ int main(int argc, char* argv[])
 		(*cell.data)[pamhd::mhd::MPI_Rank()] = rank;
 	}
 
-	// classify cells into boundary geometries
-	std::vector<std::pair<uint64_t, geometry_id_t>> cell_to_geometry_id;
+	// assign cells into boundary geometries
 	for (const auto& cell: grid.cells) {
 		const auto
 			start = grid.geometry.get_min(cell.id),
 			end = grid.geometry.get_max(cell.id);
-		const auto overlaps = geometries.overlaps(start, end, cell.id);
-		if (overlaps.first) {
-			cell_to_geometry_id.emplace_back(cell.id, overlaps.second);
-		}
+		geometries.overlaps(start, end, cell.id);
 	}
 
 	// pointer to data of every local cell and its neighbor(s)
@@ -467,8 +463,6 @@ int main(int argc, char* argv[])
 	if (verbose and rank == 0) {
 		cout << "Done initializing MHD" << endl;
 	}
-
-	boundaries.classify(grid, Sol_Info, geometries);
 
 	pamhd::mhd::set_solver_info<pamhd::mhd::Solver_Info>(
 		grid, boundaries, geometries, Sol_Info

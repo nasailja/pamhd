@@ -34,9 +34,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define PAMHD_MHD_BOUNDARIES_HPP
 
 
+#include "algorithm"
 #include "cmath"
 #include "limits"
 #include "map"
+#include "string"
 #include "utility"
 #include "vector"
 
@@ -62,134 +64,173 @@ template<
 	class Solver_Info_Getter
 > void set_solver_info(
 	dccrg::Dccrg<Cell_Data, Geometry>& grid,
-	const Boundaries& boundaries,
+	Boundaries& boundaries,
 	const Boundary_Geometries& geometries,
 	const Solver_Info_Getter& Sol_Info
 ) {
+	Cell::set_transfer_all(true, pamhd::mhd::Solver_Info());
+	boundaries.classify(grid, geometries, Sol_Info);
+
 	for (const auto& cell: grid.cells) {
 		Sol_Info(*cell.data) = 0;
 	}
 
 	// number density
-	for (
-		size_t i = 0;
-		i < boundaries.get_number_of_value_boundaries(pamhd::mhd::Number_Density());
-		i++
-	) {
-		const auto& value_bdy = boundaries.get_value_boundary(pamhd::mhd::Number_Density(), i);
-		const auto& geometry_id = value_bdy.get_geometry_id();
-		const auto& cells = geometries.get_cells(geometry_id);
-		for (const auto& cell: cells) {
-			auto* const cell_data = grid[cell];
-			if (cell_data == NULL) {
-				std::cerr <<  __FILE__ << ":" << __LINE__ << std::endl;
-				abort();
-			}
-			Sol_Info(*cell_data) |= Solver_Info::mass_density_bdy;
+	constexpr pamhd::mhd::Number_Density N{};
+	for (const auto& cell: boundaries.get_value_boundary_cells(N)) {
+		auto* const cell_data = grid[cell];
+		if (cell_data == nullptr) {
+			std::cerr <<  __FILE__ << ":" << __LINE__ << std::endl;
+			abort();
 		}
+		Sol_Info(*cell_data) |= Solver_Info::mass_density_bdy;
 	}
+	for (const auto& item: boundaries.get_copy_boundary_cells(N)) {
+		auto* const cell_data = grid[item[0]];
+		if (cell_data == nullptr) {
+			std::cerr <<  __FILE__ << ":" << __LINE__ << std::endl;
+			abort();
+		}
+		Sol_Info(*cell_data) |= Solver_Info::mass_density_bdy;
+	}
+	const std::set<uint64_t> dont_solve_mass(
+		boundaries.get_dont_solve_cells(N).cbegin(),
+		boundaries.get_dont_solve_cells(N).cend()
+	);
 
 	// velocity
-	for (
-		size_t i = 0;
-		i < boundaries.get_number_of_value_boundaries(pamhd::mhd::Velocity());
-		i++
-	) {
-		const auto& value_bdy = boundaries.get_value_boundary(pamhd::mhd::Velocity(), i);
-		const auto& geometry_id = value_bdy.get_geometry_id();
-		const auto& cells = geometries.get_cells(geometry_id);
-		for (const auto& cell: cells) {
-			auto* const cell_data = grid[cell];
-			if (cell_data == NULL) {
-				std::cerr <<  __FILE__ << ":" << __LINE__ << std::endl;
-				abort();
-			}
-			Sol_Info(*cell_data) |= Solver_Info::velocity_bdy;
+	constexpr pamhd::mhd::Velocity V{};
+	for (const auto& cell: boundaries.get_value_boundary_cells(V)) {
+		auto* const cell_data = grid[cell];
+		if (cell_data == nullptr) {
+			std::cerr <<  __FILE__ << ":" << __LINE__ << std::endl;
+			abort();
 		}
+		Sol_Info(*cell_data) |= Solver_Info::velocity_bdy;
 	}
+	for (const auto& item: boundaries.get_copy_boundary_cells(V)) {
+		auto* const cell_data = grid[item[0]];
+		if (cell_data == nullptr) {
+			std::cerr <<  __FILE__ << ":" << __LINE__ << std::endl;
+			abort();
+		}
+		Sol_Info(*cell_data) |= Solver_Info::velocity_bdy;
+	}
+	const std::set<uint64_t> dont_solve_velocity(
+		boundaries.get_dont_solve_cells(V).cbegin(),
+		boundaries.get_dont_solve_cells(V).cend()
+	);
 
 	// pressure
-	for (
-		size_t i = 0;
-		i < boundaries.get_number_of_value_boundaries(pamhd::mhd::Pressure());
-		i++
-	) {
-		const auto& value_bdy = boundaries.get_value_boundary(pamhd::mhd::Pressure(), i);
-		const auto& geometry_id = value_bdy.get_geometry_id();
-		const auto& cells = geometries.get_cells(geometry_id);
-		for (const auto& cell: cells) {
-			auto* const cell_data = grid[cell];
-			if (cell_data == NULL) {
-				std::cerr <<  __FILE__ << ":" << __LINE__ << std::endl;
-				abort();
-			}
-			Sol_Info(*cell_data) |= Solver_Info::pressure_bdy;
+	constexpr pamhd::mhd::Pressure P{};
+	for (const auto& cell: boundaries.get_value_boundary_cells(P)) {
+		auto* const cell_data = grid[cell];
+		if (cell_data == nullptr) {
+			std::cerr <<  __FILE__ << ":" << __LINE__ << std::endl;
+			abort();
 		}
+		Sol_Info(*cell_data) |= Solver_Info::pressure_bdy;
 	}
+	for (const auto& item: boundaries.get_copy_boundary_cells(P)) {
+		auto* const cell_data = grid[item[0]];
+		if (cell_data == nullptr) {
+			std::cerr <<  __FILE__ << ":" << __LINE__ << std::endl;
+			abort();
+		}
+		Sol_Info(*cell_data) |= Solver_Info::pressure_bdy;
+	}
+	const std::set<uint64_t> dont_solve_pressure(
+		boundaries.get_dont_solve_cells(P).cbegin(),
+		boundaries.get_dont_solve_cells(P).cend()
+	);
 
 	// magnetic field
-	for (
-		size_t i = 0;
-		i < boundaries.get_number_of_value_boundaries(pamhd::mhd::Magnetic_Field());
-		i++
+	constexpr pamhd::mhd::Magnetic_Field B{};
+	for (const auto& cell: boundaries.get_value_boundary_cells(B)) {
+		auto* const cell_data = grid[cell];
+		if (cell_data == nullptr) {
+			std::cerr <<  __FILE__ << ":" << __LINE__ << std::endl;
+			abort();
+		}
+		Sol_Info(*cell_data) |= Solver_Info::magnetic_field_bdy;
+	}
+	for (const auto& item: boundaries.get_copy_boundary_cells(B)) {
+		auto* const cell_data = grid[item[0]];
+		if (cell_data == nullptr) {
+			std::cerr <<  __FILE__ << ":" << __LINE__ << std::endl;
+			abort();
+		}
+		Sol_Info(*cell_data) |= Solver_Info::magnetic_field_bdy;
+	}
+	const std::set<uint64_t> dont_solve_mag(
+		boundaries.get_dont_solve_cells(B).cbegin(),
+		boundaries.get_dont_solve_cells(B).cend()
+	);
+
+	if (
+		not std::equal(
+			dont_solve_mass.cbegin(),
+			dont_solve_mass.cend(),
+			dont_solve_velocity.cbegin()
+		)
 	) {
-		const auto& value_bdy = boundaries.get_value_boundary(pamhd::mhd::Magnetic_Field(), i);
-		const auto& geometry_id = value_bdy.get_geometry_id();
-		const auto& cells = geometries.get_cells(geometry_id);
-		for (const auto& cell: cells) {
-			auto* const cell_data = grid[cell];
-			if (cell_data == NULL) {
-				std::cerr <<  __FILE__ << ":" << __LINE__ << std::endl;
-				abort();
-			}
-			Sol_Info(*cell_data) |= Solver_Info::magnetic_field_bdy;
-		}
+		throw std::invalid_argument(
+			std::string(__FILE__ "(") + std::to_string(__LINE__) + "): "
+			+ "Mass density and velocity dont_solves aren't equal."
+		);
+	}
+	if (
+		not std::equal(
+			dont_solve_mass.cbegin(),
+			dont_solve_mass.cend(),
+			dont_solve_pressure.cbegin()
+		)
+	) {
+		throw std::invalid_argument(
+			std::string(__FILE__ "(") + std::to_string(__LINE__) + "): "
+			+ "Mass density and pressure dont_solves aren't equal."
+		);
+	}
+	if (
+		not std::equal(
+			dont_solve_mass.cbegin(),
+			dont_solve_mass.cend(),
+			dont_solve_mag.cbegin()
+		)
+	) {
+		throw std::invalid_argument(
+			std::string(__FILE__ "(") + std::to_string(__LINE__) + "): "
+			+ "Mass density and magnetic field dont_solves aren't equal."
+		);
 	}
 
-	// dont solve cells in which no variable is solved
-	std::map<uint64_t, unsigned int> dont_solves;
-	for (const auto& cell: boundaries.get_dont_solve_cells(pamhd::mhd::Number_Density())) {
-		if (dont_solves.count(cell) > 0) {
-			dont_solves[cell]++;
-		} else {
-			dont_solves[cell] = 1;
+	// don't solve cells in which no variable is solved
+	for (auto& cell: dont_solve_mass) {
+		auto* const cell_data = grid[cell];
+		if (cell_data == nullptr) {
+			std::cerr <<  __FILE__ << ":" << __LINE__ << std::endl;
+			abort();
 		}
-	}
-	for (const auto& cell: boundaries.get_dont_solve_cells(pamhd::mhd::Velocity())) {
-		if (dont_solves.count(cell) > 0) {
-			dont_solves[cell]++;
-		} else {
-			dont_solves[cell] = 1;
-		}
-	}
-	for (const auto& cell: boundaries.get_dont_solve_cells(pamhd::mhd::Pressure())) {
-		if (dont_solves.count(cell) > 0) {
-			dont_solves[cell]++;
-		} else {
-			dont_solves[cell] = 1;
-		}
-	}
-	for (const auto& cell: boundaries.get_dont_solve_cells(pamhd::mhd::Magnetic_Field())) {
-		if (dont_solves.count(cell) > 0) {
-			dont_solves[cell]++;
-		} else {
-			dont_solves[cell] = 1;
-		}
+		Sol_Info(*cell_data) |= Solver_Info::dont_solve;
 	}
 
-	for (const auto& item: dont_solves) {
-		if (item.second >= 4) {
-			auto* const cell_data = grid[item.first];
-			if (cell_data == NULL) {
-				std::cerr <<  __FILE__ << ":" << __LINE__ << std::endl;
-				abort();
-			}
-			Sol_Info(*cell_data) |= Solver_Info::dont_solve;
-		}
-	}
+	grid.update_copies_of_remote_neighbors();
+	Cell::set_transfer_all(false, pamhd::mhd::Solver_Info());
 }
 
 
+/*!
+Applies boundaries of all simulation variables.
+
+Value boundaries are applied to all cells
+within that bundary's geometry. Value
+boundaries are applied in order given in json
+data, in case several overlap in geometry so
+last one remains in effect.
+
+Copy boundaries are applied after all value
+boundaries.
+*/
 template<
 	class Cell_Data,
 	class Grid_Geometry,
@@ -212,15 +253,8 @@ template<
 	const double adiabatic_index,
 	const double vacuum_permeability
 ) {
+	// number density
 	constexpr pamhd::mhd::Number_Density N{};
-	constexpr pamhd::mhd::Velocity V{};
-	constexpr pamhd::mhd::Pressure P{};
-	constexpr pamhd::mhd::Magnetic_Field B{};
-
-	/*
-	Value boundaries
-	*/
-
 	for (
 		size_t i = 0;
 		i < boundaries.get_number_of_value_boundaries(N);
@@ -253,7 +287,29 @@ template<
 			Mas(*cell_data) = mass_density;
 		}
 	}
+	for (const auto& item: boundaries.get_copy_boundary_cells(N)) {
+		const auto
+			&target_id = item[0],
+			&source_id = item[1];
 
+		auto
+			*target_data = grid[target_id],
+			*source_data = grid[source_id];
+
+		if (target_data == nullptr) {
+			std::cerr <<  __FILE__ << ":" << __LINE__ << std::endl;
+			abort();
+		}
+		if (source_data == nullptr) {
+			std::cerr <<  __FILE__ << ":" << __LINE__ << std::endl;
+			abort();
+		}
+
+		Mas(*target_data) = Mas(*source_data);
+	}
+
+	// velocity
+	constexpr pamhd::mhd::Velocity V{};
 	for (
 		size_t i = 0;
 		i < boundaries.get_number_of_value_boundaries(V);
@@ -284,7 +340,34 @@ template<
 			Mom(*cell_data) = Mas(*cell_data) * velocity;
 		}
 	}
+	for (const auto& item: boundaries.get_copy_boundary_cells(V)) {
+		const auto
+			&target_id = item[0],
+			&source_id = item[1];
 
+		auto
+			*const target_data = grid[target_id],
+			*const source_data = grid[source_id];
+
+		if (target_data == nullptr) {
+			std::cerr <<  __FILE__ << ":" << __LINE__ << std::endl;
+			abort();
+		}
+		if (source_data == nullptr) {
+			std::cerr <<  __FILE__ << ":" << __LINE__ << std::endl;
+			abort();
+		}
+
+		Mom(*target_data)
+			= Mas(*target_data)
+			* pamhd::mhd::get_velocity(
+				Mom(*source_data),
+				Mas(*source_data)
+			);
+	}
+
+	// magnetic field
+	constexpr pamhd::mhd::Magnetic_Field B{};
 	for (
 		size_t i = 0;
 		i < boundaries.get_number_of_value_boundaries(B);
@@ -315,7 +398,29 @@ template<
 			Mag(*cell_data) = magnetic_field;
 		}
 	}
+	for (const auto& item: boundaries.get_copy_boundary_cells(B)) {
+		const auto
+			&target_id = item[0],
+			&source_id = item[1];
 
+		auto
+			*target_data = grid[target_id],
+			*source_data = grid[source_id];
+
+		if (target_data == nullptr) {
+			std::cerr <<  __FILE__ << ":" << __LINE__ << std::endl;
+			abort();
+		}
+		if (source_data == nullptr) {
+			std::cerr <<  __FILE__ << ":" << __LINE__ << std::endl;
+			abort();
+		}
+
+		Mag(*target_data) = Mag(*source_data);
+	}
+
+	// pressure
+	constexpr pamhd::mhd::Pressure P{};
 	for (
 		size_t i = 0;
 		i < boundaries.get_number_of_value_boundaries(P);
@@ -356,58 +461,6 @@ template<
 			);
 		}
 	}
-
-	// copy up-to-date data to copy boundaries
-	Cell::set_transfer_all(true, pamhd::mhd::MHD_State_Conservative());
-	grid.update_copies_of_remote_neighbors();
-	Cell::set_transfer_all(false, pamhd::mhd::MHD_State_Conservative());
-
-	/*
-	Copy boundaries
-	*/
-
-	for (const auto& item: boundaries.get_copy_boundary_cells(N)) {
-		const auto
-			&target_id = item[0],
-			&source_id = item[1];
-
-		auto
-			*target_data = grid[target_id],
-			*source_data = grid[source_id];
-
-		if (target_data == nullptr) {
-			std::cerr <<  __FILE__ << ":" << __LINE__ << std::endl;
-			abort();
-		}
-		if (source_data == nullptr) {
-			std::cerr <<  __FILE__ << ":" << __LINE__ << std::endl;
-			abort();
-		}
-
-		Mas(*target_data) = Mas(*source_data);
-	}
-
-	for (const auto& item: boundaries.get_copy_boundary_cells(V)) {
-		const auto
-			&target_id = item[0],
-			&source_id = item[1];
-
-		auto
-			*const target_data = grid[target_id],
-			*const source_data = grid[source_id];
-
-		if (target_data == nullptr) {
-			std::cerr <<  __FILE__ << ":" << __LINE__ << std::endl;
-			abort();
-		}
-		if (source_data == nullptr) {
-			std::cerr <<  __FILE__ << ":" << __LINE__ << std::endl;
-			abort();
-		}
-
-		Mom(*target_data) = Mom(*source_data);
-	}
-
 	for (const auto& item: boundaries.get_copy_boundary_cells(P)) {
 		const auto
 			&target_id = item[0],
@@ -426,28 +479,26 @@ template<
 			abort();
 		}
 
-		Nrj(*target_data) = Nrj(*source_data);
-	}
+		const auto source_pressure = pamhd::mhd::get_pressure(
+			Mas(*source_data),
+			Mom(*source_data),
+			Nrj(*source_data),
+			Mag(*source_data),
+			adiabatic_index,
+			vacuum_permeability
+		);
 
-	for (const auto& item: boundaries.get_copy_boundary_cells(B)) {
-		const auto
-			&target_id = item[0],
-			&source_id = item[1];
-
-		auto
-			*target_data = grid[target_id],
-			*source_data = grid[source_id];
-
-		if (target_data == nullptr) {
-			std::cerr <<  __FILE__ << ":" << __LINE__ << std::endl;
-			abort();
-		}
-		if (source_data == nullptr) {
-			std::cerr <<  __FILE__ << ":" << __LINE__ << std::endl;
-			abort();
-		}
-
-		Mag(*target_data) = Mag(*source_data);
+		Nrj(*target_data) = pamhd::mhd::get_total_energy_density(
+			Mas(*target_data),
+			pamhd::mhd::get_velocity(
+				Mom(*target_data),
+				Mas(*target_data)
+			),
+			source_pressure,
+			Mag(*target_data),
+			adiabatic_index,
+			vacuum_permeability
+		);
 	}
 }
 

@@ -91,25 +91,26 @@ public:
 
 
 	/*!
-	Classifies cell in grid into normal, boundary and dont_solve cells.
+	Classifies cells into boundaries and dont_solve cells.
 
-	Transfer of Cell_Type variable between processes must have been
-	enabled before calling this function.
+	Transfer of Cell_Type variable between processes
+	must be enabled during call to this function.
 	*/
 	template<
 		class Cell_Data,
 		class Geometry,
-		class Cell_Type_Getter,
 		class Vector,
-		class Scalar
+		class Scalar,
+		class Cell_Type_Getter
 	> void classify(
 		dccrg::Dccrg<Cell_Data, Geometry>& grid,
-		const Cell_Type_Getter& Cell_Type,
-		const Geometries<Geometry_Id, Vector, Scalar, Cell_Id>& geometries
+		const Geometries<Geometry_Id, Vector, Scalar, Cell_Id>& geometries,
+		const Cell_Type_Getter& Cell_Type
 	) {
 		using std::get;
 		using std::to_string;
 
+		// cell types for internal use
 		constexpr typename std::remove_reference<
 			decltype(Cell_Type(*grid.cells[0].data))
 		>::type
@@ -123,34 +124,9 @@ public:
 			Cell_Type(*cell.data) = normal_cell;
 		}
 
-		// set boundary type of cells of each geometry
-		const auto geometry_ids = geometries.get_geometry_ids();
-		for (const auto& geometry_id: geometry_ids) {
-
-			typename std::remove_const<decltype(normal_cell)>::type type_to_assign{0}; 
-
-			for (const auto& value_bdy: this->value_boundaries.boundaries) {
-				if (value_bdy.get_geometry_id() == geometry_id) {
-					type_to_assign = value_bdy_cell;
-					break;
-				}
-			}
-
-			if (type_to_assign == 0) {
-				for (const auto& copy_geom_id: this->copy_boundaries.geometry_ids) {
-					if (copy_geom_id == geometry_id) {
-						type_to_assign = copy_bdy_cell;
-					}
-					break;
-				}
-			}
-
-			// no boundary refers to current geometry
-			if (type_to_assign == 0) {
-				continue;
-			}
-
-			for (const auto& cell_id: geometries.get_cells(geometry_id)) {
+		// value boundary cells
+		for (const auto& value_bdy: this->value_boundaries.boundaries) {
+			for (const auto& cell_id: geometries.get_cells(value_bdy.get_geometry_id())) {
 				auto* const cell_data = grid[cell_id];
 				if (cell_data == nullptr) {
 					throw std::invalid_argument(
@@ -158,14 +134,28 @@ public:
 						"No data for cell " + to_string(cell_id)
 					);
 				}
-				Cell_Type(*cell_data) = type_to_assign;
+				Cell_Type(*cell_data) = value_bdy_cell;
+			}
+		}
+
+		// copy boundary cells
+		for (const auto& copy_geom_id: this->copy_boundaries.geometry_ids) {
+			for (const auto& cell_id: geometries.get_cells(copy_geom_id)) {
+				auto* const cell_data = grid[cell_id];
+				if (cell_data == nullptr) {
+					throw std::invalid_argument(
+						std::string(__FILE__ "(") + to_string(__LINE__) + "): "
+						"No data for cell " + to_string(cell_id)
+					);
+				}
+				Cell_Type(*cell_data) = copy_bdy_cell;
 			}
 		}
 
 		// tell other processes about this proc's cell types
 		grid.update_copies_of_remote_neighbors();
 
-		// figure out dont solve cells
+		// turn boundary cells without normal neighbors into dont_solve
 		const auto& cell_data_pointers = grid.get_cell_data_pointers();
 		for (size_t i = 0; i < cell_data_pointers.size(); i++) {
 			const auto& cell_id = get<0>(cell_data_pointers[i]);
@@ -182,10 +172,7 @@ public:
 			}
 
 			auto* const cell_data = get<1>(cell_data_pointers[i]);
-			if (
-				Cell_Type(*cell_data) == normal_cell
-				or Cell_Type(*cell_data) == dont_solve_cell
-			) {
+			if (Cell_Type(*cell_data) == normal_cell) {
 				continue;
 			}
 
@@ -282,14 +269,11 @@ public:
 			}
 		}
 
-		// tell other processes about latest dont solve cells
+		// tell other processes about newest dont solve cells
 		grid.update_copies_of_remote_neighbors();
 
 		for (const auto& cell: grid.cells) {
 			switch (Cell_Type(*cell.data)) {
-				case normal_cell:
-					this->normal_cells.push_back(cell.id);
-					break;
 				case dont_solve_cell:
 					this->dont_solve_cells.push_back(cell.id);
 					break;
@@ -302,11 +286,6 @@ public:
 		}
 	}
 
-
-	const std::vector<Cell_Id>& get_normal_cells() const
-	{
-		return this->normal_cells;
-	}
 
 	const std::vector<Cell_Id>& get_dont_solve_cells() const
 	{
@@ -341,10 +320,7 @@ private:
 	Value_Boundaries<Geometry_Id, Variable> value_boundaries;
 	Copy_Boundaries<Cell_Id, Geometry_Id, Variable> copy_boundaries;
 
-	std::vector<Cell_Id>
-		normal_cells,
-		dont_solve_cells,
-		value_bdy_cells;
+	std::vector<Cell_Id> dont_solve_cells, value_bdy_cells;
 };
 
 }} // namespaces

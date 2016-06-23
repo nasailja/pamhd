@@ -143,11 +143,6 @@ of that variable.
 */
 struct Solver_Info {
 	using data_type = unsigned int;
-	/*static const std::string get_name() { return {""}; }
-	static const std::string get_option_name() { return {""}; }
-	static const std::string get_option_help() {
-		return {""};
-	}*/
 
 	/*!
 	Corresponding bit of this variable is set when a cell is
