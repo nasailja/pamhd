@@ -2,7 +2,7 @@
 '''
 Converts realtime ACE data from NOAA to format suitable for MHD test program of PAMHD.
 
-Copyright 2015 Ilja Honkonen
+Copyright 2015, 2016 Ilja Honkonen
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification,
@@ -158,57 +158,88 @@ if __name__ == '__main__':
 	time_length = plasma_data[-1][0] - time_start
 	time_length = time_length.days * 60*60*24 + time_length.seconds
 
+
+	time_stamps_str = '\t\t\t"time-stamps": ['
+	density_str = '\t\t\t"values": ['
+	velocity_str = '\t\t\t"values": ['
+	pressure_str = '\t\t\t"values": ['
+	mag_str = '\t\t\t"values": ['
+	for item in plasma_data:
+		time = (item[0] - time_start).total_seconds()
+		#time = time.days * 60*60*24 + time.seconds
+		time_stamps_str += str(time) + ', '
+		density_str += str(item[4]) + ', '
+		velocity_str += '[' + str(item[5]) + ', 0, 0], '
+		pressure_str += str(get_pressure(item[4], item[6])) + ', '
+		mag_str += '[' + str(item[1]) + ', ' + str(item[2]) + ', ' + str(item[3]) + '], '
+	time_stamps_str = time_stamps_str[:-2] + '],\n'
+	density_str = density_str[:-2] + ']\n'
+	velocity_str = velocity_str[:-2] + ']\n'
+	pressure_str = pressure_str[:-2] + ']\n'
+	mag_str = mag_str[:-2] + ']\n'
+
 	config_file = None
 	if args.config == '':
-		config_file = open('config-' + time_start.isoformat(), 'w')
+		config_file = open('config-' + time_start.isoformat() + '.json', 'w')
 	else:
 		config_file = open(args.config, 'w')
 
 	if args.model_output == '':
-		config_file.write('output-directory = ' + time_start.isoformat().replace(':', ''))
+		config_file.write('{\n"output-directory": "' + time_start.isoformat().replace(':', ''))
 	else:
-		config_file.write(args.model_output)
+		config_file.write('{\n"output-directory": "' + args.model_output)
 
 	config_file.write(
-		'\nsolver-mhd = roe_athena\n'
-		+ 'time-start = 0\n'
-		+ 'time-length = ' + str(args.duration)
-		+ '\nload-balancer = RCB\n'
-		+ 'save-mhd-n = 60\n'
-		+ 'remove-div-B-n = -1\n'
-		+ '[grid]\n'
-		+ 'periodic = {false, false, false}\n'
-		+ 'nr-cells = {' + str(args.cells) + ' + 2, 1, 1}\n'
-		+ 'volume = {' + str(args.length)
-		+ ' * (1 + 2 / ' + str(args.cells)
-		+ '), ' + str(args.length)
-		+ ', ' + str(args.length)
-		+ '}\nstart = {-1 * ' + str(args.length)
-		+ ' / ' + str(args.cells) + ', -'
-		+ str(args.length / 2) + ', -'
-		+ str(args.length / 2)
-		+ '}\n[initial]\n'
-		+ 'default.number-density = ' + str(plasma_data[0][4])
-		+ '\ndefault.velocity = {' + str(plasma_data[0][5]) + ', 0, 0}\n'
-		+ 'default.pressure = ' + str(get_pressure(plasma_data[0][4], plasma_data[0][6]))
-		+ '\ndefault.magnetic-field = {' + str(plasma_data[0][1])
-		+ ', ' + str(plasma_data[0][2])
-		+ ', ' + str(plasma_data[0][3])
-		+ '}\n[copy-boundaries]\nnr-boxes = 1\n'
-		+ 'box1.start = {-9e999, -9e999, -9e999}\n'
-		+ 'box1.end = {0, 9e999, 9e999}\n[value-boundaries]\nnr-boxes = 1\n'
+		'",\n"solver-mhd": "roe-athena",\n'
+		+ '"time-start": 0,\n'
+		+ '"time-length": ' + str(args.duration)
+		+ ',\n"load-balancer": "RCB",\n'
+		+ '"save-mhd-n": 60,\n'
+		+ '"remove-div-B-n": -1,\n'
+		+ '"resistivity": "0",\n'
+		+ '"adiabatic-index": 1.6666666666666667,\n'
+		+ '"vacuum-permeability": 1.2566370614359173e-06,\n'
+		+ '"proton-mass": 1.6726217770000001e-27,\n'
+		+ '"time-step-factor": 0.5,\n'
+		+ '"poisson-norm-stop": 1e-10,\n'
+		+ '"poisson-norm-increase-max": 10,\n'
+		+ '"grid-options": {\n'
+		+ '\t"periodic": "{false, false, false}",\n'
+		+ '\t"cells": "{200 + 2, 1, 1}",\n'
+		+ '\t"volume": "{1e9 * (1 + 2 / (cells[0] - 2)), 1e9, 1e9}",\n'
+		+ '\t"start": "{-1 * 1e9 / (cells[0] - 2), -volume[1]/2, -volume[2]/2}"\n'
+		+ '},\n'
+		+ '"geometries": [\n'
+		+ '\t{"box": {\n'
+		+ '\t\t"start": [-99e99, -99e99, -99e99],\n'
+		+ '\t\t"end": [0, 99e99, 99e99]\n'
+		+ '\t}},\n'
+		+ '\t{"box": {\n'
+		+ '\t\t"start": [1e9, -99e99, -99e99],\n'
+		+ '\t\t"end": [99e99, 99e99, 99e99]\n'
+		+ '\t}}\n],\n'
+		+ '"number-density": {\n'
+		+ '\t"default": ' + str(plasma_data[0][4]) + ',\n'
+		+ '\t"copy-boundaries": [{"geometry-id": 0}],\n'
+		+ '\t"value-boundaries": [\n\t\t{\n\t\t\t"geometry-id": 1,\n'
+		+ time_stamps_str + density_str
+		+ '\t\t}\n\t]\n},\n'
+		+ '"velocity": {\n'
+		+ '\t"default": [' + str(plasma_data[0][5]) + ', 0, 0],\n'
+		+ '\t"copy-boundaries": [{"geometry-id": 0}],\n'
+		+ '\t"value-boundaries": [\n\t\t{\n\t\t\t"geometry-id": 1,\n'
+		+ time_stamps_str + velocity_str
+		+ '\t\t}\n\t]\n},\n'
+		+ '"pressure": {\n'
+		+ '\t"default": ' + str(get_pressure(item[4], item[6])) + ',\n'
+		+ '\t"copy-boundaries": [{"geometry-id": 0}],\n'
+		+ '\t"value-boundaries": [\n\t\t{\n\t\t\t"geometry-id": 1,\n'
+		+ time_stamps_str + pressure_str
+		+ '\t\t}\n\t]\n},\n'
+		+ '"magnetic-field": {\n'
+		+ '\t"default": [' + str(plasma_data[0][1]) + ', ' + str(plasma_data[0][2]) + ', ' + str(plasma_data[0][3]) + '],\n'
+		+ '\t"copy-boundaries": [{"geometry-id": 0}],\n'
+		+ '\t"value-boundaries": [\n\t\t{\n\t\t\t"geometry-id": 1,\n'
+		+ time_stamps_str + mag_str
+		+ '\t\t}\n\t]\n}}\n'
 	)
-
-	for item in plasma_data:
-		time = item[0] - time_start
-		time = time.days * 60*60*24 + time.seconds
-		config_file.write(
-			'box1.start = {' + str(args.length) + ', -9e999, -9e999}\n'
-			+ 'box1.end = {9e999, 9e999, 9e999}\nbox1.time = ' + str(time)
-			+ '\nbox1.number-density = ' + str(item[4])
-			+ '\nbox1.velocity = {' + str(item[5])
-			+ ', 0, 0}\nbox1.pressure = ' + str(get_pressure(item[4], item[6]))
-			+ '\nbox1.magnetic-field = {' + str(item[1])
-			+ ', ' + str(item[2])
-			+ ', ' + str(item[3]) + '}\n'
-		)
