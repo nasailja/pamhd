@@ -151,7 +151,6 @@ int main(int argc, char* argv[])
 	using std::atan2;
 	using std::get;
 	using std::min;
-	using std::pow;
 	using std::sqrt;
 
 
