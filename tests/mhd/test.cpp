@@ -139,10 +139,6 @@ const auto Mag_f
 	= [](Cell& cell_data)->typename pamhd::mhd::Magnetic_Field::data_type&{
 		return cell_data[pamhd::mhd::MHD_Flux_Conservative()][pamhd::mhd::Magnetic_Field()];
 	};
-/*const auto Cell_t
-	= [](Cell& cell_data)->typename pamhd::mhd::Cell_Type::data_type&{
-		return cell_data[pamhd::mhd::Cell_Type()];
-	};*/
 
 
 int main(int argc, char* argv[])
