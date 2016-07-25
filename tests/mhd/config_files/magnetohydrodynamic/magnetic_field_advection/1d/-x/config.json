@@ -1,5 +1,5 @@
 {
-	"output-directory": "results/magnetohydrodynamic/magnetic_field_advection/-x/roe_athena",
+	"output-directory": "results/magnetohydrodynamic/magnetic_field_advection/1d/-x/roe_athena",
 	"time-start": 0,
 	"time-length": 1,
 	"resistivity": "4e-8",
