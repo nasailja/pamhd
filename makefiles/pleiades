@@ -11,7 +11,7 @@ BACKGROUND_B_CPPFLAGS = -I $(HOME)/libraries/background_B/source
 
 DCCRG_CPPFLAGS = -I $(HOME)/libraries/dccrg
 
-EIGEN_CPPFLAGS = -I $(HOME)/libraries/eigen
+EIGEN_CPPFLAGS = -I $(HOME)/libraries/eigen-3.3-beta2
 
 EIGENLAB_CPPFLAGS = -I $(HOME)/libraries/EigenLab
 
