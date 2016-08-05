@@ -3,7 +3,7 @@
 <!--
 Interactive interface for creating configuration files for MHD test of PAMHD.
 
-Copyright 2015 Ilja Honkonen
+Copyright 2015, 2016 Ilja Honkonen
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification,
@@ -35,6 +35,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 <head>
 <title>Interactive configuration file creator for MHD test program of PAMHD</title>
 
+<style type="text/css">
+div[id ^= "bdy_input"] {display: inline-block;}
+</style>
+
 <!-- javascript block start -->
 
 <noscript>
@@ -42,36 +46,27 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 </noscript>
 <script src="http://cdnjs.cloudflare.com/ajax/libs/mathjs/2.4.1/math.min.js" type="text/javascript"></script>
 <script>window.math || document.write('<script src="math.min.js">\x3C/script>')</script>
-<script name="script" type="text/javascript">
-
 <!-- javascript functions start -->
+<script name="script" type="text/javascript">
 
 // variable sets available in math expressions
 var
 	empty_context = {},
 	time_place_context = {
 		t: 0,
-		r: [0, 0, 0]
+		x: 0, y: 0, z: 0,
+		radius: 0, lat: 0, lon: 0
 	},
 	time_place_current_context = {
 		t: 0,
-		r: [0, 0, 0],
+		x: 0, y: 0, z: 0,
+		radius: 0, lat: 0, lon: 0,
 		J: 0
 	};
 
 
-//! returns true for number > 0, false otherwise
-function gt_zero(number) {
-	if (isFinite(number)) {
-		if (number > 0) {
-			return true;
-		}
-	}
-	return false;
-}
-
-
-function validate_expression(element_id, validator, context) {
+function validate_expression(element_id, validator, context)
+{
 	expression = document.getElementById(element_id);
 	result = document.getElementById(element_id + "_test");
 
@@ -100,21 +95,28 @@ function validate_expression(element_id, validator, context) {
 	}
 }
 
-//! Returns a text input element with given id and identical name.
-//! Uses validator with given context/scope to validate expression typed into returned text element.
-function make_boundary_variable(id_string, validator_str, context_str) {
-//function make_boundary_variable(id_string, validator, context) {
-	var input = document.createElement("input");
-	input.setAttribute("type", "text");
-	input.setAttribute("id", id_string);
-	input.setAttribute("name", id_string);
-	if (typeof validator_str == "string")
-	if (validator_str != "")
-	if (typeof context_str == "string")
-	if (context_str != "") {
-		input.setAttribute("onKeyUp", "validate_expression(this.id," + validator_str + ", " + context_str + ")");
+//! returns true for number > 0, false otherwise
+function gt_zero(number)
+{
+	if (isFinite(number)) {
+		if (number > 0) {
+			return true;
+		}
 	}
-	return input;
+	return false;
+}
+
+
+// converts parentheses in submitted form to brackets
+function convert_parentheses() {
+	form = document.getElementById("form");
+	for (i in form.elements) {
+		element = form.elements[i];
+		if (typeof element.value == "string") {
+			element.value = element.value.split("(").join("[").split(")").join("]");
+		}
+	}
+	return true;
 }
 
 
@@ -125,90 +127,116 @@ if (typeof math == "undefined") {
 	return;
 }
 
-var
-	init_boxes = 0,
-	init_spheres = 0,
-	value_boxes = 0,
-	value_spheres = 0,
-	copy_boxes = 0,
-	copy_spheres = 0,
-	// references to buttons for adding simulation features
-	init_box_adder = document.getElementById("add_init_box"),
-	init_box_remover = document.getElementById("remove_init_box"),
-	init_sphere_adder = document.getElementById("add_init_sphere"),
-	init_sphere_remover = document.getElementById("remove_init_sphere"),
-	value_box_adder = document.getElementById("add_value_box"),
-	value_box_remover = document.getElementById("remove_value_box"),
-	value_sphere_adder = document.getElementById("add_value_sphere"),
-	value_sphere_remover = document.getElementById("remove_value_sphere"),
-	copy_box_adder = document.getElementById("add_copy_box"),
-	copy_box_remover = document.getElementById("remove_copy_box"),
-	copy_sphere_adder = document.getElementById("add_copy_sphere"),
-	copy_sphere_remover = document.getElementById("remove_copy_sphere"),
-	config_text_updater = document.getElementById("update_config_text"),
-	// form that will be submitted
-	form = document.getElementById("form"),
-	clearer = document.getElementById("clear"),
-	// references to buttons creating example simulations
-	shock_tube_maker = document.getElementById("make_shock_tube"),
-	kelvin_helmholtz_maker = document.getElementById("make_kelvin_helmholtz"),
-	reconnection_maker = document.getElementById("make_reconnection"),
-	orszag_tang_maker = document.getElementById("make_orszag_tang"),
-	bow_shock_maker = document.getElementById("make_bow_shock"),
-	blast_wave_maker = document.getElementById("make_blast_wave");
+
+//! Returns a text input element with given id and identical name.
+function make_input_element(id_string)
+{
+	var input = document.createElement("input");
+	input.setAttribute("type", "text");
+	input.setAttribute("id", id_string);
+	input.setAttribute("name", id_string);
+	return input;
+}
+
+// As make_input_element but also uses validator with given
+// context/scope to validate expression typed into returned text element.
+function make_input_element_for_expression(id_string, validator_str, context_str)
+{
+	var input = document.createElement("input");
+	input.setAttribute("type", "text");
+	input.setAttribute("id", id_string);
+	input.setAttribute("name", id_string);
+	if (
+		typeof validator_str == "string"
+		&& validator_str != ""
+		&& typeof context_str == "string"
+		&& context_str != ""
+	) {
+		input.setAttribute("onblur", "validate_expression(this.id," + validator_str + ", " + context_str + ")");
+	}
+	return input;
+}
 
 
-//! returns a set of input elements for given boundary
-function make_boundary(shape, id_prefix, boundary_number) {
-	id_string = id_prefix + boundary_number;
+function make_span(id_string)
+{
+	var span = document.createElement("span");
+	span.setAttribute("id", id_string);
+	return span;
+}
+
+
+// geometry related stuff
+var nr_geometries = 0;
+
+// removes last exiting geometry
+function remove_geometry()
+{
+	if (nr_geometries <= 0) {
+		return;
+	}
+
+	geometry_id = (nr_geometries - 1).toString();
+	nr_geometries = nr_geometries - 1;
+
+	box = document.getElementById("box" + geometry_id);
+	if (box != null) {
+		box.parentNode.removeChild(box);
+		return;
+	}
+
+	sphere = document.getElementById("sphere" + geometry_id);
+	if (sphere != null) {
+		sphere.parentNode.removeChild(sphere);
+		return;
+	}
+
+	alert("Unexpected shape in geometry id " + geometry_id);
+}
+
+geometry_remover = document.getElementById("remove_geometry_btn");
+geometry_remover.addEventListener("click", remove_geometry);
+
+// adds geometry of given shape after last existing geometry
+function make_geometry(shape)
+{
+
+	if (shape != "box" && shape != "sphere") {
+		alert("Unsupported geometry given to make_geometry");
+	}
+
+	geometry_id = nr_geometries.toString();
+	nr_geometries = nr_geometries + 1;
+
+	id_string = shape + geometry_id;
 
 	var fieldset = document.createElement("fieldset");
 	fieldset.setAttribute("id", id_string);
 
 	var legend = document.createElement("legend");
-	if (id_string.lastIndexOf("init") == 0) {
-		legend.innerHTML
-			= "Initial condition inside "
-			+ shape + " "
-			+ boundary_number;
-	} else if (id_string.lastIndexOf("value") == 0) {
-		legend.innerHTML
-			= "State inside "
-			+ shape + " "
-			+ boundary_number
-			+ " after given time";
-	} else if (id_string.lastIndexOf("copy") == 0) {
-		legend.innerHTML
-			= "Region inside "
-			+ shape
-			+ boundary_number
-			+ " where simulation state is copied to"
-			+ " from nearest non-boundary cell";
+	if (shape == "box") {
+		legend.innerHTML = "Box";
+	} else if (shape == "sphere") {
+		legend.innerHTML = "Sphere";
 	}
+	legend.innerHTML = legend.innerHTML + ", geometry id: " + geometry_id;
 	fieldset.appendChild(legend);
-
-	//! errors from expression validation are shown in these
-	function make_span(id_string) {
-		var span = document.createElement("span");
-		span.setAttribute("id", id_string);
-		return span;
-	}
 
 	if (shape == "box") {
 
 		fieldset.appendChild(document.createTextNode("Start coordinate (x, y, z) "));
-		fieldset.appendChild(make_boundary_variable(id_string + "_startx", "isFinite", "empty_context"));
-		fieldset.appendChild(make_boundary_variable(id_string + "_starty", "isFinite", "empty_context"));
-		fieldset.appendChild(make_boundary_variable(id_string + "_startz", "isFinite", "empty_context"));
+		fieldset.appendChild(make_input_element_for_expression(id_string + "_startx", "isFinite", "empty_context"));
+		fieldset.appendChild(make_input_element_for_expression(id_string + "_starty", "isFinite", "empty_context"));
+		fieldset.appendChild(make_input_element_for_expression(id_string + "_startz", "isFinite", "empty_context"));
 		fieldset.appendChild(make_span(id_string + "_startx_test"));
 		fieldset.appendChild(make_span(id_string + "_starty_test"));
 		fieldset.appendChild(make_span(id_string + "_startz_test"));
 		fieldset.appendChild(document.createElement("br"));
 
 		fieldset.appendChild(document.createTextNode("End coordinate (x, y, z) "));
-		fieldset.appendChild(make_boundary_variable(id_string + "_endx", "isFinite", "empty_context"));
-		fieldset.appendChild(make_boundary_variable(id_string + "_endy", "isFinite", "empty_context"));
-		fieldset.appendChild(make_boundary_variable(id_string + "_endz", "isFinite", "empty_context"));
+		fieldset.appendChild(make_input_element_for_expression(id_string + "_endx", "isFinite", "empty_context"));
+		fieldset.appendChild(make_input_element_for_expression(id_string + "_endy", "isFinite", "empty_context"));
+		fieldset.appendChild(make_input_element_for_expression(id_string + "_endz", "isFinite", "empty_context"));
 		fieldset.appendChild(make_span(id_string + "_endx_test"));
 		fieldset.appendChild(make_span(id_string + "_endy_test"));
 		fieldset.appendChild(make_span(id_string + "_endz_test"));
@@ -217,387 +245,472 @@ function make_boundary(shape, id_prefix, boundary_number) {
 	} else if (shape == "sphere") {
 
 		fieldset.appendChild(document.createTextNode("Center coordinate (x, y, z) "));
-		fieldset.appendChild(make_boundary_variable(id_string + "_centerx", "isFinite", "empty_context"));
-		fieldset.appendChild(make_boundary_variable(id_string + "_centery", "isFinite", "empty_context"));
-		fieldset.appendChild(make_boundary_variable(id_string + "_centerz", "isFinite", "empty_context"));
+		fieldset.appendChild(make_input_element_for_expression(id_string + "_centerx", "isFinite", "empty_context"));
+		fieldset.appendChild(make_input_element_for_expression(id_string + "_centery", "isFinite", "empty_context"));
+		fieldset.appendChild(make_input_element_for_expression(id_string + "_centerz", "isFinite", "empty_context"));
 		fieldset.appendChild(make_span(id_string + "_centerx_test"));
 		fieldset.appendChild(make_span(id_string + "_centery_test"));
 		fieldset.appendChild(make_span(id_string + "_centerz_test"));
 		fieldset.appendChild(document.createElement("br"));
 
 		fieldset.appendChild(document.createTextNode("Radius "));
-		fieldset.appendChild(make_boundary_variable(id_string + "_radius", "gt_zero", "empty_context"));
+		fieldset.appendChild(make_input_element_for_expression(id_string + "_radius", "gt_zero", "empty_context"));
 		fieldset.appendChild(make_span(id_string + "_radius_test"));
 		fieldset.appendChild(document.createElement("br"));
 	}
 
-	// value boundaries have a time item
-	if (id_string.lastIndexOf("value") == 0) {
-		fieldset.appendChild(document.createTextNode("Time "));
-		fieldset.appendChild(make_boundary_variable(id_string + "_time", "isFinite", "empty_context"));
-		fieldset.appendChild(make_span(id_string + "_time_test"));
-		fieldset.appendChild(document.createElement("br"));
-	}
+	document.getElementById("geometries").appendChild(fieldset);
+}
 
-	//! users cannot set MHD state of copy boundaries
-	if (id_string.lastIndexOf("copy") == 0) {
+box_geometry_adder = document.getElementById("add_box_geometry"),
+box_geometry_adder.addEventListener("click", function() {
+   make_geometry("box");
+});
+
+sphere_geometry_adder = document.getElementById("add_sphere_geometry"),
+sphere_geometry_adder.addEventListener("click", function() {
+   make_geometry("sphere");
+});
+
+
+function is_valid_geometry_id()
+{
+	notification = document.getElementById(this.id + "_test");
+	if (
+		isFinite(this.value)
+		&& this.value >= 0
+		&& this.value < nr_geometries
+	) {
+		notification.innerHTML = "";
+		notification.style.color = "initial";
 	} else {
-		fieldset.appendChild(document.createTextNode("Number density "));
-		fieldset.appendChild(make_boundary_variable(id_string + "_mass", "gt_zero", "time_place_context"));
-		fieldset.appendChild(make_span(id_string + "_mass_test"));
-		fieldset.appendChild(document.createElement("br"));
-
-		fieldset.appendChild(document.createTextNode("Velocity components (x, y, z) "));
-		fieldset.appendChild(make_boundary_variable(id_string + "_vx", "isFinite", "time_place_context"));
-		fieldset.appendChild(make_boundary_variable(id_string + "_vy", "isFinite", "time_place_context"));
-		fieldset.appendChild(make_boundary_variable(id_string + "_vz", "isFinite", "time_place_context"));
-		fieldset.appendChild(make_span(id_string + "_vx_test"));
-		fieldset.appendChild(make_span(id_string + "_vy_test"));
-		fieldset.appendChild(make_span(id_string + "_vz_test"));
-		fieldset.appendChild(document.createElement("br"));
-
-		fieldset.appendChild(document.createTextNode("Thermal pressure "));
-		fieldset.appendChild(make_boundary_variable(id_string + "_pressure", "gt_zero", "time_place_context"));
-		fieldset.appendChild(make_span(id_string + "_pressure_test"));
-		fieldset.appendChild(document.createElement("br"));
-
-		fieldset.appendChild(document.createTextNode("Magnetic field components (x, y, z) "));
-		fieldset.appendChild(make_boundary_variable(id_string + "_Bx", "isFinite", "time_place_context"));
-		fieldset.appendChild(make_boundary_variable(id_string + "_By", "isFinite", "time_place_context"));
-		fieldset.appendChild(make_boundary_variable(id_string + "_Bz", "isFinite", "time_place_context"));
-		fieldset.appendChild(make_span(id_string + "_Bx_test"));
-		fieldset.appendChild(make_span(id_string + "_By_test"));
-		fieldset.appendChild(make_span(id_string + "_Bz_test"));
-		fieldset.appendChild(document.createElement("br"));
+		notification.innerHTML = "Invalid geometry id";
+		notification.style.color = "red";
 	}
-
-	return fieldset;
 }
 
 
-//! callbacks to initial condition buttons
-init_box_adder.addEventListener("click", function() {
-	init_boxes = init_boxes + 1;
-	form.appendChild(make_boundary("box", "init_box_", init_boxes.toString()));
-});
+// creates an input set for a boundary
+function get_bdy_input_common(id_string, add_values, add_time_stamps)
+{
+	div = document.createElement("div");
+	div.setAttribute("id", "bdy_input_" + id_string);
 
-init_box_remover.addEventListener("click", function() {
-	var item = document.getElementById("init_box_" + init_boxes.toString());
-	if (item) {
-		item.parentNode.removeChild(item);
-		init_boxes = init_boxes - 1;
-	}
-});
+	// add checked input for geometry id
+	div.appendChild(document.createTextNode("Region (geometry id): "));
+	geometry_input = make_input_element(id_string + "_geometry_id");
+	geometry_input.onblur = is_valid_geometry_id;
+	div.appendChild(geometry_input);
+	div.appendChild(make_span(id_string + "_geometry_id_test"));
 
-
-init_sphere_adder.addEventListener("click", function() {
-	init_spheres = init_spheres + 1;
-	form.appendChild(make_boundary("sphere", "init_sphere_", init_spheres.toString()));
-});
-
-init_sphere_remover.addEventListener("click", function() {
-	var item = document.getElementById("init_sphere_" + init_spheres.toString());
-	if (item) {
-		item.parentNode.removeChild(item);
-		init_spheres = init_spheres - 1;
-	}
-});
-
-
-
-//! callbacks to value boundary buttons
-value_box_adder.addEventListener("click", function() {
-	value_boxes = value_boxes + 1;
-	form.appendChild(make_boundary("box", "value_box_", value_boxes.toString()));
-});
-
-value_box_remover.addEventListener("click", function() {
-	var item = document.getElementById("value_box_" + value_boxes.toString());
-	if (item) {
-		item.parentNode.removeChild(item);
-		value_boxes = value_boxes - 1;
-	}
-});
-
-
-value_sphere_adder.addEventListener("click", function() {
-	value_spheres = value_spheres + 1;
-	form.appendChild(make_boundary("sphere", "value_sphere_", value_spheres.toString()));
-});
-
-value_sphere_remover.addEventListener("click", function() {
-	var item = document.getElementById("value_sphere_" + value_spheres.toString());
-	if (item) {
-		item.parentNode.removeChild(item);
-		value_spheres = value_spheres - 1;
-	}
-});
-
-
-
-//! callbacks to copy boundary buttons
-copy_box_adder.addEventListener("click", function() {
-	copy_boxes = copy_boxes + 1;
-	form.appendChild(make_boundary("box", "copy_box_", copy_boxes.toString()));
-});
-
-copy_box_remover.addEventListener("click", function() {
-	var item = document.getElementById("copy_box_" + copy_boxes.toString());
-	if (item) {
-		item.parentNode.removeChild(item);
-		copy_boxes = copy_boxes - 1;
-	}
-});
-
-
-copy_sphere_adder.addEventListener("click", function() {
-	copy_spheres = copy_spheres + 1;
-	form.appendChild(make_boundary("sphere", "copy_sphere_", copy_spheres.toString()));
-});
-
-copy_sphere_remover.addEventListener("click", function() {
-	var item = document.getElementById("copy_sphere_" + copy_spheres.toString());
-	if (item) {
-		item.parentNode.removeChild(item);
-		copy_spheres = copy_spheres - 1;
-	}
-});
-
-
-
-//! sets innerHTML of item with id config_text to current configuration
-config_text_updater.addEventListener("click", function() {
-	var new_html
-		= "<br>solver-mhd = "
-		+ document.getElementById("solver_mhd").value
-		+ "<br>time-start = "
-		+ document.getElementById("time_start").value
-		+ "<br>time-length = "
-		+ document.getElementById("time_length").value
-		+ "<br>save-mhd-n = "
-		+ document.getElementById("save_mhd_n").value
-		+ "<br>resistivity = "
-		+ document.getElementById("resistivity").value
-		+ "<br>remove-div-B-n = "
-		+ document.getElementById("remove_div_b_n").value
-		+ "<br>adiabatic-index = "
-		+ document.getElementById("adiabatic_index").value
-		+ "<br>vacuum-permeability = "
-		+ document.getElementById("vacuum_permeability").value
-		+ "<br>proton-mass = "
-		+ document.getElementById("proton_mass").value
-		+ "<br>time-step-factor = "
-		+ document.getElementById("time_step_factor").value
-		+ "<br>output-directory = "
-		+ document.getElementById("output_directory").value
-		+ "<br>load-balancer = RCB<br>"
-		+ "[grid]<br>"
-		+ "periodic = {"
-		+ document.getElementById("periodic_x").value + ", "
-		+ document.getElementById("periodic_y").value + ", "
-		+ document.getElementById("periodic_z").value + "}<br>"
-		+ "nr-cells = {"
-		+ document.getElementById("cells_x").value + ", "
-		+ document.getElementById("cells_y").value + ", "
-		+ document.getElementById("cells_z").value + "}<br>"
-		+ "volume = {"
-		+ document.getElementById("volume_x").value + ", "
-		+ document.getElementById("volume_y").value + ", "
-		+ document.getElementById("volume_z").value + "}<br>"
-		+ "start = {"
-		+ document.getElementById("start_x").value + ", "
-		+ document.getElementById("start_y").value + ", "
-		+ document.getElementById("start_z").value + "}<br>"
-		+ "[initial]"
-		+ "<br>default.number-density = "
-		+ document.getElementById("init_default_mass").value
-		+ "<br>default.velocity = {"
-		+ document.getElementById("init_default_vx").value + ", "
-		+ document.getElementById("init_default_vy").value + ", "
-		+ document.getElementById("init_default_vz").value + "}<br>"
-		+ "default.pressure = "
-		+ document.getElementById("init_default_pressure").value
-		+ "<br>default.magnetic-field = {"
-		+ document.getElementById("init_default_Bx").value + ", "
-		+ document.getElementById("init_default_By").value + ", "
-		+ document.getElementById("init_default_Bz").value + "}<br>";
-
-	if (init_boxes > 0) {
-		new_html += "nr-boxes = " + init_boxes.toString() + "<br>";
-		for (i = 1; i <= init_boxes; i++) {
-			var i_str = i.toString();
-			var prefix = "box" + i_str + ".";
-			new_html
-				+= prefix + "start = {"
-				+ document.getElementById("init_box_" + i_str + "_startx").value + ", "
-				+ document.getElementById("init_box_" + i_str + "_starty").value + ", "
-				+ document.getElementById("init_box_" + i_str + "_startz").value + "}<br>"
-				+ prefix + "end = {"
-				+ document.getElementById("init_box_" + i_str + "_endx").value + ", "
-				+ document.getElementById("init_box_" + i_str + "_endy").value + ", "
-				+ document.getElementById("init_box_" + i_str + "_endz").value + "}<br>"
-				+ prefix + "number-density = "
-				+ document.getElementById("init_box_" + i_str + "_mass").value + "<br>"
-				+ prefix + "velocity = {"
-				+ document.getElementById("init_box_" + i_str + "_vx").value + ", "
-				+ document.getElementById("init_box_" + i_str + "_vy").value + ", "
-				+ document.getElementById("init_box_" + i_str + "_vz").value + "}<br>"
-				+ prefix + "pressure = "
-				+ document.getElementById("init_box_" + i_str + "_pressure").value + "<br>"
-				+ prefix + "magnetic-field = {"
-				+ document.getElementById("init_box_" + i_str + "_Bx").value + ", "
-				+ document.getElementById("init_box_" + i_str + "_By").value + ", "
-				+ document.getElementById("init_box_" + i_str + "_Bz").value + "}<br>";
-		}
+	if (add_time_stamps == true) {
+		div.appendChild(document.createElement("br"));
+		div.appendChild(document.createTextNode("Time stamps: "));
+		time_stamps_input = make_input_element(id_string + "_time_stamps_id");
+		div.appendChild(time_stamps_input);
+		div.appendChild(make_span(id_string + "_time_stamps_id_test"));
 	}
 
-	if (init_spheres > 0) {
-		new_html += "nr-spheres = " + init_spheres.toString() + "<br>";
-		for (i = 1; i <= init_spheres; i++) {
-			var i_str = i.toString();
-			var prefix = "sphere" + i_str + ".";
-			new_html
-				+= prefix + "center = {"
-				+ document.getElementById("init_sphere_" + i_str + "_centerx").value + ", "
-				+ document.getElementById("init_sphere_" + i_str + "_centery").value + ", "
-				+ document.getElementById("init_sphere_" + i_str + "_centerz").value + "}<br>"
-				+ prefix + "radius = "
-				+ document.getElementById("init_sphere_" + i_str + "_radius").value + "<br>"
-				+ prefix + "number-density = "
-				+ document.getElementById("init_sphere_" + i_str + "_mass").value + "<br>"
-				+ prefix + "velocity = {"
-				+ document.getElementById("init_sphere_" + i_str + "_vx").value + ", "
-				+ document.getElementById("init_sphere_" + i_str + "_vy").value + ", "
-				+ document.getElementById("init_sphere_" + i_str + "_vz").value + "}<br>"
-				+ prefix + "pressure = "
-				+ document.getElementById("init_sphere_" + i_str + "_pressure").value + "<br>"
-				+ prefix + "magnetic-field = {"
-				+ document.getElementById("init_sphere_" + i_str + "_Bx").value + ", "
-				+ document.getElementById("init_sphere_" + i_str + "_By").value + ", "
-				+ document.getElementById("init_sphere_" + i_str + "_Bz").value + "}<br>";
-		}
+	if (add_values == true) {
+		div.appendChild(document.createElement("br"));
+		// add (TODO: checked) input for x/radius values
+		select = document.createElement("select");
+		select.setAttribute("id", id_string + "_coord1_id");
+		select.setAttribute("required", "");
+		option = document.createElement("option");
+		option.setAttribute("value", "x");
+		option.innerHTML = "x";
+		select.appendChild(option);
+		option = document.createElement("option");
+		option.setAttribute("value", "radius");
+		option.innerHTML = "radius";
+		select.appendChild(option);
+		div.appendChild(select);
+		div.appendChild(make_input_element(id_string + "_coord1_values"));
+		div.appendChild(document.createElement("br"));
+
+		// y/lat
+		select = document.createElement("select");
+		select.setAttribute("id", id_string + "_coord2_id");
+		select.setAttribute("required", "");
+		option = document.createElement("option");
+		option.setAttribute("value", "y");
+		option.innerHTML = "y";
+		select.appendChild(option);
+		option = document.createElement("option");
+		option.setAttribute("value", "lat");
+		option.innerHTML = "lat";
+		select.appendChild(option);
+		div.appendChild(select);
+		div.appendChild(make_input_element(id_string + "_coord2_values"));
+		div.appendChild(document.createElement("br"));
+
+		// z/lon
+		select = document.createElement("select");
+		select.setAttribute("id", id_string + "_coord3_id");
+		select.setAttribute("required", "");
+		option = document.createElement("option");
+		option.setAttribute("value", "z");
+		option.innerHTML = "z";
+		select.appendChild(option);
+		option = document.createElement("option");
+		option.setAttribute("value", "lon");
+		option.innerHTML = "lon";
+		select.appendChild(option);
+		div.appendChild(select);
+		div.appendChild(make_input_element(id_string + "_coord3_values"));
+		div.appendChild(document.createElement("br"));
+
+		// add checked input for value
+		div.appendChild(document.createTextNode(" Values: "));
+		div.appendChild(make_input_element_for_expression(id_string + "_value", "gt_zero", "time_place_current_context"));
+		div.appendChild(make_span(id_string + "_value_test"));
+		div.appendChild(document.createElement("br"));
 	}
 
-	if (value_boxes > 0 || value_spheres > 0) {
-		new_html += "[value-boundaries]<br>";
-	}
-
-	if (value_boxes > 0) {
-		new_html += "nr-boxes = " + value_boxes.toString() + "<br>";
-		for (i = 1; i <= value_boxes; i++) {
-			var i_str = i.toString();
-			var prefix = "box" + i_str + ".";
-			new_html
-				+= prefix + "start = {"
-				+ document.getElementById("value_box_" + i_str + "_startx").value + ", "
-				+ document.getElementById("value_box_" + i_str + "_starty").value + ", "
-				+ document.getElementById("value_box_" + i_str + "_startz").value + "}<br>"
-				+ prefix + "end = {"
-				+ document.getElementById("value_box_" + i_str + "_endx").value + ", "
-				+ document.getElementById("value_box_" + i_str + "_endy").value + ", "
-				+ document.getElementById("value_box_" + i_str + "_endz").value + "}<br>"
-				+ prefix + "time = "
-				+ document.getElementById("value_box_" + i_str + "_time").value + "<br>"
-				+ prefix + "number-density = "
-				+ document.getElementById("value_box_" + i_str + "_mass").value + "<br>"
-				+ prefix + "velocity = {"
-				+ document.getElementById("value_box_" + i_str + "_vx").value + ", "
-				+ document.getElementById("value_box_" + i_str + "_vy").value + ", "
-				+ document.getElementById("value_box_" + i_str + "_vz").value + "}<br>"
-				+ prefix + "pressure = "
-				+ document.getElementById("value_box_" + i_str + "_pressure").value + "<br>"
-				+ prefix + "magnetic-field = {"
-				+ document.getElementById("value_box_" + i_str + "_Bx").value + ", "
-				+ document.getElementById("value_box_" + i_str + "_By").value + ", "
-				+ document.getElementById("value_box_" + i_str + "_Bz").value + "}<br>";
-		}
-	}
-
-	if (value_spheres > 0) {
-		new_html += "nr-spheres = " + value_spheres.toString() + "<br>";
-		for (i = 1; i <= value_spheres; i++) {
-			var i_str = i.toString();
-			var prefix = "sphere" + i_str + ".";
-			new_html
-				+= prefix + "center = {"
-				+ document.getElementById("value_sphere_" + i_str + "_centerx").value + ", "
-				+ document.getElementById("value_sphere_" + i_str + "_centery").value + ", "
-				+ document.getElementById("value_sphere_" + i_str + "_centerz").value + "}<br>"
-				+ prefix + "radius = "
-				+ document.getElementById("value_sphere_" + i_str + "_radius").value + "<br>"
-				+ prefix + "time = "
-				+ document.getElementById("value_sphere_" + i_str + "_time").value + "<br>"
-				+ prefix + "number-density = "
-				+ document.getElementById("value_sphere_" + i_str + "_mass").value + "<br>"
-				+ prefix + "velocity = {"
-				+ document.getElementById("value_sphere_" + i_str + "_vx").value + ", "
-				+ document.getElementById("value_sphere_" + i_str + "_vy").value + ", "
-				+ document.getElementById("value_sphere_" + i_str + "_vz").value + "}<br>"
-				+ prefix + "pressure = "
-				+ document.getElementById("value_sphere_" + i_str + "_pressure").value + "<br>"
-				+ prefix + "magnetic-field = {"
-				+ document.getElementById("value_sphere_" + i_str + "_Bx").value + ", "
-				+ document.getElementById("value_sphere_" + i_str + "_By").value + ", "
-				+ document.getElementById("value_sphere_" + i_str + "_Bz").value + "}<br>";
-		}
-	}
-
-
-	if (copy_boxes > 0 || copy_spheres > 0) {
-		new_html += "[copy-boundaries]<br>";
-	}
-
-	if (copy_boxes > 0) {
-		new_html += "nr-boxes = " + copy_boxes.toString() + "<br>";
-		for (i = 1; i <= copy_boxes; i++) {
-			var i_str = i.toString();
-			var prefix = "box" + i_str + ".";
-			new_html
-				+= prefix + "start = {"
-				+ document.getElementById("copy_box_" + i_str + "_startx").value + ", "
-				+ document.getElementById("copy_box_" + i_str + "_starty").value + ", "
-				+ document.getElementById("copy_box_" + i_str + "_startz").value + "}<br>"
-				+ prefix + "end = {"
-				+ document.getElementById("copy_box_" + i_str + "_endx").value + ", "
-				+ document.getElementById("copy_box_" + i_str + "_endy").value + ", "
-				+ document.getElementById("copy_box_" + i_str + "_endz").value + "}<br>";
-		}
-	}
-
-	if (copy_spheres > 0) {
-		new_html += "nr-spheres = " + copy_spheres.toString() + "<br>";
-		for (i = 1; i <= copy_spheres; i++) {
-			var i_str = i.toString();
-			var prefix = "sphere" + i_str + ".";
-			new_html
-				+= prefix + "center = {"
-				+ document.getElementById("copy_sphere_" + i_str + "_centerx").value + ", "
-				+ document.getElementById("copy_sphere_" + i_str + "_centery").value + ", "
-				+ document.getElementById("copy_sphere_" + i_str + "_centerz").value + "}<br>"
-				+ prefix + "radius = "
-				+ document.getElementById("copy_sphere_" + i_str + "_radius").value + "<br>";
-		}
-	}
-
-
-	var config_text = document.getElementById("config_text");
-	while (config_text.hasChildNodes()) {
-	    config_text.removeChild(config_text.firstChild);
-	}
-	config_text.innerHTML = new_html;
-});
-
-function remove_boundaries() {
-	while (init_boxes > 0) { init_box_remover.click(); }
-	while (init_spheres > 0) { init_sphere_remover.click(); }
-	while (value_boxes > 0) { value_box_remover.click(); }
-	while (value_spheres > 0) { value_sphere_remover.click(); }
-	while (copy_boxes > 0) { copy_box_remover.click(); }
-	while (copy_spheres > 0) { copy_sphere_remover.click(); }
+	return div;
 }
 
-clearer.addEventListener("click", function() {
-	remove_boundaries();
+
+// removes last boundary of given type from given variable
+function remove_boundary_item(variable, nr_items, bdy_type)
+{
+	if (nr_items.n <= 0) {
+		return;
+	}
+
+	nr_items.n = nr_items.n - 1;
+
+	fieldset = document.getElementById(bdy_type + "_" + variable + "_fieldset");
+	if (fieldset != null) {
+		div = document.getElementById(
+			"bdy_input_" + bdy_type + "_"
+			+ variable + "_"
+			+ nr_items.n.toString()
+		);
+		fieldset.removeChild(div);
+	}
+
+	if (nr_items.n == 0) {
+		fieldset.parentNode.removeChild(fieldset);
+	}
+}
+
+function remove_initial_item(variable, nr_items)
+{
+	remove_boundary_item(variable, nr_items, "initial");
+}
+
+// adds initial condition of given variable
+function add_initial_item(variable, nr_items, remover, info)
+{
+	fieldset = document.getElementById("initial_" + variable + "_fieldset");
+	if (fieldset == null) {
+		fieldset = document.createElement("fieldset");
+		fieldset.setAttribute("id", "initial_" + variable + "_fieldset");
+		legend = document.createElement("legend");
+		legend.innerHTML = "Initial conditions";
+		fieldset.appendChild(legend);
+
+		button = document.createElement("button");
+		button.addEventListener("click", remover);
+		button.setAttribute("id", "remove_initial_" + variable);
+		button.setAttribute("type", "button");
+		button.innerHTML = "Remove last item";
+		fieldset.appendChild(button);
+		fieldset.appendChild(document.createElement("br"));
+		info.appendChild(fieldset);
+	}
+
+	item_id = nr_items.n.toString();
+	nr_items.n = nr_items.n + 1;
+	id_string = "initial_" + variable + "_" + item_id;
+
+	fieldset.appendChild(get_bdy_input_common(id_string, true, false));
+}
+
+// adds value boundary of given variable
+function add_value_item(variable, nr_items, remover, info)
+{
+	fieldset = document.getElementById("value_" + variable + "_fieldset");
+	if (fieldset == null) {
+		fieldset = document.createElement("fieldset");
+		fieldset.setAttribute("id", "value_" + variable + "_fieldset");
+		legend = document.createElement("legend");
+		legend.innerHTML = "Value boundaries";
+		fieldset.appendChild(legend);
+
+		button = document.createElement("button");
+		button.addEventListener("click", remover);
+		button.setAttribute("id", "remove_value_" + variable);
+		button.setAttribute("type", "button");
+		button.innerHTML = "Remove last item";
+		fieldset.appendChild(button);
+		fieldset.appendChild(document.createElement("br"));
+		info.appendChild(fieldset);
+	}
+
+	item_id = nr_items.n.toString();
+	nr_items.n = nr_items.n + 1;
+	id_string = "value_" + variable + "_" + item_id;
+
+	fieldset.appendChild(get_bdy_input_common(id_string, true, true));
+}
+
+// adds copy boundary of given variable
+function add_copy_item(variable, nr_items, remover, info)
+{
+	fieldset = document.getElementById("copy_" + variable + "_fieldset");
+	if (fieldset == null) {
+		fieldset = document.createElement("fieldset");
+		fieldset.setAttribute("id", "copy_" + variable + "_fieldset");
+		legend = document.createElement("legend");
+		legend.innerHTML = "Copy boundaries";
+		fieldset.appendChild(legend);
+
+		button = document.createElement("button");
+		button.addEventListener("click", remover);
+		button.setAttribute("id", "remove_copy_" + variable);
+		button.setAttribute("type", "button");
+		button.innerHTML = "Remove last item";
+		fieldset.appendChild(button);
+		fieldset.appendChild(document.createElement("br"));
+		info.appendChild(fieldset);
+	}
+
+	item_id = nr_items.n.toString();
+	nr_items.n = nr_items.n + 1;
+	id_string = "copy_" + variable + "_" + item_id;
+
+	fieldset.appendChild(get_bdy_input_common(id_string, false, false));
+}
+
+
+// number density related stuff
+
+// allow passing by reference
+var nr_initial_mass_items = {n: 0};
+
+function remove_initial_mass_item() {
+	remove_initial_item("mass", nr_initial_mass_items);
+}
+
+function add_initial_mass_item() {
+	add_initial_item(
+		"mass",
+		nr_initial_mass_items,
+		remove_initial_mass_item,
+		document.getElementById("number_density_info")
+	);
+}
+initial_mass_adder = document.getElementById("add_initial_mass");
+initial_mass_adder.addEventListener("click", add_initial_mass_item);
+
+
+var nr_value_mass_items = {n: 0};
+
+function remove_value_mass_item() {
+	remove_boundary_item("mass", nr_value_mass_items, "value");
+}
+
+function add_value_mass_item() {
+	add_value_item(
+		"mass",
+		nr_value_mass_items,
+		remove_value_mass_item,
+		document.getElementById("number_density_info")
+	);
+}
+value_mass_adder = document.getElementById("add_value_mass");
+value_mass_adder.addEventListener("click", add_value_mass_item);
+
+
+var nr_copy_mass_items = {n: 0};
+
+function remove_copy_mass_item() {
+	remove_boundary_item("mass", nr_copy_mass_items, "copy");
+}
+
+function add_copy_mass_item() {
+	add_copy_item(
+		"mass",
+		nr_copy_mass_items,
+		remove_copy_mass_item,
+		document.getElementById("number_density_info")
+	);
+}
+copy_mass_adder = document.getElementById("add_copy_mass");
+copy_mass_adder.addEventListener("click", add_copy_mass_item);
+
+
+// velocity related stuff
+var nr_initial_velocity_items = {n: 0};
+
+function remove_initial_velocity_item() {
+	remove_initial_item("velocity", nr_initial_velocity_items);
+}
+
+function add_initial_velocity_item() {
+	add_initial_item(
+		"velocity",
+		nr_initial_velocity_items,
+		remove_initial_velocity_item,
+		document.getElementById("velocity_info")
+	);
+}
+initial_velocity_adder = document.getElementById("add_initial_velocity");
+initial_velocity_adder.addEventListener("click", add_initial_velocity_item);
+
+
+var nr_value_velocity_items = {n: 0};
+
+function remove_value_velocity_item() {
+	remove_boundary_item("velocity", nr_value_velocity_items, "value");
+}
+
+function add_value_velocity_item() {
+	add_value_item(
+		"velocity",
+		nr_value_velocity_items,
+		remove_value_velocity_item,
+		document.getElementById("velocity_info")
+	);
+}
+value_velocity_adder = document.getElementById("add_value_velocity");
+value_velocity_adder.addEventListener("click", add_value_velocity_item);
+
+
+var nr_copy_velocity_items = {n: 0};
+
+function remove_copy_velocity_item() {
+	remove_boundary_item("velocity", nr_copy_velocity_items, "copy");
+}
+
+function add_copy_velocity_item() {
+	add_copy_item(
+		"velocity",
+		nr_copy_velocity_items,
+		remove_copy_velocity_item,
+		document.getElementById("velocity_info")
+	);
+}
+copy_velocity_adder = document.getElementById("add_copy_velocity");
+copy_velocity_adder.addEventListener("click", add_copy_velocity_item);
+
+
+// pressure related stuff
+var nr_initial_pressure_items = {n: 0};
+
+function remove_initial_pressure_item() {
+	remove_initial_item("pressure", nr_initial_pressure_items);
+}
+
+function add_initial_pressure_item() {
+	add_initial_item(
+		"pressure",
+		nr_initial_pressure_items,
+		remove_initial_pressure_item,
+		document.getElementById("pressure_info")
+	);
+}
+initial_pressure_adder = document.getElementById("add_initial_pressure");
+initial_pressure_adder.addEventListener("click", add_initial_pressure_item);
+
+
+var nr_value_pressure_items = {n: 0};
+
+function remove_value_pressure_item() {
+	remove_boundary_item("pressure", nr_value_pressure_items, "value");
+}
+
+function add_value_pressure_item() {
+	add_value_item(
+		"pressure",
+		nr_value_pressure_items,
+		remove_value_pressure_item,
+		document.getElementById("pressure_info")
+	);
+}
+value_pressure_adder = document.getElementById("add_value_pressure");
+value_pressure_adder.addEventListener("click", add_value_pressure_item);
+
+
+var nr_copy_pressure_items = {n: 0};
+
+function remove_copy_pressure_item() {
+	remove_boundary_item("pressure", nr_copy_pressure_items, "copy");
+}
+
+function add_copy_pressure_item() {
+	add_copy_item(
+		"pressure",
+		nr_copy_pressure_items,
+		remove_copy_pressure_item,
+		document.getElementById("pressure_info")
+	);
+}
+copy_pressure_adder = document.getElementById("add_copy_pressure");
+copy_pressure_adder.addEventListener("click", add_copy_pressure_item);
+
+
+// magnetic field related stuff
+var nr_initial_magnetic_field_items = {n: 0};
+
+function remove_initial_magnetic_field_item() {
+	remove_initial_item("magnetic_field", nr_initial_magnetic_field_items);
+}
+
+function add_initial_magnetic_field_item() {
+	add_initial_item(
+		"magnetic_field",
+		nr_initial_magnetic_field_items,
+		remove_initial_magnetic_field_item,
+		document.getElementById("magnetic_field_info")
+	);
+}
+initial_magnetic_field_adder = document.getElementById("add_initial_magnetic_field");
+initial_magnetic_field_adder.addEventListener("click", add_initial_magnetic_field_item);
+
+
+var nr_value_magnetic_field_items = {n: 0};
+
+function remove_value_magnetic_field_item() {
+	remove_boundary_item("magnetic_field", nr_value_magnetic_field_items, "value");
+}
+
+function add_value_magnetic_field_item() {
+	add_value_item(
+		"magnetic_field",
+		nr_value_magnetic_field_items,
+		remove_value_magnetic_field_item,
+		document.getElementById("magnetic_field_info")
+	);
+}
+value_magnetic_field_adder = document.getElementById("add_value_magnetic_field");
+value_magnetic_field_adder.addEventListener("click", add_value_magnetic_field_item);
+
+
+var nr_copy_magnetic_field_items = {n: 0};
+
+function remove_copy_magnetic_field_item() {
+	remove_boundary_item("magnetic_field", nr_copy_magnetic_field_items, "copy");
+}
+
+function add_copy_magnetic_field_item() {
+	add_copy_item(
+		"magnetic_field",
+		nr_copy_magnetic_field_items,
+		remove_copy_magnetic_field_item,
+		document.getElementById("magnetic_field_info")
+	);
+}
+copy_magnetic_field_adder = document.getElementById("add_copy_magnetic_field");
+copy_magnetic_field_adder.addEventListener("click", add_copy_magnetic_field_item);
+
+
+// clears current configuration
+var configuration_clearer = document.getElementById("clear");
+configuration_clearer.addEventListener("click", function() {
 	document.getElementById("solver_mhd").selectedIndex = "2";
 	document.getElementById("time_start").value = "";
 	document.getElementById("time_length").value = "";
@@ -621,25 +734,598 @@ clearer.addEventListener("click", function() {
 	document.getElementById("start_x").value = "";
 	document.getElementById("start_y").value = "";
 	document.getElementById("start_z").value = "";
-	document.getElementById("init_default_mass").value = "";
-	document.getElementById("init_default_pressure").value = "";
-	document.getElementById("init_default_vx").value = "";
-	document.getElementById("init_default_vy").value = "";
-	document.getElementById("init_default_vz").value = "";
-	document.getElementById("init_default_Bx").value = "";
-	document.getElementById("init_default_By").value = "";
-	document.getElementById("init_default_Bz").value = "";
+	document.getElementById("default_mass").value = "";
+	document.getElementById("default_pressure").value = "";
+	document.getElementById("default_velocity").value = "";
+	document.getElementById("default_magnetic_field").value = "";
+	while (nr_geometries > 0) {
+		remove_geometry();
+	}
+	while (nr_initial_mass_items.n > 0) {
+		remove_initial_mass_item();
+	}
+	while (nr_value_mass_items.n > 0) {
+		remove_value_mass_item();
+	}
+	while (nr_copy_mass_items.n > 0) {
+		remove_copy_mass_item();
+	}
+	while (nr_initial_velocity_items.n > 0) {
+		remove_initial_velocity_item();
+	}
+	while (nr_value_velocity_items.n > 0) {
+		remove_value_velocity_item();
+	}
+	while (nr_copy_velocity_items.n > 0) {
+		remove_copy_velocity_item();
+	}
+	while (nr_initial_pressure_items.n > 0) {
+		remove_initial_pressure_item();
+	}
+	while (nr_value_pressure_items.n > 0) {
+		remove_value_pressure_item();
+	}
+	while (nr_copy_pressure_items.n > 0) {
+		remove_copy_pressure_item();
+	}
+	while (nr_initial_magnetic_field_items.n > 0) {
+		remove_initial_magnetic_field_item();
+	}
+	while (nr_value_magnetic_field_items.n > 0) {
+		remove_value_magnetic_field_item();
+	}
+	while (nr_copy_magnetic_field_items.n > 0) {
+		remove_copy_magnetic_field_item();
+	}
+});
+
+
+// sets innerHTML of item with id config_text to current configuration
+var config_text_updater = document.getElementById("update_config_text");
+config_text_updater.addEventListener("click", function() {
+	var new_html
+		= "<br>{<br>"
+		+ "&quot;output-directory&quot;: &quot;"
+		+ document.getElementById("output_directory").value + "&quot;,<br>"
+		+ "&quot;solver-mhd&quot;: &quot;"
+		+ document.getElementById("solver_mhd").value + "&quot;,<br>"
+		+ "&quot;time-start&quot;: "
+		+ document.getElementById("time_start").value + ",<br>"
+		+ "&quot;time-length&quot;: "
+		+ document.getElementById("time_length").value + ",<br>"
+		+ "&quot;save-mhd-n&quot;: "
+		+ document.getElementById("save_mhd_n").value + ",<br>"
+		+ "&quot;resistivity&quot;: &quot;"
+		+ document.getElementById("resistivity").value + "&quot;,<br>"
+		+ "&quot;remove-div-B-n&quot;: "
+		+ document.getElementById("remove_div_b_n").value + ",<br>"
+		+ "&quot;adiabatic-index&quot;: "
+		+ document.getElementById("adiabatic_index").value + ",<br>"
+		+ "&quot;vacuum-permeability&quot;: "
+		+ document.getElementById("vacuum_permeability").value + ",<br>"
+		+ "&quot;proton-mass&quot;: "
+		+ document.getElementById("proton_mass").value + ",<br>"
+		+ "&quot;time-step-factor&quot;: "
+		+ document.getElementById("time_step_factor").value + ",<br>"
+		+ "&quot;load-balancer&quot;: &quot;RCB&quot;,<br>"
+		+ "&quot;poisson-norm-stop&quot;: 1e-10,<br>"
+		+ "&quot;poisson-norm-increase-max&quot;: 10,<br>"
+		+ "&quot;grid-options&quot;: {<br>"
+		+ "&nbsp;&nbsp;&quot;periodic&quot;: &quot;{"
+		+ document.getElementById("periodic_x").value + ", "
+		+ document.getElementById("periodic_y").value + ", "
+		+ document.getElementById("periodic_z").value + "}&quot;,<br>"
+		+ "&nbsp;&nbsp;&quot;cells&quot;: &quot;{"
+		+ document.getElementById("cells_x").value + ", "
+		+ document.getElementById("cells_y").value + ", "
+		+ document.getElementById("cells_z").value + "}&quot;,<br>"
+		+ "&nbsp;&nbsp;&quot;volume&quot;: &quot;{"
+		+ document.getElementById("volume_x").value + ", "
+		+ document.getElementById("volume_y").value + ", "
+		+ document.getElementById("volume_z").value + "}&quot;,<br>"
+		+ "&nbsp;&nbsp;&quot;start&quot;: &quot;{"
+		+ document.getElementById("start_x").value + ", "
+		+ document.getElementById("start_y").value + ", "
+		+ document.getElementById("start_z").value + "}&quot;<br>"
+		+ "},<br>";
+
+	if (nr_geometries > 0) {
+		new_html += "&quot;geometries&quot;: [<br>"
+		for (i = 0; i < nr_geometries; i++) {
+			box_id = "box" + i.toString()
+			box = document.getElementById(box_id);
+			if (box != null) {
+				new_html
+					+= "&nbsp;&nbsp;{&quot;box&quot;: {<br>"
+					+ "&nbsp;&nbsp;&nbsp;&nbsp;&quot;start&quot;: ["
+					+ document.getElementById(box_id + "_startx").value + ", "
+					+ document.getElementById(box_id + "_starty").value + ", "
+					+ document.getElementById(box_id + "_startz").value + "],<br>"
+					+ "&nbsp;&nbsp;&nbsp;&nbsp;&quot;end&quot;: ["
+					+ document.getElementById(box_id + "_endx").value + ", "
+					+ document.getElementById(box_id + "_endy").value + ", "
+					+ document.getElementById(box_id + "_endz").value + "]<br>&nbsp;&nbsp;}}"
+
+				if (i < nr_geometries - 1) {
+					new_html += ",";
+				}
+				new_html += "<br>";
+				continue;
+			}
+
+			sphere_id = "sphere" + i.toString()
+			sphere = document.getElementById(sphere_id);
+			if (sphere != null) {
+				new_html
+					+= "&nbsp;&nbsp;{&quot;sphere&quot;: {<br>"
+					+ "&nbsp;&nbsp;&nbsp;&nbsp;&quot;center&quot;: ["
+					+ document.getElementById(sphere_id + "_centerx").value + ", "
+					+ document.getElementById(sphere_id + "_centery").value + ", "
+					+ document.getElementById(sphere_id + "_centerz").value + "],<br>"
+					+ "&nbsp;&nbsp;&nbsp;&nbsp;&quot;radius&quot;: ["
+					+ document.getElementById(sphere_id + "_radius").value + "]<br>&nbsp;&nbsp;}}"
+
+				if (i < nr_geometries - 1) {
+					new_html += ",";
+				}
+				new_html += "<br>";
+				continue;
+			}
+		}
+		new_html += "],<br>";
+	}
+
+	// "number-density": { and "default": "",
+	new_html
+		+= "&quot;number-density&quot;: {<br>"
+		+ "&nbsp;&nbsp;&quot;default&quot;: &quot;"
+		+ document.getElementById("default_mass").value + "&quot;";
+
+	if (
+		nr_initial_mass_items.n > 0
+		|| nr_value_mass_items.n > 0
+		|| nr_copy_mass_items.n > 0
+	) {
+		new_html += ",<br>";
+	}
+	// "initial-conditions": [
+	if (nr_initial_mass_items.n > 0) {
+		new_html += "&nbsp;&nbsp;&quot;initial-conditions&quot;: [<br>";
+		for (i = 0; i < nr_initial_mass_items.n; i++) {
+			id_string = "initial_mass_" + i.toString();
+			new_html
+				+= "&nbsp;&nbsp;&nbsp;&nbsp;{&quot;geometry-id&quot;: "
+				+ document.getElementById(id_string + "_geometry_id").value + ",<br>"
+				+ "&nbsp;&nbsp;&nbsp;&nbsp;&quot;value&quot;: {<br>"
+				+ "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;"
+				+ document.getElementById(id_string + "_coord1_id").value + "&quot;: ["
+				+ document.getElementById(id_string + "_coord1_values").value + "],<br>"
+				+ "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;"
+				+ document.getElementById(id_string + "_coord2_id").value + "&quot;: ["
+				+ document.getElementById(id_string + "_coord2_values").value + "],<br>"
+				+ "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;"
+				+ document.getElementById(id_string + "_coord3_id").value + "&quot;: ["
+				+ document.getElementById(id_string + "_coord3_values").value + "],<br>"
+				+ "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;data&quot;: [&quot;"
+				+ document.getElementById(id_string + "_value").value + "&quot;]<br>"
+				+ "&nbsp;&nbsp;&nbsp;&nbsp;}";
+			if (i < nr_initial_mass_items.n - 1) {
+				new_html += ",<br>";
+			} else {
+				new_html += "<br>";
+			}
+		}
+		new_html += "&nbsp;&nbsp;]";
+	}
+
+	if (nr_initial_mass_items.n > 0 && nr_value_mass_items.n > 0) {
+		if (nr_value_mass_items.n > 0) {
+			new_html += ",";
+		}
+		new_html += "<br>";
+	}
+
+	// "value-boundaries": [
+	if (nr_value_mass_items.n > 0) {
+		new_html += "&nbsp;&nbsp;&quot;value-boundaries&quot;: [<br>";
+		for (i = 0; i < nr_value_mass_items.n; i++) {
+			id_string = "value_mass_" + i.toString();
+			new_html
+				+= "&nbsp;&nbsp;&nbsp;&nbsp;{&quot;geometry-id&quot;: "
+				+ document.getElementById(id_string + "_geometry_id").value + ",<br>"
+				+ "&nbsp;&nbsp;&nbsp;&nbsp;&quot;time-stamps&quot;: ["
+				+ document.getElementById(id_string + "_time_stamps_id").value + "],<br>"
+				+ "&nbsp;&nbsp;&nbsp;&nbsp;&quot;values&quot;: {<br>"
+				+ "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;"
+				+ document.getElementById(id_string + "_coord1_id").value + "&quot;: ["
+				+ document.getElementById(id_string + "_coord1_values").value + "],<br>"
+				+ "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;"
+				+ document.getElementById(id_string + "_coord2_id").value + "&quot;: ["
+				+ document.getElementById(id_string + "_coord2_values").value + "],<br>"
+				+ "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;"
+				+ document.getElementById(id_string + "_coord3_id").value + "&quot;: ["
+				+ document.getElementById(id_string + "_coord3_values").value + "],<br>"
+				+ "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;data&quot;: [&quot;"
+				+ document.getElementById(id_string + "_value").value + "&quot;]<br>"
+				+ "&nbsp;&nbsp;&nbsp;&nbsp;}}";
+			if (i < nr_value_mass_items.n - 1) {
+				new_html += ",<br>";
+			} else {
+				new_html += "<br>";
+			}
+		}
+		new_html += "&nbsp;&nbsp;]";
+	}
+
+	if (
+		(nr_initial_mass_items.n > 0 || nr_value_mass_items.n > 0)
+		&& nr_copy_mass_items.n > 0
+	) {
+		if (nr_copy_mass_items.n > 0) {
+			new_html += ",";
+		}
+		new_html += "<br>";
+	}
+
+	// "copy-boundaries": [
+	if (nr_copy_mass_items.n > 0) {
+		new_html += "&nbsp;&nbsp;&quot;copy-boundaries&quot;: [<br>";
+		for (i = 0; i < nr_copy_mass_items.n; i++) {
+			id_string = "copy_mass_" + i.toString();
+			new_html
+				+= "&nbsp;&nbsp;&nbsp;&nbsp;{&quot;geometry-id&quot;: "
+				+ document.getElementById(id_string + "_geometry_id").value + "&nbsp;&nbsp;&nbsp;&nbsp;}";
+			if (i < nr_copy_mass_items.n - 1) {
+				new_html += ",<br>";
+			} else {
+				new_html += "<br>";
+			}
+		}
+		new_html += "&nbsp;&nbsp;]";
+	}
+
+	new_html += "<br>},<br>";
+
+
+	// velocity
+	new_html
+		+= "&quot;velocity&quot;: {<br>"
+		+ "&nbsp;&nbsp;&quot;default&quot;: &quot;{"
+		+ document.getElementById("default_velocity").value + "}&quot;";
+
+	if (
+		nr_initial_velocity_items.n > 0
+		|| nr_value_velocity_items.n > 0
+		|| nr_copy_velocity_items.n > 0
+	) {
+		new_html += ",<br>";
+	}
+	if (nr_initial_velocity_items.n > 0) {
+		new_html += "&nbsp;&nbsp;&quot;initial-conditions&quot;: [<br>";
+		for (i = 0; i < nr_initial_velocity_items.n; i++) {
+			id_string = "initial_velocity_" + i.toString();
+			new_html
+				+= "&nbsp;&nbsp;&nbsp;&nbsp;{&quot;geometry-id&quot;: "
+				+ document.getElementById(id_string + "_geometry_id").value + ",<br>"
+				+ "&nbsp;&nbsp;&nbsp;&nbsp;&quot;value&quot;: {<br>"
+				+ "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;"
+				+ document.getElementById(id_string + "_coord1_id").value + "&quot;: ["
+				+ document.getElementById(id_string + "_coord1_values").value + "],<br>"
+				+ "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;"
+				+ document.getElementById(id_string + "_coord2_id").value + "&quot;: ["
+				+ document.getElementById(id_string + "_coord2_values").value + "],<br>"
+				+ "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;"
+				+ document.getElementById(id_string + "_coord3_id").value + "&quot;: ["
+				+ document.getElementById(id_string + "_coord3_values").value + "],<br>"
+				+ "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;data&quot;: [&quot;{"
+				+ document.getElementById(id_string + "_value").value + "}&quot;]<br>"
+				+ "&nbsp;&nbsp;&nbsp;&nbsp;}";
+			if (i < nr_initial_velocity_items.n - 1) {
+				new_html += ",<br>";
+			} else {
+				new_html += "<br>";
+			}
+		}
+		new_html += "&nbsp;&nbsp;]";
+	}
+
+	if (nr_initial_velocity_items.n > 0 && nr_value_velocity_items.n > 0) {
+		if (nr_value_velocity_items.n > 0) {
+			new_html += ",";
+		}
+		new_html += "<br>";
+	}
+
+	if (nr_value_velocity_items.n > 0) {
+		new_html += "&nbsp;&nbsp;&quot;value-boundaries&quot;: [<br>";
+		for (i = 0; i < nr_value_velocity_items.n; i++) {
+			id_string = "value_velocity_" + i.toString();
+			new_html
+				+= "&nbsp;&nbsp;&nbsp;&nbsp;{&quot;geometry-id&quot;: "
+				+ document.getElementById(id_string + "_geometry_id").value + ",<br>"
+				+ "&nbsp;&nbsp;&nbsp;&nbsp;&quot;time-stamps&quot;: ["
+				+ document.getElementById(id_string + "_time_stamps_id").value + "],<br>"
+				+ "&nbsp;&nbsp;&nbsp;&nbsp;&quot;values&quot;: {<br>"
+				+ "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;"
+				+ document.getElementById(id_string + "_coord1_id").value + "&quot;: ["
+				+ document.getElementById(id_string + "_coord1_values").value + "],<br>"
+				+ "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;"
+				+ document.getElementById(id_string + "_coord2_id").value + "&quot;: ["
+				+ document.getElementById(id_string + "_coord2_values").value + "],<br>"
+				+ "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;"
+				+ document.getElementById(id_string + "_coord3_id").value + "&quot;: ["
+				+ document.getElementById(id_string + "_coord3_values").value + "],<br>"
+				+ "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;data&quot;: [&quot;{"
+				+ document.getElementById(id_string + "_value").value + "}&quot;]<br>"
+				+ "&nbsp;&nbsp;&nbsp;&nbsp;}}";
+			if (i < nr_value_velocity_items.n - 1) {
+				new_html += ",<br>";
+			} else {
+				new_html += "<br>";
+			}
+		}
+		new_html += "&nbsp;&nbsp;]";
+	}
+
+	if (
+		(nr_initial_velocity_items.n > 0 || nr_value_velocity_items.n > 0)
+		&& nr_copy_velocity_items.n > 0
+	) {
+		if (nr_copy_velocity_items.n > 0) {
+			new_html += ",";
+		}
+		new_html += "<br>";
+	}
+
+	if (nr_copy_velocity_items.n > 0) {
+		new_html += "&nbsp;&nbsp;&quot;copy-boundaries&quot;: [<br>";
+		for (i = 0; i < nr_copy_velocity_items.n; i++) {
+			id_string = "copy_velocity_" + i.toString();
+			new_html
+				+= "&nbsp;&nbsp;&nbsp;&nbsp;{&quot;geometry-id&quot;: "
+				+ document.getElementById(id_string + "_geometry_id").value + "&nbsp;&nbsp;&nbsp;&nbsp;}";
+			if (i < nr_copy_velocity_items.n - 1) {
+				new_html += ",<br>";
+			} else {
+				new_html += "<br>";
+			}
+		}
+		new_html += "&nbsp;&nbsp;]";
+	}
+
+	new_html += "<br>},<br>";
+
+
+	// pressure
+	new_html
+		+= "&quot;pressure&quot;: {<br>"
+		+ "&nbsp;&nbsp;&quot;default&quot;: &quot;"
+		+ document.getElementById("default_pressure").value + "&quot;";
+
+	if (
+		nr_initial_pressure_items.n > 0
+		|| nr_value_pressure_items.n > 0
+		|| nr_copy_pressure_items.n > 0
+	) {
+		new_html += ",<br>";
+	}
+	if (nr_initial_pressure_items.n > 0) {
+		new_html += "&nbsp;&nbsp;&quot;initial-conditions&quot;: [<br>";
+		for (i = 0; i < nr_initial_pressure_items.n; i++) {
+			id_string = "initial_pressure_" + i.toString();
+			new_html
+				+= "&nbsp;&nbsp;&nbsp;&nbsp;{&quot;geometry-id&quot;: "
+				+ document.getElementById(id_string + "_geometry_id").value + ",<br>"
+				+ "&nbsp;&nbsp;&nbsp;&nbsp;&quot;value&quot;: {<br>"
+				+ "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;"
+				+ document.getElementById(id_string + "_coord1_id").value + "&quot;: ["
+				+ document.getElementById(id_string + "_coord1_values").value + "],<br>"
+				+ "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;"
+				+ document.getElementById(id_string + "_coord2_id").value + "&quot;: ["
+				+ document.getElementById(id_string + "_coord2_values").value + "],<br>"
+				+ "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;"
+				+ document.getElementById(id_string + "_coord3_id").value + "&quot;: ["
+				+ document.getElementById(id_string + "_coord3_values").value + "],<br>"
+				+ "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;data&quot;: [&quot;"
+				+ document.getElementById(id_string + "_value").value + "&quot;]<br>"
+				+ "&nbsp;&nbsp;&nbsp;&nbsp;}";
+			if (i < nr_initial_pressure_items.n - 1) {
+				new_html += ",<br>";
+			} else {
+				new_html += "<br>";
+			}
+		}
+		new_html += "&nbsp;&nbsp;]";
+	}
+
+	if (nr_initial_pressure_items.n > 0 && nr_value_pressure_items.n > 0) {
+		if (nr_value_pressure_items.n > 0) {
+			new_html += ",";
+		}
+		new_html += "<br>";
+	}
+
+	if (nr_value_pressure_items.n > 0) {
+		new_html += "&nbsp;&nbsp;&quot;value-boundaries&quot;: [<br>";
+		for (i = 0; i < nr_value_pressure_items.n; i++) {
+			id_string = "value_pressure_" + i.toString();
+			new_html
+				+= "&nbsp;&nbsp;&nbsp;&nbsp;{&quot;geometry-id&quot;: "
+				+ document.getElementById(id_string + "_geometry_id").value + ",<br>"
+				+ "&nbsp;&nbsp;&nbsp;&nbsp;&quot;time-stamps&quot;: ["
+				+ document.getElementById(id_string + "_time_stamps_id").value + "],<br>"
+				+ "&nbsp;&nbsp;&nbsp;&nbsp;&quot;values&quot;: {<br>"
+				+ "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;"
+				+ document.getElementById(id_string + "_coord1_id").value + "&quot;: ["
+				+ document.getElementById(id_string + "_coord1_values").value + "],<br>"
+				+ "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;"
+				+ document.getElementById(id_string + "_coord2_id").value + "&quot;: ["
+				+ document.getElementById(id_string + "_coord2_values").value + "],<br>"
+				+ "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;"
+				+ document.getElementById(id_string + "_coord3_id").value + "&quot;: ["
+				+ document.getElementById(id_string + "_coord3_values").value + "],<br>"
+				+ "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;data&quot;: [&quot;"
+				+ document.getElementById(id_string + "_value").value + "&quot;]<br>"
+				+ "&nbsp;&nbsp;&nbsp;&nbsp;}}";
+			if (i < nr_value_pressure_items.n - 1) {
+				new_html += ",<br>";
+			} else {
+				new_html += "<br>";
+			}
+		}
+		new_html += "&nbsp;&nbsp;]";
+	}
+
+	if (
+		(nr_initial_pressure_items.n > 0 || nr_value_pressure_items.n > 0)
+		&& nr_copy_pressure_items.n > 0
+	) {
+		if (nr_copy_pressure_items.n > 0) {
+			new_html += ",";
+		}
+		new_html += "<br>";
+	}
+
+	if (nr_copy_pressure_items.n > 0) {
+		new_html += "&nbsp;&nbsp;&quot;copy-boundaries&quot;: [<br>";
+		for (i = 0; i < nr_copy_pressure_items.n; i++) {
+			id_string = "copy_pressure_" + i.toString();
+			new_html
+				+= "&nbsp;&nbsp;&nbsp;&nbsp;{&quot;geometry-id&quot;: "
+				+ document.getElementById(id_string + "_geometry_id").value + "&nbsp;&nbsp;&nbsp;&nbsp;}";
+			if (i < nr_copy_pressure_items.n - 1) {
+				new_html += ",<br>";
+			} else {
+				new_html += "<br>";
+			}
+		}
+		new_html += "&nbsp;&nbsp;]";
+	}
+
+	new_html += "<br>},<br>";
+
+
+	// magnetic field
+	new_html
+		+= "&quot;magnetic-field&quot;: {<br>"
+		+ "&nbsp;&nbsp;&quot;default&quot;: &quot;"
+		+ document.getElementById("default_magnetic_field").value + "&quot;";
+
+	if (
+		nr_initial_magnetic_field_items.n > 0
+		|| nr_value_magnetic_field_items.n > 0
+		|| nr_copy_magnetic_field_items.n > 0
+	) {
+		new_html += ",<br>";
+	}
+	if (nr_initial_magnetic_field_items.n > 0) {
+		new_html += "&nbsp;&nbsp;&quot;initial-conditions&quot;: [<br>";
+		for (i = 0; i < nr_initial_magnetic_field_items.n; i++) {
+			id_string = "initial_magnetic_field_" + i.toString();
+			new_html
+				+= "&nbsp;&nbsp;&nbsp;&nbsp;{&quot;geometry-id&quot;: "
+				+ document.getElementById(id_string + "_geometry_id").value + ",<br>"
+				+ "&nbsp;&nbsp;&nbsp;&nbsp;&quot;value&quot;: {<br>"
+				+ "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;"
+				+ document.getElementById(id_string + "_coord1_id").value + "&quot;: ["
+				+ document.getElementById(id_string + "_coord1_values").value + "],<br>"
+				+ "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;"
+				+ document.getElementById(id_string + "_coord2_id").value + "&quot;: ["
+				+ document.getElementById(id_string + "_coord2_values").value + "],<br>"
+				+ "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;"
+				+ document.getElementById(id_string + "_coord3_id").value + "&quot;: ["
+				+ document.getElementById(id_string + "_coord3_values").value + "],<br>"
+				+ "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;data&quot;: [&quot;{"
+				+ document.getElementById(id_string + "_value").value + "}&quot;]<br>"
+				+ "&nbsp;&nbsp;&nbsp;&nbsp;}";
+			if (i < nr_initial_magnetic_field_items.n - 1) {
+				new_html += ",<br>";
+			} else {
+				new_html += "<br>";
+			}
+		}
+		new_html += "&nbsp;&nbsp;]";
+	}
+
+	if (nr_initial_magnetic_field_items.n > 0 && nr_value_magnetic_field_items.n > 0) {
+		if (nr_value_magnetic_field_items.n > 0) {
+			new_html += ",";
+		}
+		new_html += "<br>";
+	}
+
+	if (nr_value_magnetic_field_items.n > 0) {
+		new_html += "&nbsp;&nbsp;&quot;value-boundaries&quot;: [<br>";
+		for (i = 0; i < nr_value_magnetic_field_items.n; i++) {
+			id_string = "value_magnetic_field_" + i.toString();
+			new_html
+				+= "&nbsp;&nbsp;&nbsp;&nbsp;{&quot;geometry-id&quot;: "
+				+ document.getElementById(id_string + "_geometry_id").value + ",<br>"
+				+ "&nbsp;&nbsp;&nbsp;&nbsp;&quot;time-stamps&quot;: ["
+				+ document.getElementById(id_string + "_time_stamps_id").value + "],<br>"
+				+ "&nbsp;&nbsp;&nbsp;&nbsp;&quot;values&quot;: {<br>"
+				+ "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;"
+				+ document.getElementById(id_string + "_coord1_id").value + "&quot;: ["
+				+ document.getElementById(id_string + "_coord1_values").value + "],<br>"
+				+ "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;"
+				+ document.getElementById(id_string + "_coord2_id").value + "&quot;: ["
+				+ document.getElementById(id_string + "_coord2_values").value + "],<br>"
+				+ "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;"
+				+ document.getElementById(id_string + "_coord3_id").value + "&quot;: ["
+				+ document.getElementById(id_string + "_coord3_values").value + "],<br>"
+				+ "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;data&quot;: [&quot;{"
+				+ document.getElementById(id_string + "_value").value + "}&quot;]<br>"
+				+ "&nbsp;&nbsp;&nbsp;&nbsp;}}";
+			if (i < nr_value_magnetic_field_items.n - 1) {
+				new_html += ",<br>";
+			} else {
+				new_html += "<br>";
+			}
+		}
+		new_html += "&nbsp;&nbsp;]";
+	}
+
+	if (
+		(nr_initial_magnetic_field_items.n > 0 || nr_value_magnetic_field_items.n > 0)
+		&& nr_copy_magnetic_field_items.n > 0
+	) {
+		if (nr_copy_magnetic_field_items.n > 0) {
+			new_html += ",";
+		}
+		new_html += "<br>";
+	}
+
+	if (nr_copy_magnetic_field_items.n > 0) {
+		new_html += "&nbsp;&nbsp;&quot;copy-boundaries&quot;: [<br>";
+		for (i = 0; i < nr_copy_magnetic_field_items.n; i++) {
+			id_string = "copy_magnetic_field_" + i.toString();
+			new_html
+				+= "&nbsp;&nbsp;&nbsp;&nbsp;{&quot;geometry-id&quot;: "
+				+ document.getElementById(id_string + "_geometry_id").value + "&nbsp;&nbsp;&nbsp;&nbsp;}";
+			if (i < nr_copy_magnetic_field_items.n - 1) {
+				new_html += ",<br>";
+			} else {
+				new_html += "<br>";
+			}
+		}
+		new_html += "&nbsp;&nbsp;]";
+	}
+
+	new_html += "<br>}<br>}";
+
+
 	var config_text = document.getElementById("config_text");
 	while (config_text.hasChildNodes()) {
 	    config_text.removeChild(config_text.firstChild);
 	}
-	config_text.innerHTML
-		= "<br>Push the button above to see contents of current configuration file";
+	config_text.innerHTML = new_html;
 });
 
-//! buttons for example simulations
+
+// shock tube maker
+var shock_tube_maker = document.getElementById("make_shock_tube");
 shock_tube_maker.addEventListener("click", function() {
-	remove_boundaries();
+	configuration_clearer.click();
 	document.getElementById("solver_mhd").selectedIndex = "2";
 	document.getElementById("time_start").value = "0";
 	document.getElementById("time_length").value = "1";
@@ -657,330 +1343,90 @@ shock_tube_maker.addEventListener("click", function() {
 	document.getElementById("cells_x").value = "100 + 2";
 	document.getElementById("cells_y").value = "1";
 	document.getElementById("cells_z").value = "1";
-	document.getElementById("volume_x").value = "1 + 2.0/100";
+	document.getElementById("volume_x").value = "1 + 2 / (cells[0] - 2)";
 	document.getElementById("volume_y").value = "1";
 	document.getElementById("volume_z").value = "1";
-	document.getElementById("start_x").value = "-0.5 - 1.0/100";
-	document.getElementById("start_y").value = "-0.5";
-	document.getElementById("start_z").value = "-0.5";
-	document.getElementById("init_default_mass").value = "(r[0] < 0) ? 1 : 0.125";
-	document.getElementById("init_default_pressure").value = "(r[0] < 0) ? 1 : 0.1";
-	document.getElementById("init_default_vx").value = "0";
-	document.getElementById("init_default_vy").value = "0";
-	document.getElementById("init_default_vz").value = "0";
-	document.getElementById("init_default_Bx").value = "0.75";
-	document.getElementById("init_default_By").value = "(r[0] < 0) ? 1 : -1";
-	document.getElementById("init_default_Bz").value = "0";
-	value_box_adder.click();
-	document.getElementById("value_box_1_startx").value = "-99";
-	document.getElementById("value_box_1_starty").value = "-99";
-	document.getElementById("value_box_1_startz").value = "-99";
-	document.getElementById("value_box_1_endx").value = "-0.5";
-	document.getElementById("value_box_1_endy").value = "99";
-	document.getElementById("value_box_1_endz").value = "99";
-	document.getElementById("value_box_1_time").value = "0";
-	document.getElementById("value_box_1_mass").value = "1";
-	document.getElementById("value_box_1_pressure").value = "1";
-	document.getElementById("value_box_1_vx").value = "0";
-	document.getElementById("value_box_1_vy").value = "0";
-	document.getElementById("value_box_1_vz").value = "0";
-	document.getElementById("value_box_1_Bx").value = "0.75";
-	document.getElementById("value_box_1_By").value = "1";
-	document.getElementById("value_box_1_Bz").value = "0";
-	value_box_adder.click();
-	document.getElementById("value_box_2_startx").value = "0.5";
-	document.getElementById("value_box_2_starty").value = "-99";
-	document.getElementById("value_box_2_startz").value = "-99";
-	document.getElementById("value_box_2_endx").value = "99";
-	document.getElementById("value_box_2_endy").value = "99";
-	document.getElementById("value_box_2_endz").value = "99";
-	document.getElementById("value_box_2_time").value = "0";
-	document.getElementById("value_box_2_mass").value = "0.125";
-	document.getElementById("value_box_2_pressure").value = "0.1";
-	document.getElementById("value_box_2_vx").value = "0";
-	document.getElementById("value_box_2_vy").value = "0";
-	document.getElementById("value_box_2_vz").value = "0";
-	document.getElementById("value_box_2_Bx").value = "0.75";
-	document.getElementById("value_box_2_By").value = "-1";
-	document.getElementById("value_box_2_Bz").value = "0";
-	config_text_updater.click();
+	document.getElementById("start_x").value = "-volume[0] / (cells[0] - 2)";
+	document.getElementById("start_y").value = "-volume[1]/2";
+	document.getElementById("start_z").value = "-volume[2]/2";
+	document.getElementById("default_mass").value = "(x < 0) ? 1 : 0.125";
+	document.getElementById("default_pressure").value = "(x < 0) ? 1 : 0.1";
+	document.getElementById("default_velocity").value = "0, 0, 0";
+	document.getElementById("default_magnetic_field").value = "{0.75, (x < 0) ? 1 : -1, 0}";
+	box_geometry_adder.click();
+	document.getElementById("box0_startx").value = "-99";
+	document.getElementById("box0_starty").value = "-99";
+	document.getElementById("box0_startz").value = "-99";
+	document.getElementById("box0_endx").value = "-0.5";
+	document.getElementById("box0_endy").value = "99";
+	document.getElementById("box0_endz").value = "99";
+	value_mass_adder.click();
+	document.getElementById("value_mass_0_geometry_id").value = 0;
+	document.getElementById("value_mass_0_time_stamps_id").value = 0;
+	document.getElementById("value_mass_0_coord1_values").value = 0;
+	document.getElementById("value_mass_0_coord2_values").value = 0;
+	document.getElementById("value_mass_0_coord3_values").value = 0;
+	document.getElementById("value_mass_0_value").value = 1;
+	value_velocity_adder.click();
+	document.getElementById("value_velocity_0_geometry_id").value = 0;
+	document.getElementById("value_velocity_0_time_stamps_id").value = 0;
+	document.getElementById("value_velocity_0_coord1_values").value = 0;
+	document.getElementById("value_velocity_0_coord2_values").value = 0;
+	document.getElementById("value_velocity_0_coord3_values").value = 0;
+	document.getElementById("value_velocity_0_value").value = "0, 0, 0";
+	value_pressure_adder.click();
+	document.getElementById("value_pressure_0_geometry_id").value = 0;
+	document.getElementById("value_pressure_0_time_stamps_id").value = 0;
+	document.getElementById("value_pressure_0_coord1_values").value = 0;
+	document.getElementById("value_pressure_0_coord2_values").value = 0;
+	document.getElementById("value_pressure_0_coord3_values").value = 0;
+	document.getElementById("value_pressure_0_value").value = 1;
+	value_magnetic_field_adder.click();
+	document.getElementById("value_magnetic_field_0_geometry_id").value = 0;
+	document.getElementById("value_magnetic_field_0_time_stamps_id").value = 0;
+	document.getElementById("value_magnetic_field_0_coord1_values").value = 0;
+	document.getElementById("value_magnetic_field_0_coord2_values").value = 0;
+	document.getElementById("value_magnetic_field_0_coord3_values").value = 0;
+	document.getElementById("value_magnetic_field_0_value").value = "0.75, 1, 0";
+	box_geometry_adder.click();
+	document.getElementById("box1_startx").value = "0.5";
+	document.getElementById("box1_starty").value = "-99";
+	document.getElementById("box1_startz").value = "-99";
+	document.getElementById("box1_endx").value = "99";
+	document.getElementById("box1_endy").value = "99";
+	document.getElementById("box1_endz").value = "99";
+	value_mass_adder.click();
+	document.getElementById("value_mass_1_geometry_id").value = 0;
+	document.getElementById("value_mass_1_time_stamps_id").value = 0;
+	document.getElementById("value_mass_1_coord1_values").value = 0;
+	document.getElementById("value_mass_1_coord2_values").value = 0;
+	document.getElementById("value_mass_1_coord3_values").value = 0;
+	document.getElementById("value_mass_1_value").value = 0.125;
+	value_velocity_adder.click();
+	document.getElementById("value_velocity_1_geometry_id").value = 0;
+	document.getElementById("value_velocity_1_time_stamps_id").value = 0;
+	document.getElementById("value_velocity_1_coord1_values").value = 0;
+	document.getElementById("value_velocity_1_coord2_values").value = 0;
+	document.getElementById("value_velocity_1_coord3_values").value = 0;
+	document.getElementById("value_velocity_1_value").value = "0, 0, 0";
+	value_pressure_adder.click();
+	document.getElementById("value_pressure_1_geometry_id").value = 0;
+	document.getElementById("value_pressure_1_time_stamps_id").value = 0;
+	document.getElementById("value_pressure_1_coord1_values").value = 0;
+	document.getElementById("value_pressure_1_coord2_values").value = 0;
+	document.getElementById("value_pressure_1_coord3_values").value = 0;
+	document.getElementById("value_pressure_1_value").value = 0.1;
+	value_magnetic_field_adder.click();
+	document.getElementById("value_magnetic_field_1_geometry_id").value = 0;
+	document.getElementById("value_magnetic_field_1_time_stamps_id").value = 0;
+	document.getElementById("value_magnetic_field_1_coord1_values").value = 0;
+	document.getElementById("value_magnetic_field_1_coord2_values").value = 0;
+	document.getElementById("value_magnetic_field_1_coord3_values").value = 0;
+	document.getElementById("value_magnetic_field_1_value").value = "0.75, -1, 0";
 });
 
-kelvin_helmholtz_maker.addEventListener("click", function() {
-	remove_boundaries();
-	document.getElementById("solver_mhd").selectedIndex = "2";
-	document.getElementById("time_start").value = "0";
-	document.getElementById("time_length").value = "12";
-	document.getElementById("save_mhd_n").value = "1";
-	document.getElementById("resistivity").value = "0";
-	document.getElementById("remove_div_b_n").value = "0.05";
-	document.getElementById("adiabatic_index").value = "1.4";
-	document.getElementById("vacuum_permeability").value = "1";
-	document.getElementById("proton_mass").value = "1";
-	document.getElementById("time_step_factor").value = "0.5";
-	document.getElementById("output_directory").value = "kelvin-helmholtz/";
-	document.getElementById("periodic_x").selectedIndex = "1";
-	document.getElementById("periodic_y").selectedIndex = "1";
-	document.getElementById("periodic_z").selectedIndex = "0";
-	document.getElementById("cells_x").value = "50";
-	document.getElementById("cells_y").value = "50";
-	document.getElementById("cells_z").value = "1";
-	document.getElementById("volume_x").value = "1";
-	document.getElementById("volume_y").value = "1";
-	document.getElementById("volume_z").value = "1";
-	document.getElementById("start_x").value = "-0.5";
-	document.getElementById("start_y").value = "-0.5";
-	document.getElementById("start_z").value = "-0.5";
-	document.getElementById("init_default_mass").value = "abs(r[1]) < 0.25 ? 2 : 1";
-	document.getElementById("init_default_pressure").value = "3";
-	document.getElementById("init_default_vx").value
-		= "0.1 * sin(2*pi*r[0]) + (abs(r[1]) < 0.25 ? -0.5 : 0.5)";
-	document.getElementById("init_default_vy").value = "0.1 * cos(2*pi*r[0])";
-	document.getElementById("init_default_vz").value = "0";
-	document.getElementById("init_default_Bx").value = "0.25";
-	document.getElementById("init_default_By").value = "0";
-	document.getElementById("init_default_Bz").value = "0";
-	config_text_updater.click();
-});
-
-reconnection_maker.addEventListener("click", function() {
-	remove_boundaries();
-	document.getElementById("solver_mhd").selectedIndex = "2";
-	document.getElementById("time_start").value = "0";
-	document.getElementById("time_length").value = "20";
-	document.getElementById("save_mhd_n").value = "1";
-	document.getElementById("resistivity").value = "0";
-	document.getElementById("remove_div_b_n").value = "0.2";
-	document.getElementById("adiabatic_index").value = "1.666667";
-	document.getElementById("vacuum_permeability").value = "1";
-	document.getElementById("proton_mass").value = "1";
-	document.getElementById("time_step_factor").value = "0.5";
-	document.getElementById("output_directory").value = "reconnection/";
-	document.getElementById("periodic_x").selectedIndex = "1";
-	document.getElementById("periodic_y").selectedIndex = "0";
-	document.getElementById("periodic_z").selectedIndex = "0";
-	document.getElementById("cells_x").value = "2*51";
-	document.getElementById("cells_y").value = "1";
-	document.getElementById("cells_z").value = "51 + 2";
-	document.getElementById("volume_x").value = "25.6";
-	document.getElementById("volume_y").value = "12.8";
-	document.getElementById("volume_z").value = "12.8 * (1 + 2.0/51)";
-	document.getElementById("start_x").value = "-12.8";
-	document.getElementById("start_y").value = "-6.4";
-	document.getElementById("start_z").value = "-6.4 * (1 + 2.0/51)";
-	document.getElementById("init_default_mass").value
-		= "1/cosh(r[2] / 0.5)^2 + 0.2";
-	document.getElementById("init_default_pressure").value = "1";
-	document.getElementById("init_default_vx").value = "0";
-	document.getElementById("init_default_vy").value = "0";
-	document.getElementById("init_default_vz").value = "0";
-	document.getElementById("init_default_Bx").value
-		= "tanh(r[2] / 0.5) - 0.1 * pi/12.8 * cos(2*pi*r[0]/25.6) * sin(pi*r[2]/12.8)";
-	document.getElementById("init_default_By").value = "0";
-	document.getElementById("init_default_Bz").value
-		= "0.1 * 2*pi/25.6 * sin(2*pi*r[0]/25.6) * cos(pi*r[2]/12.8)";
-	copy_box_adder.click();
-	document.getElementById("copy_box_1_startx").value = "-999";
-	document.getElementById("copy_box_1_starty").value = "-999";
-	document.getElementById("copy_box_1_startz").value = "6.4";
-	document.getElementById("copy_box_1_endx").value = "999";
-	document.getElementById("copy_box_1_endy").value = "999";
-	document.getElementById("copy_box_1_endz").value = "999";
-	copy_box_adder.click();
-	document.getElementById("copy_box_2_startx").value = "-999";
-	document.getElementById("copy_box_2_starty").value = "-999";
-	document.getElementById("copy_box_2_startz").value = "-999";
-	document.getElementById("copy_box_2_endx").value = "999";
-	document.getElementById("copy_box_2_endy").value = "999";
-	document.getElementById("copy_box_2_endz").value = "-6.4";
-	config_text_updater.click();
-});
-
-orszag_tang_maker.addEventListener("click", function() {
-	remove_boundaries();
-	document.getElementById("solver_mhd").selectedIndex = "2";
-	document.getElementById("time_start").value = "0";
-	document.getElementById("time_length").value = "5";
-	document.getElementById("save_mhd_n").value = "0.5";
-	document.getElementById("resistivity").value = "0";
-	document.getElementById("remove_div_b_n").value = "0.1";
-	document.getElementById("adiabatic_index").value = "1.666667";
-	document.getElementById("vacuum_permeability").value = "1";
-	document.getElementById("proton_mass").value = "1";
-	document.getElementById("time_step_factor").value = "0.5";
-	document.getElementById("output_directory").value = "orszag-tang/";
-	document.getElementById("periodic_x").selectedIndex = "1";
-	document.getElementById("periodic_y").selectedIndex = "1";
-	document.getElementById("periodic_z").selectedIndex = "0";
-	document.getElementById("cells_x").value = "40";
-	document.getElementById("cells_y").value = "40";
-	document.getElementById("cells_z").value = "1";
-	document.getElementById("volume_x").value = "2*pi";
-	document.getElementById("volume_y").value = "2*pi";
-	document.getElementById("volume_z").value = "1";
-	document.getElementById("start_x").value = "0";
-	document.getElementById("start_y").value = "0";
-	document.getElementById("start_z").value = "0";
-	document.getElementById("init_default_mass").value = "1";
-	document.getElementById("init_default_pressure").value = "1";
-	document.getElementById("init_default_vx").value = "-sin(r[1])";
-	document.getElementById("init_default_vy").value = "sin(r[0])";
-	document.getElementById("init_default_vz").value = "0";
-	document.getElementById("init_default_Bx").value = "-sin(r[1])";
-	document.getElementById("init_default_By").value = "sin(2 * r[0])";
-	document.getElementById("init_default_Bz").value = "0";
-	config_text_updater.click();
-});
-
-bow_shock_maker.addEventListener("click", function() {
-	remove_boundaries();
-	document.getElementById("solver_mhd").selectedIndex = "1";
-	document.getElementById("time_start").value = "0";
-	document.getElementById("time_length").value = "10";
-	document.getElementById("save_mhd_n").value = "1";
-	document.getElementById("resistivity").value = "0";
-	document.getElementById("remove_div_b_n").value = "-1";
-	document.getElementById("adiabatic_index").value = "1.666667";
-	document.getElementById("vacuum_permeability").value = "1";
-	document.getElementById("proton_mass").value = "1";
-	document.getElementById("time_step_factor").value = "0.5";
-	document.getElementById("output_directory").value = "bow_shock/";
-	document.getElementById("periodic_x").selectedIndex = "0";
-	document.getElementById("periodic_y").selectedIndex = "0";
-	document.getElementById("periodic_z").selectedIndex = "0";
-	document.getElementById("cells_x").value = "2*30 + 2";
-	document.getElementById("cells_y").value = "3*30 + 2";
-	document.getElementById("cells_z").value = "1";
-	document.getElementById("volume_x").value = "2 + 2/30";
-	document.getElementById("volume_y").value = "3 + 2/30";
-	document.getElementById("volume_z").value = "2";
-	document.getElementById("start_x").value = "-1 - 1/30";
-	document.getElementById("start_y").value = "-1.5 - 1/30";
-	document.getElementById("start_z").value = "-1";
-	document.getElementById("init_default_mass").value = "0.01";
-	document.getElementById("init_default_pressure").value = "0.0015";
-	document.getElementById("init_default_vx").value = "r[0] > 0 and r[1] < 0.0625 and r[1] > -0.0625 ? 0 : 1";
-	document.getElementById("init_default_vy").value = "0";
-	document.getElementById("init_default_vz").value = "0";
-	document.getElementById("init_default_Bx").value = "0";
-	document.getElementById("init_default_By").value = "0";
-	document.getElementById("init_default_Bz").value = "0";
-	init_sphere_adder.click();
-	document.getElementById("init_sphere_1_centerx").value = "0";
-	document.getElementById("init_sphere_1_centery").value = "0";
-	document.getElementById("init_sphere_1_centerz").value = "0";
-	document.getElementById("init_sphere_1_radius").value = "0.0625";
-	document.getElementById("init_sphere_1_mass").value = "100";
-	document.getElementById("init_sphere_1_pressure").value = "0.0015";
-	document.getElementById("init_sphere_1_vx").value = "0";
-	document.getElementById("init_sphere_1_vy").value = "0";
-	document.getElementById("init_sphere_1_vz").value = "0";
-	document.getElementById("init_sphere_1_Bx").value = "0";
-	document.getElementById("init_sphere_1_By").value = "0";
-	document.getElementById("init_sphere_1_Bz").value = "0";
-	value_box_adder.click();
-	document.getElementById("value_box_1_startx").value = "-99";
-	document.getElementById("value_box_1_starty").value = "-99";
-	document.getElementById("value_box_1_startz").value = "-99";
-	document.getElementById("value_box_1_endx").value = "-1";
-	document.getElementById("value_box_1_endy").value = "99";
-	document.getElementById("value_box_1_endz").value = "99";
-	document.getElementById("value_box_1_time").value = "0";
-	document.getElementById("value_box_1_mass").value = "0.01";
-	document.getElementById("value_box_1_pressure").value = "0.0015";
-	document.getElementById("value_box_1_vx").value = "1";
-	document.getElementById("value_box_1_vy").value = "0";
-	document.getElementById("value_box_1_vz").value = "0";
-	document.getElementById("value_box_1_Bx").value = "0";
-	document.getElementById("value_box_1_By").value = "0";
-	document.getElementById("value_box_1_Bz").value = "0";
-	copy_box_adder.click();
-	document.getElementById("copy_box_1_startx").value = "1";
-	document.getElementById("copy_box_1_starty").value = "-99";
-	document.getElementById("copy_box_1_startz").value = "-99";
-	document.getElementById("copy_box_1_endx").value = "99";
-	document.getElementById("copy_box_1_endy").value = "99";
-	document.getElementById("copy_box_1_endz").value = "99";
-	copy_box_adder.click();
-	document.getElementById("copy_box_2_startx").value = "-99";
-	document.getElementById("copy_box_2_starty").value = "1.5";
-	document.getElementById("copy_box_2_startz").value = "-99";
-	document.getElementById("copy_box_2_endx").value = "99";
-	document.getElementById("copy_box_2_endy").value = "99";
-	document.getElementById("copy_box_2_endz").value = "99";
-	copy_box_adder.click()
-	document.getElementById("copy_box_3_startx").value = "-99";
-	document.getElementById("copy_box_3_starty").value = "-99";
-	document.getElementById("copy_box_3_startz").value = "-99";
-	document.getElementById("copy_box_3_endx").value = "99";
-	document.getElementById("copy_box_3_endy").value = "-1.5";
-	document.getElementById("copy_box_3_endz").value = "99";
-	config_text_updater.click();
-});
-
-blast_wave_maker.addEventListener("click", function() {
-	remove_boundaries();
-	document.getElementById("solver_mhd").selectedIndex = "2";
-	document.getElementById("time_start").value = "0";
-	document.getElementById("time_length").value = "0.5";
-	document.getElementById("save_mhd_n").value = "0.05";
-	document.getElementById("resistivity").value = "0";
-	document.getElementById("remove_div_b_n").value = "0.05";
-	document.getElementById("adiabatic_index").value = "1.666667";
-	document.getElementById("vacuum_permeability").value = "1";
-	document.getElementById("proton_mass").value = "1";
-	document.getElementById("time_step_factor").value = "0.5";
-	document.getElementById("output_directory").value = "blast_wave/";
-	document.getElementById("periodic_x").selectedIndex = "1";
-	document.getElementById("periodic_y").selectedIndex = "1";
-	document.getElementById("periodic_z").selectedIndex = "0";
-	document.getElementById("cells_x").value = "100";
-	document.getElementById("cells_y").value = "100";
-	document.getElementById("cells_z").value = "1";
-	document.getElementById("volume_x").value = "1";
-	document.getElementById("volume_y").value = "1";
-	document.getElementById("volume_z").value = "1";
-	document.getElementById("start_x").value = "-0.5";
-	document.getElementById("start_y").value = "-0.5";
-	document.getElementById("start_z").value = "-0.5";
-	document.getElementById("init_default_mass").value = "1";
-	document.getElementById("init_default_pressure").value = "0.1";
-	document.getElementById("init_default_vx").value = "0";
-	document.getElementById("init_default_vy").value = "0";
-	document.getElementById("init_default_vz").value = "0";
-	document.getElementById("init_default_Bx").value = "1/sqrt(2)";
-	document.getElementById("init_default_By").value = "1/sqrt(2)";
-	document.getElementById("init_default_Bz").value = "0";
-	init_sphere_adder.click();
-	document.getElementById("init_sphere_1_centerx").value = "0";
-	document.getElementById("init_sphere_1_centery").value = "0";
-	document.getElementById("init_sphere_1_centerz").value = "0";
-	document.getElementById("init_sphere_1_radius").value = "0.125";
-	document.getElementById("init_sphere_1_mass").value = "1";
-	document.getElementById("init_sphere_1_pressure").value = "10";
-	document.getElementById("init_sphere_1_vx").value = "0";
-	document.getElementById("init_sphere_1_vy").value = "0";
-	document.getElementById("init_sphere_1_vz").value = "0";
-	document.getElementById("init_sphere_1_Bx").value = "1/sqrt(2)";
-	document.getElementById("init_sphere_1_By").value = "1/sqrt(2)";
-	document.getElementById("init_sphere_1_Bz").value = "0";
-	config_text_updater.click();
-});
 
 }
-
-//! converts parentheses in submitted form to brackets
-function convert_parentheses() {
-	for (i in form.elements) {
-		element = form.elements[i];
-		if (typeof element.value == "string") {
-			element.value = element.value.split("(").join("[").split(")").join("]");
-		}
-	}
-	return true;
-}
-
-<!-- javascript functions end -->
 
 </script>
 
@@ -997,7 +1443,8 @@ function convert_parentheses() {
 <h2>Presets</h2>
 <p>
 Use these buttons to automatically fill the forms below to create configuration files for some example simulations.
-The corresponding configuration file will appear at the bottom of the page which you can copy &amp; paste into a local file and give to pamhd/tests/mhd/test.exe via its command line argument --config-file.<br>
+The corresponding configuration file will appear at the bottom of the page.
+If you have installed the model locally you can copy &amp; paste the configuration into a file and give it to pamhd/tests/mhd/test.exe as a command line argument.<br>
 <button id="make_shock_tube" type="button">Shock tube</button>
 <button id="make_kelvin_helmholtz" type="button">Kelvin-Helmholtz</button>
 <button id="make_reconnection" type="button">Reconnection</button>
@@ -1008,62 +1455,17 @@ The corresponding configuration file will appear at the bottom of the page which
 
 <h2>Configuration interface</h2>
 <p>
-Fill out the below forms with simulation parameters and hit the update button to see how the corresponding configuration file looks like.
-Use the add and remove buttons to modify the number of additional regions of different types of boundaries:
+Fill out the below forms with simulation parameters.
+Use the add and remove buttons to modify the number of additional regions of different types of boundaries for each simulation variable:
 <ul>
-<li>initial state: before simulation is started these regions are filled with given data</li>
-<li>value boundary: when simulation is running these regions are filled with given data after every solution</li>
-<li>copy boundary: when simulation is running these regions set their value based on data in nearest non-boundary cells after every solution</li>
+<li>initial condition: before simulation is started these regions are filled with given data</li>
+<li>value boundary: when simulation is running these regions are filled with given data after every simulation step</li>
+<li>copy boundary: when simulation is running these regions set their value based on data in nearest non-boundary cells after every simulation step</li>
 </ul>
-Expressions for values of MHD variables can refer to the x, y and z coordinates of cells' center with r[0], r[1] and r[2] respectively and current simulation time with t.
+Every type of boundary must refer to a region within the simulation by its geometry id.
+Simulation regions have to be added separately using buttons in the geometries part of the form.
+Expressions for values of MHD variables can refer to the x, y and z coordinates of cells' center with x, y, z respectively and current simulation time with t.
 </p>
-
-<p>
-<button id="add_init_box" type="button">
-	Add a new box region for setting initial simulation state
-</button>
-<button id="remove_init_box" type="button">
-	Remove last box region of initial simulation state
-</button><br>
-<button id="add_init_sphere" type="button">
-	Add a new spherical region for setting initial simulation state
-</button>
-<button id="remove_init_sphere" type="button">
-	Remove last spherical region of initial simulation state
-</button><br>
-</p>
-
-<p>
-<button id="add_value_box" type="button">
-	Add a new box region for value boundary
-</button>
-<button id="remove_value_box" type="button">
-	Remove last box region of value boundary
-</button><br>
-<button id="add_value_sphere" type="button">
-	Add a new spherical region for value boundary
-</button>
-<button id="remove_value_sphere" type="button">
-	Remove last spherical region of value boundary
-</button><br>
-</p>
-
-<p>
-<button id="add_copy_box" type="button">
-	Add a new box region for copy boundary
-</button>
-<button id="remove_copy_box" type="button">
-	Remove last box region of copy boundary
-</button><br>
-<button id="add_copy_sphere" type="button">
-	Add a new spherical region for copy boundary
-</button>
-<button id="remove_copy_sphere" type="button">
-	Remove last spherical region of copy boundary
-</button><br>
-</p>
-
-<button id="clear" type="button">Clear</button>
 
 <!-- form start -->
 
@@ -1074,9 +1476,9 @@ Expressions for values of MHD variables can refer to the x, y and z coordinates 
 
 		Solver to use
 		<select id="solver_mhd" name="solver_mhd" required>
-			<option value="hll_athena">hll_athena</option>
-			<option value="hlld_athena">hlld_athena</option>
-			<option value="roe_athena" selected>roe_athena</option>
+			<option value="hll-athena">hll-athena</option>
+			<option value="hlld-athena">hlld-athena</option>
+			<option value="roe-athena" selected>roe-athena</option>
 		</select><br>
 
 		Start time of simulation
@@ -1157,12 +1559,14 @@ Expressions for values of MHD variables can refer to the x, y and z coordinates 
 			onKeyUp="validate_expression(this.id, gt_zero, empty_context)"><span id="time_step_factor_test"></span>
 		<br>
 
+		<!-- outdir start -->
 		Output directory for results relative to current directory
 		<input
 			type="text"
 			id="output_directory"
 			name="output_directory">
 		<br>
+		<!-- outdir end -->
 	</fieldset>
 
 	<fieldset id="grid">
@@ -1256,80 +1660,133 @@ Expressions for values of MHD variables can refer to the x, y and z coordinates 
 		<br>
 	</fieldset>
 
-	<fieldset id="default_initial_condition">
-		<legend>Default initial condition of the simulation</legend>
 
-		Number density (> 0)
-		<input
-			type="text"
-			id="init_default_mass"
-			name="init_default_mass"
-			onKeyUp="validate_expression(this.id, gt_zero, time_place_context)"
-		>
-			<span id="init_default_mass_test"></span>
-		<br>
+	<fieldset id="geometries">
+		<legend>Geometries for initial and boundary conditions</legend>
 
-		Thermal pressure (> 0)
-		<input
-			type="text"
-			id="init_default_pressure"
-			name="init_default_pressure"
-			onKeyUp="validate_expression(this.id, gt_zero, time_place_context)"
-		>
-			<span id="init_default_pressure_test"></span>
-		<br>
+		<button id="add_box_geometry" type="button">
+			Add box
+		</button>
 
-		Velocity components (x, y, z)
-		<input
-			type="text"
-			id="init_default_vx"
-			name="init_default_vx"
-			onKeyUp="validate_expression(this.id, isFinite, time_place_context)"
-		>
-			<span id="init_default_vx_test"></span>
-		<input
-			type="text"
-			id="init_default_vy"
-			name="init_default_vy"
-			onKeyUp="validate_expression(this.id, isFinite, time_place_context)"
-		>
-			<span id="init_default_vy_test"></span>
-		<input
-			type="text"
-			id="init_default_vz"
-			name="init_default_vz"
-			onKeyUp="validate_expression(this.id, isFinite, time_place_context)"
-		>
-			<span id="init_default_vz_test"></span>
-		<br>
+		<button id="add_sphere_geometry" type="button">
+			Add sphere
+		</button>
 
-		Magnetic field components (x, y, z)
-		<input
-			type="text"
-			id="init_default_Bx"
-			name="init_default_Bx"
-			onKeyUp="validate_expression(this.id, isFinite, time_place_context)"
-		>
-			<span id="init_default_Bx_test"></span>
-		<input
-			type="text"
-			id="init_default_By"
-			name="init_default_By"
-			onKeyUp="validate_expression(this.id, isFinite, time_place_context)"
-		>
-			<span id="init_default_By_test"></span>
-		<input
-			type="text"
-			id="init_default_Bz"
-			name="init_default_Bz"
-			onKeyUp="validate_expression(this.id, isFinite, time_place_context)"
-		>
-			<span id="init_default_Bz_test"></span>
-		<br>
+		<button id="remove_geometry_btn" type="button">
+			Remove last
+		</button>
 	</fieldset>
+
+
+	<fieldset id="number_density_info">
+		<legend>Number density</legend>
+
+		Default (> 0, mandatory)
+		<input
+			type="text"
+			id="default_mass"
+			name="default_mass"
+			onKeyUp="validate_expression(this.id, gt_zero, time_place_context)"
+		>
+			<span id="default_mass_test"></span>
+		<br>
+
+		<button id="add_initial_mass" type="button">
+			Add initial condition
+		</button>
+
+		<button id="add_value_mass" type="button">
+			Add value boundary
+		</button>
+
+		<button id="add_copy_mass" type="button">
+			Add copy boundary
+		</button>
+	</fieldset>
+
+	<fieldset id="velocity_info">
+		<legend>Velocity</legend>
+
+		Default (mandatory)
+		<input
+			type="text"
+			id="default_velocity"
+			name="default_velocity"
+			onKeyUp="validate_expression(this.id, isFinite, time_place_context)"
+		>
+			<span id="default_velocity_test"></span>
+		<br>
+
+		<button id="add_initial_velocity" type="button">
+			Add initial condition
+		</button>
+
+		<button id="add_value_velocity" type="button">
+			Add value boundary
+		</button>
+
+		<button id="add_copy_velocity" type="button">
+			Add copy boundary
+		</button>
+	</fieldset>
+
+	<fieldset id="pressure_info">
+		<legend>Thermal pressure</legend>
+
+		Default (> 0, mandatory)
+		<input
+			type="text"
+			id="default_pressure"
+			name="default_pressure"
+			onKeyUp="validate_expression(this.id, gt_zero, time_place_context)"
+		>
+			<span id="default_pressure_test"></span>
+		<br>
+
+		<button id="add_initial_pressure" type="button">
+			Add initial condition
+		</button>
+
+		<button id="add_value_pressure" type="button">
+			Add value boundary
+		</button>
+
+		<button id="add_copy_pressure" type="button">
+			Add copy boundary
+		</button>
+	</fieldset>
+
+	<fieldset id="magnetic_field_info">
+		<legend>Magnetic field</legend>
+
+		Default (mandatory)
+		<input
+			type="text"
+			id="default_magnetic_field"
+			name="default_magnetic_field"
+			onKeyUp="validate_expression(this.id, isFinite, time_place_context)"
+		>
+			<span id="default_magnetic_field_test"></span>
+		<br>
+
+		<button id="add_initial_magnetic_field" type="button">
+			Add initial condition
+		</button>
+
+		<button id="add_value_magnetic_field" type="button">
+			Add value boundary
+		</button>
+
+		<button id="add_copy_magnetic_field" type="button">
+			Add copy boundary
+		</button>
+	</fieldset>
+
 </form>
-<button id="update_config_text" type="button">Update config file contents</button> 
-<samp id="config_text"><br>Push the button above to see contents of current configuration file</samp>
+<button id="clear" type="button">Clear</button><br><br>
+
+<button id="update_config_text" type="button">View configuration</button> 
+<samp id="config_text"><br>Push the button above to see current configuration</samp>
 
 <!-- form end -->
 
