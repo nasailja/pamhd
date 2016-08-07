@@ -38,6 +38,8 @@ MUPARSERX_CPPFLAGS = -I $(HOME)/include
 MUPARSERX_LDFLAGS = -L $(HOME)/lib
 MUPARSERX_LIBS = -lmuparserx
 
+RAPIDJSON_CPPFLAGS = -I $(HOME)/libraries/rapidjson/include
+
 VECTORCLASS_CPPFLAGS = -I $(HOME)/libraries/vectorclass
 
 ZOLTAN_CPPFLAGS = -I $(HOME)/include
