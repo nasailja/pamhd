@@ -196,7 +196,10 @@ boost::optional<std::array<double, 4>> read_data(
 		Electric_Current_Density(),
 		Solver_Info(),
 		MPI_Rank(),
-		Resistivity()
+		Resistivity(),
+		Bg_Magnetic_Field_Pos_X(),
+		Bg_Magnetic_Field_Pos_Y(),
+		Bg_Magnetic_Field_Pos_Z()
 	);
 	for (const auto& item: cells_offsets) {
 		const uint64_t
@@ -377,6 +380,35 @@ void convert(
 		vtk_file << simulation_data.at(cell)[Cell_Type()] << "\n";
 	}*/
 
+	const Bg_Magnetic_Field_Pos_X BgBPX{};
+	vtk_file << "VECTORS background_B_pos_x float\n";
+	for (const auto& cell: cells) {
+		const auto magnetic_field = simulation_data.at(cell)[BgBPX];
+		vtk_file
+			<< magnetic_field[0] << " "
+			<< magnetic_field[1] << " "
+			<< magnetic_field[2] << "\n";
+	}
+
+	const Bg_Magnetic_Field_Pos_Y BgBPY{};
+	vtk_file << "VECTORS background_B_pos_y float\n";
+	for (const auto& cell: cells) {
+		const auto magnetic_field = simulation_data.at(cell)[BgBPY];
+		vtk_file
+			<< magnetic_field[0] << " "
+			<< magnetic_field[1] << " "
+			<< magnetic_field[2] << "\n";
+	}
+
+	const Bg_Magnetic_Field_Pos_Z BgBPZ{};
+	vtk_file << "VECTORS background_B_pos_z float\n";
+	for (const auto& cell: cells) {
+		const auto magnetic_field = simulation_data.at(cell)[BgBPZ];
+		vtk_file
+			<< magnetic_field[0] << " "
+			<< magnetic_field[1] << " "
+			<< magnetic_field[2] << "\n";
+	}
 }
 
 

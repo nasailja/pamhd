@@ -2,7 +2,7 @@
 '''
 Function for reading output of PAMHD MHD test program.
 
-Copyright 2015 Ilja Honkonen
+Copyright 2015, 2016 Ilja Honkonen
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification,
@@ -87,7 +87,10 @@ magnetic field,
 electric current density,
 cell type,
 mpi rank,
-electric resistivity.
+electric resistivity,
+background magnetic field at cell face in positive x direction,
+background magnetic field at cell face in positive y direction,
+background magnetic field at cell face in positive z direction
 
 Every call appends only one tuple to each key, i.e. if called
 on an empty dictionary every list will have only one tuple.
@@ -179,7 +182,7 @@ def load(file_name, mhd_data):
 		infile.seek(item[1], 0)
 		temp = numpy.fromfile(
 			infile,
-			dtype = 'double, 3double, double, 3double, 3double, intc, intc, double',
+			dtype = 'double, 3double, double, 3double, 3double, intc, intc, double, 3double, 3double, 3double',
 			count = 1
 		)[0]
 
@@ -193,7 +196,10 @@ def load(file_name, mhd_data):
 			temp[4],
 			temp[5],
 			temp[6],
-			temp[7]
+			temp[7],
+			temp[8],
+			temp[9],
+			temp[10]
 		)
 		if cell_id in mhd_data:
 			mhd_data[cell_id].append(data)

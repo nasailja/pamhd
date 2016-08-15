@@ -197,7 +197,10 @@ boost::optional<std::array<double, 4>> read_data(
 		Electric_Current_Density(),
 		Solver_Info(),
 		MPI_Rank(),
-		Resistivity()
+		Resistivity(),
+		Bg_Magnetic_Field_Pos_X(),
+		Bg_Magnetic_Field_Pos_Y(),
+		Bg_Magnetic_Field_Pos_Z()
 	);
 	for (const auto& item: cells_offsets) {
 		const uint64_t
@@ -382,11 +385,11 @@ int plot_1d(
 	}
 	gnuplot_file << "end\nreset\n";
 
-	// magnetic field
+	// magnetic fields
 	gnuplot_file
 		<< common_cmd
 		<< "\nset output '"
-		<< output_file_name_prefix + "_B.png"
+		<< output_file_name_prefix + "_B1.png"
 		<< "'\n" << magnetic_field_cmd
 		<< "\nset key horizontal bottom outside\nplot "
 		     "'-' u 1:2 w l lw 2 t 'component 1', "
@@ -415,6 +418,37 @@ int plot_1d(
 		const auto& mhd_data
 			= simulation_data.at(cell_id)[MHD_State_Conservative()];
 		const auto& B = mhd_data[Magnetic_Field()];
+		const double x = geometry.get_center(cell_id)[tube_dim];
+		gnuplot_file << x << " " << B[2] << "\n";
+	}
+	gnuplot_file << "end\nreset\n";
+
+	gnuplot_file
+		<< common_cmd
+		<< "\nset output '"
+		<< output_file_name_prefix + "_B0px.png"
+		<< "'\n" << magnetic_field_cmd
+		<< "\nset key horizontal bottom outside\nplot "
+		     "'-' u 1:2 w l lw 2 t 'component 1', "
+		     "'-' u 1:2 w l lw 2 t 'component 2', "
+		     "'-' u 1:2 w l lw 2 t 'component 3'\n";
+
+	for (const auto& cell_id: cells) {
+		const auto& B = simulation_data.at(cell_id)[Bg_Magnetic_Field_Pos_X()];
+		const double x = geometry.get_center(cell_id)[tube_dim];
+		gnuplot_file << x << " " << B[0] << "\n";
+	}
+	gnuplot_file << "end\n";
+
+	for (const auto& cell_id: cells) {
+		const auto& B = simulation_data.at(cell_id)[Bg_Magnetic_Field_Pos_X()];
+		const double x = geometry.get_center(cell_id)[tube_dim];
+		gnuplot_file << x << " " << B[1] << "\n";
+	}
+	gnuplot_file << "end\n";
+
+	for (const auto& cell_id: cells) {
+		const auto& B = simulation_data.at(cell_id)[Bg_Magnetic_Field_Pos_X()];
 		const double x = geometry.get_center(cell_id)[tube_dim];
 		gnuplot_file << x << " " << B[2] << "\n";
 	}

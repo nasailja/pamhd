@@ -54,6 +54,8 @@ Returns negative pressure if total energy in given state
 is smaller than kinetic + magnetic energies.
 
 Mom and mag must be compatible with std::array<double, 3>.
+
+mag must not include background magnetic field.
 */
 template <
 	class Momentum_Density,
@@ -119,12 +121,14 @@ Throws std::domain_error if given a state with non-positive mass density.
 */
 template <
 	class Container,
+	class Vector,
 	class Mass_Density_Getter,
 	class Momentum_Density_Getter,
 	class Total_Energy_Density_Getter,
 	class Magnetic_Field_Getter
 > Container get_flux(
 	Container& data,
+	const Vector& bg_face_magnetic_field,
 	const double adiabatic_index,
 	const double vacuum_permeability,
 	const Mass_Density_Getter Mas,
@@ -141,14 +145,29 @@ template <
 		);
 	}
 
+	const auto mag_tot = Mag(data) + bg_face_magnetic_field;
 	const auto
 		inv_permeability = 1.0 / vacuum_permeability,
-		pressure_magnetic
+		pressure_B0
+			= 0.5 * inv_permeability
+			* (
+				bg_face_magnetic_field[0] * bg_face_magnetic_field[0]
+				+ bg_face_magnetic_field[1] * bg_face_magnetic_field[1]
+				+ bg_face_magnetic_field[2] * bg_face_magnetic_field[2]
+			),
+		pressure_B1
 			= 0.5 * inv_permeability
 			* (
 				Mag(data)[0] * Mag(data)[0]
 				+ Mag(data)[1] * Mag(data)[1]
 				+ Mag(data)[2] * Mag(data)[2]
+			),
+		pressure_B_tot
+			= 0.5 * inv_permeability
+			* (
+				mag_tot[0] * mag_tot[0]
+				+ mag_tot[1] * mag_tot[1]
+				+ mag_tot[2] * mag_tot[2]
 			),
 		pressure_thermal
 			= get_pressure(
@@ -168,14 +187,21 @@ template <
 
 	Mom(flux)
 		= Mom(data) * velocity[0]
-		- Mag(data)[0] * Mag(data) * inv_permeability;
-	Mom(flux)[0] += pressure_thermal + pressure_magnetic;
+		- inv_permeability * (
+			mag_tot[0] * mag_tot
+			- bg_face_magnetic_field[0] * bg_face_magnetic_field
+		);
+	Mom(flux)[0] += pressure_thermal + pressure_B_tot - pressure_B0;
 
 	Nrj(flux)
-		= velocity[0] * (Nrj(data) + pressure_thermal + pressure_magnetic)
-		- Mag(data)[0] * velocity.dot(Mag(data)) * inv_permeability;
+		= velocity[0] * (Nrj(data) + pressure_thermal + pressure_B1)
+		- Mag(data)[0] * velocity.dot(Mag(data)) * inv_permeability
+		+ inv_permeability * (
+			Mag(data)[1] * (velocity[0] * bg_face_magnetic_field[1] - velocity[1] * bg_face_magnetic_field[0])
+			+ Mag(data)[2] * (velocity[0] * bg_face_magnetic_field[2] - velocity[2] * bg_face_magnetic_field[0])
+		);
 
-	Mag(flux) = velocity[0] * Mag(data) - Mag(data)[0] * velocity;
+	Mag(flux) = velocity[0] * mag_tot - mag_tot[0] * velocity;
 	Mag(flux)[0] = 0;
 
 	return flux;
@@ -255,6 +281,8 @@ Throws std::domain_error if given a state with
 non-positive mass density or pressure.
 
 Mom and mag must be compatible with std::array<double, 3>.
+
+mag must not include background magnetic field.
 */
 template <
 	class Momentum_Density,
@@ -306,12 +334,14 @@ Throws std::domain_error if given a state with non-positive mass density.
 Mag must be compatible with std::array<double, 3>.
 */
 template <
-	class Magnetic_Field
+	class Vector
 > double get_alfven_speed(
 	const double& mass_density,
-	const Magnetic_Field& mag,
+	const Vector& mag,
+	const Vector& bg_mag,
 	const double vacuum_permeability
 ) {
+	using std::pow;
 	using std::sqrt;
 
 	if (mass_density <= 0) {
@@ -323,7 +353,11 @@ template <
 		);
 	}
 
-	const auto mag_mag = sqrt(mag[0]*mag[0] + mag[1]*mag[1] + mag[2]*mag[2]);
+	const auto mag_mag = sqrt(
+		pow(mag[0] + bg_mag[0], 2)
+		+ pow(mag[1] + bg_mag[1], 2)
+		+ pow(mag[2] + bg_mag[2], 2)
+	);
 	return mag_mag / sqrt(vacuum_permeability * mass_density);
 }
 
@@ -336,24 +370,30 @@ Returns a non-negative value.
 Mom and mag must be compatible with std::array<double, 3>.
 */
 template <
-	class Momentum_Density,
-	class Magnetic_Field
+	class Vector
 > double get_fast_magnetosonic_speed(
 	const double& mass_density,
-	const Momentum_Density& mom,
+	const Vector& momentum_density,
 	const double& total_energy_density,
-	const Magnetic_Field& mag,
+	const Vector& mag,
+	const Vector& bg_mag,
 	const double adiabatic_index,
 	const double vacuum_permeability
 ) {
 	using std::pow;
 	using std::sqrt;
 
+	const auto mag_tot = mag + bg_mag;
+
 	const auto
-		mag_mag = sqrt(mag[0]*mag[0] + mag[1]*mag[1] + mag[2]*mag[2]),
+		mag_mag = sqrt(
+			pow(mag_tot[0], 2)
+			+ pow(mag_tot[1], 2)
+			+ pow(mag_tot[2], 2)
+		),
 		sound = get_sound_speed(
 			mass_density,
-			mom,
+			momentum_density,
 			total_energy_density,
 			mag,
 			adiabatic_index,
@@ -366,20 +406,19 @@ template <
 
 	const auto
 		sound2 = sound * sound,
-		alfven2
-			= pow(
-				get_alfven_speed(mass_density, mag, vacuum_permeability),
-				2
-			),
-		squared_sum = sound2 + alfven2;
+		alfven2 = pow(
+			get_alfven_speed(mass_density, mag, bg_mag, vacuum_permeability),
+			2
+		),
+		speeds_squared = sound2 + alfven2;
 
 	return
 		sqrt(
 			0.5 * (
-				squared_sum
+				speeds_squared
 				+ sqrt(
-					pow(squared_sum, 2)
-					- 4 * sound2 * alfven2 * pow(mag[0] / mag_mag, 2)
+					pow(speeds_squared, 2)
+					- 4 * sound2 * alfven2 * pow(mag_tot[0] / mag_mag, 2)
 				)
 			)
 		);
@@ -508,7 +547,8 @@ Output:
 See for example hll_athena.hpp for an implementation.
 */
 template <
-	class MHD
+	class MHD,
+	class Vector
 > using solver_t = std::function<
 	std::tuple<
 		MHD,
@@ -516,6 +556,7 @@ template <
 	>(
 		MHD& /* state_neg */,
 		MHD& /* state_pos */,
+		const Vector& /* bg_face_magnetic_field */,
 		const double& /* shared_area */,
 		const double& /* dt */,
 		const double& /* adiabatic_index */,

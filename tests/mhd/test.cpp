@@ -49,6 +49,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "boundaries/multivariable_initial_conditions.hpp"
 #include "divergence/remove.hpp"
 #include "grid_options.hpp"
+#include "mhd/background_magnetic_field.hpp"
 #include "mhd/boundaries.hpp"
 #include "mhd/common.hpp"
 #include "mhd/hll_athena.hpp"
@@ -88,6 +89,20 @@ const auto Nrj
 const auto Mag
 	= [](Cell& cell_data)->typename pamhd::mhd::Magnetic_Field::data_type&{
 		return cell_data[pamhd::mhd::MHD_State_Conservative()][pamhd::mhd::Magnetic_Field()];
+	};
+
+// references to background magnetic fields
+const auto Bg_B_Pos_X
+	= [](Cell& cell_data)->typename pamhd::mhd::Bg_Magnetic_Field_Pos_X::data_type&{
+		return cell_data[pamhd::mhd::Bg_Magnetic_Field_Pos_X()];
+	};
+const auto Bg_B_Pos_Y
+	= [](Cell& cell_data)->typename pamhd::mhd::Bg_Magnetic_Field_Pos_Y::data_type&{
+		return cell_data[pamhd::mhd::Bg_Magnetic_Field_Pos_Y()];
+	};
+const auto Bg_B_Pos_Z
+	= [](Cell& cell_data)->typename pamhd::mhd::Bg_Magnetic_Field_Pos_Z::data_type&{
+		return cell_data[pamhd::mhd::Bg_Magnetic_Field_Pos_Z()];
 	};
 
 // solver info variable for boundary logic
@@ -234,16 +249,18 @@ int main(int argc, char* argv[])
 
 				return pamhd::mhd::athena::get_flux_hll<
 					pamhd::mhd::MHD_Conservative,
+					pamhd::mhd::Magnetic_Field::data_type,
 					pamhd::mhd::Mass_Density,
 					pamhd::mhd::Momentum_Density,
 					pamhd::mhd::Total_Energy_Density,
 					pamhd::mhd::Magnetic_Field
 				>;
 
-			} else if (options_mhd.solver == "hlld-athena") {
+			}/* else if (options_mhd.solver == "hlld-athena") {
 
 				return pamhd::mhd::athena::get_flux_hlld<
 					pamhd::mhd::MHD_Conservative,
+					pamhd::mhd::Magnetic_Field::data_type,
 					pamhd::mhd::Mass_Density,
 					pamhd::mhd::Momentum_Density,
 					pamhd::mhd::Total_Energy_Density,
@@ -259,9 +276,15 @@ int main(int argc, char* argv[])
 					pamhd::mhd::Total_Energy_Density,
 					pamhd::mhd::Magnetic_Field
 				>;
-			} else {
-				std::cerr <<  __FILE__ << ":" << __LINE__ << std::endl;
-				abort();
+			}*/ else {
+				return pamhd::mhd::athena::get_flux_hll<
+					pamhd::mhd::MHD_Conservative,
+					pamhd::mhd::Magnetic_Field::data_type,
+					pamhd::mhd::Mass_Density,
+					pamhd::mhd::Momentum_Density,
+					pamhd::mhd::Total_Energy_Density,
+					pamhd::mhd::Magnetic_Field
+				>;
 			}
 		}();
 
@@ -295,6 +318,10 @@ int main(int argc, char* argv[])
 	> boundaries;
 	boundaries.set(document);
 
+	pamhd::mhd::Background_Magnetic_Field<
+		pamhd::mhd::Magnetic_Field::data_type
+	> background_B;
+	background_B.set(document);
 
 	/*
 	Prepare resistivity
@@ -379,6 +406,7 @@ int main(int argc, char* argv[])
 	}
 
 	grid.balance_load();
+
 	// update owner process of cells for saving into file
 	for (auto& cell: grid.cells) {
 		(*cell.data)[pamhd::mhd::MPI_Rank()] = rank;
@@ -429,6 +457,7 @@ int main(int argc, char* argv[])
 	pamhd::mhd::initialize(
 		geometries,
 		initial_conditions,
+		background_B,
 		grid,
 		cells,
 		simulation_time,
@@ -437,24 +466,30 @@ int main(int argc, char* argv[])
 		options_mhd.proton_mass,
 		verbose,
 		Mas, Mom, Nrj, Mag,
+		Bg_B_Pos_X, Bg_B_Pos_Y, Bg_B_Pos_Z,
 		Mas_f, Mom_f, Nrj_f, Mag_f
 	);
-	// initialize other variables
-	for (const auto& item: cell_data_pointers) {
-		const auto& cell_id = get<0>(item);
-		if (cell_id == dccrg::error_cell) {
-			continue;
-		}
 
-		const auto& offset = get<2>(item);
-		if (offset[0] != 0 or offset[1] != 0 or offset[2] != 0) {
-			continue;
-		}
+	// update background field between processes
+	Cell::set_transfer_all(
+		true,
+		pamhd::mhd::Bg_Magnetic_Field_Pos_X(),
+		pamhd::mhd::Bg_Magnetic_Field_Pos_Y(),
+		pamhd::mhd::Bg_Magnetic_Field_Pos_Z()
+	);
+	grid.update_copies_of_remote_neighbors();
+	Cell::set_transfer_all(
+		false,
+		pamhd::mhd::Bg_Magnetic_Field_Pos_X(),
+		pamhd::mhd::Bg_Magnetic_Field_Pos_Y(),
+		pamhd::mhd::Bg_Magnetic_Field_Pos_Z()
+	);
 
-		auto* const cell_data = get<1>(item);
-		Res(*cell_data) = 0;
-		(*cell_data)[pamhd::mhd::MPI_Rank()] = rank;
+	// initialize resistivity
+	for (auto& cell: grid.cells) {
+		Res(*cell.data) = 0;
 	}
+
 	pamhd::mhd::apply_boundaries(
 		grid,
 		boundaries,
@@ -549,6 +584,7 @@ int main(int argc, char* argv[])
 			options_mhd.adiabatic_index,
 			options_mhd.vacuum_permeability,
 			Mas, Mom, Nrj, Mag,
+			Bg_B_Pos_X, Bg_B_Pos_Y, Bg_B_Pos_Z,
 			Mas_f, Mom_f, Nrj_f, Mag_f,
 			Sol_Info
 		);
@@ -570,6 +606,7 @@ int main(int argc, char* argv[])
 			options_mhd.adiabatic_index,
 			options_mhd.vacuum_permeability,
 			Mas, Mom, Nrj, Mag,
+			Bg_B_Pos_X, Bg_B_Pos_Y, Bg_B_Pos_Z,
 			Mas_f, Mom_f, Nrj_f, Mag_f,
 			Sol_Info
 		);
@@ -839,7 +876,10 @@ int main(int argc, char* argv[])
 					pamhd::mhd::Electric_Current_Density(),
 					pamhd::mhd::Solver_Info(),
 					pamhd::mhd::MPI_Rank(),
-					pamhd::mhd::Resistivity()
+					pamhd::mhd::Resistivity(),
+					pamhd::mhd::Bg_Magnetic_Field_Pos_X(),
+					pamhd::mhd::Bg_Magnetic_Field_Pos_Y(),
+					pamhd::mhd::Bg_Magnetic_Field_Pos_Z()
 				)
 			) {
 				std::cerr <<  __FILE__ << "(" << __LINE__ << "): "

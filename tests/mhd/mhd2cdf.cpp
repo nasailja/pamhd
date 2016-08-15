@@ -198,7 +198,10 @@ boost::optional<std::array<double, 4>> read_data(
 		Electric_Current_Density(),
 		Solver_Info(),
 		MPI_Rank(),
-		Resistivity()
+		Resistivity(),
+		Bg_Magnetic_Field_Pos_X(),
+		Bg_Magnetic_Field_Pos_Y(),
+		Bg_Magnetic_Field_Pos_Z()
 	);
 	for (const auto& item: cells_offsets) {
 		const uint64_t

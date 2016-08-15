@@ -48,7 +48,10 @@
 function pamhd_read_mhd, filename, variable_names = variable_names, variable_descriptions = variable_descriptions, data_field = data_field, meta_data = meta_data, sort_data = sort_data
 
 	variable_names = 'rx,ry,rz,dx,dy,dz,mas,momx,momy,momz,nrj,'
-	variable_names += 'magx,magy,magz,curx,cury,curz,res,rank,type'
+	variable_names += 'magx,magy,magz,curx,cury,curz,res,rank,type,'
+	variable_names += 'pxbgmagx,pxbgmagy,pxbgmagz,'
+	variable_names += 'pybgmagx,pybgmagy,pybgmagz,'
+	variable_names += 'pzbgmagx,pzbgmagy,pzbgmagz'
 
 	variable_descriptions = 'x coord of cell center, '
 	variable_descriptions += 'y coord of cell center, '
@@ -70,7 +73,16 @@ function pamhd_read_mhd, filename, variable_names = variable_names, variable_des
 	variable_descriptions += 'electrical resistivity, '
 	variable_descriptions += 'owner of cell (MPI rank), '
 	variable_descriptions += 'cell type (0 = normal, 1 = dont solve, '
-	variable_descriptions += '2 = value boundary, 3 = copy boundary)'
+	variable_descriptions += '2 = value boundary, 3 = copy boundary), '
+	variable_descriptions += 'x component of background magnetic field on positive x side cell face, '
+	variable_descriptions += 'y component of background magnetic field on pos x face, '
+	variable_descriptions += 'z component of background magnetic field on pos x face, '
+	variable_descriptions += 'background Bx on positive y side cell face, '
+	variable_descriptions += 'background By on pos y face, '
+	variable_descriptions += 'background Bz on pos y face, '
+	variable_descriptions += 'background Bx on pos z face, '
+	variable_descriptions += 'background By on pos z face, '
+	variable_descriptions += 'background Bz on pos z face'
 
 	openr, in_file, filename, /get_lun
 
@@ -243,16 +255,17 @@ function pamhd_read_mhd, filename, variable_names = variable_names, variable_des
 	endif
 
 	; read cell data into final array
-	data_field = make_array(20, total_cells, /double) ; returned to user
+	data_field = make_array(29, total_cells, /double) ; returned to user
 	cell_data1 = make_array(11, /double)
 	cell_data2 = make_array(2, /long)
 	cell_data3 = make_array(1, /double)
+	cell_data4 = make_array(9, /double)
 	for i = ulong64(0), total_cells - ulong64(1) do begin
 		cell_id = cell_ids_data_offsets[0, i]
 		data_offset = cell_ids_data_offsets[1, i]
 
 		point_lun, in_file, data_offset
-		readu, in_file, cell_data1, cell_data2, cell_data3, transfer_count = items_read
+		readu, in_file, cell_data1, cell_data2, cell_data3, cell_data4, transfer_count = items_read
 		if (items_read ne 1) then begin
 			close, in_file
 			free_lun, in_file
@@ -265,6 +278,7 @@ function pamhd_read_mhd, filename, variable_names = variable_names, variable_des
 		data_field[17, i] = cell_data3[0]
 		data_field[18, i] = double(cell_data2[1])
 		data_field[19, i] = double(cell_data2[0])
+		data_field[20, i] = cell_data4
 
 		; add derived data, defined by get_center() function in
 		; dccrg_cartesian_geometry.hpp file of dccrg

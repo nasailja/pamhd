@@ -28,7 +28,6 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "tuple"
 
 #include "boost/lexical_cast.hpp"
-#include "gensimcell.hpp"
 
 #include "mhd/common.hpp"
 
@@ -41,9 +40,13 @@ namespace athena {
 /*!
 Returns the flux between states and maximum signal speed from cells' shared face.
 
-\param [Mass_Density_T] Used to access mass density in MHD states
+\param [Mass_Density] Used to access mass density of MHD states
+\param [Momentum_Density] Used to access momentum density of MHD states
+\param [Total_Energy_Density] Used to access total energy density of MHD states
+\param [Magnetic_Field] Used to access magnetic field of MHD states
 \param [state_neg] MHD state in negative x direction from the face
 \param [state_pos] MHD state in positive x direction from the face
+\param [bg_face_magnetic_field] Background magnetic field at face
 \param [area] Area of the face shared by volumes of state_neg and state_pos
 \param [dt] Length of time for which flux is calculated
 \param [adiabatic_index] en.wikipedia.org/wiki/Heat_capacity_ratio
@@ -51,13 +54,15 @@ Returns the flux between states and maximum signal speed from cells' shared face
 */
 template <
 	class MHD,
-	class Mass_Density_T,
-	class Momentum_Density_T,
-	class Total_Energy_Density_T,
-	class Magnetic_Field_T
+	class Vector,
+	class Mass_Density,
+	class Momentum_Density,
+	class Total_Energy_Density,
+	class Magnetic_Field
 > std::tuple<MHD, double> get_flux_hll(
 	MHD& state_neg,
 	MHD& state_pos,
+	const Vector& bg_face_magnetic_field,
 	const double& area,
 	const double& dt,
 	const double& adiabatic_index,
@@ -66,10 +71,10 @@ template <
 	using std::isnormal;
 	using std::isfinite;
 
-	const Mass_Density_T Mas{};
-	const Momentum_Density_T Mom{};
-	const Total_Energy_Density_T Nrj{};
-	const Magnetic_Field_T Mag{};
+	const Mass_Density Mas{};
+	const Momentum_Density Mom{};
+	const Total_Energy_Density Nrj{};
+	const Magnetic_Field Mag{};
 
 	const auto
 		flow_v_neg = get_velocity(state_neg[Mom], state_neg[Mas]),
@@ -108,6 +113,7 @@ template <
 				state_neg[Mom],
 				state_neg[Nrj],
 				state_neg[Mag],
+				bg_face_magnetic_field,
 				adiabatic_index,
 				vacuum_permeability
 			),
@@ -118,6 +124,7 @@ template <
 				state_pos[Mom],
 				state_pos[Nrj],
 				state_pos[Mag],
+				bg_face_magnetic_field,
 				adiabatic_index,
 				vacuum_permeability
 			),
@@ -191,26 +198,27 @@ template <
 	}
 
 	const auto Mas_getter
-		= [](MHD& state) -> typename Mass_Density_T::data_type& {
-			return state[Mass_Density_T()];
+		= [](MHD& state) -> typename Mass_Density::data_type& {
+			return state[Mass_Density()];
 		};
 	const auto Mom_getter
-		= [](MHD& state) -> typename Momentum_Density_T::data_type& {
-			return state[Momentum_Density_T()];
+		= [](MHD& state) -> typename Momentum_Density::data_type& {
+			return state[Momentum_Density()];
 		};
 	const auto Nrj_getter
-		= [](MHD& state) -> typename Total_Energy_Density_T::data_type& {
-			return state[Total_Energy_Density_T()];
+		= [](MHD& state) -> typename Total_Energy_Density::data_type& {
+			return state[Total_Energy_Density()];
 		};
 	const auto Mag_getter
-		= [](MHD& state) -> typename Magnetic_Field_T::data_type& {
-			return state[Magnetic_Field_T()];
+		= [](MHD& state) -> typename Magnetic_Field::data_type& {
+			return state[Magnetic_Field()];
 		};
 
 	MHD
 		flux_neg
 			= get_flux(
 				state_neg,
+				bg_face_magnetic_field,
 				adiabatic_index,
 				vacuum_permeability,
 				Mas_getter, Mom_getter, Nrj_getter, Mag_getter
@@ -218,6 +226,7 @@ template <
 		flux_pos
 			= get_flux(
 				state_pos,
+				bg_face_magnetic_field,
 				adiabatic_index,
 				vacuum_permeability,
 				Mas_getter, Mom_getter, Nrj_getter, Mag_getter

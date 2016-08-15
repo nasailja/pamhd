@@ -64,6 +64,9 @@ template <
 	class Momentum_Density_Getter,
 	class Total_Energy_Density_Getter,
 	class Magnetic_Field_Getter,
+	class Background_Magnetic_Field_Pos_X_Getter,
+	class Background_Magnetic_Field_Pos_Y_Getter,
+	class Background_Magnetic_Field_Pos_Z_Getter,
 	class Mass_Density_Flux_Getter,
 	class Momentum_Density_Flux_Getter,
 	class Total_Energy_Density_Flux_Getter,
@@ -80,6 +83,9 @@ template <
 	const Momentum_Density_Getter Mom,
 	const Total_Energy_Density_Getter Nrj,
 	const Magnetic_Field_Getter Mag,
+	const Background_Magnetic_Field_Pos_X_Getter Bg_B_Pos_X,
+	const Background_Magnetic_Field_Pos_Y_Getter Bg_B_Pos_Y,
+	const Background_Magnetic_Field_Pos_Z_Getter Bg_B_Pos_Z,
 	const Mass_Density_Flux_Getter Mas_f,
 	const Momentum_Density_Flux_Getter Mom_f,
 	const Total_Energy_Density_Flux_Getter Nrj_f,
@@ -222,6 +228,7 @@ template <
 
 			// take into account direction of neighbor from cell
 			MHD_Conservative state_neg, state_pos;
+			Magnetic_Field::data_type bg_face_b;
 			if (neighbor_dir > 0) {
 				state_neg[mas_int] = Mas(*cell_data);
 				state_neg[mom_int] = get_rotated_vector(Mom(*cell_data), abs(neighbor_dir));
@@ -232,6 +239,20 @@ template <
 				state_pos[mom_int] = get_rotated_vector(Mom(*neighbor_data), abs(neighbor_dir));
 				state_pos[nrj_int] = Nrj(*neighbor_data);
 				state_pos[mag_int] = get_rotated_vector(Mag(*neighbor_data), abs(neighbor_dir));
+
+				switch (neighbor_dir) {
+				case 1:
+					bg_face_b = get_rotated_vector(Bg_B_Pos_X(*cell_data), 1);
+					break;
+				case 2:
+					bg_face_b = get_rotated_vector(Bg_B_Pos_Y(*cell_data), 2);
+					break;
+				case 3:
+					bg_face_b = get_rotated_vector(Bg_B_Pos_Z(*cell_data), 3);
+					break;
+				default:
+					abort();
+				}
 			} else {
 				state_pos[mas_int] = Mas(*cell_data);
 				state_pos[mom_int] = get_rotated_vector(Mom(*cell_data), abs(neighbor_dir));
@@ -242,6 +263,20 @@ template <
 				state_neg[mom_int] = get_rotated_vector(Mom(*neighbor_data), abs(neighbor_dir));
 				state_neg[nrj_int] = Nrj(*neighbor_data);
 				state_neg[mag_int] = get_rotated_vector(Mag(*neighbor_data), abs(neighbor_dir));
+
+				switch (neighbor_dir) {
+				case -1:
+					bg_face_b = get_rotated_vector(Bg_B_Pos_X(*neighbor_data), 1);
+					break;
+				case -2:
+					bg_face_b = get_rotated_vector(Bg_B_Pos_Y(*neighbor_data), 2);
+					break;
+				case -3:
+					bg_face_b = get_rotated_vector(Bg_B_Pos_Z(*neighbor_data), 3);
+					break;
+				default:
+					abort();
+				}
 			}
 
 			MHD_Conservative flux;
@@ -253,6 +288,7 @@ template <
 				) = solver(
 					state_neg,
 					state_pos,
+					bg_face_b,
 					shared_area,
 					dt,
 					adiabatic_index,

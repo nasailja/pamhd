@@ -58,7 +58,8 @@ constexpr size_t grid_length = 1000 + 2;
 using Cell = gensimcell::Cell<
 	gensimcell::Never_Transfer,
 	pamhd::mhd::MHD_State_Conservative,
-	pamhd::mhd::MHD_Flux_Conservative
+	pamhd::mhd::MHD_Flux_Conservative,
+	pamhd::mhd::Bg_Magnetic_Field_Pos_X
 >;
 using Grid = std::array<Cell, grid_length>;
 
@@ -87,6 +88,11 @@ const auto Nrj
 const auto Mag
 	= [](Cell& cell_data)->typename pamhd::mhd::Magnetic_Field::data_type&{
 		return cell_data[pamhd::mhd::MHD_State_Conservative()][pamhd::mhd::Magnetic_Field()];
+	};
+
+const auto Bg_Mag
+	= [](Cell& cell_data)->typename pamhd::mhd::Bg_Magnetic_Field_Pos_X::data_type&{
+		return cell_data[pamhd::mhd::Bg_Magnetic_Field_Pos_X()];
 	};
 
 // fluxes of conservative MHD variables
@@ -205,9 +211,12 @@ template <
 		Mom(cell_data)[0] =
 		Mom(cell_data)[1] =
 		Mom(cell_data)[2] =
-		Mag(cell_data)[2] = 0;
+		Mag(cell_data)[0] =
+		Bg_Mag(cell_data)[1] = 0;
 
-		Mag(cell_data)[0] = 1.5e-9;
+		Bg_Mag(cell_data)[0] = 1.5e-9;
+		Mag(cell_data)[2] = 1e-9;
+		Bg_Mag(cell_data)[2] = -Mag(cell_data)[2];
 
 		const double center = get_cell_center(cell_i);
 		double pressure = -1;
@@ -298,6 +307,7 @@ template <
 		state_pos[mom] = Mom(neighbor);
 		state_pos[nrj] = Nrj(neighbor);
 		state_pos[mag] = Mag(neighbor);
+		const auto bg_magnetic_field = Bg_Mag(cell);
 
 		std::tie(
 			flux,
@@ -305,6 +315,7 @@ template <
 		) = solver(
 			state_neg,
 			state_pos,
+			bg_magnetic_field,
 			face_area,
 			dt,
 			adiabatic_index,
@@ -491,7 +502,7 @@ std::string plot_mhd(
 		const double x
 			= get_cell_center(cell_i)
 			/ (get_grid_end() - get_grid_start());
-		gnuplot_file << x << " " << Mag(grid[cell_i])[0] << "\n";
+		gnuplot_file << x << " " << Mag(grid[cell_i])[0] + Bg_Mag(grid[cell_i])[0] << "\n";
 	}
 	gnuplot_file << "end\n";
 	// By
@@ -499,7 +510,7 @@ std::string plot_mhd(
 		const double x
 			= get_cell_center(cell_i)
 			/ (get_grid_end() - get_grid_start());
-		gnuplot_file << x << " " << Mag(grid[cell_i])[1] << "\n";
+		gnuplot_file << x << " " << Mag(grid[cell_i])[1] + Bg_Mag(grid[cell_i])[1] << "\n";
 	}
 	gnuplot_file << "end\n";
 	// Bz
@@ -507,7 +518,7 @@ std::string plot_mhd(
 		const double x
 			= get_cell_center(cell_i)
 			/ (get_grid_end() - get_grid_start());
-		gnuplot_file << x << " " << Mag(grid[cell_i])[2] << "\n";
+		gnuplot_file << x << " " << Mag(grid[cell_i])[2] + Bg_Mag(grid[cell_i])[2] << "\n";
 	}
 	gnuplot_file << "end\n";
 
@@ -536,9 +547,9 @@ void save_mhd(
 			<< Mom(cell_data)[1] << " "
 			<< Mom(cell_data)[2] << " "
 			<< Nrj(cell_data) << " "
-			<< Mag(cell_data)[0] << " "
-			<< Mag(cell_data)[1] << " "
-			<< Mag(cell_data)[2] << "\n";
+			<< Mag(cell_data)[0] + Bg_Mag(cell_data)[0] << " "
+			<< Mag(cell_data)[1] + Bg_Mag(cell_data)[1] << " "
+			<< Mag(cell_data)[2] + Bg_Mag(cell_data)[2] << "\n";
 	}
 	outfile << std::endl;
 }
@@ -582,7 +593,8 @@ void verify_mhd(
 		const auto rho = Mas(cell);
 		const auto mom = Mom(cell);
 		const auto nrj = Nrj(cell);
-		const auto mag = Mag(cell);
+		auto mag = Mag(cell);
+		mag += Bg_Mag(cell);
 
 		auto ref_rho = rho;
 		auto ref_mom = mom;
@@ -735,17 +747,19 @@ int main(int argc, char* argv[])
 			if (solver_str == "hll_athena") {
 
 				return pamhd::mhd::athena::get_flux_hll<
-					pamhd::mhd::MHD_State_Conservative::data_type,
+					pamhd::mhd::MHD_Conservative,
+					pamhd::mhd::Magnetic_Field::data_type,
 					pamhd::mhd::Mass_Density,
 					pamhd::mhd::Momentum_Density,
 					pamhd::mhd::Total_Energy_Density,
 					pamhd::mhd::Magnetic_Field
 				>;
 
-			} else if (solver_str == "hlld_athena") {
+			}/* else if (solver_str == "hlld_athena") {
 
 				return pamhd::mhd::athena::get_flux_hlld<
 					pamhd::mhd::MHD_State_Conservative::data_type,
+					pamhd::mhd::Magnetic_Field::data_type,
 					pamhd::mhd::Mass_Density,
 					pamhd::mhd::Momentum_Density,
 					pamhd::mhd::Total_Energy_Density,
@@ -762,7 +776,7 @@ int main(int argc, char* argv[])
 					pamhd::mhd::Magnetic_Field
 				>;
 
-			} else {
+			}*/ else {
 
 				std::cerr <<  __FILE__ << "(" << __LINE__ << ") Invalid solver: "
 					<< solver_str << ", use --help to list available solvers"

@@ -95,6 +95,30 @@ struct Magnetic_Field_Resistive {
 	static const std::string get_option_help() { return {"Change in magnetic field due to resistivity"}; }
 };
 
+//! Background magnetic field at cell face in positive x direction
+struct Bg_Magnetic_Field_Pos_X {
+	using data_type = Eigen::Vector3d;
+	static const std::string get_name() { return {"background magnetic field positive x"}; }
+	static const std::string get_option_name() { return {"bg-b-pos-x"}; }
+	static const std::string get_option_help() { return {"background magnetic field at cell face in positive x direction"}; }
+};
+
+//! Background magnetic field at cell face in positive y direction
+struct Bg_Magnetic_Field_Pos_Y {
+	using data_type = Eigen::Vector3d;
+	static const std::string get_name() { return {"background magnetic field positive y"}; }
+	static const std::string get_option_name() { return {"bg-b-pos-y"}; }
+	static const std::string get_option_help() { return {"background magnetic field at cell face in positive y direction"}; }
+};
+
+//! Background magnetic field at cell face in positive z direction
+struct Bg_Magnetic_Field_Pos_Z {
+	using data_type = Eigen::Vector3d;
+	static const std::string get_name() { return {"background magnetic field positive z"}; }
+	static const std::string get_option_name() { return {"bg-b-pos-z"}; }
+	static const std::string get_option_help() { return {"background magnetic field at cell face in positive z direction"}; }
+};
+
 struct Velocity {
 	using data_type = Eigen::Vector3d;
 	static const std::string get_name() { return {"velocity"}; }
@@ -249,6 +273,10 @@ using Cell = gensimcell::Cell<
 	Solver_Info,
 	MPI_Rank,
 	Resistivity,
+	// TODO: move background fields to inner cell?
+	Bg_Magnetic_Field_Pos_X,
+	Bg_Magnetic_Field_Pos_Y,
+	Bg_Magnetic_Field_Pos_Z,
 	Magnetic_Field_Resistive,
 	Magnetic_Field_Temp,
 	Magnetic_Field_Divergence,

@@ -62,12 +62,16 @@ when given a simulation cell's data.
 template <
 	class Geometries,
 	class Init_Cond,
+	class Background_Magnetic_Field,
 	class Cell,
 	class Geometry,
 	class Mass_Density_Getter,
 	class Momentum_Density_Getter,
 	class Total_Energy_Density_Getter,
 	class Magnetic_Field_Getter,
+	class Background_Magnetic_Field_Pos_X_Getter,
+	class Background_Magnetic_Field_Pos_Y_Getter,
+	class Background_Magnetic_Field_Pos_Z_Getter,
 	class Mass_Density_Flux_Getter,
 	class Momentum_Density_Flux_Getter,
 	class Total_Energy_Density_Flux_Getter,
@@ -75,6 +79,7 @@ template <
 > void initialize(
 	const Geometries& geometries,
 	Init_Cond& initial_conditions,
+	const Background_Magnetic_Field& bg_B,
 	dccrg::Dccrg<Cell, Geometry>& grid,
 	const std::vector<uint64_t>& cells,
 	const double time,
@@ -86,6 +91,9 @@ template <
 	const Momentum_Density_Getter Mom,
 	const Total_Energy_Density_Getter Nrj,
 	const Magnetic_Field_Getter Mag,
+	const Background_Magnetic_Field_Pos_X_Getter Bg_B_Pos_X,
+	const Background_Magnetic_Field_Pos_Y_Getter Bg_B_Pos_Y,
+	const Background_Magnetic_Field_Pos_Z_Getter Bg_B_Pos_Z,
 	const Mass_Density_Flux_Getter Mas_f,
 	const Momentum_Density_Flux_Getter Mom_f,
 	const Total_Energy_Density_Flux_Getter Nrj_f,
@@ -105,15 +113,15 @@ template <
 			abort();
 		}
 
-		// zero fluxes
-		Mas_f(*cell_data)    =
-		Nrj_f(*cell_data)    =
-		Mom_f(*cell_data)[0] =
-		Mom_f(*cell_data)[1] =
-		Mom_f(*cell_data)[2] =
-		Mag_f(*cell_data)[0] =
-		Mag_f(*cell_data)[1] =
-		Mag_f(*cell_data)[2] = 0;
+		// zero fluxes and background fields
+		Mas_f(*cell_data)         =
+		Nrj_f(*cell_data)         =
+		Mom_f(*cell_data)[0]      =
+		Mom_f(*cell_data)[1]      =
+		Mom_f(*cell_data)[2]      =
+		Mag_f(*cell_data)[0]      =
+		Mag_f(*cell_data)[1]      =
+		Mag_f(*cell_data)[2]      = 0;
 
 		const auto c = grid.geometry.get_center(cell_id);
 		const auto r = sqrt(c[0]*c[0] + c[1]*c[1] + c[2]*c[2]);
@@ -160,6 +168,20 @@ template <
 			pressure,
 			magnetic_field,
 			adiabatic_index,
+			vacuum_permeability
+		);
+
+		const auto cell_end = grid.geometry.get_max(cell_id);
+		Bg_B_Pos_X(*cell_data) = bg_B.get_background_field(
+			{cell_end[0], c[1], c[2]},
+			vacuum_permeability
+		);
+		Bg_B_Pos_Y(*cell_data) = bg_B.get_background_field(
+			{c[0], cell_end[1], c[2]},
+			vacuum_permeability
+		);
+		Bg_B_Pos_Z(*cell_data) = bg_B.get_background_field(
+			{c[0], c[1], cell_end[2]},
 			vacuum_permeability
 		);
 	}
