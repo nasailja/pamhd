@@ -372,11 +372,10 @@ void convert(
 		vtk_file << simulation_data.at(cell)[MPI_Rank()] << "\n";
 	}
 
-	/*vtk_file << "SCALARS type int 1\nlookup_table default\n";
+	vtk_file << "SCALARS boundary_type int 1\nlookup_table default\n";
 	for (const auto& cell: cells) {
-		vtk_file << simulation_data.at(cell)[Cell_Type()] << "\n";
-	}*/
-
+		vtk_file << simulation_data.at(cell)[Solver_Info()] << "\n";
+	}
 }
 
 
