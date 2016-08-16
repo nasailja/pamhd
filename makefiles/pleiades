@@ -1,5 +1,5 @@
 # Makefile for thttp://www.nas.nasa.gov/hecc/resources/pleiades.html
-# tested with these modules loaded: gcc5/5.3.0 mpi-sgi/mpt.2.12r26
+# tested with these modules loaded: gcc5/5.3.0 mpi-sgi/mpt.2.14r19
 # and boost, zoltan installed under your home directory
 CXX = c++
 MPICXX = mpicxx
@@ -17,8 +17,8 @@ EIGENLAB_CPPFLAGS = -I $(HOME)/libraries/EigenLab
 
 GENSIMCELL_CPPFLAGS = -I $(HOME)/libraries/gensimcell/source
 
-BOOST_CPPFLAGS = -I $(HOME)/libraries/boost/1.61.0/gcc/5.3.0/mpi-sgi/2.12r26/include
-BOOST_LDFLAGS = -L $(HOME)/libraries/boost/1.61.0/gcc/5.3.0/mpi-sgi/2.12r26/lib
+BOOST_CPPFLAGS = -I $(HOME)/libraries/boost/1.61.0/gcc/5.3.0/mpi-sgi/2.14r19/include
+BOOST_LDFLAGS = -L $(HOME)/libraries/boost/1.61.0/gcc/5.3.0/mpi-sgi/2.14r19/lib
 BOOST_LIBS = \
   -lboost_coroutine \
   -lboost_context \
@@ -33,14 +33,14 @@ PHIPROF_CPPFLAGS = -I $(HOME)/libraries/phiprof
 
 PRETTYPRINT_CPPFLAGS = -I $(HOME)/libraries/cxx-prettyprint
 
-MUPARSERX_CPPFLAGS = -I $(HOME)/libraries/muparserx/4.0.7/gcc/5.3.0/mpi-sgi/2.12r26/include
-MUPARSERX_LDFLAGS = -L $(HOME)/libraries/muparserx/4.0.7/gcc/5.3.0/mpi-sgi/2.12r26/lib
+MUPARSERX_CPPFLAGS = -I $(HOME)/libraries/muparserx/4.0.7/gcc/5.3.0/include
+MUPARSERX_LDFLAGS = -L $(HOME)/libraries/muparserx/4.0.7/gcc/5.3.0/lib
 MUPARSERX_LIBS = -lmuparserx
 
 RAPIDJSON_CPPFLAGS = -I $(HOME)/libraries/rapidjson/include
 
 VECTORCLASS_CPPFLAGS = -I $(HOME)/libraries/vectorclass
 
-ZOLTAN_CPPFLAGS = -I $(HOME)/libraries/zoltan/3.83/gcc/5.3.0/mpi-sgi/2.12r26/include
-ZOLTAN_LDFLAGS = -L $(HOME)/libraries/zoltan/3.83/gcc/5.3.0/mpi-sgi/2.12r26/lib
+ZOLTAN_CPPFLAGS = -I $(HOME)/libraries/zoltan/3.83/gcc/5.3.0/mpi-sgi/2.14r19/include
+ZOLTAN_LDFLAGS = -L $(HOME)/libraries/zoltan/3.83/gcc/5.3.0/mpi-sgi/2.14r19/lib
 ZOLTAN_LIBS = -lzoltan
