@@ -212,21 +212,21 @@ function make_geometry(shape)
 	if (shape == "box") {
 
 		fieldset.appendChild(document.createTextNode("Start coordinate (x, y, z) "));
-		fieldset.appendChild(make_input_element_for_expression(id_string + "_startx", "isFinite", "empty_context"));
-		fieldset.appendChild(make_input_element_for_expression(id_string + "_starty", "isFinite", "empty_context"));
-		fieldset.appendChild(make_input_element_for_expression(id_string + "_startz", "isFinite", "empty_context"));
-		fieldset.appendChild(make_span(id_string + "_startx_test"));
-		fieldset.appendChild(make_span(id_string + "_starty_test"));
-		fieldset.appendChild(make_span(id_string + "_startz_test"));
+		fieldset.appendChild(make_input_element_for_expression(id_string + "-startx", "isFinite", "empty_context"));
+		fieldset.appendChild(make_input_element_for_expression(id_string + "-starty", "isFinite", "empty_context"));
+		fieldset.appendChild(make_input_element_for_expression(id_string + "-startz", "isFinite", "empty_context"));
+		fieldset.appendChild(make_span(id_string + "-startx-test"));
+		fieldset.appendChild(make_span(id_string + "-starty-test"));
+		fieldset.appendChild(make_span(id_string + "-startz-test"));
 		fieldset.appendChild(document.createElement("br"));
 
 		fieldset.appendChild(document.createTextNode("End coordinate (x, y, z) "));
-		fieldset.appendChild(make_input_element_for_expression(id_string + "_endx", "isFinite", "empty_context"));
-		fieldset.appendChild(make_input_element_for_expression(id_string + "_endy", "isFinite", "empty_context"));
-		fieldset.appendChild(make_input_element_for_expression(id_string + "_endz", "isFinite", "empty_context"));
-		fieldset.appendChild(make_span(id_string + "_endx_test"));
-		fieldset.appendChild(make_span(id_string + "_endy_test"));
-		fieldset.appendChild(make_span(id_string + "_endz_test"));
+		fieldset.appendChild(make_input_element_for_expression(id_string + "-endx", "isFinite", "empty_context"));
+		fieldset.appendChild(make_input_element_for_expression(id_string + "-endy", "isFinite", "empty_context"));
+		fieldset.appendChild(make_input_element_for_expression(id_string + "-endz", "isFinite", "empty_context"));
+		fieldset.appendChild(make_span(id_string + "-endx-test"));
+		fieldset.appendChild(make_span(id_string + "-endy-test"));
+		fieldset.appendChild(make_span(id_string + "-endz-test"));
 		fieldset.appendChild(document.createElement("br"));
 
 	} else if (shape == "sphere") {
@@ -777,13 +777,13 @@ config_text_updater.addEventListener("click", function() {
 				new_html
 					+= "&nbsp;&nbsp;{&quot;box&quot;: {<br>"
 					+ "&nbsp;&nbsp;&nbsp;&nbsp;&quot;start&quot;: ["
-					+ document.getElementById(box_id + "_startx").value + ", "
-					+ document.getElementById(box_id + "_starty").value + ", "
-					+ document.getElementById(box_id + "_startz").value + "],<br>"
+					+ document.getElementById(box_id + "-startx").value + ", "
+					+ document.getElementById(box_id + "-starty").value + ", "
+					+ document.getElementById(box_id + "-startz").value + "],<br>"
 					+ "&nbsp;&nbsp;&nbsp;&nbsp;&quot;end&quot;: ["
-					+ document.getElementById(box_id + "_endx").value + ", "
-					+ document.getElementById(box_id + "_endy").value + ", "
-					+ document.getElementById(box_id + "_endz").value + "]<br>&nbsp;&nbsp;}}"
+					+ document.getElementById(box_id + "-endx").value + ", "
+					+ document.getElementById(box_id + "-endy").value + ", "
+					+ document.getElementById(box_id + "-endz").value + "]<br>&nbsp;&nbsp;}}"
 
 				if (i < nr_geometries - 1) {
 					new_html += ",";
@@ -798,11 +798,11 @@ config_text_updater.addEventListener("click", function() {
 				new_html
 					+= "&nbsp;&nbsp;{&quot;sphere&quot;: {<br>"
 					+ "&nbsp;&nbsp;&nbsp;&nbsp;&quot;center&quot;: ["
-					+ document.getElementById(sphere_id + "_centerx").value + ", "
-					+ document.getElementById(sphere_id + "_centery").value + ", "
-					+ document.getElementById(sphere_id + "_centerz").value + "],<br>"
+					+ document.getElementById(sphere_id + "-centerx").value + ", "
+					+ document.getElementById(sphere_id + "-centery").value + ", "
+					+ document.getElementById(sphere_id + "-centerz").value + "],<br>"
 					+ "&nbsp;&nbsp;&nbsp;&nbsp;&quot;radius&quot;: "
-					+ document.getElementById(sphere_id + "_radius").value + "<br>&nbsp;&nbsp;}}"
+					+ document.getElementById(sphere_id + "-radius").value + "<br>&nbsp;&nbsp;}}"
 
 				if (i < nr_geometries - 1) {
 					new_html += ",";
@@ -1213,12 +1213,12 @@ shock_tube_maker.addEventListener("click", function() {
 	document.getElementById("default_velocity").value = "[0, 0, 0]";
 	document.getElementById("default_magnetic_field").value = "\"{0.75, (x < 0) ? 1 : -1, 0}\"";
 	box_geometry_adder.click();
-	document.getElementById("box0_startx").value = -99;
-	document.getElementById("box0_starty").value = -99;
-	document.getElementById("box0_startz").value = -99;
-	document.getElementById("box0_endx").value = -0.5;
-	document.getElementById("box0_endy").value = 99;
-	document.getElementById("box0_endz").value = 99;
+	document.getElementById("box0-startx").value = -99;
+	document.getElementById("box0-starty").value = -99;
+	document.getElementById("box0-startz").value = -99;
+	document.getElementById("box0-endx").value = -0.5;
+	document.getElementById("box0-endy").value = 99;
+	document.getElementById("box0-endz").value = 99;
 	value_mass_adder.click();
 	document.getElementById("value_mass_0_geometry_id").value = 0;
 	document.getElementById("value_mass_0_time_stamps_id").value = 0;
@@ -1236,12 +1236,12 @@ shock_tube_maker.addEventListener("click", function() {
 	document.getElementById("value_magnetic_field_0_time_stamps_id").value = 0;
 	document.getElementById("value_magnetic_field_0_value").value = "[0.75, 1, 0]";
 	box_geometry_adder.click();
-	document.getElementById("box1_startx").value = 0.5;
-	document.getElementById("box1_starty").value = -99;
-	document.getElementById("box1_startz").value = -99;
-	document.getElementById("box1_endx").value = 99;
-	document.getElementById("box1_endy").value = 99;
-	document.getElementById("box1_endz").value = 99;
+	document.getElementById("box1-startx").value = 0.5;
+	document.getElementById("box1-starty").value = -99;
+	document.getElementById("box1-startz").value = -99;
+	document.getElementById("box1-endx").value = 99;
+	document.getElementById("box1-endy").value = 99;
+	document.getElementById("box1-endz").value = 99;
 	value_mass_adder.click();
 	document.getElementById("value_mass_1_geometry_id").value = 1;
 	document.getElementById("value_mass_1_time_stamps_id").value = 0;
@@ -1325,12 +1325,12 @@ reconnection_maker.addEventListener("click", function() {
 	document.getElementById("default_velocity").value = "[0, 0, 0]";
 	document.getElementById("default_magnetic_field").value = "\"{tanh(z / 0.5) - 0.1 * pi/12.8 * cos(2*pi*x/25.6) * sin(pi*z/12.8), 0, 0.1 * 2*pi/25.6 * sin(2*pi*x/25.6) * cos(pi*z/12.8)}\"";
 	box_geometry_adder.click();
-	document.getElementById("box0_startx").value = -99;
-	document.getElementById("box0_starty").value = -99;
-	document.getElementById("box0_startz").value = 6.4;
-	document.getElementById("box0_endx").value = 99;
-	document.getElementById("box0_endy").value = 99;
-	document.getElementById("box0_endz").value = 99;
+	document.getElementById("box0-startx").value = -99;
+	document.getElementById("box0-starty").value = -99;
+	document.getElementById("box0-startz").value = 6.4;
+	document.getElementById("box0-endx").value = 99;
+	document.getElementById("box0-endy").value = 99;
+	document.getElementById("box0-endz").value = 99;
 	copy_mass_adder.click();
 	document.getElementById("copy_mass_0_geometry_id").value = 0;
 	copy_velocity_adder.click();
@@ -1340,12 +1340,12 @@ reconnection_maker.addEventListener("click", function() {
 	copy_magnetic_field_adder.click();
 	document.getElementById("copy_magnetic_field_0_geometry_id").value = 0;
 	box_geometry_adder.click();
-	document.getElementById("box1_startx").value = -99;
-	document.getElementById("box1_starty").value = -99;
-	document.getElementById("box1_startz").value = -99;
-	document.getElementById("box1_endx").value = 99;
-	document.getElementById("box1_endy").value = 99;
-	document.getElementById("box1_endz").value = -6.4;
+	document.getElementById("box1-startx").value = -99;
+	document.getElementById("box1-starty").value = -99;
+	document.getElementById("box1-startz").value = -99;
+	document.getElementById("box1-endx").value = 99;
+	document.getElementById("box1-endy").value = 99;
+	document.getElementById("box1-endz").value = -6.4;
 	copy_mass_adder.click();
 	document.getElementById("copy_mass_1_geometry_id").value = 1;
 	copy_velocity_adder.click();
@@ -1440,12 +1440,12 @@ bow_shock_maker.addEventListener("click", function() {
 	document.getElementById("initial_magnetic_field_0_value").value = "[0, 0, 0]";
 
 	box_geometry_adder.click();
-	document.getElementById("box1_startx").value = -99;
-	document.getElementById("box1_starty").value = -99;
-	document.getElementById("box1_startz").value = -99;
-	document.getElementById("box1_endx").value = -1;
-	document.getElementById("box1_endy").value = 99;
-	document.getElementById("box1_endz").value = 99;
+	document.getElementById("box1-startx").value = -99;
+	document.getElementById("box1-starty").value = -99;
+	document.getElementById("box1-startz").value = -99;
+	document.getElementById("box1-endx").value = -1;
+	document.getElementById("box1-endy").value = 99;
+	document.getElementById("box1-endz").value = 99;
 	value_mass_adder.click();
 	document.getElementById("value_mass_0_geometry_id").value = 1;
 	document.getElementById("value_mass_0_time_stamps_id").value = 0;
@@ -1464,12 +1464,12 @@ bow_shock_maker.addEventListener("click", function() {
 	document.getElementById("value_magnetic_field_0_value").value = "[0, 0, 0]";
 
 	box_geometry_adder.click();
-	document.getElementById("box2_startx").value = 1;
-	document.getElementById("box2_starty").value = -99;
-	document.getElementById("box2_startz").value = -99;
-	document.getElementById("box2_endx").value = 99;
-	document.getElementById("box2_endy").value = 99;
-	document.getElementById("box2_endz").value = 99;
+	document.getElementById("box2-startx").value = 1;
+	document.getElementById("box2-starty").value = -99;
+	document.getElementById("box2-startz").value = -99;
+	document.getElementById("box2-endx").value = 99;
+	document.getElementById("box2-endy").value = 99;
+	document.getElementById("box2-endz").value = 99;
 	copy_mass_adder.click();
 	document.getElementById("copy_mass_0_geometry_id").value = 2;
 	copy_velocity_adder.click();
@@ -1480,12 +1480,12 @@ bow_shock_maker.addEventListener("click", function() {
 	document.getElementById("copy_magnetic_field_0_geometry_id").value = 2;
 
 	box_geometry_adder.click();
-	document.getElementById("box3_startx").value = -99;
-	document.getElementById("box3_starty").value = 1.5;
-	document.getElementById("box3_startz").value = -99;
-	document.getElementById("box3_endx").value = 99;
-	document.getElementById("box3_endy").value = 99;
-	document.getElementById("box3_endz").value = 99;
+	document.getElementById("box3-startx").value = -99;
+	document.getElementById("box3-starty").value = 1.5;
+	document.getElementById("box3-startz").value = -99;
+	document.getElementById("box3-endx").value = 99;
+	document.getElementById("box3-endy").value = 99;
+	document.getElementById("box3-endz").value = 99;
 	copy_mass_adder.click();
 	document.getElementById("copy_mass_1_geometry_id").value = 3;
 	copy_velocity_adder.click();
@@ -1496,12 +1496,12 @@ bow_shock_maker.addEventListener("click", function() {
 	document.getElementById("copy_magnetic_field_1_geometry_id").value = 3;
 
 	box_geometry_adder.click();
-	document.getElementById("box4_startx").value = -99;
-	document.getElementById("box4_starty").value = -99;
-	document.getElementById("box4_startz").value = -99;
-	document.getElementById("box4_endx").value = 99;
-	document.getElementById("box4_endy").value = -1.5;
-	document.getElementById("box4_endz").value = 99;
+	document.getElementById("box4-startx").value = -99;
+	document.getElementById("box4-starty").value = -99;
+	document.getElementById("box4-startz").value = -99;
+	document.getElementById("box4-endx").value = 99;
+	document.getElementById("box4-endy").value = -1.5;
+	document.getElementById("box4-endz").value = 99;
 	copy_mass_adder.click();
 	document.getElementById("copy_mass_2_geometry_id").value = 4;
 	copy_velocity_adder.click();
@@ -1596,12 +1596,12 @@ jet_injection_maker.addEventListener("click", function() {
 	document.getElementById("default_magnetic_field").value = "[0, 0, 0]";
 
 	box_geometry_adder.click();
-	document.getElementById("box0_startx").value = -99;
-	document.getElementById("box0_starty").value = -99;
-	document.getElementById("box0_startz").value = -99;
-	document.getElementById("box0_endx").value = -0.0001;
-	document.getElementById("box0_endy").value = 99;
-	document.getElementById("box0_endz").value = 99;
+	document.getElementById("box0-startx").value = -99;
+	document.getElementById("box0-starty").value = -99;
+	document.getElementById("box0-startz").value = -99;
+	document.getElementById("box0-endx").value = -0.0001;
+	document.getElementById("box0-endy").value = 99;
+	document.getElementById("box0-endz").value = 99;
 	value_mass_adder.click();
 	document.getElementById("value_mass_0_geometry_id").value = 0;
 	document.getElementById("value_mass_0_time_stamps_id").value = 0;
@@ -1620,12 +1620,12 @@ jet_injection_maker.addEventListener("click", function() {
 	document.getElementById("value_magnetic_field_0_value").value = "[0, 0, 0]";
 
 	box_geometry_adder.click();
-	document.getElementById("box1_startx").value = 1.4001;
-	document.getElementById("box1_starty").value = -99;
-	document.getElementById("box1_startz").value = -99;
-	document.getElementById("box1_endx").value = 1.5999;
-	document.getElementById("box1_endy").value = -0.0001;
-	document.getElementById("box1_endz").value = 99;
+	document.getElementById("box1-startx").value = 1.4001;
+	document.getElementById("box1-starty").value = -99;
+	document.getElementById("box1-startz").value = -99;
+	document.getElementById("box1-endx").value = 1.5999;
+	document.getElementById("box1-endy").value = -0.0001;
+	document.getElementById("box1-endz").value = 99;
 	value_mass_adder.click();
 	document.getElementById("value_mass_1_geometry_id").value = 1;
 	document.getElementById("value_mass_1_time_stamps_id").value = 0;
@@ -1644,12 +1644,12 @@ jet_injection_maker.addEventListener("click", function() {
 	document.getElementById("value_magnetic_field_1_value").value = "[0, 0, 0]";
 
 	box_geometry_adder.click();
-	document.getElementById("box2_startx").value = 3.0001;
-	document.getElementById("box2_starty").value = -99;
-	document.getElementById("box2_startz").value = -99;
-	document.getElementById("box2_endx").value = 99;
-	document.getElementById("box2_endy").value = 99;
-	document.getElementById("box2_endz").value = 99;
+	document.getElementById("box2-startx").value = 3.0001;
+	document.getElementById("box2-starty").value = -99;
+	document.getElementById("box2-startz").value = -99;
+	document.getElementById("box2-endx").value = 99;
+	document.getElementById("box2-endy").value = 99;
+	document.getElementById("box2-endz").value = 99;
 	copy_mass_adder.click();
 	document.getElementById("copy_mass_0_geometry_id").value = 2;
 	copy_velocity_adder.click();
@@ -1660,12 +1660,12 @@ jet_injection_maker.addEventListener("click", function() {
 	document.getElementById("copy_magnetic_field_0_geometry_id").value = 2;
 
 	box_geometry_adder.click();
-	document.getElementById("box3_startx").value = -99;
-	document.getElementById("box3_starty").value = 1.5001;
-	document.getElementById("box3_startz").value = -99;
-	document.getElementById("box3_endx").value = 99;
-	document.getElementById("box3_endy").value = 99;
-	document.getElementById("box3_endz").value = 99;
+	document.getElementById("box3-startx").value = -99;
+	document.getElementById("box3-starty").value = 1.5001;
+	document.getElementById("box3-startz").value = -99;
+	document.getElementById("box3-endx").value = 99;
+	document.getElementById("box3-endy").value = 99;
+	document.getElementById("box3-endz").value = 99;
 	copy_mass_adder.click();
 	document.getElementById("copy_mass_1_geometry_id").value = 3;
 	copy_velocity_adder.click();
@@ -1676,12 +1676,12 @@ jet_injection_maker.addEventListener("click", function() {
 	document.getElementById("copy_magnetic_field_1_geometry_id").value = 3;
 
 	box_geometry_adder.click();
-	document.getElementById("box4_startx").value = 0.0001;
-	document.getElementById("box4_starty").value = -99;
-	document.getElementById("box4_startz").value = -99;
-	document.getElementById("box4_endx").value = 1.3999;
-	document.getElementById("box4_endy").value = -0.0001;
-	document.getElementById("box4_endz").value = 99;
+	document.getElementById("box4-startx").value = 0.0001;
+	document.getElementById("box4-starty").value = -99;
+	document.getElementById("box4-startz").value = -99;
+	document.getElementById("box4-endx").value = 1.3999;
+	document.getElementById("box4-endy").value = -0.0001;
+	document.getElementById("box4-endz").value = 99;
 	copy_mass_adder.click();
 	document.getElementById("copy_mass_2_geometry_id").value = 4;
 	copy_velocity_adder.click();
@@ -1692,12 +1692,12 @@ jet_injection_maker.addEventListener("click", function() {
 	document.getElementById("copy_magnetic_field_2_geometry_id").value = 4;
 
 	box_geometry_adder.click();
-	document.getElementById("box5_startx").value = 1.6001;
-	document.getElementById("box5_starty").value = -99;
-	document.getElementById("box5_startz").value = -99;
-	document.getElementById("box5_endx").value = 99;
-	document.getElementById("box5_endy").value = -0.0001;
-	document.getElementById("box5_endz").value = 99;
+	document.getElementById("box5-startx").value = 1.6001;
+	document.getElementById("box5-starty").value = -99;
+	document.getElementById("box5-startz").value = -99;
+	document.getElementById("box5-endx").value = 99;
+	document.getElementById("box5-endy").value = -0.0001;
+	document.getElementById("box5-endz").value = 99;
 	copy_mass_adder.click();
 	document.getElementById("copy_mass_3_geometry_id").value = 5;
 	copy_velocity_adder.click()
