@@ -107,19 +107,6 @@ function gt_zero(number)
 }
 
 
-// converts parentheses in submitted form to brackets
-function convert_parentheses() {
-	form = document.getElementById("form");
-	for (i in form.elements) {
-		element = form.elements[i];
-		if (typeof element.value == "string") {
-			element.value = element.value.split("(").join("[").split(")").join("]");
-		}
-	}
-	return true;
-}
-
-
 window.onload = function() {
 
 if (typeof math == "undefined") {
@@ -663,29 +650,29 @@ copy_magnetic_field_adder.addEventListener("click", add_copy_magnetic_field_item
 // clears current configuration
 var configuration_clearer = document.getElementById("clear");
 configuration_clearer.addEventListener("click", function() {
-	document.getElementById("solver_mhd").selectedIndex = "2";
-	document.getElementById("time_start").value = "";
-	document.getElementById("time_length").value = "";
-	document.getElementById("save_mhd_n").value = "";
+	document.getElementById("solver-mhd").selectedIndex = "2";
+	document.getElementById("time-start").value = "";
+	document.getElementById("time-length").value = "";
+	document.getElementById("save-mhd-n").value = "";
 	document.getElementById("resistivity").value = "";
-	document.getElementById("remove_div_b_n").value = "";
-	document.getElementById("adiabatic_index").value = "";
-	document.getElementById("vacuum_permeability").value = "";
-	document.getElementById("proton_mass").value = "";
-	document.getElementById("time_step_factor").value = "";
-	document.getElementById("output_directory").value = "";
-	document.getElementById("periodic_x").selectedIndex = 0;
-	document.getElementById("periodic_y").selectedIndex = 0;
-	document.getElementById("periodic_z").selectedIndex = 0;
-	document.getElementById("cells_x").value = "";
-	document.getElementById("cells_y").value = "";
-	document.getElementById("cells_z").value = "";
-	document.getElementById("volume_x").value = "";
-	document.getElementById("volume_y").value = "";
-	document.getElementById("volume_z").value = "";
-	document.getElementById("start_x").value = "";
-	document.getElementById("start_y").value = "";
-	document.getElementById("start_z").value = "";
+	document.getElementById("remove-div-b-n").value = "";
+	document.getElementById("adiabatic-index").value = "";
+	document.getElementById("vacuum-permeability").value = "";
+	document.getElementById("proton-mass").value = "";
+	document.getElementById("time-step-factor").value = "";
+	document.getElementById("output-directory").value = "";
+	document.getElementById("periodic-x").selectedIndex = 0;
+	document.getElementById("periodic-z").selectedIndex = 0;
+	document.getElementById("periodic-z").selectedIndex = 0;
+	document.getElementById("cells-x").value = "";
+	document.getElementById("cells-z").value = "";
+	document.getElementById("cells-z").value = "";
+	document.getElementById("volume-x").value = "";
+	document.getElementById("volume-z").value = "";
+	document.getElementById("volume-z").value = "";
+	document.getElementById("start-x").value = "";
+	document.getElementById("start-z").value = "";
+	document.getElementById("start-z").value = "";
 	document.getElementById("default_mass").value = "";
 	document.getElementById("default_pressure").value = "";
 	document.getElementById("default_velocity").value = "";
@@ -738,47 +725,47 @@ config_text_updater.addEventListener("click", function() {
 	var new_html
 		= "<br>{<br>"
 		+ "&quot;output-directory&quot;: &quot;"
-		+ document.getElementById("output_directory").value + "&quot;,<br>"
+		+ document.getElementById("output-directory").value + "&quot;,<br>"
 		+ "&quot;solver-mhd&quot;: &quot;"
-		+ document.getElementById("solver_mhd").value + "&quot;,<br>"
+		+ document.getElementById("solver-mhd").value + "&quot;,<br>"
 		+ "&quot;time-start&quot;: "
-		+ document.getElementById("time_start").value + ",<br>"
+		+ document.getElementById("time-start").value + ",<br>"
 		+ "&quot;time-length&quot;: "
-		+ document.getElementById("time_length").value + ",<br>"
+		+ document.getElementById("time-length").value + ",<br>"
 		+ "&quot;save-mhd-n&quot;: "
-		+ document.getElementById("save_mhd_n").value + ",<br>"
+		+ document.getElementById("save-mhd-n").value + ",<br>"
 		+ "&quot;resistivity&quot;: &quot;"
 		+ document.getElementById("resistivity").value + "&quot;,<br>"
 		+ "&quot;remove-div-B-n&quot;: "
-		+ document.getElementById("remove_div_b_n").value + ",<br>"
+		+ document.getElementById("remove-div-b-n").value + ",<br>"
 		+ "&quot;adiabatic-index&quot;: "
-		+ document.getElementById("adiabatic_index").value + ",<br>"
+		+ document.getElementById("adiabatic-index").value + ",<br>"
 		+ "&quot;vacuum-permeability&quot;: "
-		+ document.getElementById("vacuum_permeability").value + ",<br>"
+		+ document.getElementById("vacuum-permeability").value + ",<br>"
 		+ "&quot;proton-mass&quot;: "
-		+ document.getElementById("proton_mass").value + ",<br>"
+		+ document.getElementById("proton-mass").value + ",<br>"
 		+ "&quot;time-step-factor&quot;: "
-		+ document.getElementById("time_step_factor").value + ",<br>"
+		+ document.getElementById("time-step-factor").value + ",<br>"
 		+ "&quot;load-balancer&quot;: &quot;RCB&quot;,<br>"
 		+ "&quot;poisson-norm-stop&quot;: 1e-10,<br>"
 		+ "&quot;poisson-norm-increase-max&quot;: 10,<br>"
 		+ "&quot;grid-options&quot;: {<br>"
 		+ "&nbsp;&nbsp;&quot;periodic&quot;: &quot;{"
-		+ document.getElementById("periodic_x").value + ", "
-		+ document.getElementById("periodic_y").value + ", "
-		+ document.getElementById("periodic_z").value + "}&quot;,<br>"
+		+ document.getElementById("periodic-x").value + ", "
+		+ document.getElementById("periodic-z").value + ", "
+		+ document.getElementById("periodic-z").value + "}&quot;,<br>"
 		+ "&nbsp;&nbsp;&quot;cells&quot;: &quot;{"
-		+ document.getElementById("cells_x").value + ", "
-		+ document.getElementById("cells_y").value + ", "
-		+ document.getElementById("cells_z").value + "}&quot;,<br>"
+		+ document.getElementById("cells-x").value + ", "
+		+ document.getElementById("cells-z").value + ", "
+		+ document.getElementById("cells-z").value + "}&quot;,<br>"
 		+ "&nbsp;&nbsp;&quot;volume&quot;: &quot;{"
-		+ document.getElementById("volume_x").value + ", "
-		+ document.getElementById("volume_y").value + ", "
-		+ document.getElementById("volume_z").value + "}&quot;,<br>"
+		+ document.getElementById("volume-x").value + ", "
+		+ document.getElementById("volume-z").value + ", "
+		+ document.getElementById("volume-z").value + "}&quot;,<br>"
 		+ "&nbsp;&nbsp;&quot;start&quot;: &quot;{"
-		+ document.getElementById("start_x").value + ", "
-		+ document.getElementById("start_y").value + ", "
-		+ document.getElementById("start_z").value + "}&quot;<br>"
+		+ document.getElementById("start-x").value + ", "
+		+ document.getElementById("start-z").value + ", "
+		+ document.getElementById("start-z").value + "}&quot;<br>"
 		+ "},<br>";
 
 	if (nr_geometries > 0) {
@@ -1198,29 +1185,29 @@ config_text_updater.addEventListener("click", function() {
 var shock_tube_maker = document.getElementById("make_shock_tube");
 shock_tube_maker.addEventListener("click", function() {
 	configuration_clearer.click();
-	document.getElementById("solver_mhd").selectedIndex = 2;
-	document.getElementById("time_start").value = 0;
-	document.getElementById("time_length").value = 1;
-	document.getElementById("save_mhd_n").value = 0.1;
+	document.getElementById("solver-mhd").selectedIndex = 2;
+	document.getElementById("time-start").value = 0;
+	document.getElementById("time-length").value = 1;
+	document.getElementById("save-mhd-n").value = 0.1;
 	document.getElementById("resistivity").value = 0;
-	document.getElementById("remove_div_b_n").value = -1;
-	document.getElementById("adiabatic_index").value = 1.6666667;
-	document.getElementById("vacuum_permeability").value = 1;
-	document.getElementById("proton_mass").value = 1;
-	document.getElementById("time_step_factor").value = 0.5;
-	document.getElementById("output_directory").value = "shock_tube/";
-	document.getElementById("periodic_x").selectedIndex = 0;
-	document.getElementById("periodic_y").selectedIndex = 0;
-	document.getElementById("periodic_z").selectedIndex = 0;
-	document.getElementById("cells_x").value = "100 + 2";
-	document.getElementById("cells_y").value = "1";
-	document.getElementById("cells_z").value = "1";
-	document.getElementById("volume_x").value = "1 + 2 / (cells[0] - 2)";
-	document.getElementById("volume_y").value = "1";
-	document.getElementById("volume_z").value = "1";
-	document.getElementById("start_x").value = "-volume[0]/2";
-	document.getElementById("start_y").value = "-volume[1]/2";
-	document.getElementById("start_z").value = "-volume[2]/2";
+	document.getElementById("remove-div-b-n").value = -1;
+	document.getElementById("adiabatic-index").value = 1.6666667;
+	document.getElementById("vacuum-permeability").value = 1;
+	document.getElementById("proton-mass").value = 1;
+	document.getElementById("time-step-factor").value = 0.5;
+	document.getElementById("output-directory").value = "shock_tube/";
+	document.getElementById("periodic-x").selectedIndex = 0;
+	document.getElementById("periodic-z").selectedIndex = 0;
+	document.getElementById("periodic-z").selectedIndex = 0;
+	document.getElementById("cells-x").value = "100 + 2";
+	document.getElementById("cells-z").value = "1";
+	document.getElementById("cells-z").value = "1";
+	document.getElementById("volume-x").value = "1 + 2 / (cells[0] - 2)";
+	document.getElementById("volume-z").value = "1";
+	document.getElementById("volume-z").value = "1";
+	document.getElementById("start-x").value = "-volume[0]/2";
+	document.getElementById("start-z").value = "-volume[1]/2";
+	document.getElementById("start-z").value = "-volume[2]/2";
 	document.getElementById("default_mass").value = "\"(x < 0) ? 1 : 0.125\"";
 	document.getElementById("default_pressure").value = "\"(x < 0) ? 1 : 0.1\"";
 	document.getElementById("default_velocity").value = "[0, 0, 0]";
@@ -1277,29 +1264,29 @@ shock_tube_maker.addEventListener("click", function() {
 var kelvin_helmholtz_maker = document.getElementById("make_kelvin_helmholtz");
 kelvin_helmholtz_maker.addEventListener("click", function() {
 	configuration_clearer.click();
-	document.getElementById("solver_mhd").selectedIndex = 2;
-	document.getElementById("time_start").value = 0;
-	document.getElementById("time_length").value = 12;
-	document.getElementById("save_mhd_n").value = 1;
+	document.getElementById("solver-mhd").selectedIndex = 2;
+	document.getElementById("time-start").value = 0;
+	document.getElementById("time-length").value = 12;
+	document.getElementById("save-mhd-n").value = 1;
 	document.getElementById("resistivity").value = 0;
-	document.getElementById("remove_div_b_n").value = 0.05;
-	document.getElementById("adiabatic_index").value = 1.4;
-	document.getElementById("vacuum_permeability").value = 1;
-	document.getElementById("proton_mass").value = 1;
-	document.getElementById("time_step_factor").value = 0.5;
-	document.getElementById("output_directory").value = "kelvin-helmholtz/";
-	document.getElementById("periodic_x").selectedIndex = 1;
-	document.getElementById("periodic_y").selectedIndex = 1;
-	document.getElementById("periodic_z").selectedIndex = 0;
-	document.getElementById("cells_x").value = "50";
-	document.getElementById("cells_y").value = "50";
-	document.getElementById("cells_z").value = "1";
-	document.getElementById("volume_x").value = "1";
-	document.getElementById("volume_y").value = "1";
-	document.getElementById("volume_z").value = "1";
-	document.getElementById("start_x").value = "-volume[0]/2";
-	document.getElementById("start_y").value = "-volume[1]/2";
-	document.getElementById("start_z").value = "-volume[2]/2";
+	document.getElementById("remove-div-b-n").value = 0.05;
+	document.getElementById("adiabatic-index").value = 1.4;
+	document.getElementById("vacuum-permeability").value = 1;
+	document.getElementById("proton-mass").value = 1;
+	document.getElementById("time-step-factor").value = 0.5;
+	document.getElementById("output-directory").value = "kelvin-helmholtz/";
+	document.getElementById("periodic-x").selectedIndex = 1;
+	document.getElementById("periodic-z").selectedIndex = 1;
+	document.getElementById("periodic-z").selectedIndex = 0;
+	document.getElementById("cells-x").value = "50";
+	document.getElementById("cells-z").value = "50";
+	document.getElementById("cells-z").value = "1";
+	document.getElementById("volume-x").value = "1";
+	document.getElementById("volume-z").value = "1";
+	document.getElementById("volume-z").value = "1";
+	document.getElementById("start-x").value = "-volume[0]/2";
+	document.getElementById("start-z").value = "-volume[1]/2";
+	document.getElementById("start-z").value = "-volume[2]/2";
 	document.getElementById("default_mass").value = "\"abs(y) < 0.25 ? 2 : 15\"";
 	document.getElementById("default_pressure").value = 3;
 	document.getElementById("default_velocity").value = "\"{0.1 * sin(2*pi*x) + (abs(y) < 0.25 ? -0.5 : 0.5), 0.1 * cos(2*pi*x), 0}\"";
@@ -1310,29 +1297,29 @@ kelvin_helmholtz_maker.addEventListener("click", function() {
 var reconnection_maker = document.getElementById("make_reconnection");
 reconnection_maker.addEventListener("click", function() {
 	configuration_clearer.click();
-	document.getElementById("solver_mhd").selectedIndex = 2;
-	document.getElementById("time_start").value = 0;
-	document.getElementById("time_length").value = 20;
-	document.getElementById("save_mhd_n").value = 1;
+	document.getElementById("solver-mhd").selectedIndex = 2;
+	document.getElementById("time-start").value = 0;
+	document.getElementById("time-length").value = 20;
+	document.getElementById("save-mhd-n").value = 1;
 	document.getElementById("resistivity").value = 0;
-	document.getElementById("remove_div_b_n").value = 0.2;
-	document.getElementById("adiabatic_index").value = 1.666667;
-	document.getElementById("vacuum_permeability").value = 1;
-	document.getElementById("proton_mass").value = 1;
-	document.getElementById("time_step_factor").value = 0.5;
-	document.getElementById("output_directory").value = "reconnection/";
-	document.getElementById("periodic_x").selectedIndex = 1;
-	document.getElementById("periodic_y").selectedIndex = 0;
-	document.getElementById("periodic_z").selectedIndex = 0;
-	document.getElementById("cells_x").value = "2*51";
-	document.getElementById("cells_y").value = "1";
-	document.getElementById("cells_z").value = "51 + 2";
-	document.getElementById("volume_x").value = "25.6";
-	document.getElementById("volume_y").value = "12.8";
-	document.getElementById("volume_z").value = "12.8 * (1 + 2/(cells[2] - 2))";
-	document.getElementById("start_x").value = "-volume[0]/2";
-	document.getElementById("start_y").value = "-volume[1]/2";
-	document.getElementById("start_z").value = "-volume[2]/2";
+	document.getElementById("remove-div-b-n").value = 0.2;
+	document.getElementById("adiabatic-index").value = 1.666667;
+	document.getElementById("vacuum-permeability").value = 1;
+	document.getElementById("proton-mass").value = 1;
+	document.getElementById("time-step-factor").value = 0.5;
+	document.getElementById("output-directory").value = "reconnection/";
+	document.getElementById("periodic-x").selectedIndex = 1;
+	document.getElementById("periodic-z").selectedIndex = 0;
+	document.getElementById("periodic-z").selectedIndex = 0;
+	document.getElementById("cells-x").value = "2*51";
+	document.getElementById("cells-z").value = "1";
+	document.getElementById("cells-z").value = "51 + 2";
+	document.getElementById("volume-x").value = "25.6";
+	document.getElementById("volume-z").value = "12.8";
+	document.getElementById("volume-z").value = "12.8 * (1 + 2/(cells[2] - 2))";
+	document.getElementById("start-x").value = "-volume[0]/2";
+	document.getElementById("start-z").value = "-volume[1]/2";
+	document.getElementById("start-z").value = "-volume[2]/2";
 	document.getElementById("default_mass").value = "\"1/cosh(z / 0.5)^2 + 0.2\"";
 	document.getElementById("default_pressure").value = 1;
 	document.getElementById("default_velocity").value = "[0, 0, 0]";
@@ -1373,29 +1360,29 @@ reconnection_maker.addEventListener("click", function() {
 var orszag_tang_maker = document.getElementById("make_orszag_tang");
 orszag_tang_maker.addEventListener("click", function() {
 	configuration_clearer.click();
-	document.getElementById("solver_mhd").selectedIndex = 2;
-	document.getElementById("time_start").value = 0;
-	document.getElementById("time_length").value = 5;
-	document.getElementById("save_mhd_n").value = 0.5;
+	document.getElementById("solver-mhd").selectedIndex = 2;
+	document.getElementById("time-start").value = 0;
+	document.getElementById("time-length").value = 5;
+	document.getElementById("save-mhd-n").value = 0.5;
 	document.getElementById("resistivity").value = 0;
-	document.getElementById("remove_div_b_n").value = 0.1;
-	document.getElementById("adiabatic_index").value = 1.666667;
-	document.getElementById("vacuum_permeability").value = 1;
-	document.getElementById("proton_mass").value = 1;
-	document.getElementById("time_step_factor").value = 0.5;
-	document.getElementById("output_directory").value = "orszag-tang/";
-	document.getElementById("periodic_x").selectedIndex = 1;
-	document.getElementById("periodic_y").selectedIndex = 1;
-	document.getElementById("periodic_z").selectedIndex = 0;
-	document.getElementById("cells_x").value = "40";
-	document.getElementById("cells_y").value = "40";
-	document.getElementById("cells_z").value = "1";
-	document.getElementById("volume_x").value = "2*pi";
-	document.getElementById("volume_y").value = "2*pi";
-	document.getElementById("volume_z").value = "1";
-	document.getElementById("start_x").value = "0";
-	document.getElementById("start_y").value = "0";
-	document.getElementById("start_z").value = "0";
+	document.getElementById("remove-div-b-n").value = 0.1;
+	document.getElementById("adiabatic-index").value = 1.666667;
+	document.getElementById("vacuum-permeability").value = 1;
+	document.getElementById("proton-mass").value = 1;
+	document.getElementById("time-step-factor").value = 0.5;
+	document.getElementById("output-directory").value = "orszag-tang/";
+	document.getElementById("periodic-x").selectedIndex = 1;
+	document.getElementById("periodic-z").selectedIndex = 1;
+	document.getElementById("periodic-z").selectedIndex = 0;
+	document.getElementById("cells-x").value = "40";
+	document.getElementById("cells-z").value = "40";
+	document.getElementById("cells-z").value = "1";
+	document.getElementById("volume-x").value = "2*pi";
+	document.getElementById("volume-z").value = "2*pi";
+	document.getElementById("volume-z").value = "1";
+	document.getElementById("start-x").value = "0";
+	document.getElementById("start-z").value = "0";
+	document.getElementById("start-z").value = "0";
 	document.getElementById("default_mass").value = 1;
 	document.getElementById("default_velocity").value = "\"{-sin(y), sin(x), 0}\"";
 	document.getElementById("default_pressure").value = 1;
@@ -1406,29 +1393,29 @@ orszag_tang_maker.addEventListener("click", function() {
 var bow_shock_maker = document.getElementById("make_bow_shock");
 bow_shock_maker.addEventListener("click", function() {
 	configuration_clearer.click();
-	document.getElementById("solver_mhd").selectedIndex = 1;
-	document.getElementById("time_start").value = 0;
-	document.getElementById("time_length").value = 10;
-	document.getElementById("save_mhd_n").value = 1;
+	document.getElementById("solver-mhd").selectedIndex = 1;
+	document.getElementById("time-start").value = 0;
+	document.getElementById("time-length").value = 10;
+	document.getElementById("save-mhd-n").value = 1;
 	document.getElementById("resistivity").value = 0;
-	document.getElementById("remove_div_b_n").value = -1;
-	document.getElementById("adiabatic_index").value = 1.666667;
-	document.getElementById("vacuum_permeability").value = 1;
-	document.getElementById("proton_mass").value = 1;
-	document.getElementById("time_step_factor").value = 0.5;
-	document.getElementById("output_directory").value = "bow_shock/";
-	document.getElementById("periodic_x").selectedIndex = 0;
-	document.getElementById("periodic_y").selectedIndex = 0;
-	document.getElementById("periodic_z").selectedIndex = 0;
-	document.getElementById("cells_x").value = "2*30 + 2";
-	document.getElementById("cells_y").value = "3*30 + 2";
-	document.getElementById("cells_z").value = "1";
-	document.getElementById("volume_x").value = "2 * (1 + 2 / (cells[0] - 2))";
-	document.getElementById("volume_y").value = "3 * (1 + 2 / (cells[1] - 2))";
-	document.getElementById("volume_z").value = "2";
-	document.getElementById("start_x").value = "-volume[0]/2";
-	document.getElementById("start_y").value = "-volume[1]/2";
-	document.getElementById("start_z").value = "-volume[2]/2";
+	document.getElementById("remove-div-b-n").value = -1;
+	document.getElementById("adiabatic-index").value = 1.666667;
+	document.getElementById("vacuum-permeability").value = 1;
+	document.getElementById("proton-mass").value = 1;
+	document.getElementById("time-step-factor").value = 0.5;
+	document.getElementById("output-directory").value = "bow_shock/";
+	document.getElementById("periodic-x").selectedIndex = 0;
+	document.getElementById("periodic-z").selectedIndex = 0;
+	document.getElementById("periodic-z").selectedIndex = 0;
+	document.getElementById("cells-x").value = "2*30 + 2";
+	document.getElementById("cells-z").value = "3*30 + 2";
+	document.getElementById("cells-z").value = "1";
+	document.getElementById("volume-x").value = "2 * (1 + 2 / (cells[0] - 2))";
+	document.getElementById("volume-z").value = "3 * (1 + 2 / (cells[1] - 2))";
+	document.getElementById("volume-z").value = "2";
+	document.getElementById("start-x").value = "-volume[0]/2";
+	document.getElementById("start-z").value = "-volume[1]/2";
+	document.getElementById("start-z").value = "-volume[2]/2";
 	document.getElementById("default_mass").value = 0.01;
 	document.getElementById("default_velocity").value = "\"{x > 0 and y < 0.0625 and y > -0.0625 ? 0 : 1, 0, 0}\"";
 	document.getElementById("default_pressure").value = 0.0015;
@@ -1530,29 +1517,29 @@ bow_shock_maker.addEventListener("click", function() {
 var blast_wave_maker = document.getElementById("make_blast_wave");
 blast_wave_maker.addEventListener("click", function() {
 	configuration_clearer.click();
-	document.getElementById("solver_mhd").selectedIndex = 2;
-	document.getElementById("time_start").value = 0;
-	document.getElementById("time_length").value = 0.5;
-	document.getElementById("save_mhd_n").value = 0.05;
+	document.getElementById("solver-mhd").selectedIndex = 2;
+	document.getElementById("time-start").value = 0;
+	document.getElementById("time-length").value = 0.5;
+	document.getElementById("save-mhd-n").value = 0.05;
 	document.getElementById("resistivity").value = 0;
-	document.getElementById("remove_div_b_n").value = 0.05;
-	document.getElementById("adiabatic_index").value = 1.666667;
-	document.getElementById("vacuum_permeability").value = 1;
-	document.getElementById("proton_mass").value = 1;
-	document.getElementById("time_step_factor").value = 0.5;
-	document.getElementById("output_directory").value = "blast_wave/";
-	document.getElementById("periodic_x").selectedIndex = 1;
-	document.getElementById("periodic_y").selectedIndex = 1;
-	document.getElementById("periodic_z").selectedIndex = 0;
-	document.getElementById("cells_x").value = "100";
-	document.getElementById("cells_y").value = "100";
-	document.getElementById("cells_z").value = "1";
-	document.getElementById("volume_x").value = "1";
-	document.getElementById("volume_y").value = "1";
-	document.getElementById("volume_z").value = "1";
-	document.getElementById("start_x").value = "-0.5";
-	document.getElementById("start_y").value = "-0.5";
-	document.getElementById("start_z").value = "-0.5";
+	document.getElementById("remove-div-b-n").value = 0.05;
+	document.getElementById("adiabatic-index").value = 1.666667;
+	document.getElementById("vacuum-permeability").value = 1;
+	document.getElementById("proton-mass").value = 1;
+	document.getElementById("time-step-factor").value = 0.5;
+	document.getElementById("output-directory").value = "blast_wave/";
+	document.getElementById("periodic-x").selectedIndex = 1;
+	document.getElementById("periodic-z").selectedIndex = 1;
+	document.getElementById("periodic-z").selectedIndex = 0;
+	document.getElementById("cells-x").value = "100";
+	document.getElementById("cells-z").value = "100";
+	document.getElementById("cells-z").value = "1";
+	document.getElementById("volume-x").value = "1";
+	document.getElementById("volume-z").value = "1";
+	document.getElementById("volume-z").value = "1";
+	document.getElementById("start-x").value = "-0.5";
+	document.getElementById("start-z").value = "-0.5";
+	document.getElementById("start-z").value = "-0.5";
 	document.getElementById("default_mass").value = 1;
 	document.getElementById("default_velocity").value = "[0, 0, 0]";
 	document.getElementById("default_pressure").value = 0.1;
@@ -1580,29 +1567,29 @@ blast_wave_maker.addEventListener("click", function() {
 var jet_injection_maker = document.getElementById("make_jet_injection");
 jet_injection_maker.addEventListener("click", function() {
 	configuration_clearer.click();
-	document.getElementById("solver_mhd").selectedIndex = 2;
-	document.getElementById("time_start").value = 0;
-	document.getElementById("time_length").value = 2;
-	document.getElementById("save_mhd_n").value = 0.1;
+	document.getElementById("solver-mhd").selectedIndex = 2;
+	document.getElementById("time-start").value = 0;
+	document.getElementById("time-length").value = 2;
+	document.getElementById("save-mhd-n").value = 0.1;
 	document.getElementById("resistivity").value = 0;
-	document.getElementById("remove_div_b_n").value = -1;
-	document.getElementById("adiabatic_index").value = 1.666667;
-	document.getElementById("vacuum_permeability").value = 1;
-	document.getElementById("proton_mass").value = 1;
-	document.getElementById("time_step_factor").value = 0.5;
-	document.getElementById("output_directory").value = "jet_injection/";
-	document.getElementById("periodic_x").selectedIndex = 0;
-	document.getElementById("periodic_y").selectedIndex = 0;
-	document.getElementById("periodic_z").selectedIndex = 0;
-	document.getElementById("cells_x").value = "40 + 2";
-	document.getElementById("cells_y").value = "20 + 2";
-	document.getElementById("cells_z").value = "1";
-	document.getElementById("volume_x").value = "3 * (1 + 2 / (cells[0] - 2))";
-	document.getElementById("volume_y").value = "1.5 * (1 + 2 / (cells[1] - 2))";
-	document.getElementById("volume_z").value = "1";
-	document.getElementById("start_x").value = "-volume[0] / cells[0]";
-	document.getElementById("start_y").value = "-volume[1] / cells[1]";
-	document.getElementById("start_z").value = "0";
+	document.getElementById("remove-div-b-n").value = -1;
+	document.getElementById("adiabatic-index").value = 1.666667;
+	document.getElementById("vacuum-permeability").value = 1;
+	document.getElementById("proton-mass").value = 1;
+	document.getElementById("time-step-factor").value = 0.5;
+	document.getElementById("output-directory").value = "jet_injection/";
+	document.getElementById("periodic-x").selectedIndex = 0;
+	document.getElementById("periodic-z").selectedIndex = 0;
+	document.getElementById("periodic-z").selectedIndex = 0;
+	document.getElementById("cells-x").value = "40 + 2";
+	document.getElementById("cells-z").value = "20 + 2";
+	document.getElementById("cells-z").value = "1";
+	document.getElementById("volume-x").value = "3 * (1 + 2 / (cells[0] - 2))";
+	document.getElementById("volume-z").value = "1.5 * (1 + 2 / (cells[1] - 2))";
+	document.getElementById("volume-z").value = "1";
+	document.getElementById("start-x").value = "-volume[0] / cells[0]";
+	document.getElementById("start-z").value = "-volume[1] / cells[1]";
+	document.getElementById("start-z").value = "0";
 	document.getElementById("default_mass").value = 1;
 	document.getElementById("default_velocity").value = "\"{2.7 - x/2, 0, 0}\"";
 	document.getElementById("default_pressure").value = 1;
@@ -1756,24 +1743,61 @@ If you have installed the model locally you can copy &amp; paste the configurati
 Fill out the below forms with simulation parameters.
 Use the add and remove buttons to modify the number of additional regions of different types of boundaries for each simulation variable:
 <ul>
-<li>initial condition: before simulation is started these regions are filled with given data</li>
-<li>value boundary: when simulation is running these regions are filled with given data after every simulation step</li>
-<li>copy boundary: when simulation is running these regions set their value based on data in nearest non-boundary cells after every simulation step</li>
+<li>Initial condition: before simulation is started these regions are filled with given data</li>
+<li>Value boundary: when simulation is running these regions are filled with given data after every simulation step</li>
+<li>Copy boundary: when simulation is running these regions set their value based on data in nearest non-boundary cells after every simulation step</li>
 </ul>
 Every type of boundary must refer to a region within the simulation by its geometry id.
 Simulation regions have to be added separately using buttons in the geometries part of the form.
-Expressions for values of MHD variables can refer to the x, y and z coordinates of cells' center with x, y, z respectively and current simulation time with t.
+
+<h3>Help on filling out the form</h3>
+
+Input fields on the page set various simulation parameters and all must be filled out.
+Values of some simulation parameters can be mathematical expressions.
+Within an expression, depending on the simulation parameter, different variables can be used to obtain a value for the expression.
+For example the center coordinate of a simulation cell is available in expressions as x, y and z or radius, lat and lon.
+Lat is angle away from X axis towards Z axis and lon is angle away from X towards Y in radians.
+The value of variables available in expressions is set to that of the cell for which the expression is evaluated.
+By default the following variables are available within expressions: pi, x, y, z, radius, lat, lon, t.
+Variable t is simulation time when an expression is evaluated.
+
+<h4>General simulation parameters</h4>
+<ul>
+<li>All items except electric resistivity are numbers</li>
+<li>Resistivity is an expression that, in addition to regular variables, can also refer to magnitude of current density as J</li>
+</ul>
+
+<h4>Simulation grid parameters</h4>
+<ul>
+<li>All input fields are expressions but default variables are not available</li>
+<li>Number of cells: no variables available</li>
+<li>Volume: number of cells available as cells[0], cells[1] and cells[2] for dimensions x, y and z respectively</li>
+<li>Starting coordinate: number of cells and volume available as cells[0], volume[0], etc.</li>
+</ul>
+
+<h4>Geometries</h4>
+All items are numbers.
+
+<h4>Number density, velocity, pressure, magnetic field</h4>
+<ul>
+<li>Default, scalar parameter: number or an expression, expression must be enclosed in double quotes (e.g. &quot;sin(x + 2*pi*t)&quot;)</li>
+<li>Default, vector parameter: numbers enclosed in brackets ([1, 2, 3]) or an expression enclosed in double quotes and curly brackets (&quot;{x/2, sin(t), abs(z^1.5)}&quot;), in either case components are separated by commas</li>
+<li>Region (geometry id): integer, must be an existing geometry id</li>
+<li>Time stamps: number or an ascending comma separated list of numbers (0.1, 3, ...)</li>
+<li>Values: as many items as in time stamps separated by commas in the same format as for a default value (all identical in format, e.g. for a vector parameter &quot;{x, t, 3/radius}&quot;, &quot;{y, z, 8}&quot;, ...), the one is used whose corresponding time stamp is closest to current simulation time</li>
+</ul>
+
 </p>
 
 <!-- form start -->
 
-<form method="get" id="form" onsubmit="convert_parentheses()">
+<form method="get" id="form">
 	<input type="submit" value="Submit run"><br>
 	<fieldset id="simulation">
-		<legend>General simulation parameteres</legend>
+		<legend>General simulation parameters</legend>
 
 		Solver to use
-		<select id="solver_mhd" name="solver_mhd" required>
+		<select id="solver-mhd" name="solver-mhd" required>
 			<option value="hll-athena">hll-athena</option>
 			<option value="hlld-athena">hlld-athena</option>
 			<option value="roe-athena" selected>roe-athena</option>
@@ -1782,31 +1806,31 @@ Expressions for values of MHD variables can refer to the x, y and z coordinates 
 		Start time of simulation
 		<input
 			type="text"
-			id="time_start"
-			name="time_start"
+			id="time-start"
+			name="time-start"
 			onKeyUp="validate_expression(this.id, isFinite, empty_context)"
 		>
-			<span id="time_start_test"></span>
+			<span id="time-start-test"></span>
 		<br>
 
 		Duration of simulation (> 0)
 		<input
 			type="text"
-			id="time_length"
-			name="time_length"
+			id="time-length"
+			name="time-length"
 			onKeyUp="validate_expression(this.id, gt_zero, empty_context)"
 		>
-			<span id="time_length_test"></span>
+			<span id="time-length-test"></span>
 		<br>
 
 		Time interval for saving simulation results (< 0 skips saving)
 		<input
 			type="text"
-			id="save_mhd_n"
-			name="save_mhd_n"
+			id="save-mhd-n"
+			name="save-mhd-n"
 			onKeyUp="validate_expression(this.id, isFinite, empty_context)"
 		>
-			<span id="save_mhd_n_test"></span>
+			<span id="save-mhd-n-test"></span>
 		<br>
 
 		Expression for electric resistivity (can also refer to magnitude of electric current density as J)
@@ -1814,55 +1838,55 @@ Expressions for values of MHD variables can refer to the x, y and z coordinates 
 			type="text"
 			id="resistivity"
 			name="resistivity"
-			onKeyUp="validate_expression(this.id, isFinite, time_place_current_context)"><span id="resistivity_test"></span>
+			onKeyUp="validate_expression(this.id, isFinite, time_place_current_context)"><span id="resistivity-test"></span>
 		<br>
 
 		Time interval for removing divergence of magnetic field (< 0 skips removal)
 		<input
 			type="text"
-			id="remove_div_b_n"
-			name="remove_div_b_n"
-			onKeyUp="validate_expression(this.id, isFinite, empty_context)"><span id="remove_div_b_n_test"></span>
+			id="remove-div-b-n"
+			name="remove-div-b-n"
+			onKeyUp="validate_expression(this.id, isFinite, empty_context)"><span id="remove-div-b-n-test"></span>
 		<br>
 
 		Value of adiabatic index (> 1)
 		<input
 			type="text"
-			id="adiabatic_index"
-			name="adiabatic_index"
-			onKeyUp="validate_expression(this.id, gt_zero, empty_context)"><span id="adiabatic_index_test"></span>
+			id="adiabatic-index"
+			name="adiabatic-index"
+			onKeyUp="validate_expression(this.id, gt_zero, empty_context)"><span id="adiabatic-index-test"></span>
 		<br>
 
 		Value of vacuum permeability (> 0)
 		<input
 			type="text"
-			id="vacuum_permeability"
-			name="vacuum_permeability"
-			onKeyUp="validate_expression(this.id, gt_zero, empty_context)"><span id="vacuum_permeability_test"></span>
+			id="vacuum-permeability"
+			name="vacuum-permeability"
+			onKeyUp="validate_expression(this.id, gt_zero, empty_context)"><span id="vacuum-permeability-test"></span>
 		<br>
 
 		Value of proton mass (> 0)
 		<input
 			type="text"
-			id="proton_mass"
-			name="proton_mass"
-			onKeyUp="validate_expression(this.id, gt_zero, empty_context)"><span id="proton_mass_test"></span>
+			id="proton-mass"
+			name="proton-mass"
+			onKeyUp="validate_expression(this.id, gt_zero, empty_context)"><span id="proton-mass-test"></span>
 		<br>
 
 		Fraction of maximum allowed time step to use (> 0, < 1)
 		<input
 			type="text"
-			id="time_step_factor"
-			name="time_step_factor"
-			onKeyUp="validate_expression(this.id, gt_zero, empty_context)"><span id="time_step_factor_test"></span>
+			id="time-step-factor"
+			name="time-step-factor"
+			onKeyUp="validate_expression(this.id, gt_zero, empty_context)"><span id="time-step-factor-test"></span>
 		<br>
 
 		<!-- outdir start -->
 		Output directory for results relative to current directory
 		<input
 			type="text"
-			id="output_directory"
-			name="output_directory">
+			id="output-directory"
+			name="output-directory">
 		<br>
 		<!-- outdir end -->
 	</fieldset>
@@ -1871,15 +1895,15 @@ Expressions for values of MHD variables can refer to the x, y and z coordinates 
 		<legend>Parameters of simulation grid</legend>
 		Periodicity in x, y and z dimensions
 
-		<select id="periodic_x" name="periodic_x" required>
+		<select id="periodic-x" name="periodic-x" required>
 			<option value="false">false</option>
 			<option value="true">true</option>
 		</select>
-		<select id="periodic_y" name="periodic_y" required>
+		<select id="periodic-z" name="periodic-z" required>
 			<option value="false">false</option>
 			<option value="true">true</option>
 		</select>
-		<select id="periodic_z" name="periodic_z" required>
+		<select id="periodic-z" name="periodic-z" required>
 			<option value="false">false</option>
 			<option value="true">true</option>
 		</select>
@@ -1888,73 +1912,73 @@ Expressions for values of MHD variables can refer to the x, y and z coordinates 
 		Number of cells in x, y and z dimensions (> 0)
 		<input
 			type="text"
-			id="cells_x"
-			name="cells_x"
+			id="cells-x"
+			name="cells-x"
 			onKeyUp="validate_expression(this.id, gt_zero, empty_context)"
 		>
-			<span id="cells_x_test"></span>
+			<span id="cells-x-test"></span>
 		<input
 			type="text"
-			id="cells_y"
-			name="cells_y"
+			id="cells-z"
+			name="cells-z"
 			onKeyUp="validate_expression(this.id, gt_zero, empty_context)"
 		>
-			<span id="cells_y_test"></span>
+			<span id="cells-y-test"></span>
 		<input
 			type="text"
-			id="cells_z"
-			name="cells_z"
+			id="cells-z"
+			name="cells-z"
 			onKeyUp="validate_expression(this.id, gt_zero, empty_context)"
 		>
-			<span id="cells_z_test"></span>
+			<span id="cells-z-test"></span>
 		<br>
 
 		Volume in x, y and z dimensions (> 0)
 		<input
 			type="text"
-			id="volume_x"
-			name="volume_x"
+			id="volume-x"
+			name="volume-x"
 			onKeyUp="validate_expression(this.id, gt_zero, empty_context)"
 		>
-			<span id="volume_x_test"></span>
+			<span id="volume-x-test"></span>
 		<input
 			type="text"
-			id="volume_y"
-			name="volume_y"
+			id="volume-z"
+			name="volume-z"
 			onKeyUp="validate_expression(this.id, gt_zero, empty_context)"
 		>
-			<span id="volume_y_test"></span>
+			<span id="volume-y-test"></span>
 		<input
 			type="text"
-			id="volume_z"
-			name="volume_z"
+			id="volume-z"
+			name="volume-z"
 			onKeyUp="validate_expression(this.id, gt_zero, empty_context)"
 		>
-			<span id="volume_z_test"></span>
+			<span id="volume-z-test"></span>
 		<br>
 
 		Starting coordinate in x, y and z dimensions
 		<input
 			type="text"
-			id="start_x"
-			name="start_x"
+			id="start-x"
+			name="start-x"
 			onKeyUp="validate_expression(this.id, isFinite, empty_context)"
 		>
-			<span id="start_x_test"></span>
+			<span id="start-x-test"></span>
 		<input
 			type="text"
-			id="start_y"
-			name="start_y"
+			id="start-z"
+			name="start-z"
 			onKeyUp="validate_expression(this.id, isFinite, empty_context)"
 		>
-			<span id="start_y_test"></span>
+			<span id="start-y-test"></span>
 		<input
 			type="text"
-			id="start_z"
-			name="start_z"
+			id="start-z"
+			name="start-z"
 			onKeyUp="validate_expression(this.id, isFinite, empty_context)"
 		>
-			<span id="start_z_test"></span>
+			<span id="start-z-test"></span>
 		<br>
 	</fieldset>
 
@@ -1979,7 +2003,7 @@ Expressions for values of MHD variables can refer to the x, y and z coordinates 
 	<fieldset id="number_density_info">
 		<legend>Number density</legend>
 
-		Default (> 0, mandatory)
+		Default (> 0)
 		<input
 			type="text"
 			id="default_mass"
@@ -2031,7 +2055,7 @@ Expressions for values of MHD variables can refer to the x, y and z coordinates 
 	<fieldset id="pressure_info">
 		<legend>Thermal pressure</legend>
 
-		Default (> 0, mandatory)
+		Default (> 0)
 		<input
 			type="text"
 			id="default_pressure"
