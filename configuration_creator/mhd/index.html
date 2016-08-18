@@ -665,13 +665,13 @@ configuration_clearer.addEventListener("click", function() {
 	document.getElementById("periodic-z").selectedIndex = 0;
 	document.getElementById("periodic-z").selectedIndex = 0;
 	document.getElementById("cells-x").value = "";
-	document.getElementById("cells-z").value = "";
+	document.getElementById("cells-y").value = "";
 	document.getElementById("cells-z").value = "";
 	document.getElementById("volume-x").value = "";
-	document.getElementById("volume-z").value = "";
+	document.getElementById("volume-y").value = "";
 	document.getElementById("volume-z").value = "";
 	document.getElementById("start-x").value = "";
-	document.getElementById("start-z").value = "";
+	document.getElementById("start-y").value = "";
 	document.getElementById("start-z").value = "";
 	document.getElementById("default_mass").value = "";
 	document.getElementById("default_pressure").value = "";
@@ -752,19 +752,19 @@ config_text_updater.addEventListener("click", function() {
 		+ "&quot;grid-options&quot;: {<br>"
 		+ "&nbsp;&nbsp;&quot;periodic&quot;: &quot;{"
 		+ document.getElementById("periodic-x").value + ", "
-		+ document.getElementById("periodic-z").value + ", "
+		+ document.getElementById("periodic-y").value + ", "
 		+ document.getElementById("periodic-z").value + "}&quot;,<br>"
 		+ "&nbsp;&nbsp;&quot;cells&quot;: &quot;{"
 		+ document.getElementById("cells-x").value + ", "
-		+ document.getElementById("cells-z").value + ", "
+		+ document.getElementById("cells-y").value + ", "
 		+ document.getElementById("cells-z").value + "}&quot;,<br>"
 		+ "&nbsp;&nbsp;&quot;volume&quot;: &quot;{"
 		+ document.getElementById("volume-x").value + ", "
-		+ document.getElementById("volume-z").value + ", "
+		+ document.getElementById("volume-y").value + ", "
 		+ document.getElementById("volume-z").value + "}&quot;,<br>"
 		+ "&nbsp;&nbsp;&quot;start&quot;: &quot;{"
 		+ document.getElementById("start-x").value + ", "
-		+ document.getElementById("start-z").value + ", "
+		+ document.getElementById("start-y").value + ", "
 		+ document.getElementById("start-z").value + "}&quot;<br>"
 		+ "},<br>";
 
@@ -1197,16 +1197,16 @@ shock_tube_maker.addEventListener("click", function() {
 	document.getElementById("time-step-factor").value = 0.5;
 	document.getElementById("output-directory").value = "shock_tube/";
 	document.getElementById("periodic-x").selectedIndex = 0;
-	document.getElementById("periodic-z").selectedIndex = 0;
+	document.getElementById("periodic-y").selectedIndex = 0;
 	document.getElementById("periodic-z").selectedIndex = 0;
 	document.getElementById("cells-x").value = "100 + 2";
-	document.getElementById("cells-z").value = "1";
+	document.getElementById("cells-y").value = "1";
 	document.getElementById("cells-z").value = "1";
 	document.getElementById("volume-x").value = "1 + 2 / (cells[0] - 2)";
-	document.getElementById("volume-z").value = "1";
+	document.getElementById("volume-y").value = "1";
 	document.getElementById("volume-z").value = "1";
 	document.getElementById("start-x").value = "-volume[0]/2";
-	document.getElementById("start-z").value = "-volume[1]/2";
+	document.getElementById("start-y").value = "-volume[1]/2";
 	document.getElementById("start-z").value = "-volume[2]/2";
 	document.getElementById("default_mass").value = "\"(x < 0) ? 1 : 0.125\"";
 	document.getElementById("default_pressure").value = "\"(x < 0) ? 1 : 0.1\"";
@@ -1276,16 +1276,16 @@ kelvin_helmholtz_maker.addEventListener("click", function() {
 	document.getElementById("time-step-factor").value = 0.5;
 	document.getElementById("output-directory").value = "kelvin-helmholtz/";
 	document.getElementById("periodic-x").selectedIndex = 1;
-	document.getElementById("periodic-z").selectedIndex = 1;
+	document.getElementById("periodic-y").selectedIndex = 1;
 	document.getElementById("periodic-z").selectedIndex = 0;
 	document.getElementById("cells-x").value = "50";
-	document.getElementById("cells-z").value = "50";
+	document.getElementById("cells-y").value = "50";
 	document.getElementById("cells-z").value = "1";
 	document.getElementById("volume-x").value = "1";
-	document.getElementById("volume-z").value = "1";
+	document.getElementById("volume-y").value = "1";
 	document.getElementById("volume-z").value = "1";
 	document.getElementById("start-x").value = "-volume[0]/2";
-	document.getElementById("start-z").value = "-volume[1]/2";
+	document.getElementById("start-y").value = "-volume[1]/2";
 	document.getElementById("start-z").value = "-volume[2]/2";
 	document.getElementById("default_mass").value = "\"abs(y) < 0.25 ? 2 : 15\"";
 	document.getElementById("default_pressure").value = 3;
@@ -1309,16 +1309,16 @@ reconnection_maker.addEventListener("click", function() {
 	document.getElementById("time-step-factor").value = 0.5;
 	document.getElementById("output-directory").value = "reconnection/";
 	document.getElementById("periodic-x").selectedIndex = 1;
-	document.getElementById("periodic-z").selectedIndex = 0;
+	document.getElementById("periodic-y").selectedIndex = 0;
 	document.getElementById("periodic-z").selectedIndex = 0;
 	document.getElementById("cells-x").value = "2*51";
-	document.getElementById("cells-z").value = "1";
+	document.getElementById("cells-y").value = "1";
 	document.getElementById("cells-z").value = "51 + 2";
 	document.getElementById("volume-x").value = "25.6";
-	document.getElementById("volume-z").value = "12.8";
+	document.getElementById("volume-y").value = "12.8";
 	document.getElementById("volume-z").value = "12.8 * (1 + 2/(cells[2] - 2))";
 	document.getElementById("start-x").value = "-volume[0]/2";
-	document.getElementById("start-z").value = "-volume[1]/2";
+	document.getElementById("start-y").value = "-volume[1]/2";
 	document.getElementById("start-z").value = "-volume[2]/2";
 	document.getElementById("default_mass").value = "\"1/cosh(z / 0.5)^2 + 0.2\"";
 	document.getElementById("default_pressure").value = 1;
@@ -1372,16 +1372,16 @@ orszag_tang_maker.addEventListener("click", function() {
 	document.getElementById("time-step-factor").value = 0.5;
 	document.getElementById("output-directory").value = "orszag-tang/";
 	document.getElementById("periodic-x").selectedIndex = 1;
-	document.getElementById("periodic-z").selectedIndex = 1;
+	document.getElementById("periodic-y").selectedIndex = 1;
 	document.getElementById("periodic-z").selectedIndex = 0;
 	document.getElementById("cells-x").value = "40";
-	document.getElementById("cells-z").value = "40";
+	document.getElementById("cells-y").value = "40";
 	document.getElementById("cells-z").value = "1";
 	document.getElementById("volume-x").value = "2*pi";
-	document.getElementById("volume-z").value = "2*pi";
+	document.getElementById("volume-y").value = "2*pi";
 	document.getElementById("volume-z").value = "1";
 	document.getElementById("start-x").value = "0";
-	document.getElementById("start-z").value = "0";
+	document.getElementById("start-y").value = "0";
 	document.getElementById("start-z").value = "0";
 	document.getElementById("default_mass").value = 1;
 	document.getElementById("default_velocity").value = "\"{-sin(y), sin(x), 0}\"";
@@ -1405,16 +1405,16 @@ bow_shock_maker.addEventListener("click", function() {
 	document.getElementById("time-step-factor").value = 0.5;
 	document.getElementById("output-directory").value = "bow_shock/";
 	document.getElementById("periodic-x").selectedIndex = 0;
-	document.getElementById("periodic-z").selectedIndex = 0;
+	document.getElementById("periodic-y").selectedIndex = 0;
 	document.getElementById("periodic-z").selectedIndex = 0;
 	document.getElementById("cells-x").value = "2*30 + 2";
-	document.getElementById("cells-z").value = "3*30 + 2";
+	document.getElementById("cells-y").value = "3*30 + 2";
 	document.getElementById("cells-z").value = "1";
 	document.getElementById("volume-x").value = "2 * (1 + 2 / (cells[0] - 2))";
-	document.getElementById("volume-z").value = "3 * (1 + 2 / (cells[1] - 2))";
+	document.getElementById("volume-y").value = "3 * (1 + 2 / (cells[1] - 2))";
 	document.getElementById("volume-z").value = "2";
 	document.getElementById("start-x").value = "-volume[0]/2";
-	document.getElementById("start-z").value = "-volume[1]/2";
+	document.getElementById("start-y").value = "-volume[1]/2";
 	document.getElementById("start-z").value = "-volume[2]/2";
 	document.getElementById("default_mass").value = 0.01;
 	document.getElementById("default_velocity").value = "\"{x > 0 and y < 0.0625 and y > -0.0625 ? 0 : 1, 0, 0}\"";
@@ -1529,16 +1529,16 @@ blast_wave_maker.addEventListener("click", function() {
 	document.getElementById("time-step-factor").value = 0.5;
 	document.getElementById("output-directory").value = "blast_wave/";
 	document.getElementById("periodic-x").selectedIndex = 1;
-	document.getElementById("periodic-z").selectedIndex = 1;
+	document.getElementById("periodic-y").selectedIndex = 1;
 	document.getElementById("periodic-z").selectedIndex = 0;
 	document.getElementById("cells-x").value = "100";
-	document.getElementById("cells-z").value = "100";
+	document.getElementById("cells-y").value = "100";
 	document.getElementById("cells-z").value = "1";
 	document.getElementById("volume-x").value = "1";
-	document.getElementById("volume-z").value = "1";
+	document.getElementById("volume-y").value = "1";
 	document.getElementById("volume-z").value = "1";
 	document.getElementById("start-x").value = "-0.5";
-	document.getElementById("start-z").value = "-0.5";
+	document.getElementById("start-y").value = "-0.5";
 	document.getElementById("start-z").value = "-0.5";
 	document.getElementById("default_mass").value = 1;
 	document.getElementById("default_velocity").value = "[0, 0, 0]";
@@ -1579,16 +1579,16 @@ jet_injection_maker.addEventListener("click", function() {
 	document.getElementById("time-step-factor").value = 0.5;
 	document.getElementById("output-directory").value = "jet_injection/";
 	document.getElementById("periodic-x").selectedIndex = 0;
-	document.getElementById("periodic-z").selectedIndex = 0;
+	document.getElementById("periodic-y").selectedIndex = 0;
 	document.getElementById("periodic-z").selectedIndex = 0;
 	document.getElementById("cells-x").value = "40 + 2";
-	document.getElementById("cells-z").value = "20 + 2";
+	document.getElementById("cells-y").value = "20 + 2";
 	document.getElementById("cells-z").value = "1";
 	document.getElementById("volume-x").value = "3 * (1 + 2 / (cells[0] - 2))";
-	document.getElementById("volume-z").value = "1.5 * (1 + 2 / (cells[1] - 2))";
+	document.getElementById("volume-y").value = "1.5 * (1 + 2 / (cells[1] - 2))";
 	document.getElementById("volume-z").value = "1";
 	document.getElementById("start-x").value = "-volume[0] / cells[0]";
-	document.getElementById("start-z").value = "-volume[1] / cells[1]";
+	document.getElementById("start-y").value = "-volume[1] / cells[1]";
 	document.getElementById("start-z").value = "0";
 	document.getElementById("default_mass").value = 1;
 	document.getElementById("default_velocity").value = "\"{2.7 - x/2, 0, 0}\"";
@@ -1899,7 +1899,7 @@ All items are numbers.
 			<option value="false">false</option>
 			<option value="true">true</option>
 		</select>
-		<select id="periodic-z" name="periodic-z" required>
+		<select id="periodic-y" name="periodic-y" required>
 			<option value="false">false</option>
 			<option value="true">true</option>
 		</select>
@@ -1919,8 +1919,8 @@ All items are numbers.
 			<span id="cells-x-test"></span>
 		<input
 			type="text"
-			id="cells-z"
-			name="cells-z"
+			id="cells-y"
+			name="cells-y"
 			onKeyUp="validate_expression(this.id, gt_zero, empty_context)"
 		>
 			<span id="cells-y-test"></span>
@@ -1943,8 +1943,8 @@ All items are numbers.
 			<span id="volume-x-test"></span>
 		<input
 			type="text"
-			id="volume-z"
-			name="volume-z"
+			id="volume-y"
+			name="volume-y"
 			onKeyUp="validate_expression(this.id, gt_zero, empty_context)"
 		>
 			<span id="volume-y-test"></span>
@@ -1967,8 +1967,8 @@ All items are numbers.
 			<span id="start-x-test"></span>
 		<input
 			type="text"
-			id="start-z"
-			name="start-z"
+			id="start-y"
+			name="start-y"
 			onKeyUp="validate_expression(this.id, isFinite, empty_context)"
 		>
 			<span id="start-y-test"></span>
