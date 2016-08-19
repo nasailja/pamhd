@@ -68,7 +68,7 @@ var
 function validate_expression(element_id, validator, context)
 {
 	expression = document.getElementById(element_id);
-	result = document.getElementById(element_id + "_test");
+	result = document.getElementById(element_id + "-test");
 
 	// mathjs starts indices from 1
 	adjusted_expression = expression.value
@@ -232,17 +232,17 @@ function make_geometry(shape)
 	} else if (shape == "sphere") {
 
 		fieldset.appendChild(document.createTextNode("Center coordinate (x, y, z) "));
-		fieldset.appendChild(make_input_element_for_expression(id_string + "_centerx", "isFinite", "empty_context"));
-		fieldset.appendChild(make_input_element_for_expression(id_string + "_centery", "isFinite", "empty_context"));
-		fieldset.appendChild(make_input_element_for_expression(id_string + "_centerz", "isFinite", "empty_context"));
-		fieldset.appendChild(make_span(id_string + "_centerx_test"));
-		fieldset.appendChild(make_span(id_string + "_centery_test"));
-		fieldset.appendChild(make_span(id_string + "_centerz_test"));
+		fieldset.appendChild(make_input_element_for_expression(id_string + "-centerx", "isFinite", "empty_context"));
+		fieldset.appendChild(make_input_element_for_expression(id_string + "-centery", "isFinite", "empty_context"));
+		fieldset.appendChild(make_input_element_for_expression(id_string + "-centerz", "isFinite", "empty_context"));
+		fieldset.appendChild(make_span(id_string + "-centerx-test"));
+		fieldset.appendChild(make_span(id_string + "-centery-test"));
+		fieldset.appendChild(make_span(id_string + "-centerz-test"));
 		fieldset.appendChild(document.createElement("br"));
 
 		fieldset.appendChild(document.createTextNode("Radius "));
-		fieldset.appendChild(make_input_element_for_expression(id_string + "_radius", "gt_zero", "empty_context"));
-		fieldset.appendChild(make_span(id_string + "_radius_test"));
+		fieldset.appendChild(make_input_element_for_expression(id_string + "-radius", "gt_zero", "empty_context"));
+		fieldset.appendChild(make_span(id_string + "-radius-test"));
 		fieldset.appendChild(document.createElement("br"));
 	}
 
@@ -262,7 +262,7 @@ sphere_geometry_adder.addEventListener("click", function() {
 
 function is_valid_geometry_id()
 {
-	notification = document.getElementById(this.id + "_test");
+	notification = document.getElementById(this.id + "-test");
 	if (
 		isFinite(this.value)
 		&& this.value >= 0
@@ -281,29 +281,29 @@ function is_valid_geometry_id()
 function get_bdy_input_common(id_string, add_values, add_time_stamps)
 {
 	div = document.createElement("div");
-	div.setAttribute("id", "bdy_input_" + id_string);
+	div.setAttribute("id", "bdy-input-" + id_string);
 
 	// add checked input for geometry id
 	div.appendChild(document.createTextNode("Region (geometry id): "));
-	geometry_input = make_input_element(id_string + "_geometry_id");
+	geometry_input = make_input_element(id_string + "-geometry-id");
 	geometry_input.onblur = is_valid_geometry_id;
 	div.appendChild(geometry_input);
-	div.appendChild(make_span(id_string + "_geometry_id_test"));
+	div.appendChild(make_span(id_string + "-geometry-id-test"));
 
 	if (add_time_stamps == true) {
 		div.appendChild(document.createElement("br"));
 		div.appendChild(document.createTextNode("Time stamps: "));
-		time_stamps_input = make_input_element(id_string + "_time_stamps_id");
+		time_stamps_input = make_input_element(id_string + "-time-stamps-id");
 		div.appendChild(time_stamps_input);
-		div.appendChild(make_span(id_string + "_time_stamps_id_test"));
+		div.appendChild(make_span(id_string + "-time-stamps-id-test"));
 	}
 
 	if (add_values == true) {
 		div.appendChild(document.createElement("br"));
 		// add checked input for value
 		div.appendChild(document.createTextNode(" Values: "));
-		div.appendChild(make_input_element_for_expression(id_string + "_value", "gt_zero", "time_place_current_context"));
-		div.appendChild(make_span(id_string + "_value_test"));
+		div.appendChild(make_input_element_for_expression(id_string + "-value", "gt_zero", "time_place_current_context"));
+		div.appendChild(make_span(id_string + "-value-test"));
 		div.appendChild(document.createElement("br"));
 	}
 
@@ -320,11 +320,11 @@ function remove_boundary_item(variable, nr_items, bdy_type)
 
 	nr_items.n = nr_items.n - 1;
 
-	fieldset = document.getElementById(bdy_type + "_" + variable + "_fieldset");
+	fieldset = document.getElementById(bdy_type + "-" + variable + "-fieldset");
 	if (fieldset != null) {
 		div = document.getElementById(
-			"bdy_input_" + bdy_type + "_"
-			+ variable + "_"
+			"bdy-input-" + bdy_type + "-"
+			+ variable + "-"
 			+ nr_items.n.toString()
 		);
 		fieldset.removeChild(div);
@@ -343,17 +343,17 @@ function remove_initial_item(variable, nr_items)
 // adds initial condition of given variable
 function add_initial_item(variable, nr_items, remover, info)
 {
-	fieldset = document.getElementById("initial_" + variable + "_fieldset");
+	fieldset = document.getElementById("initial-" + variable + "-fieldset");
 	if (fieldset == null) {
 		fieldset = document.createElement("fieldset");
-		fieldset.setAttribute("id", "initial_" + variable + "_fieldset");
+		fieldset.setAttribute("id", "initial-" + variable + "-fieldset");
 		legend = document.createElement("legend");
 		legend.innerHTML = "Initial conditions";
 		fieldset.appendChild(legend);
 
 		button = document.createElement("button");
 		button.addEventListener("click", remover);
-		button.setAttribute("id", "remove_initial_" + variable);
+		button.setAttribute("id", "remove-initial-" + variable);
 		button.setAttribute("type", "button");
 		button.innerHTML = "Remove last item";
 		fieldset.appendChild(button);
@@ -363,7 +363,7 @@ function add_initial_item(variable, nr_items, remover, info)
 
 	item_id = nr_items.n.toString();
 	nr_items.n = nr_items.n + 1;
-	id_string = "initial_" + variable + "_" + item_id;
+	id_string = "initial-" + variable + "-" + item_id;
 
 	fieldset.appendChild(get_bdy_input_common(id_string, true, false));
 }
@@ -371,17 +371,17 @@ function add_initial_item(variable, nr_items, remover, info)
 // adds value boundary of given variable
 function add_value_item(variable, nr_items, remover, info)
 {
-	fieldset = document.getElementById("value_" + variable + "_fieldset");
+	fieldset = document.getElementById("value-" + variable + "-fieldset");
 	if (fieldset == null) {
 		fieldset = document.createElement("fieldset");
-		fieldset.setAttribute("id", "value_" + variable + "_fieldset");
+		fieldset.setAttribute("id", "value-" + variable + "-fieldset");
 		legend = document.createElement("legend");
 		legend.innerHTML = "Value boundaries";
 		fieldset.appendChild(legend);
 
 		button = document.createElement("button");
 		button.addEventListener("click", remover);
-		button.setAttribute("id", "remove_value_" + variable);
+		button.setAttribute("id", "remove-value-" + variable);
 		button.setAttribute("type", "button");
 		button.innerHTML = "Remove last item";
 		fieldset.appendChild(button);
@@ -391,7 +391,7 @@ function add_value_item(variable, nr_items, remover, info)
 
 	item_id = nr_items.n.toString();
 	nr_items.n = nr_items.n + 1;
-	id_string = "value_" + variable + "_" + item_id;
+	id_string = "value-" + variable + "-" + item_id;
 
 	fieldset.appendChild(get_bdy_input_common(id_string, true, true));
 }
@@ -399,17 +399,17 @@ function add_value_item(variable, nr_items, remover, info)
 // adds copy boundary of given variable
 function add_copy_item(variable, nr_items, remover, info)
 {
-	fieldset = document.getElementById("copy_" + variable + "_fieldset");
+	fieldset = document.getElementById("copy-" + variable + "-fieldset");
 	if (fieldset == null) {
 		fieldset = document.createElement("fieldset");
-		fieldset.setAttribute("id", "copy_" + variable + "_fieldset");
+		fieldset.setAttribute("id", "copy-" + variable + "-fieldset");
 		legend = document.createElement("legend");
 		legend.innerHTML = "Copy boundaries";
 		fieldset.appendChild(legend);
 
 		button = document.createElement("button");
 		button.addEventListener("click", remover);
-		button.setAttribute("id", "remove_copy_" + variable);
+		button.setAttribute("id", "remove-copy-" + variable);
 		button.setAttribute("type", "button");
 		button.innerHTML = "Remove last item";
 		fieldset.appendChild(button);
@@ -419,7 +419,7 @@ function add_copy_item(variable, nr_items, remover, info)
 
 	item_id = nr_items.n.toString();
 	nr_items.n = nr_items.n + 1;
-	id_string = "copy_" + variable + "_" + item_id;
+	id_string = "copy-" + variable + "-" + item_id;
 
 	fieldset.appendChild(get_bdy_input_common(id_string, false, false));
 }
@@ -596,12 +596,12 @@ copy_pressure_adder.addEventListener("click", add_copy_pressure_item);
 var nr_initial_magnetic_field_items = {n: 0};
 
 function remove_initial_magnetic_field_item() {
-	remove_initial_item("magnetic_field", nr_initial_magnetic_field_items);
+	remove_initial_item("magnetic-field", nr_initial_magnetic_field_items);
 }
 
 function add_initial_magnetic_field_item() {
 	add_initial_item(
-		"magnetic_field",
+		"magnetic-field",
 		nr_initial_magnetic_field_items,
 		remove_initial_magnetic_field_item,
 		document.getElementById("magnetic_field_info")
@@ -614,12 +614,12 @@ initial_magnetic_field_adder.addEventListener("click", add_initial_magnetic_fiel
 var nr_value_magnetic_field_items = {n: 0};
 
 function remove_value_magnetic_field_item() {
-	remove_boundary_item("magnetic_field", nr_value_magnetic_field_items, "value");
+	remove_boundary_item("magnetic-field", nr_value_magnetic_field_items, "value");
 }
 
 function add_value_magnetic_field_item() {
 	add_value_item(
-		"magnetic_field",
+		"magnetic-field",
 		nr_value_magnetic_field_items,
 		remove_value_magnetic_field_item,
 		document.getElementById("magnetic_field_info")
@@ -632,12 +632,12 @@ value_magnetic_field_adder.addEventListener("click", add_value_magnetic_field_it
 var nr_copy_magnetic_field_items = {n: 0};
 
 function remove_copy_magnetic_field_item() {
-	remove_boundary_item("magnetic_field", nr_copy_magnetic_field_items, "copy");
+	remove_boundary_item("magnetic-field", nr_copy_magnetic_field_items, "copy");
 }
 
 function add_copy_magnetic_field_item() {
 	add_copy_item(
-		"magnetic_field",
+		"magnetic-field",
 		nr_copy_magnetic_field_items,
 		remove_copy_magnetic_field_item,
 		document.getElementById("magnetic_field_info")
@@ -673,10 +673,10 @@ configuration_clearer.addEventListener("click", function() {
 	document.getElementById("start-x").value = "";
 	document.getElementById("start-y").value = "";
 	document.getElementById("start-z").value = "";
-	document.getElementById("default_mass").value = "";
-	document.getElementById("default_pressure").value = "";
-	document.getElementById("default_velocity").value = "";
-	document.getElementById("default_magnetic_field").value = "";
+	document.getElementById("default-mass").value = "";
+	document.getElementById("default-pressure").value = "";
+	document.getElementById("default-velocity").value = "";
+	document.getElementById("default-magnetic-field").value = "";
 	while (nr_geometries > 0) {
 		remove_geometry();
 	}
@@ -818,7 +818,7 @@ config_text_updater.addEventListener("click", function() {
 	new_html
 		+= "&quot;number-density&quot;: {<br>"
 		+ "&nbsp;&nbsp;&quot;default&quot;: "
-		+ document.getElementById("default_mass").value;
+		+ document.getElementById("default-mass").value;
 
 	if (
 		nr_initial_mass_items.n > 0
@@ -831,12 +831,12 @@ config_text_updater.addEventListener("click", function() {
 	if (nr_initial_mass_items.n > 0) {
 		new_html += "&nbsp;&nbsp;&quot;initial-conditions&quot;: [<br>";
 		for (i = 0; i < nr_initial_mass_items.n; i++) {
-			id_string = "initial_mass_" + i.toString();
+			id_string = "initial-mass-" + i.toString();
 			new_html
 				+= "&nbsp;&nbsp;&nbsp;&nbsp;{&quot;geometry-id&quot;: "
-				+ document.getElementById(id_string + "_geometry_id").value + ",<br>"
+				+ document.getElementById(id_string + "-geometry-id").value + ",<br>"
 				+ "&nbsp;&nbsp;&nbsp;&nbsp;&quot;value&quot;: "
-				+ document.getElementById(id_string + "_value").value
+				+ document.getElementById(id_string + "-value").value
 				+ "}";
 			if (i < nr_initial_mass_items.n - 1) {
 				new_html += ",<br>";
@@ -858,14 +858,14 @@ config_text_updater.addEventListener("click", function() {
 	if (nr_value_mass_items.n > 0) {
 		new_html += "&nbsp;&nbsp;&quot;value-boundaries&quot;: [<br>";
 		for (i = 0; i < nr_value_mass_items.n; i++) {
-			id_string = "value_mass_" + i.toString();
+			id_string = "value-mass-" + i.toString();
 			new_html
 				+= "&nbsp;&nbsp;&nbsp;&nbsp;{&quot;geometry-id&quot;: "
-				+ document.getElementById(id_string + "_geometry_id").value + ",<br>"
+				+ document.getElementById(id_string + "-geometry-id").value + ",<br>"
 				+ "&nbsp;&nbsp;&nbsp;&nbsp;&quot;time-stamps&quot;: ["
-				+ document.getElementById(id_string + "_time_stamps_id").value + "],<br>"
+				+ document.getElementById(id_string + "-time-stamps-id").value + "],<br>"
 				+ "&nbsp;&nbsp;&nbsp;&nbsp;&quot;values&quot;: ["
-				+ document.getElementById(id_string + "_value").value
+				+ document.getElementById(id_string + "-value").value
 				+ "]}";
 			if (i < nr_value_mass_items.n - 1) {
 				new_html += ",<br>";
@@ -890,10 +890,10 @@ config_text_updater.addEventListener("click", function() {
 	if (nr_copy_mass_items.n > 0) {
 		new_html += "&nbsp;&nbsp;&quot;copy-boundaries&quot;: [<br>";
 		for (i = 0; i < nr_copy_mass_items.n; i++) {
-			id_string = "copy_mass_" + i.toString();
+			id_string = "copy-mass-" + i.toString();
 			new_html
 				+= "&nbsp;&nbsp;&nbsp;&nbsp;{&quot;geometry-id&quot;: "
-				+ document.getElementById(id_string + "_geometry_id").value + "&nbsp;&nbsp;&nbsp;&nbsp;}";
+				+ document.getElementById(id_string + "-geometry-id").value + "&nbsp;&nbsp;&nbsp;&nbsp;}";
 			if (i < nr_copy_mass_items.n - 1) {
 				new_html += ",<br>";
 			} else {
@@ -910,7 +910,7 @@ config_text_updater.addEventListener("click", function() {
 	new_html
 		+= "&quot;velocity&quot;: {<br>"
 		+ "&nbsp;&nbsp;&quot;default&quot;: "
-		+ document.getElementById("default_velocity").value;
+		+ document.getElementById("default-velocity").value;
 
 	if (
 		nr_initial_velocity_items.n > 0
@@ -922,12 +922,12 @@ config_text_updater.addEventListener("click", function() {
 	if (nr_initial_velocity_items.n > 0) {
 		new_html += "&nbsp;&nbsp;&quot;initial-conditions&quot;: [<br>";
 		for (i = 0; i < nr_initial_velocity_items.n; i++) {
-			id_string = "initial_velocity_" + i.toString();
+			id_string = "initial-velocity-" + i.toString();
 			new_html
 				+= "&nbsp;&nbsp;&nbsp;&nbsp;{&quot;geometry-id&quot;: "
-				+ document.getElementById(id_string + "_geometry_id").value + ",<br>"
+				+ document.getElementById(id_string + "-geometry-id").value + ",<br>"
 				+ "&nbsp;&nbsp;&nbsp;&nbsp;&quot;value&quot;: "
-				+ document.getElementById(id_string + "_value").value
+				+ document.getElementById(id_string + "-value").value
 				+ "}";
 			if (i < nr_initial_velocity_items.n - 1) {
 				new_html += ",<br>";
@@ -948,14 +948,14 @@ config_text_updater.addEventListener("click", function() {
 	if (nr_value_velocity_items.n > 0) {
 		new_html += "&nbsp;&nbsp;&quot;value-boundaries&quot;: [<br>";
 		for (i = 0; i < nr_value_velocity_items.n; i++) {
-			id_string = "value_velocity_" + i.toString();
+			id_string = "value-velocity-" + i.toString();
 			new_html
 				+= "&nbsp;&nbsp;&nbsp;&nbsp;{&quot;geometry-id&quot;: "
-				+ document.getElementById(id_string + "_geometry_id").value + ",<br>"
+				+ document.getElementById(id_string + "-geometry-id").value + ",<br>"
 				+ "&nbsp;&nbsp;&nbsp;&nbsp;&quot;time-stamps&quot;: ["
-				+ document.getElementById(id_string + "_time_stamps_id").value + "],<br>"
+				+ document.getElementById(id_string + "-time-stamps-id").value + "],<br>"
 				+ "&nbsp;&nbsp;&nbsp;&nbsp;&quot;values&quot;: ["
-				+ document.getElementById(id_string + "_value").value
+				+ document.getElementById(id_string + "-value").value
 				+ "]}";
 			if (i < nr_value_velocity_items.n - 1) {
 				new_html += ",<br>";
@@ -979,10 +979,10 @@ config_text_updater.addEventListener("click", function() {
 	if (nr_copy_velocity_items.n > 0) {
 		new_html += "&nbsp;&nbsp;&quot;copy-boundaries&quot;: [<br>";
 		for (i = 0; i < nr_copy_velocity_items.n; i++) {
-			id_string = "copy_velocity_" + i.toString();
+			id_string = "copy-velocity-" + i.toString();
 			new_html
 				+= "&nbsp;&nbsp;&nbsp;&nbsp;{&quot;geometry-id&quot;: "
-				+ document.getElementById(id_string + "_geometry_id").value + "&nbsp;&nbsp;&nbsp;&nbsp;}";
+				+ document.getElementById(id_string + "-geometry-id").value + "&nbsp;&nbsp;&nbsp;&nbsp;}";
 			if (i < nr_copy_velocity_items.n - 1) {
 				new_html += ",<br>";
 			} else {
@@ -999,7 +999,7 @@ config_text_updater.addEventListener("click", function() {
 	new_html
 		+= "&quot;pressure&quot;: {<br>"
 		+ "&nbsp;&nbsp;&quot;default&quot;: "
-		+ document.getElementById("default_pressure").value;
+		+ document.getElementById("default-pressure").value;
 
 	if (
 		nr_initial_pressure_items.n > 0
@@ -1011,12 +1011,12 @@ config_text_updater.addEventListener("click", function() {
 	if (nr_initial_pressure_items.n > 0) {
 		new_html += "&nbsp;&nbsp;&quot;initial-conditions&quot;: [<br>";
 		for (i = 0; i < nr_initial_pressure_items.n; i++) {
-			id_string = "initial_pressure_" + i.toString();
+			id_string = "initial-pressure-" + i.toString();
 			new_html
 				+= "&nbsp;&nbsp;&nbsp;&nbsp;{&quot;geometry-id&quot;: "
-				+ document.getElementById(id_string + "_geometry_id").value + ",<br>"
+				+ document.getElementById(id_string + "-geometry-id").value + ",<br>"
 				+ "&nbsp;&nbsp;&nbsp;&nbsp;&quot;value&quot;: "
-				+ document.getElementById(id_string + "_value").value
+				+ document.getElementById(id_string + "-value").value
 				+ "}";
 			if (i < nr_initial_pressure_items.n - 1) {
 				new_html += ",<br>";
@@ -1037,14 +1037,14 @@ config_text_updater.addEventListener("click", function() {
 	if (nr_value_pressure_items.n > 0) {
 		new_html += "&nbsp;&nbsp;&quot;value-boundaries&quot;: [<br>";
 		for (i = 0; i < nr_value_pressure_items.n; i++) {
-			id_string = "value_pressure_" + i.toString();
+			id_string = "value-pressure-" + i.toString();
 			new_html
 				+= "&nbsp;&nbsp;&nbsp;&nbsp;{&quot;geometry-id&quot;: "
-				+ document.getElementById(id_string + "_geometry_id").value + ",<br>"
+				+ document.getElementById(id_string + "-geometry-id").value + ",<br>"
 				+ "&nbsp;&nbsp;&nbsp;&nbsp;&quot;time-stamps&quot;: ["
-				+ document.getElementById(id_string + "_time_stamps_id").value + "],<br>"
+				+ document.getElementById(id_string + "-time-stamps-id").value + "],<br>"
 				+ "&nbsp;&nbsp;&nbsp;&nbsp;&quot;values&quot;: ["
-				+ document.getElementById(id_string + "_value").value
+				+ document.getElementById(id_string + "-value").value
 				+ "]}";
 			if (i < nr_value_pressure_items.n - 1) {
 				new_html += ",<br>";
@@ -1068,10 +1068,10 @@ config_text_updater.addEventListener("click", function() {
 	if (nr_copy_pressure_items.n > 0) {
 		new_html += "&nbsp;&nbsp;&quot;copy-boundaries&quot;: [<br>";
 		for (i = 0; i < nr_copy_pressure_items.n; i++) {
-			id_string = "copy_pressure_" + i.toString();
+			id_string = "copy-pressure-" + i.toString();
 			new_html
 				+= "&nbsp;&nbsp;&nbsp;&nbsp;{&quot;geometry-id&quot;: "
-				+ document.getElementById(id_string + "_geometry_id").value + "&nbsp;&nbsp;&nbsp;&nbsp;}";
+				+ document.getElementById(id_string + "-geometry-id").value + "&nbsp;&nbsp;&nbsp;&nbsp;}";
 			if (i < nr_copy_pressure_items.n - 1) {
 				new_html += ",<br>";
 			} else {
@@ -1088,7 +1088,7 @@ config_text_updater.addEventListener("click", function() {
 	new_html
 		+= "&quot;magnetic-field&quot;: {<br>"
 		+ "&nbsp;&nbsp;&quot;default&quot;: "
-		+ document.getElementById("default_magnetic_field").value;
+		+ document.getElementById("default-magnetic-field").value;
 
 	if (
 		nr_initial_magnetic_field_items.n > 0
@@ -1100,12 +1100,12 @@ config_text_updater.addEventListener("click", function() {
 	if (nr_initial_magnetic_field_items.n > 0) {
 		new_html += "&nbsp;&nbsp;&quot;initial-conditions&quot;: [<br>";
 		for (i = 0; i < nr_initial_magnetic_field_items.n; i++) {
-			id_string = "initial_magnetic_field_" + i.toString();
+			id_string = "initial-magnetic-field-" + i.toString();
 			new_html
 				+= "&nbsp;&nbsp;&nbsp;&nbsp;{&quot;geometry-id&quot;: "
-				+ document.getElementById(id_string + "_geometry_id").value + ",<br>"
+				+ document.getElementById(id_string + "-geometry-id").value + ",<br>"
 				+ "&nbsp;&nbsp;&nbsp;&nbsp;&quot;value&quot;: "
-				+ document.getElementById(id_string + "_value").value
+				+ document.getElementById(id_string + "-value").value
 				+ "}";
 			if (i < nr_initial_magnetic_field_items.n - 1) {
 				new_html += ",<br>";
@@ -1126,14 +1126,14 @@ config_text_updater.addEventListener("click", function() {
 	if (nr_value_magnetic_field_items.n > 0) {
 		new_html += "&nbsp;&nbsp;&quot;value-boundaries&quot;: [<br>";
 		for (i = 0; i < nr_value_magnetic_field_items.n; i++) {
-			id_string = "value_magnetic_field_" + i.toString();
+			id_string = "value-magnetic-field-" + i.toString();
 			new_html
 				+= "&nbsp;&nbsp;&nbsp;&nbsp;{&quot;geometry-id&quot;: "
-				+ document.getElementById(id_string + "_geometry_id").value + ",<br>"
+				+ document.getElementById(id_string + "-geometry-id").value + ",<br>"
 				+ "&nbsp;&nbsp;&nbsp;&nbsp;&quot;time-stamps&quot;: ["
-				+ document.getElementById(id_string + "_time_stamps_id").value + "],<br>"
+				+ document.getElementById(id_string + "-time-stamps-id").value + "],<br>"
 				+ "&nbsp;&nbsp;&nbsp;&nbsp;&quot;values&quot;: ["
-				+ document.getElementById(id_string + "_value").value
+				+ document.getElementById(id_string + "-value").value
 				+ "]}";
 			if (i < nr_value_magnetic_field_items.n - 1) {
 				new_html += ",<br>";
@@ -1157,10 +1157,10 @@ config_text_updater.addEventListener("click", function() {
 	if (nr_copy_magnetic_field_items.n > 0) {
 		new_html += "&nbsp;&nbsp;&quot;copy-boundaries&quot;: [<br>";
 		for (i = 0; i < nr_copy_magnetic_field_items.n; i++) {
-			id_string = "copy_magnetic_field_" + i.toString();
+			id_string = "copy-magnetic-field-" + i.toString();
 			new_html
 				+= "&nbsp;&nbsp;&nbsp;&nbsp;{&quot;geometry-id&quot;: "
-				+ document.getElementById(id_string + "_geometry_id").value + "&nbsp;&nbsp;&nbsp;&nbsp;}";
+				+ document.getElementById(id_string + "-geometry-id").value + "&nbsp;&nbsp;&nbsp;&nbsp;}";
 			if (i < nr_copy_magnetic_field_items.n - 1) {
 				new_html += ",<br>";
 			} else {
@@ -1208,10 +1208,10 @@ shock_tube_maker.addEventListener("click", function() {
 	document.getElementById("start-x").value = "-volume[0]/2";
 	document.getElementById("start-y").value = "-volume[1]/2";
 	document.getElementById("start-z").value = "-volume[2]/2";
-	document.getElementById("default_mass").value = "\"(x < 0) ? 1 : 0.125\"";
-	document.getElementById("default_pressure").value = "\"(x < 0) ? 1 : 0.1\"";
-	document.getElementById("default_velocity").value = "[0, 0, 0]";
-	document.getElementById("default_magnetic_field").value = "\"{0.75, (x < 0) ? 1 : -1, 0}\"";
+	document.getElementById("default-mass").value = "\"(x < 0) ? 1 : 0.125\"";
+	document.getElementById("default-pressure").value = "\"(x < 0) ? 1 : 0.1\"";
+	document.getElementById("default-velocity").value = "[0, 0, 0]";
+	document.getElementById("default-magnetic-field").value = "\"{0.75, (x < 0) ? 1 : -1, 0}\"";
 	box_geometry_adder.click();
 	document.getElementById("box0-startx").value = -99;
 	document.getElementById("box0-starty").value = -99;
@@ -1220,21 +1220,21 @@ shock_tube_maker.addEventListener("click", function() {
 	document.getElementById("box0-endy").value = 99;
 	document.getElementById("box0-endz").value = 99;
 	value_mass_adder.click();
-	document.getElementById("value_mass_0_geometry_id").value = 0;
-	document.getElementById("value_mass_0_time_stamps_id").value = 0;
-	document.getElementById("value_mass_0_value").value = 1;
+	document.getElementById("value-mass-0-geometry-id").value = 0;
+	document.getElementById("value-mass-0-time-stamps-id").value = 0;
+	document.getElementById("value-mass-0-value").value = 1;
 	value_velocity_adder.click();
-	document.getElementById("value_velocity_0_geometry_id").value = 0;
-	document.getElementById("value_velocity_0_time_stamps_id").value = 0;
-	document.getElementById("value_velocity_0_value").value = "[0, 0, 0]";
+	document.getElementById("value-velocity-0-geometry-id").value = 0;
+	document.getElementById("value-velocity-0-time-stamps-id").value = 0;
+	document.getElementById("value-velocity-0-value").value = "[0, 0, 0]";
 	value_pressure_adder.click();
-	document.getElementById("value_pressure_0_geometry_id").value = 0;
-	document.getElementById("value_pressure_0_time_stamps_id").value = 0;
-	document.getElementById("value_pressure_0_value").value = 1;
+	document.getElementById("value-pressure-0-geometry-id").value = 0;
+	document.getElementById("value-pressure-0-time-stamps-id").value = 0;
+	document.getElementById("value-pressure-0-value").value = 1;
 	value_magnetic_field_adder.click();
-	document.getElementById("value_magnetic_field_0_geometry_id").value = 0;
-	document.getElementById("value_magnetic_field_0_time_stamps_id").value = 0;
-	document.getElementById("value_magnetic_field_0_value").value = "[0.75, 1, 0]";
+	document.getElementById("value-magnetic-field-0-geometry-id").value = 0;
+	document.getElementById("value-magnetic-field-0-time-stamps-id").value = 0;
+	document.getElementById("value-magnetic-field-0-value").value = "[0.75, 1, 0]";
 	box_geometry_adder.click();
 	document.getElementById("box1-startx").value = 0.5;
 	document.getElementById("box1-starty").value = -99;
@@ -1243,21 +1243,21 @@ shock_tube_maker.addEventListener("click", function() {
 	document.getElementById("box1-endy").value = 99;
 	document.getElementById("box1-endz").value = 99;
 	value_mass_adder.click();
-	document.getElementById("value_mass_1_geometry_id").value = 1;
-	document.getElementById("value_mass_1_time_stamps_id").value = 0;
-	document.getElementById("value_mass_1_value").value = 0.125;
+	document.getElementById("value-mass-1-geometry-id").value = 1;
+	document.getElementById("value-mass-1-time-stamps-id").value = 0;
+	document.getElementById("value-mass-1-value").value = 0.125;
 	value_velocity_adder.click();
-	document.getElementById("value_velocity_1_geometry_id").value = 1;
-	document.getElementById("value_velocity_1_time_stamps_id").value = 0;
-	document.getElementById("value_velocity_1_value").value = "[0, 0, 0]";
+	document.getElementById("value-velocity-1-geometry-id").value = 1;
+	document.getElementById("value-velocity-1-time-stamps-id").value = 0;
+	document.getElementById("value-velocity-1-value").value = "[0, 0, 0]";
 	value_pressure_adder.click();
-	document.getElementById("value_pressure_1_geometry_id").value = 1;
-	document.getElementById("value_pressure_1_time_stamps_id").value = 0;
-	document.getElementById("value_pressure_1_value").value = 0.1;
+	document.getElementById("value-pressure-1-geometry-id").value = 1;
+	document.getElementById("value-pressure-1-time-stamps-id").value = 0;
+	document.getElementById("value-pressure-1-value").value = 0.1;
 	value_magnetic_field_adder.click();
-	document.getElementById("value_magnetic_field_1_geometry_id").value = 1;
-	document.getElementById("value_magnetic_field_1_time_stamps_id").value = 0;
-	document.getElementById("value_magnetic_field_1_value").value = "[0.75, -1, 0]";
+	document.getElementById("value-magnetic-field-1-geometry-id").value = 1;
+	document.getElementById("value-magnetic-field-1-time-stamps-id").value = 0;
+	document.getElementById("value-magnetic-field-1-value").value = "[0.75, -1, 0]";
 	update_config_text.click();
 });
 
@@ -1287,10 +1287,10 @@ kelvin_helmholtz_maker.addEventListener("click", function() {
 	document.getElementById("start-x").value = "-volume[0]/2";
 	document.getElementById("start-y").value = "-volume[1]/2";
 	document.getElementById("start-z").value = "-volume[2]/2";
-	document.getElementById("default_mass").value = "\"abs(y) < 0.25 ? 2 : 15\"";
-	document.getElementById("default_pressure").value = 3;
-	document.getElementById("default_velocity").value = "\"{0.1 * sin(2*pi*x) + (abs(y) < 0.25 ? -0.5 : 0.5), 0.1 * cos(2*pi*x), 0}\"";
-	document.getElementById("default_magnetic_field").value = "[0.25, 0, 0]";
+	document.getElementById("default-mass").value = "\"abs(y) < 0.25 ? 2 : 15\"";
+	document.getElementById("default-pressure").value = 3;
+	document.getElementById("default-velocity").value = "\"{0.1 * sin(2*pi*x) + (abs(y) < 0.25 ? -0.5 : 0.5), 0.1 * cos(2*pi*x), 0}\"";
+	document.getElementById("default-magnetic-field").value = "[0.25, 0, 0]";
 	update_config_text.click();
 });
 
@@ -1320,10 +1320,10 @@ reconnection_maker.addEventListener("click", function() {
 	document.getElementById("start-x").value = "-volume[0]/2";
 	document.getElementById("start-y").value = "-volume[1]/2";
 	document.getElementById("start-z").value = "-volume[2]/2";
-	document.getElementById("default_mass").value = "\"1/cosh(z / 0.5)^2 + 0.2\"";
-	document.getElementById("default_pressure").value = 1;
-	document.getElementById("default_velocity").value = "[0, 0, 0]";
-	document.getElementById("default_magnetic_field").value = "\"{tanh(z / 0.5) - 0.1 * pi/12.8 * cos(2*pi*x/25.6) * sin(pi*z/12.8), 0, 0.1 * 2*pi/25.6 * sin(2*pi*x/25.6) * cos(pi*z/12.8)}\"";
+	document.getElementById("default-mass").value = "\"1/cosh(z / 0.5)^2 + 0.2\"";
+	document.getElementById("default-pressure").value = 1;
+	document.getElementById("default-velocity").value = "[0, 0, 0]";
+	document.getElementById("default-magnetic-field").value = "\"{tanh(z / 0.5) - 0.1 * pi/12.8 * cos(2*pi*x/25.6) * sin(pi*z/12.8), 0, 0.1 * 2*pi/25.6 * sin(2*pi*x/25.6) * cos(pi*z/12.8)}\"";
 	box_geometry_adder.click();
 	document.getElementById("box0-startx").value = -99;
 	document.getElementById("box0-starty").value = -99;
@@ -1332,13 +1332,13 @@ reconnection_maker.addEventListener("click", function() {
 	document.getElementById("box0-endy").value = 99;
 	document.getElementById("box0-endz").value = 99;
 	copy_mass_adder.click();
-	document.getElementById("copy_mass_0_geometry_id").value = 0;
+	document.getElementById("copy-mass-0-geometry-id").value = 0;
 	copy_velocity_adder.click();
-	document.getElementById("copy_velocity_0_geometry_id").value = 0;
+	document.getElementById("copy-velocity-0-geometry-id").value = 0;
 	copy_pressure_adder.click();
-	document.getElementById("copy_pressure_0_geometry_id").value = 0;
+	document.getElementById("copy-pressure-0-geometry-id").value = 0;
 	copy_magnetic_field_adder.click();
-	document.getElementById("copy_magnetic_field_0_geometry_id").value = 0;
+	document.getElementById("copy-magnetic-field-0-geometry-id").value = 0;
 	box_geometry_adder.click();
 	document.getElementById("box1-startx").value = -99;
 	document.getElementById("box1-starty").value = -99;
@@ -1347,13 +1347,13 @@ reconnection_maker.addEventListener("click", function() {
 	document.getElementById("box1-endy").value = 99;
 	document.getElementById("box1-endz").value = -6.4;
 	copy_mass_adder.click();
-	document.getElementById("copy_mass_1_geometry_id").value = 1;
+	document.getElementById("copy-mass-1-geometry-id").value = 1;
 	copy_velocity_adder.click();
-	document.getElementById("copy_velocity_1_geometry_id").value = 1;
+	document.getElementById("copy-velocity-1-geometry-id").value = 1;
 	copy_pressure_adder.click();
-	document.getElementById("copy_pressure_1_geometry_id").value = 1;
+	document.getElementById("copy-pressure-1-geometry-id").value = 1;
 	copy_magnetic_field_adder.click();
-	document.getElementById("copy_magnetic_field_1_geometry_id").value = 1;
+	document.getElementById("copy-magnetic-field-1-geometry-id").value = 1;
 	update_config_text.click();
 });
 
@@ -1383,10 +1383,10 @@ orszag_tang_maker.addEventListener("click", function() {
 	document.getElementById("start-x").value = "0";
 	document.getElementById("start-y").value = "0";
 	document.getElementById("start-z").value = "0";
-	document.getElementById("default_mass").value = 1;
-	document.getElementById("default_velocity").value = "\"{-sin(y), sin(x), 0}\"";
-	document.getElementById("default_pressure").value = 1;
-	document.getElementById("default_magnetic_field").value = "\"{-sin(y), sin(2*x), 0}\"";
+	document.getElementById("default-mass").value = 1;
+	document.getElementById("default-velocity").value = "\"{-sin(y), sin(x), 0}\"";
+	document.getElementById("default-pressure").value = 1;
+	document.getElementById("default-magnetic-field").value = "\"{-sin(y), sin(2*x), 0}\"";
 	update_config_text.click();
 });
 
@@ -1416,28 +1416,28 @@ bow_shock_maker.addEventListener("click", function() {
 	document.getElementById("start-x").value = "-volume[0]/2";
 	document.getElementById("start-y").value = "-volume[1]/2";
 	document.getElementById("start-z").value = "-volume[2]/2";
-	document.getElementById("default_mass").value = 0.01;
-	document.getElementById("default_velocity").value = "\"{x > 0 and y < 0.0625 and y > -0.0625 ? 0 : 1, 0, 0}\"";
-	document.getElementById("default_pressure").value = 0.0015;
-	document.getElementById("default_magnetic_field").value = "[0, 0, 0]";
+	document.getElementById("default-mass").value = 0.01;
+	document.getElementById("default-velocity").value = "\"{x > 0 and y < 0.0625 and y > -0.0625 ? 0 : 1, 0, 0}\"";
+	document.getElementById("default-pressure").value = 0.0015;
+	document.getElementById("default-magnetic-field").value = "[0, 0, 0]";
 
 	sphere_geometry_adder.click();
-	document.getElementById("sphere0_centerx").value = 0;
-	document.getElementById("sphere0_centery").value = 0;
-	document.getElementById("sphere0_centerz").value = 0;
-	document.getElementById("sphere0_radius").value = 0.0625;
+	document.getElementById("sphere0-centerx").value = 0;
+	document.getElementById("sphere0-centery").value = 0;
+	document.getElementById("sphere0-centerz").value = 0;
+	document.getElementById("sphere0-radius").value = 0.0625;
 	initial_mass_adder.click();
-	document.getElementById("initial_mass_0_geometry_id").value = 0;
-	document.getElementById("initial_mass_0_value").value = 100;
+	document.getElementById("initial-mass-0-geometry-id").value = 0;
+	document.getElementById("initial-mass-0-value").value = 100;
 	initial_velocity_adder.click();
-	document.getElementById("initial_velocity_0_geometry_id").value = 0;
-	document.getElementById("initial_velocity_0_value").value = "[0, 0, 0]";
+	document.getElementById("initial-velocity-0-geometry-id").value = 0;
+	document.getElementById("initial-velocity-0-value").value = "[0, 0, 0]";
 	initial_pressure_adder.click();
-	document.getElementById("initial_pressure_0_geometry_id").value = 0;
-	document.getElementById("initial_pressure_0_value").value = 0.0015;
+	document.getElementById("initial-pressure-0-geometry-id").value = 0;
+	document.getElementById("initial-pressure-0-value").value = 0.0015;
 	initial_magnetic_field_adder.click();
-	document.getElementById("initial_magnetic_field_0_geometry_id").value = 0;
-	document.getElementById("initial_magnetic_field_0_value").value = "[0, 0, 0]";
+	document.getElementById("initial-magnetic-field-0-geometry-id").value = 0;
+	document.getElementById("initial-magnetic-field-0-value").value = "[0, 0, 0]";
 
 	box_geometry_adder.click();
 	document.getElementById("box1-startx").value = -99;
@@ -1447,21 +1447,21 @@ bow_shock_maker.addEventListener("click", function() {
 	document.getElementById("box1-endy").value = 99;
 	document.getElementById("box1-endz").value = 99;
 	value_mass_adder.click();
-	document.getElementById("value_mass_0_geometry_id").value = 1;
-	document.getElementById("value_mass_0_time_stamps_id").value = 0;
-	document.getElementById("value_mass_0_value").value = 0.01;
+	document.getElementById("value-mass-0-geometry-id").value = 1;
+	document.getElementById("value-mass-0-time-stamps-id").value = 0;
+	document.getElementById("value-mass-0-value").value = 0.01;
 	value_velocity_adder.click();
-	document.getElementById("value_velocity_0_geometry_id").value = 1;
-	document.getElementById("value_velocity_0_time_stamps_id").value = 0;
-	document.getElementById("value_velocity_0_value").value = "[1, 0, 0]";
+	document.getElementById("value-velocity-0-geometry-id").value = 1;
+	document.getElementById("value-velocity-0-time-stamps-id").value = 0;
+	document.getElementById("value-velocity-0-value").value = "[1, 0, 0]";
 	value_pressure_adder.click();
-	document.getElementById("value_pressure_0_geometry_id").value = 1;
-	document.getElementById("value_pressure_0_time_stamps_id").value = 0;
-	document.getElementById("value_pressure_0_value").value = 0.0015;
+	document.getElementById("value-pressure-0-geometry-id").value = 1;
+	document.getElementById("value-pressure-0-time-stamps-id").value = 0;
+	document.getElementById("value-pressure-0-value").value = 0.0015;
 	value_magnetic_field_adder.click();
-	document.getElementById("value_magnetic_field_0_geometry_id").value = 1;
-	document.getElementById("value_magnetic_field_0_time_stamps_id").value = 0;
-	document.getElementById("value_magnetic_field_0_value").value = "[0, 0, 0]";
+	document.getElementById("value-magnetic-field-0-geometry-id").value = 1;
+	document.getElementById("value-magnetic-field-0-time-stamps-id").value = 0;
+	document.getElementById("value-magnetic-field-0-value").value = "[0, 0, 0]";
 
 	box_geometry_adder.click();
 	document.getElementById("box2-startx").value = 1;
@@ -1471,13 +1471,13 @@ bow_shock_maker.addEventListener("click", function() {
 	document.getElementById("box2-endy").value = 99;
 	document.getElementById("box2-endz").value = 99;
 	copy_mass_adder.click();
-	document.getElementById("copy_mass_0_geometry_id").value = 2;
+	document.getElementById("copy-mass-0-geometry-id").value = 2;
 	copy_velocity_adder.click();
-	document.getElementById("copy_velocity_0_geometry_id").value = 2;
+	document.getElementById("copy-velocity-0-geometry-id").value = 2;
 	copy_pressure_adder.click();
-	document.getElementById("copy_pressure_0_geometry_id").value = 2;
+	document.getElementById("copy-pressure-0-geometry-id").value = 2;
 	copy_magnetic_field_adder.click();
-	document.getElementById("copy_magnetic_field_0_geometry_id").value = 2;
+	document.getElementById("copy-magnetic-field-0-geometry-id").value = 2;
 
 	box_geometry_adder.click();
 	document.getElementById("box3-startx").value = -99;
@@ -1487,13 +1487,13 @@ bow_shock_maker.addEventListener("click", function() {
 	document.getElementById("box3-endy").value = 99;
 	document.getElementById("box3-endz").value = 99;
 	copy_mass_adder.click();
-	document.getElementById("copy_mass_1_geometry_id").value = 3;
+	document.getElementById("copy-mass-1-geometry-id").value = 3;
 	copy_velocity_adder.click();
-	document.getElementById("copy_velocity_1_geometry_id").value = 3;
+	document.getElementById("copy-velocity-1-geometry-id").value = 3;
 	copy_pressure_adder.click();
-	document.getElementById("copy_pressure_1_geometry_id").value = 3;
+	document.getElementById("copy-pressure-1-geometry-id").value = 3;
 	copy_magnetic_field_adder.click();
-	document.getElementById("copy_magnetic_field_1_geometry_id").value = 3;
+	document.getElementById("copy-magnetic-field-1-geometry-id").value = 3;
 
 	box_geometry_adder.click();
 	document.getElementById("box4-startx").value = -99;
@@ -1503,13 +1503,13 @@ bow_shock_maker.addEventListener("click", function() {
 	document.getElementById("box4-endy").value = -1.5;
 	document.getElementById("box4-endz").value = 99;
 	copy_mass_adder.click();
-	document.getElementById("copy_mass_2_geometry_id").value = 4;
+	document.getElementById("copy-mass-2-geometry-id").value = 4;
 	copy_velocity_adder.click();
-	document.getElementById("copy_velocity_2_geometry_id").value = 4;
+	document.getElementById("copy-velocity-2-geometry-id").value = 4;
 	copy_pressure_adder.click();
-	document.getElementById("copy_pressure_2_geometry_id").value = 4;
+	document.getElementById("copy-pressure-2-geometry-id").value = 4;
 	copy_magnetic_field_adder.click();
-	document.getElementById("copy_magnetic_field_2_geometry_id").value = 4;
+	document.getElementById("copy-magnetic-field-2-geometry-id").value = 4;
 
 	update_config_text.click();
 });
@@ -1540,27 +1540,27 @@ blast_wave_maker.addEventListener("click", function() {
 	document.getElementById("start-x").value = "-0.5";
 	document.getElementById("start-y").value = "-0.5";
 	document.getElementById("start-z").value = "-0.5";
-	document.getElementById("default_mass").value = 1;
-	document.getElementById("default_velocity").value = "[0, 0, 0]";
-	document.getElementById("default_pressure").value = 0.1;
-	document.getElementById("default_magnetic_field").value = "\"{1/sqrt(2), 1/sqrt(2), 0}\"";
+	document.getElementById("default-mass").value = 1;
+	document.getElementById("default-velocity").value = "[0, 0, 0]";
+	document.getElementById("default-pressure").value = 0.1;
+	document.getElementById("default-magnetic-field").value = "\"{1/sqrt(2), 1/sqrt(2), 0}\"";
 	sphere_geometry_adder.click();
-	document.getElementById("sphere0_centerx").value = 0;
-	document.getElementById("sphere0_centery").value = 0;
-	document.getElementById("sphere0_centerz").value = 0;
-	document.getElementById("sphere0_radius").value = 0.125;
+	document.getElementById("sphere0-centerx").value = 0;
+	document.getElementById("sphere0-centery").value = 0;
+	document.getElementById("sphere0-centerz").value = 0;
+	document.getElementById("sphere0-radius").value = 0.125;
 	initial_mass_adder.click();
-	document.getElementById("initial_mass_0_geometry_id").value = 0;
-	document.getElementById("initial_mass_0_value").value = 1;
+	document.getElementById("initial-mass-0-geometry-id").value = 0;
+	document.getElementById("initial-mass-0-value").value = 1;
 	initial_velocity_adder.click();
-	document.getElementById("initial_velocity_0_geometry_id").value = 0;
-	document.getElementById("initial_velocity_0_value").value = "[0, 0, 0]";
+	document.getElementById("initial-velocity-0-geometry-id").value = 0;
+	document.getElementById("initial-velocity-0-value").value = "[0, 0, 0]";
 	initial_pressure_adder.click();
-	document.getElementById("initial_pressure_0_geometry_id").value = 0;
-	document.getElementById("initial_pressure_0_value").value = 10;
+	document.getElementById("initial-pressure-0-geometry-id").value = 0;
+	document.getElementById("initial-pressure-0-value").value = 10;
 	initial_magnetic_field_adder.click();
-	document.getElementById("initial_magnetic_field_0_geometry_id").value = 0;
-	document.getElementById("initial_magnetic_field_0_value").value = "\"{1/sqrt(2), 1/sqrt(2), 0}\"";
+	document.getElementById("initial-magnetic-field-0-geometry-id").value = 0;
+	document.getElementById("initial-magnetic-field-0-value").value = "\"{1/sqrt(2), 1/sqrt(2), 0}\"";
 	update_config_text.click();
 });
 
@@ -1590,10 +1590,10 @@ jet_injection_maker.addEventListener("click", function() {
 	document.getElementById("start-x").value = "-volume[0] / cells[0]";
 	document.getElementById("start-y").value = "-volume[1] / cells[1]";
 	document.getElementById("start-z").value = "0";
-	document.getElementById("default_mass").value = 1;
-	document.getElementById("default_velocity").value = "\"{2.7 - x/2, 0, 0}\"";
-	document.getElementById("default_pressure").value = 1;
-	document.getElementById("default_magnetic_field").value = "[0, 0, 0]";
+	document.getElementById("default-mass").value = 1;
+	document.getElementById("default-velocity").value = "\"{2.7 - x/2, 0, 0}\"";
+	document.getElementById("default-pressure").value = 1;
+	document.getElementById("default-magnetic-field").value = "[0, 0, 0]";
 
 	box_geometry_adder.click();
 	document.getElementById("box0-startx").value = -99;
@@ -1603,21 +1603,21 @@ jet_injection_maker.addEventListener("click", function() {
 	document.getElementById("box0-endy").value = 99;
 	document.getElementById("box0-endz").value = 99;
 	value_mass_adder.click();
-	document.getElementById("value_mass_0_geometry_id").value = 0;
-	document.getElementById("value_mass_0_time_stamps_id").value = 0;
-	document.getElementById("value_mass_0_value").value = 1;
+	document.getElementById("value-mass-0-geometry-id").value = 0;
+	document.getElementById("value-mass-0-time-stamps-id").value = 0;
+	document.getElementById("value-mass-0-value").value = 1;
 	value_velocity_adder.click();
-	document.getElementById("value_velocity_0_geometry_id").value = 0;
-	document.getElementById("value_velocity_0_time_stamps_id").value = 0;
-	document.getElementById("value_velocity_0_value").value = "[2.7, 0, 0]";
+	document.getElementById("value-velocity-0-geometry-id").value = 0;
+	document.getElementById("value-velocity-0-time-stamps-id").value = 0;
+	document.getElementById("value-velocity-0-value").value = "[2.7, 0, 0]";
 	value_pressure_adder.click();
-	document.getElementById("value_pressure_0_geometry_id").value = 0;
-	document.getElementById("value_pressure_0_time_stamps_id").value = 0;
-	document.getElementById("value_pressure_0_value").value = 1;
+	document.getElementById("value-pressure-0-geometry-id").value = 0;
+	document.getElementById("value-pressure-0-time-stamps-id").value = 0;
+	document.getElementById("value-pressure-0-value").value = 1;
 	value_magnetic_field_adder.click();
-	document.getElementById("value_magnetic_field_0_geometry_id").value = 0;
-	document.getElementById("value_magnetic_field_0_time_stamps_id").value = 0;
-	document.getElementById("value_magnetic_field_0_value").value = "[0, 0, 0]";
+	document.getElementById("value-magnetic-field-0-geometry-id").value = 0;
+	document.getElementById("value-magnetic-field-0-time-stamps-id").value = 0;
+	document.getElementById("value-magnetic-field-0-value").value = "[0, 0, 0]";
 
 	box_geometry_adder.click();
 	document.getElementById("box1-startx").value = 1.4001;
@@ -1627,21 +1627,21 @@ jet_injection_maker.addEventListener("click", function() {
 	document.getElementById("box1-endy").value = -0.0001;
 	document.getElementById("box1-endz").value = 99;
 	value_mass_adder.click();
-	document.getElementById("value_mass_1_geometry_id").value = 1;
-	document.getElementById("value_mass_1_time_stamps_id").value = 0;
-	document.getElementById("value_mass_1_value").value = 5;
+	document.getElementById("value-mass-1-geometry-id").value = 1;
+	document.getElementById("value-mass-1-time-stamps-id").value = 0;
+	document.getElementById("value-mass-1-value").value = 5;
 	value_velocity_adder.click();
-	document.getElementById("value_velocity_1_geometry_id").value = 1;
-	document.getElementById("value_velocity_1_time_stamps_id").value = 0;
-	document.getElementById("value_velocity_1_value").value = "[0, 1.3, 0]";
+	document.getElementById("value-velocity-1-geometry-id").value = 1;
+	document.getElementById("value-velocity-1-time-stamps-id").value = 0;
+	document.getElementById("value-velocity-1-value").value = "[0, 1.3, 0]";
 	value_pressure_adder.click();
-	document.getElementById("value_pressure_1_geometry_id").value = 1;
-	document.getElementById("value_pressure_1_time_stamps_id").value = 0;
-	document.getElementById("value_pressure_1_value").value = 5;
+	document.getElementById("value-pressure-1-geometry-id").value = 1;
+	document.getElementById("value-pressure-1-time-stamps-id").value = 0;
+	document.getElementById("value-pressure-1-value").value = 5;
 	value_magnetic_field_adder.click();
-	document.getElementById("value_magnetic_field_1_geometry_id").value = 1;
-	document.getElementById("value_magnetic_field_1_time_stamps_id").value = 0;
-	document.getElementById("value_magnetic_field_1_value").value = "[0, 0, 0]";
+	document.getElementById("value-magnetic-field-1-geometry-id").value = 1;
+	document.getElementById("value-magnetic-field-1-time-stamps-id").value = 0;
+	document.getElementById("value-magnetic-field-1-value").value = "[0, 0, 0]";
 
 	box_geometry_adder.click();
 	document.getElementById("box2-startx").value = 3.0001;
@@ -1651,13 +1651,13 @@ jet_injection_maker.addEventListener("click", function() {
 	document.getElementById("box2-endy").value = 99;
 	document.getElementById("box2-endz").value = 99;
 	copy_mass_adder.click();
-	document.getElementById("copy_mass_0_geometry_id").value = 2;
+	document.getElementById("copy-mass-0-geometry-id").value = 2;
 	copy_velocity_adder.click();
-	document.getElementById("copy_velocity_0_geometry_id").value = 2;
+	document.getElementById("copy-velocity-0-geometry-id").value = 2;
 	copy_pressure_adder.click();
-	document.getElementById("copy_pressure_0_geometry_id").value = 2;
+	document.getElementById("copy-pressure-0-geometry-id").value = 2;
 	copy_magnetic_field_adder.click();
-	document.getElementById("copy_magnetic_field_0_geometry_id").value = 2;
+	document.getElementById("copy-magnetic-field-0-geometry-id").value = 2;
 
 	box_geometry_adder.click();
 	document.getElementById("box3-startx").value = -99;
@@ -1667,13 +1667,13 @@ jet_injection_maker.addEventListener("click", function() {
 	document.getElementById("box3-endy").value = 99;
 	document.getElementById("box3-endz").value = 99;
 	copy_mass_adder.click();
-	document.getElementById("copy_mass_1_geometry_id").value = 3;
+	document.getElementById("copy-mass-1-geometry-id").value = 3;
 	copy_velocity_adder.click();
-	document.getElementById("copy_velocity_1_geometry_id").value = 3;
+	document.getElementById("copy-velocity-1-geometry-id").value = 3;
 	copy_pressure_adder.click();
-	document.getElementById("copy_pressure_1_geometry_id").value = 3;
+	document.getElementById("copy-pressure-1-geometry-id").value = 3;
 	copy_magnetic_field_adder.click();
-	document.getElementById("copy_magnetic_field_1_geometry_id").value = 3;
+	document.getElementById("copy-magnetic-field-1-geometry-id").value = 3;
 
 	box_geometry_adder.click();
 	document.getElementById("box4-startx").value = 0.0001;
@@ -1683,13 +1683,13 @@ jet_injection_maker.addEventListener("click", function() {
 	document.getElementById("box4-endy").value = -0.0001;
 	document.getElementById("box4-endz").value = 99;
 	copy_mass_adder.click();
-	document.getElementById("copy_mass_2_geometry_id").value = 4;
+	document.getElementById("copy-mass-2-geometry-id").value = 4;
 	copy_velocity_adder.click();
-	document.getElementById("copy_velocity_2_geometry_id").value = 4;
+	document.getElementById("copy-velocity-2-geometry-id").value = 4;
 	copy_pressure_adder.click();
-	document.getElementById("copy_pressure_2_geometry_id").value = 4;
+	document.getElementById("copy-pressure-2-geometry-id").value = 4;
 	copy_magnetic_field_adder.click();
-	document.getElementById("copy_magnetic_field_2_geometry_id").value = 4;
+	document.getElementById("copy-magnetic-field-2-geometry-id").value = 4;
 
 	box_geometry_adder.click();
 	document.getElementById("box5-startx").value = 1.6001;
@@ -1699,13 +1699,13 @@ jet_injection_maker.addEventListener("click", function() {
 	document.getElementById("box5-endy").value = -0.0001;
 	document.getElementById("box5-endz").value = 99;
 	copy_mass_adder.click();
-	document.getElementById("copy_mass_3_geometry_id").value = 5;
+	document.getElementById("copy-mass-3-geometry-id").value = 5;
 	copy_velocity_adder.click()
-	document.getElementById("copy_velocity_3_geometry_id").value = 5;
+	document.getElementById("copy-velocity-3-geometry-id").value = 5;
 	copy_pressure_adder.click();
-	document.getElementById("copy_pressure_3_geometry_id").value = 5;
+	document.getElementById("copy-pressure-3-geometry-id").value = 5;
 	copy_magnetic_field_adder.click();
-	document.getElementById("copy_magnetic_field_3_geometry_id").value = 5;
+	document.getElementById("copy-magnetic-field-3-geometry-id").value = 5;
 
 	update_config_text.click();
 });
@@ -2006,11 +2006,11 @@ All items are numbers.
 		Default (> 0)
 		<input
 			type="text"
-			id="default_mass"
-			name="default_mass"
+			id="default-mass"
+			name="default-mass"
 			onKeyUp="validate_expression(this.id, gt_zero, time_place_context)"
 		>
-			<span id="default_mass_test"></span>
+			<span id="default-mass-test"></span>
 		<br>
 
 		<button id="add_initial_mass" type="button">
@@ -2032,11 +2032,11 @@ All items are numbers.
 		Default (mandatory)
 		<input
 			type="text"
-			id="default_velocity"
-			name="default_velocity"
+			id="default-velocity"
+			name="default-velocity"
 			onKeyUp="validate_expression(this.id, isFinite, time_place_context)"
 		>
-			<span id="default_velocity_test"></span>
+			<span id="default-velocity-test"></span>
 		<br>
 
 		<button id="add_initial_velocity" type="button">
@@ -2058,11 +2058,11 @@ All items are numbers.
 		Default (> 0)
 		<input
 			type="text"
-			id="default_pressure"
-			name="default_pressure"
+			id="default-pressure"
+			name="default-pressure"
 			onKeyUp="validate_expression(this.id, gt_zero, time_place_context)"
 		>
-			<span id="default_pressure_test"></span>
+			<span id="default-pressure-test"></span>
 		<br>
 
 		<button id="add_initial_pressure" type="button">
@@ -2084,11 +2084,11 @@ All items are numbers.
 		Default (mandatory)
 		<input
 			type="text"
-			id="default_magnetic_field"
-			name="default_magnetic_field"
+			id="default-magnetic-field"
+			name="default-magnetic-field"
 			onKeyUp="validate_expression(this.id, isFinite, time_place_context)"
 		>
-			<span id="default_magnetic_field_test"></span>
+			<span id="default-magnetic-field-test"></span>
 		<br>
 
 		<button id="add_initial_magnetic_field" type="button">
