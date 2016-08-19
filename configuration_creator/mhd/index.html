@@ -729,8 +729,8 @@ config_text_updater.addEventListener("click", function() {
 	// "number-density": { and "default": "",
 	new_html
 		+= "&quot;number-density&quot;: {<br>"
-		+ "&nbsp;&nbsp;&quot;default&quot;: "
-		+ document.getElementById("default-mass").value;
+		+ "&nbsp;&nbsp;&quot;default&quot;: &quot;"
+		+ document.getElementById("default-mass").value + "&quot;";
 
 	if (
 		nr_initial_mass_items.n > 0
@@ -747,8 +747,8 @@ config_text_updater.addEventListener("click", function() {
 			new_html
 				+= "&nbsp;&nbsp;&nbsp;&nbsp;{&quot;geometry-id&quot;: "
 				+ document.getElementById(id_string + "-geometry-id").value + ",<br>"
-				+ "&nbsp;&nbsp;&nbsp;&nbsp;&quot;value&quot;: "
-				+ document.getElementById(id_string + "-value").value
+				+ "&nbsp;&nbsp;&nbsp;&nbsp;&quot;value&quot;: &quot;"
+				+ document.getElementById(id_string + "-value").value + "&quot;"
 				+ "}";
 			if (i < nr_initial_mass_items.n - 1) {
 				new_html += ",<br>";
@@ -777,7 +777,7 @@ config_text_updater.addEventListener("click", function() {
 				+ "&nbsp;&nbsp;&nbsp;&nbsp;&quot;time-stamps&quot;: ["
 				+ document.getElementById(id_string + "-time-stamps-id").value + "],<br>"
 				+ "&nbsp;&nbsp;&nbsp;&nbsp;&quot;values&quot;: ["
-				+ document.getElementById(id_string + "-value").value
+				+ document.getElementById(id_string + "-value").value.replace(/\{/g, '"{').replace(/\}/g, '}"')
 				+ "]}";
 			if (i < nr_value_mass_items.n - 1) {
 				new_html += ",<br>";
@@ -821,8 +821,8 @@ config_text_updater.addEventListener("click", function() {
 	// velocity
 	new_html
 		+= "&quot;velocity&quot;: {<br>"
-		+ "&nbsp;&nbsp;&quot;default&quot;: "
-		+ document.getElementById("default-velocity").value;
+		+ "&nbsp;&nbsp;&quot;default&quot;: &quot;"
+		+ document.getElementById("default-velocity").value + "&quot;";
 
 	if (
 		nr_initial_velocity_items.n > 0
@@ -838,8 +838,8 @@ config_text_updater.addEventListener("click", function() {
 			new_html
 				+= "&nbsp;&nbsp;&nbsp;&nbsp;{&quot;geometry-id&quot;: "
 				+ document.getElementById(id_string + "-geometry-id").value + ",<br>"
-				+ "&nbsp;&nbsp;&nbsp;&nbsp;&quot;value&quot;: "
-				+ document.getElementById(id_string + "-value").value
+				+ "&nbsp;&nbsp;&nbsp;&nbsp;&quot;value&quot;: &quot;"
+				+ document.getElementById(id_string + "-value").value + "&quot;"
 				+ "}";
 			if (i < nr_initial_velocity_items.n - 1) {
 				new_html += ",<br>";
@@ -867,7 +867,7 @@ config_text_updater.addEventListener("click", function() {
 				+ "&nbsp;&nbsp;&nbsp;&nbsp;&quot;time-stamps&quot;: ["
 				+ document.getElementById(id_string + "-time-stamps-id").value + "],<br>"
 				+ "&nbsp;&nbsp;&nbsp;&nbsp;&quot;values&quot;: ["
-				+ document.getElementById(id_string + "-value").value
+				+ document.getElementById(id_string + "-value").value.replace(/\{/g, '"{').replace(/\}/g, '}"')
 				+ "]}";
 			if (i < nr_value_velocity_items.n - 1) {
 				new_html += ",<br>";
@@ -910,8 +910,8 @@ config_text_updater.addEventListener("click", function() {
 	// pressure
 	new_html
 		+= "&quot;pressure&quot;: {<br>"
-		+ "&nbsp;&nbsp;&quot;default&quot;: "
-		+ document.getElementById("default-pressure").value;
+		+ "&nbsp;&nbsp;&quot;default&quot;: &quot;"
+		+ document.getElementById("default-pressure").value + "&quot;";
 
 	if (
 		nr_initial_pressure_items.n > 0
@@ -927,8 +927,8 @@ config_text_updater.addEventListener("click", function() {
 			new_html
 				+= "&nbsp;&nbsp;&nbsp;&nbsp;{&quot;geometry-id&quot;: "
 				+ document.getElementById(id_string + "-geometry-id").value + ",<br>"
-				+ "&nbsp;&nbsp;&nbsp;&nbsp;&quot;value&quot;: "
-				+ document.getElementById(id_string + "-value").value
+				+ "&nbsp;&nbsp;&nbsp;&nbsp;&quot;value&quot;: &quot;"
+				+ document.getElementById(id_string + "-value").value + "&quot;"
 				+ "}";
 			if (i < nr_initial_pressure_items.n - 1) {
 				new_html += ",<br>";
@@ -956,7 +956,7 @@ config_text_updater.addEventListener("click", function() {
 				+ "&nbsp;&nbsp;&nbsp;&nbsp;&quot;time-stamps&quot;: ["
 				+ document.getElementById(id_string + "-time-stamps-id").value + "],<br>"
 				+ "&nbsp;&nbsp;&nbsp;&nbsp;&quot;values&quot;: ["
-				+ document.getElementById(id_string + "-value").value
+				+ document.getElementById(id_string + "-value").value.replace(/\{/g, '"{').replace(/\}/g, '}"')
 				+ "]}";
 			if (i < nr_value_pressure_items.n - 1) {
 				new_html += ",<br>";
@@ -999,8 +999,8 @@ config_text_updater.addEventListener("click", function() {
 	// magnetic field
 	new_html
 		+= "&quot;magnetic-field&quot;: {<br>"
-		+ "&nbsp;&nbsp;&quot;default&quot;: "
-		+ document.getElementById("default-magnetic-field").value;
+		+ "&nbsp;&nbsp;&quot;default&quot;: &quot;"
+		+ document.getElementById("default-magnetic-field").value + "&quot;";
 
 	if (
 		nr_initial_magnetic_field_items.n > 0
@@ -1016,8 +1016,8 @@ config_text_updater.addEventListener("click", function() {
 			new_html
 				+= "&nbsp;&nbsp;&nbsp;&nbsp;{&quot;geometry-id&quot;: "
 				+ document.getElementById(id_string + "-geometry-id").value + ",<br>"
-				+ "&nbsp;&nbsp;&nbsp;&nbsp;&quot;value&quot;: "
-				+ document.getElementById(id_string + "-value").value
+				+ "&nbsp;&nbsp;&nbsp;&nbsp;&quot;value&quot;: &quot;"
+				+ document.getElementById(id_string + "-value").value + "&quot;"
 				+ "}";
 			if (i < nr_initial_magnetic_field_items.n - 1) {
 				new_html += ",<br>";
@@ -1045,7 +1045,7 @@ config_text_updater.addEventListener("click", function() {
 				+ "&nbsp;&nbsp;&nbsp;&nbsp;&quot;time-stamps&quot;: ["
 				+ document.getElementById(id_string + "-time-stamps-id").value + "],<br>"
 				+ "&nbsp;&nbsp;&nbsp;&nbsp;&quot;values&quot;: ["
-				+ document.getElementById(id_string + "-value").value
+				+ document.getElementById(id_string + "-value").value.replace(/\{/g, '"{').replace(/\}/g, '}"')
 				+ "]}";
 			if (i < nr_value_magnetic_field_items.n - 1) {
 				new_html += ",<br>";
@@ -1114,10 +1114,10 @@ shock_tube_maker.addEventListener("click", function() {
 	document.getElementById("cells").value = "{100 + 2, 1, 1}";
 	document.getElementById("volume").value = "{1 + 2 / (cells[0] - 2), 1, 1}";
 	document.getElementById("start").value = "{-volume[0]/2, -volume[1]/2, -volume[2]/2}";
-	document.getElementById("default-mass").value = "\"(x < 0) ? 1 : 0.125\"";
-	document.getElementById("default-pressure").value = "\"(x < 0) ? 1 : 0.1\"";
-	document.getElementById("default-velocity").value = "[0, 0, 0]";
-	document.getElementById("default-magnetic-field").value = "\"{0.75, (x < 0) ? 1 : -1, 0}\"";
+	document.getElementById("default-mass").value = "x < 0 ? 1 : 0.125";
+	document.getElementById("default-pressure").value = "x < 0 ? 1 : 0.1";
+	document.getElementById("default-velocity").value = "{0, 0, 0}";
+	document.getElementById("default-magnetic-field").value = "{0.75, x < 0 ? 1 : -1, 0}";
 	box_geometry_adder.click();
 	document.getElementById("box0-startx").value = -99;
 	document.getElementById("box0-starty").value = -99;
@@ -1132,7 +1132,7 @@ shock_tube_maker.addEventListener("click", function() {
 	value_velocity_adder.click();
 	document.getElementById("value-velocity-0-geometry-id").value = 0;
 	document.getElementById("value-velocity-0-time-stamps-id").value = 0;
-	document.getElementById("value-velocity-0-value").value = "[0, 0, 0]";
+	document.getElementById("value-velocity-0-value").value = "{0, 0, 0}";
 	value_pressure_adder.click();
 	document.getElementById("value-pressure-0-geometry-id").value = 0;
 	document.getElementById("value-pressure-0-time-stamps-id").value = 0;
@@ -1140,7 +1140,7 @@ shock_tube_maker.addEventListener("click", function() {
 	value_magnetic_field_adder.click();
 	document.getElementById("value-magnetic-field-0-geometry-id").value = 0;
 	document.getElementById("value-magnetic-field-0-time-stamps-id").value = 0;
-	document.getElementById("value-magnetic-field-0-value").value = "[0.75, 1, 0]";
+	document.getElementById("value-magnetic-field-0-value").value = "{0.75, 1, 0}";
 	box_geometry_adder.click();
 	document.getElementById("box1-startx").value = 0.5;
 	document.getElementById("box1-starty").value = -99;
@@ -1155,7 +1155,7 @@ shock_tube_maker.addEventListener("click", function() {
 	value_velocity_adder.click();
 	document.getElementById("value-velocity-1-geometry-id").value = 1;
 	document.getElementById("value-velocity-1-time-stamps-id").value = 0;
-	document.getElementById("value-velocity-1-value").value = "[0, 0, 0]";
+	document.getElementById("value-velocity-1-value").value = "{0, 0, 0}";
 	value_pressure_adder.click();
 	document.getElementById("value-pressure-1-geometry-id").value = 1;
 	document.getElementById("value-pressure-1-time-stamps-id").value = 0;
@@ -1163,7 +1163,7 @@ shock_tube_maker.addEventListener("click", function() {
 	value_magnetic_field_adder.click();
 	document.getElementById("value-magnetic-field-1-geometry-id").value = 1;
 	document.getElementById("value-magnetic-field-1-time-stamps-id").value = 0;
-	document.getElementById("value-magnetic-field-1-value").value = "[0.75, -1, 0]";
+	document.getElementById("value-magnetic-field-1-value").value = "{0.75, -1, 0}";
 	update_config_text.click();
 });
 
@@ -1187,10 +1187,10 @@ kelvin_helmholtz_maker.addEventListener("click", function() {
 	document.getElementById("cells").value = "{50, 50, 1}";
 	document.getElementById("volume").value = "{1, 1, 1}";
 	document.getElementById("start").value = "{-volume[0]/2, -volume[1]/2, -volume[2]/2}";
-	document.getElementById("default-mass").value = "\"abs(y) < 0.25 ? 2 : 15\"";
+	document.getElementById("default-mass").value = "abs(y) < 0.25 ? 2 : 15";
 	document.getElementById("default-pressure").value = 3;
-	document.getElementById("default-velocity").value = "\"{0.1 * sin(2*pi*x) + (abs(y) < 0.25 ? -0.5 : 0.5), 0.1 * cos(2*pi*x), 0}\"";
-	document.getElementById("default-magnetic-field").value = "[0.25, 0, 0]";
+	document.getElementById("default-velocity").value = "{0.1 * sin(2*pi*x) + (abs(y) < 0.25 ? -0.5 : 0.5), 0.1 * cos(2*pi*x), 0}";
+	document.getElementById("default-magnetic-field").value = "{0.25, 0, 0}";
 	update_config_text.click();
 });
 
@@ -1214,10 +1214,10 @@ reconnection_maker.addEventListener("click", function() {
 	document.getElementById("cells").value = "{2*51, 1, 51 + 2}";
 	document.getElementById("volume").value = "{25.6, 12.8, 12.8 * (1 + 2/(cells[2] - 2))}";
 	document.getElementById("start").value = "{-volume[0]/2, -volume[1]/2, -volume[2]/2}";
-	document.getElementById("default-mass").value = "\"1/cosh(z / 0.5)^2 + 0.2\"";
+	document.getElementById("default-mass").value = "1/cosh(z / 0.5)^2 + 0.2";
 	document.getElementById("default-pressure").value = 1;
-	document.getElementById("default-velocity").value = "[0, 0, 0]";
-	document.getElementById("default-magnetic-field").value = "\"{tanh(z / 0.5) - 0.1 * pi/12.8 * cos(2*pi*x/25.6) * sin(pi*z/12.8), 0, 0.1 * 2*pi/25.6 * sin(2*pi*x/25.6) * cos(pi*z/12.8)}\"";
+	document.getElementById("default-velocity").value = "{0, 0, 0}";
+	document.getElementById("default-magnetic-field").value = "{tanh(z / 0.5) - 0.1 * pi/12.8 * cos(2*pi*x/25.6) * sin(pi*z/12.8), 0, 0.1 * 2*pi/25.6 * sin(2*pi*x/25.6) * cos(pi*z/12.8)}";
 	box_geometry_adder.click();
 	document.getElementById("box0-startx").value = -99;
 	document.getElementById("box0-starty").value = -99;
@@ -1272,9 +1272,9 @@ orszag_tang_maker.addEventListener("click", function() {
 	document.getElementById("volume").value = "{2*pi, 2*pi, 1}";
 	document.getElementById("start").value = "{0, 0, 0}";
 	document.getElementById("default-mass").value = 1;
-	document.getElementById("default-velocity").value = "\"{-sin(y), sin(x), 0}\"";
+	document.getElementById("default-velocity").value = "{-sin(y), sin(x), 0}";
 	document.getElementById("default-pressure").value = 1;
-	document.getElementById("default-magnetic-field").value = "\"{-sin(y), sin(2*x), 0}\"";
+	document.getElementById("default-magnetic-field").value = "{-sin(y), sin(2*x), 0}";
 	update_config_text.click();
 });
 
@@ -1299,9 +1299,9 @@ bow_shock_maker.addEventListener("click", function() {
 	document.getElementById("volume").value = "{2 * (1 + 2 / (cells[0] - 2)), 3 * (1 + 2 / (cells[1] - 2)), 2}";
 	document.getElementById("start").value = "{-volume[0]/2, -volume[1]/2, -volume[2]/2}";
 	document.getElementById("default-mass").value = 0.01;
-	document.getElementById("default-velocity").value = "\"{x > 0 and y < 0.0625 and y > -0.0625 ? 0 : 1, 0, 0}\"";
+	document.getElementById("default-velocity").value = "{x > 0 and y < 0.0625 and y > -0.0625 ? 0 : 1, 0, 0}";
 	document.getElementById("default-pressure").value = 0.0015;
-	document.getElementById("default-magnetic-field").value = "[0, 0, 0]";
+	document.getElementById("default-magnetic-field").value = "{0, 0, 0}";
 
 	sphere_geometry_adder.click();
 	document.getElementById("sphere0-centerx").value = 0;
@@ -1313,13 +1313,13 @@ bow_shock_maker.addEventListener("click", function() {
 	document.getElementById("initial-mass-0-value").value = 100;
 	initial_velocity_adder.click();
 	document.getElementById("initial-velocity-0-geometry-id").value = 0;
-	document.getElementById("initial-velocity-0-value").value = "[0, 0, 0]";
+	document.getElementById("initial-velocity-0-value").value = "{0, 0, 0}";
 	initial_pressure_adder.click();
 	document.getElementById("initial-pressure-0-geometry-id").value = 0;
 	document.getElementById("initial-pressure-0-value").value = 0.0015;
 	initial_magnetic_field_adder.click();
 	document.getElementById("initial-magnetic-field-0-geometry-id").value = 0;
-	document.getElementById("initial-magnetic-field-0-value").value = "[0, 0, 0]";
+	document.getElementById("initial-magnetic-field-0-value").value = "{0, 0, 0}";
 
 	box_geometry_adder.click();
 	document.getElementById("box1-startx").value = -99;
@@ -1335,7 +1335,7 @@ bow_shock_maker.addEventListener("click", function() {
 	value_velocity_adder.click();
 	document.getElementById("value-velocity-0-geometry-id").value = 1;
 	document.getElementById("value-velocity-0-time-stamps-id").value = 0;
-	document.getElementById("value-velocity-0-value").value = "[1, 0, 0]";
+	document.getElementById("value-velocity-0-value").value = "{1, 0, 0}";
 	value_pressure_adder.click();
 	document.getElementById("value-pressure-0-geometry-id").value = 1;
 	document.getElementById("value-pressure-0-time-stamps-id").value = 0;
@@ -1343,7 +1343,7 @@ bow_shock_maker.addEventListener("click", function() {
 	value_magnetic_field_adder.click();
 	document.getElementById("value-magnetic-field-0-geometry-id").value = 1;
 	document.getElementById("value-magnetic-field-0-time-stamps-id").value = 0;
-	document.getElementById("value-magnetic-field-0-value").value = "[0, 0, 0]";
+	document.getElementById("value-magnetic-field-0-value").value = "{0, 0, 0}";
 
 	box_geometry_adder.click();
 	document.getElementById("box2-startx").value = 1;
@@ -1417,9 +1417,9 @@ blast_wave_maker.addEventListener("click", function() {
 	document.getElementById("volume").value = "{1, 1, 1}";
 	document.getElementById("start").value = "{-0.5, -0.5, -0.5}";
 	document.getElementById("default-mass").value = 1;
-	document.getElementById("default-velocity").value = "[0, 0, 0]";
+	document.getElementById("default-velocity").value = "{0, 0, 0}";
 	document.getElementById("default-pressure").value = 0.1;
-	document.getElementById("default-magnetic-field").value = "\"{1/sqrt(2), 1/sqrt(2), 0}\"";
+	document.getElementById("default-magnetic-field").value = "{1/sqrt(2), 1/sqrt(2), 0}";
 	sphere_geometry_adder.click();
 	document.getElementById("sphere0-centerx").value = 0;
 	document.getElementById("sphere0-centery").value = 0;
@@ -1430,13 +1430,13 @@ blast_wave_maker.addEventListener("click", function() {
 	document.getElementById("initial-mass-0-value").value = 1;
 	initial_velocity_adder.click();
 	document.getElementById("initial-velocity-0-geometry-id").value = 0;
-	document.getElementById("initial-velocity-0-value").value = "[0, 0, 0]";
+	document.getElementById("initial-velocity-0-value").value = "{0, 0, 0}";
 	initial_pressure_adder.click();
 	document.getElementById("initial-pressure-0-geometry-id").value = 0;
 	document.getElementById("initial-pressure-0-value").value = 10;
 	initial_magnetic_field_adder.click();
 	document.getElementById("initial-magnetic-field-0-geometry-id").value = 0;
-	document.getElementById("initial-magnetic-field-0-value").value = "\"{1/sqrt(2), 1/sqrt(2), 0}\"";
+	document.getElementById("initial-magnetic-field-0-value").value = "{1/sqrt(2), 1/sqrt(2), 0}";
 	update_config_text.click();
 });
 
@@ -1461,9 +1461,9 @@ jet_injection_maker.addEventListener("click", function() {
 	document.getElementById("volume").value = "{3 * (1 + 2 / (cells[0] - 2)), 1.5 * (1 + 2 / (cells[1] - 2)), 1}";
 	document.getElementById("start").value = "{-volume[0] / cells[0], -volume[1] / cells[1], 0}";
 	document.getElementById("default-mass").value = 1;
-	document.getElementById("default-velocity").value = "\"{2.7 - x/2, 0, 0}\"";
+	document.getElementById("default-velocity").value = "{2.7 - x/2, 0, 0}";
 	document.getElementById("default-pressure").value = 1;
-	document.getElementById("default-magnetic-field").value = "[0, 0, 0]";
+	document.getElementById("default-magnetic-field").value = "{0, 0, 0}";
 
 	box_geometry_adder.click();
 	document.getElementById("box0-startx").value = -99;
@@ -1479,7 +1479,7 @@ jet_injection_maker.addEventListener("click", function() {
 	value_velocity_adder.click();
 	document.getElementById("value-velocity-0-geometry-id").value = 0;
 	document.getElementById("value-velocity-0-time-stamps-id").value = 0;
-	document.getElementById("value-velocity-0-value").value = "[2.7, 0, 0]";
+	document.getElementById("value-velocity-0-value").value = "{2.7, 0, 0}";
 	value_pressure_adder.click();
 	document.getElementById("value-pressure-0-geometry-id").value = 0;
 	document.getElementById("value-pressure-0-time-stamps-id").value = 0;
@@ -1487,7 +1487,7 @@ jet_injection_maker.addEventListener("click", function() {
 	value_magnetic_field_adder.click();
 	document.getElementById("value-magnetic-field-0-geometry-id").value = 0;
 	document.getElementById("value-magnetic-field-0-time-stamps-id").value = 0;
-	document.getElementById("value-magnetic-field-0-value").value = "[0, 0, 0]";
+	document.getElementById("value-magnetic-field-0-value").value = "{0, 0, 0}";
 
 	box_geometry_adder.click();
 	document.getElementById("box1-startx").value = 1.4001;
@@ -1503,7 +1503,7 @@ jet_injection_maker.addEventListener("click", function() {
 	value_velocity_adder.click();
 	document.getElementById("value-velocity-1-geometry-id").value = 1;
 	document.getElementById("value-velocity-1-time-stamps-id").value = 0;
-	document.getElementById("value-velocity-1-value").value = "[0, 1.3, 0]";
+	document.getElementById("value-velocity-1-value").value = "{0, 1.3, 0}";
 	value_pressure_adder.click();
 	document.getElementById("value-pressure-1-geometry-id").value = 1;
 	document.getElementById("value-pressure-1-time-stamps-id").value = 0;
@@ -1511,7 +1511,7 @@ jet_injection_maker.addEventListener("click", function() {
 	value_magnetic_field_adder.click();
 	document.getElementById("value-magnetic-field-1-geometry-id").value = 1;
 	document.getElementById("value-magnetic-field-1-time-stamps-id").value = 0;
-	document.getElementById("value-magnetic-field-1-value").value = "[0, 0, 0]";
+	document.getElementById("value-magnetic-field-1-value").value = "{0, 0, 0}";
 
 	box_geometry_adder.click();
 	document.getElementById("box2-startx").value = 3.0001;
@@ -1623,9 +1623,10 @@ Simulation regions have to be added separately using buttons in the geometries p
 <h3>Help on filling out the form</h3>
 
 Input fields on the page set various simulation parameters and all must be filled out.
-Values of some simulation parameters can be mathematical expressions.
+Vector quantities must be enclosed by curly braces and different components separated by commas.
+Values of simulation grid and plasma parameters can be mathematical expressions.
 Within an expression, depending on the simulation parameter, different variables can be used to obtain a value for the expression.
-For example the center coordinate of a simulation cell is available in expressions as x, y and z or radius, lat and lon.
+For example the center coordinate of a simulation cell is available in expressions as x, y, z, radius, lat and lon.
 Lat is angle away from X axis towards Z axis and lon is angle away from X towards Y in radians.
 The value of variables available in expressions is set to that of the cell for which the expression is evaluated.
 By default the following variables are available within expressions: pi, x, y, z, radius, lat, lon, t.
@@ -1639,7 +1640,7 @@ Variable t is simulation time when an expression is evaluated.
 
 <h4>Simulation grid parameters</h4>
 <ul>
-<li>All input fields are expressions but default variables are not available</li>
+<li>All input fields are vector expressions but default variables are not available</li>
 <li>Number of cells: no variables available</li>
 <li>Volume: number of cells available as cells[0], cells[1] and cells[2] for dimensions x, y and z respectively</li>
 <li>Starting coordinate: number of cells and volume available as cells[0], volume[0], etc.</li>
@@ -1648,13 +1649,13 @@ Variable t is simulation time when an expression is evaluated.
 <h4>Geometries</h4>
 All items are numbers.
 
-<h4>Number density, velocity, pressure, magnetic field</h4>
+<h4>Number density (scalar), velocity (vector), pressure (scalar), magnetic field (vector)</h4>
 <ul>
-<li>Default, scalar parameter: number or an expression, expression must be enclosed in double quotes (e.g. &quot;sin(x + 2*pi*t)&quot;)</li>
-<li>Default, vector parameter: numbers enclosed in brackets ([1, 2, 3]) or an expression enclosed in double quotes and curly brackets (&quot;{x/2, sin(t), abs(z^1.5)}&quot;), in either case components are separated by commas</li>
+<li>Default, scalar parameter: expression (e.g. radius * sin(x + 2 *pi*t))</li>
+<li>Default, vector parameter: expression enclosed in curly brackets ({x/2, sin(t), abs(z^1.5)}) with components separated by commas</li>
 <li>Region (geometry id): integer, must be an existing geometry id</li>
 <li>Time stamps: number or an ascending comma separated list of numbers (0.1, 3, ...)</li>
-<li>Values: as many items as in time stamps separated by commas in the same format as for a default value (all identical in format, e.g. for a vector parameter &quot;{x, t, 3/radius}&quot;, &quot;{y, z, 8}&quot;, ...), the one is used whose corresponding time stamp is closest to current simulation time</li>
+<li>Values: as many items as in time stamps separated by commas in the same format as for a default value (e.g. for a vector parameter {x, t, 3/radius}, {y, z, 8}, ...), during simulation the one is used whose corresponding time stamp is closest to current simulation time</li>
 </ul>
 
 </p>
