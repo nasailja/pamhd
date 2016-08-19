@@ -44,67 +44,10 @@ div[id ^= "bdy_input"] {display: inline-block;}
 <noscript>
 	<p><h1>WARNING: This page does not work without javascript</h1></p>
 </noscript>
-<script src="http://cdnjs.cloudflare.com/ajax/libs/mathjs/2.4.1/math.min.js" type="text/javascript"></script>
+<script src="http://cdnjs.cloudflare.com/ajax/libs/mathjs/3.2.1/math.min.js" type="text/javascript"></script>
 <script>window.math || document.write('<script src="math.min.js">\x3C/script>')</script>
 <!-- javascript functions start -->
 <script name="script" type="text/javascript">
-
-// variable sets available in math expressions
-var
-	empty_context = {},
-	time_place_context = {
-		t: 0,
-		x: 0, y: 0, z: 0,
-		radius: 0, lat: 0, lon: 0
-	},
-	time_place_current_context = {
-		t: 0,
-		x: 0, y: 0, z: 0,
-		radius: 0, lat: 0, lon: 0,
-		J: 0
-	};
-
-
-function validate_expression(element_id, validator, context)
-{
-	expression = document.getElementById(element_id);
-	result = document.getElementById(element_id + "-test");
-
-	// mathjs starts indices from 1
-	adjusted_expression = expression.value
-		.split("[3]").join("[4]")
-		.split("[2]").join("[3]")
-		.split("[1]").join("[2]")
-		.split("[0]").join("[1]");
-
-	try {
-		var evaluated = math.eval(adjusted_expression, context);
-		if (validator(evaluated)) {
-			result.innerHTML = "";
-			result.style.color = "initial";
-			return;
-		} else {
-			result.innerHTML = "Invalid value in expression";
-			result.style.color = "red";
-			return;
-		}
-	} catch(error) {
-		result.innerHTML = "Error in expression";
-		result.style.color = "red";
-		return;
-	}
-}
-
-//! returns true for number > 0, false otherwise
-function gt_zero(number)
-{
-	if (isFinite(number)) {
-		if (number > 0) {
-			return true;
-		}
-	}
-	return false;
-}
 
 
 window.onload = function() {
@@ -122,25 +65,6 @@ function make_input_element(id_string)
 	input.setAttribute("type", "text");
 	input.setAttribute("id", id_string);
 	input.setAttribute("name", id_string);
-	return input;
-}
-
-// As make_input_element but also uses validator with given
-// context/scope to validate expression typed into returned text element.
-function make_input_element_for_expression(id_string, validator_str, context_str)
-{
-	var input = document.createElement("input");
-	input.setAttribute("type", "text");
-	input.setAttribute("id", id_string);
-	input.setAttribute("name", id_string);
-	if (
-		typeof validator_str == "string"
-		&& validator_str != ""
-		&& typeof context_str == "string"
-		&& context_str != ""
-	) {
-		input.setAttribute("onblur", "validate_expression(this.id," + validator_str + ", " + context_str + ")");
-	}
 	return input;
 }
 
@@ -212,18 +136,18 @@ function make_geometry(shape)
 	if (shape == "box") {
 
 		fieldset.appendChild(document.createTextNode("Start coordinate (x, y, z) "));
-		fieldset.appendChild(make_input_element_for_expression(id_string + "-startx", "isFinite", "empty_context"));
-		fieldset.appendChild(make_input_element_for_expression(id_string + "-starty", "isFinite", "empty_context"));
-		fieldset.appendChild(make_input_element_for_expression(id_string + "-startz", "isFinite", "empty_context"));
+		fieldset.appendChild(make_input_element(id_string + "-startx"));
+		fieldset.appendChild(make_input_element(id_string + "-starty"));
+		fieldset.appendChild(make_input_element(id_string + "-startz"));
 		fieldset.appendChild(make_span(id_string + "-startx-test"));
 		fieldset.appendChild(make_span(id_string + "-starty-test"));
 		fieldset.appendChild(make_span(id_string + "-startz-test"));
 		fieldset.appendChild(document.createElement("br"));
 
 		fieldset.appendChild(document.createTextNode("End coordinate (x, y, z) "));
-		fieldset.appendChild(make_input_element_for_expression(id_string + "-endx", "isFinite", "empty_context"));
-		fieldset.appendChild(make_input_element_for_expression(id_string + "-endy", "isFinite", "empty_context"));
-		fieldset.appendChild(make_input_element_for_expression(id_string + "-endz", "isFinite", "empty_context"));
+		fieldset.appendChild(make_input_element(id_string + "-endx"));
+		fieldset.appendChild(make_input_element(id_string + "-endy"));
+		fieldset.appendChild(make_input_element(id_string + "-endz"));
 		fieldset.appendChild(make_span(id_string + "-endx-test"));
 		fieldset.appendChild(make_span(id_string + "-endy-test"));
 		fieldset.appendChild(make_span(id_string + "-endz-test"));
@@ -232,16 +156,16 @@ function make_geometry(shape)
 	} else if (shape == "sphere") {
 
 		fieldset.appendChild(document.createTextNode("Center coordinate (x, y, z) "));
-		fieldset.appendChild(make_input_element_for_expression(id_string + "-centerx", "isFinite", "empty_context"));
-		fieldset.appendChild(make_input_element_for_expression(id_string + "-centery", "isFinite", "empty_context"));
-		fieldset.appendChild(make_input_element_for_expression(id_string + "-centerz", "isFinite", "empty_context"));
+		fieldset.appendChild(make_input_element(id_string + "-centerx"));
+		fieldset.appendChild(make_input_element(id_string + "-centery"));
+		fieldset.appendChild(make_input_element(id_string + "-centerz"));
 		fieldset.appendChild(make_span(id_string + "-centerx-test"));
 		fieldset.appendChild(make_span(id_string + "-centery-test"));
 		fieldset.appendChild(make_span(id_string + "-centerz-test"));
 		fieldset.appendChild(document.createElement("br"));
 
 		fieldset.appendChild(document.createTextNode("Radius "));
-		fieldset.appendChild(make_input_element_for_expression(id_string + "-radius", "gt_zero", "empty_context"));
+		fieldset.appendChild(make_input_element(id_string + "-radius"));
 		fieldset.appendChild(make_span(id_string + "-radius-test"));
 		fieldset.appendChild(document.createElement("br"));
 	}
@@ -302,7 +226,7 @@ function get_bdy_input_common(id_string, add_values, add_time_stamps)
 		div.appendChild(document.createElement("br"));
 		// add checked input for value
 		div.appendChild(document.createTextNode(" Values: "));
-		div.appendChild(make_input_element_for_expression(id_string + "-value", "gt_zero", "time_place_current_context"));
+		div.appendChild(make_input_element(id_string + "-value"));
 		div.appendChild(make_span(id_string + "-value-test"));
 		div.appendChild(document.createElement("br"));
 	}
@@ -1804,81 +1728,48 @@ All items are numbers.
 		</select><br>
 
 		Start time of simulation
-		<input
-			type="text"
-			id="time-start"
-			name="time-start"
-			onKeyUp="validate_expression(this.id, isFinite, empty_context)"
-		>
+		<input type="text" id="time-start" name="time-start">
 			<span id="time-start-test"></span>
 		<br>
 
 		Duration of simulation (> 0)
-		<input
-			type="text"
-			id="time-length"
-			name="time-length"
-			onKeyUp="validate_expression(this.id, gt_zero, empty_context)"
-		>
+		<input type="text" id="time-length" name="time-length">
 			<span id="time-length-test"></span>
 		<br>
 
 		Time interval for saving simulation results (< 0 skips saving)
-		<input
-			type="text"
-			id="save-mhd-n"
-			name="save-mhd-n"
-			onKeyUp="validate_expression(this.id, isFinite, empty_context)"
-		>
+		<input type="text" id="save-mhd-n" name="save-mhd-n">
 			<span id="save-mhd-n-test"></span>
 		<br>
 
 		Expression for electric resistivity (can also refer to magnitude of electric current density as J)
-		<input
-			type="text"
-			id="resistivity"
-			name="resistivity"
-			onKeyUp="validate_expression(this.id, isFinite, time_place_current_context)"><span id="resistivity-test"></span>
+		<input type="text" id="resistivity" name="resistivity">
+			<span id="resistivity-test"></span>
 		<br>
 
 		Time interval for removing divergence of magnetic field (< 0 skips removal)
-		<input
-			type="text"
-			id="remove-div-b-n"
-			name="remove-div-b-n"
-			onKeyUp="validate_expression(this.id, isFinite, empty_context)"><span id="remove-div-b-n-test"></span>
+		<input type="text" id="remove-div-b-n" name="remove-div-b-n">
+			<span id="remove-div-b-n-test"></span>
 		<br>
 
 		Value of adiabatic index (> 1)
-		<input
-			type="text"
-			id="adiabatic-index"
-			name="adiabatic-index"
-			onKeyUp="validate_expression(this.id, gt_zero, empty_context)"><span id="adiabatic-index-test"></span>
+		<input type="text" id="adiabatic-index" name="adiabatic-index">
+			<span id="adiabatic-index-test"></span>
 		<br>
 
 		Value of vacuum permeability (> 0)
-		<input
-			type="text"
-			id="vacuum-permeability"
-			name="vacuum-permeability"
-			onKeyUp="validate_expression(this.id, gt_zero, empty_context)"><span id="vacuum-permeability-test"></span>
+		<input type="text" id="vacuum-permeability" name="vacuum-permeability">
+			<span id="vacuum-permeability-test"></span>
 		<br>
 
 		Value of proton mass (> 0)
-		<input
-			type="text"
-			id="proton-mass"
-			name="proton-mass"
-			onKeyUp="validate_expression(this.id, gt_zero, empty_context)"><span id="proton-mass-test"></span>
+		<input type="text" id="proton-mass" name="proton-mass">
+			<span id="proton-mass-test"></span>
 		<br>
 
 		Fraction of maximum allowed time step to use (> 0, < 1)
-		<input
-			type="text"
-			id="time-step-factor"
-			name="time-step-factor"
-			onKeyUp="validate_expression(this.id, gt_zero, empty_context)"><span id="time-step-factor-test"></span>
+		<input type="text" id="time-step-factor" name="time-step-factor">
+			<span id="time-step-factor-test"></span>
 		<br>
 
 		<!-- outdir start -->
@@ -1910,74 +1801,29 @@ All items are numbers.
 		<br>
 
 		Number of cells in x, y and z dimensions (> 0)
-		<input
-			type="text"
-			id="cells-x"
-			name="cells-x"
-			onKeyUp="validate_expression(this.id, gt_zero, empty_context)"
-		>
+		<input type="text" id="cells-x" name="cells-x">
 			<span id="cells-x-test"></span>
-		<input
-			type="text"
-			id="cells-y"
-			name="cells-y"
-			onKeyUp="validate_expression(this.id, gt_zero, empty_context)"
-		>
+		<input type="text" id="cells-y" name="cells-y">
 			<span id="cells-y-test"></span>
-		<input
-			type="text"
-			id="cells-z"
-			name="cells-z"
-			onKeyUp="validate_expression(this.id, gt_zero, empty_context)"
-		>
+		<input type="text" id="cells-z" name="cells-z">
 			<span id="cells-z-test"></span>
 		<br>
 
 		Volume in x, y and z dimensions (> 0)
-		<input
-			type="text"
-			id="volume-x"
-			name="volume-x"
-			onKeyUp="validate_expression(this.id, gt_zero, empty_context)"
-		>
+		<input type="text" id="volume-x" name="volume-x">
 			<span id="volume-x-test"></span>
-		<input
-			type="text"
-			id="volume-y"
-			name="volume-y"
-			onKeyUp="validate_expression(this.id, gt_zero, empty_context)"
-		>
+		<input type="text" id="volume-y" name="volume-y">
 			<span id="volume-y-test"></span>
-		<input
-			type="text"
-			id="volume-z"
-			name="volume-z"
-			onKeyUp="validate_expression(this.id, gt_zero, empty_context)"
-		>
+		<input type="text" id="volume-z" name="volume-z">
 			<span id="volume-z-test"></span>
 		<br>
 
 		Starting coordinate in x, y and z dimensions
-		<input
-			type="text"
-			id="start-x"
-			name="start-x"
-			onKeyUp="validate_expression(this.id, isFinite, empty_context)"
-		>
+		<input type="text" id="start-x" name="start-x">
 			<span id="start-x-test"></span>
-		<input
-			type="text"
-			id="start-y"
-			name="start-y"
-			onKeyUp="validate_expression(this.id, isFinite, empty_context)"
-		>
+		<input type="text" id="start-y" name="start-y">
 			<span id="start-y-test"></span>
-		<input
-			type="text"
-			id="start-z"
-			name="start-z"
-			onKeyUp="validate_expression(this.id, isFinite, empty_context)"
-		>
+		<input type="text" id="start-z" name="start-z">
 			<span id="start-z-test"></span>
 		<br>
 	</fieldset>
@@ -2004,12 +1850,7 @@ All items are numbers.
 		<legend>Number density</legend>
 
 		Default (> 0)
-		<input
-			type="text"
-			id="default-mass"
-			name="default-mass"
-			onKeyUp="validate_expression(this.id, gt_zero, time_place_context)"
-		>
+		<input type="text" id="default-mass" name="default-mass">
 			<span id="default-mass-test"></span>
 		<br>
 
@@ -2030,12 +1871,7 @@ All items are numbers.
 		<legend>Velocity</legend>
 
 		Default (mandatory)
-		<input
-			type="text"
-			id="default-velocity"
-			name="default-velocity"
-			onKeyUp="validate_expression(this.id, isFinite, time_place_context)"
-		>
+		<input type="text" id="default-velocity" name="default-velocity">
 			<span id="default-velocity-test"></span>
 		<br>
 
@@ -2056,12 +1892,7 @@ All items are numbers.
 		<legend>Thermal pressure</legend>
 
 		Default (> 0)
-		<input
-			type="text"
-			id="default-pressure"
-			name="default-pressure"
-			onKeyUp="validate_expression(this.id, gt_zero, time_place_context)"
-		>
+		<input type="text" id="default-pressure" name="default-pressure">
 			<span id="default-pressure-test"></span>
 		<br>
 
@@ -2082,12 +1913,7 @@ All items are numbers.
 		<legend>Magnetic field</legend>
 
 		Default (mandatory)
-		<input
-			type="text"
-			id="default-magnetic-field"
-			name="default-magnetic-field"
-			onKeyUp="validate_expression(this.id, isFinite, time_place_context)"
-		>
+		<inputtype="text" id="default-magnetic-field" name="default-magnetic-field">
 			<span id="default-magnetic-field-test"></span>
 		<br>
 
