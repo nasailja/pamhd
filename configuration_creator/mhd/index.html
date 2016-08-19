@@ -588,15 +588,9 @@ configuration_clearer.addEventListener("click", function() {
 	document.getElementById("periodic-x").selectedIndex = 0;
 	document.getElementById("periodic-z").selectedIndex = 0;
 	document.getElementById("periodic-z").selectedIndex = 0;
-	document.getElementById("cells-x").value = "";
-	document.getElementById("cells-y").value = "";
-	document.getElementById("cells-z").value = "";
-	document.getElementById("volume-x").value = "";
-	document.getElementById("volume-y").value = "";
-	document.getElementById("volume-z").value = "";
-	document.getElementById("start-x").value = "";
-	document.getElementById("start-y").value = "";
-	document.getElementById("start-z").value = "";
+	document.getElementById("cells").value = "";
+	document.getElementById("volume").value = "";
+	document.getElementById("start").value = "";
 	document.getElementById("default-mass").value = "";
 	document.getElementById("default-pressure").value = "";
 	document.getElementById("default-velocity").value = "";
@@ -678,18 +672,12 @@ config_text_updater.addEventListener("click", function() {
 		+ document.getElementById("periodic-x").value + ", "
 		+ document.getElementById("periodic-y").value + ", "
 		+ document.getElementById("periodic-z").value + "}&quot;,<br>"
-		+ "&nbsp;&nbsp;&quot;cells&quot;: &quot;{"
-		+ document.getElementById("cells-x").value + ", "
-		+ document.getElementById("cells-y").value + ", "
-		+ document.getElementById("cells-z").value + "}&quot;,<br>"
-		+ "&nbsp;&nbsp;&quot;volume&quot;: &quot;{"
-		+ document.getElementById("volume-x").value + ", "
-		+ document.getElementById("volume-y").value + ", "
-		+ document.getElementById("volume-z").value + "}&quot;,<br>"
-		+ "&nbsp;&nbsp;&quot;start&quot;: &quot;{"
-		+ document.getElementById("start-x").value + ", "
-		+ document.getElementById("start-y").value + ", "
-		+ document.getElementById("start-z").value + "}&quot;<br>"
+		+ "&nbsp;&nbsp;&quot;cells&quot;: &quot;"
+		+ document.getElementById("cells").value + "&quot;,<br>"
+		+ "&nbsp;&nbsp;&quot;volume&quot;: &quot;"
+		+ document.getElementById("volume").value + "&quot;,<br>"
+		+ "&nbsp;&nbsp;&quot;start&quot;: &quot;"
+		+ document.getElementById("start").value + "&quot;<br>"
 		+ "},<br>";
 
 	if (nr_geometries > 0) {
@@ -1123,15 +1111,9 @@ shock_tube_maker.addEventListener("click", function() {
 	document.getElementById("periodic-x").selectedIndex = 0;
 	document.getElementById("periodic-y").selectedIndex = 0;
 	document.getElementById("periodic-z").selectedIndex = 0;
-	document.getElementById("cells-x").value = "100 + 2";
-	document.getElementById("cells-y").value = "1";
-	document.getElementById("cells-z").value = "1";
-	document.getElementById("volume-x").value = "1 + 2 / (cells[0] - 2)";
-	document.getElementById("volume-y").value = "1";
-	document.getElementById("volume-z").value = "1";
-	document.getElementById("start-x").value = "-volume[0]/2";
-	document.getElementById("start-y").value = "-volume[1]/2";
-	document.getElementById("start-z").value = "-volume[2]/2";
+	document.getElementById("cells").value = "{100 + 2, 1, 1}";
+	document.getElementById("volume").value = "{1 + 2 / (cells[0] - 2), 1, 1}";
+	document.getElementById("start").value = "{-volume[0]/2, -volume[1]/2, -volume[2]/2}";
 	document.getElementById("default-mass").value = "\"(x < 0) ? 1 : 0.125\"";
 	document.getElementById("default-pressure").value = "\"(x < 0) ? 1 : 0.1\"";
 	document.getElementById("default-velocity").value = "[0, 0, 0]";
@@ -1202,15 +1184,9 @@ kelvin_helmholtz_maker.addEventListener("click", function() {
 	document.getElementById("periodic-x").selectedIndex = 1;
 	document.getElementById("periodic-y").selectedIndex = 1;
 	document.getElementById("periodic-z").selectedIndex = 0;
-	document.getElementById("cells-x").value = "50";
-	document.getElementById("cells-y").value = "50";
-	document.getElementById("cells-z").value = "1";
-	document.getElementById("volume-x").value = "1";
-	document.getElementById("volume-y").value = "1";
-	document.getElementById("volume-z").value = "1";
-	document.getElementById("start-x").value = "-volume[0]/2";
-	document.getElementById("start-y").value = "-volume[1]/2";
-	document.getElementById("start-z").value = "-volume[2]/2";
+	document.getElementById("cells").value = "{50, 50, 1}";
+	document.getElementById("volume").value = "{1, 1, 1}";
+	document.getElementById("start").value = "{-volume[0]/2, -volume[1]/2, -volume[2]/2}";
 	document.getElementById("default-mass").value = "\"abs(y) < 0.25 ? 2 : 15\"";
 	document.getElementById("default-pressure").value = 3;
 	document.getElementById("default-velocity").value = "\"{0.1 * sin(2*pi*x) + (abs(y) < 0.25 ? -0.5 : 0.5), 0.1 * cos(2*pi*x), 0}\"";
@@ -1235,15 +1211,9 @@ reconnection_maker.addEventListener("click", function() {
 	document.getElementById("periodic-x").selectedIndex = 1;
 	document.getElementById("periodic-y").selectedIndex = 0;
 	document.getElementById("periodic-z").selectedIndex = 0;
-	document.getElementById("cells-x").value = "2*51";
-	document.getElementById("cells-y").value = "1";
-	document.getElementById("cells-z").value = "51 + 2";
-	document.getElementById("volume-x").value = "25.6";
-	document.getElementById("volume-y").value = "12.8";
-	document.getElementById("volume-z").value = "12.8 * (1 + 2/(cells[2] - 2))";
-	document.getElementById("start-x").value = "-volume[0]/2";
-	document.getElementById("start-y").value = "-volume[1]/2";
-	document.getElementById("start-z").value = "-volume[2]/2";
+	document.getElementById("cells").value = "{2*51, 1, 51 + 2}";
+	document.getElementById("volume").value = "{25.6, 12.8, 12.8 * (1 + 2/(cells[2] - 2))}";
+	document.getElementById("start").value = "{-volume[0]/2, -volume[1]/2, -volume[2]/2}";
 	document.getElementById("default-mass").value = "\"1/cosh(z / 0.5)^2 + 0.2\"";
 	document.getElementById("default-pressure").value = 1;
 	document.getElementById("default-velocity").value = "[0, 0, 0]";
@@ -1298,15 +1268,9 @@ orszag_tang_maker.addEventListener("click", function() {
 	document.getElementById("periodic-x").selectedIndex = 1;
 	document.getElementById("periodic-y").selectedIndex = 1;
 	document.getElementById("periodic-z").selectedIndex = 0;
-	document.getElementById("cells-x").value = "40";
-	document.getElementById("cells-y").value = "40";
-	document.getElementById("cells-z").value = "1";
-	document.getElementById("volume-x").value = "2*pi";
-	document.getElementById("volume-y").value = "2*pi";
-	document.getElementById("volume-z").value = "1";
-	document.getElementById("start-x").value = "0";
-	document.getElementById("start-y").value = "0";
-	document.getElementById("start-z").value = "0";
+	document.getElementById("cells").value = "{40, 40, 1}";
+	document.getElementById("volume").value = "{2*pi, 2*pi, 1}";
+	document.getElementById("start").value = "{0, 0, 0}";
 	document.getElementById("default-mass").value = 1;
 	document.getElementById("default-velocity").value = "\"{-sin(y), sin(x), 0}\"";
 	document.getElementById("default-pressure").value = 1;
@@ -1331,15 +1295,9 @@ bow_shock_maker.addEventListener("click", function() {
 	document.getElementById("periodic-x").selectedIndex = 0;
 	document.getElementById("periodic-y").selectedIndex = 0;
 	document.getElementById("periodic-z").selectedIndex = 0;
-	document.getElementById("cells-x").value = "2*30 + 2";
-	document.getElementById("cells-y").value = "3*30 + 2";
-	document.getElementById("cells-z").value = "1";
-	document.getElementById("volume-x").value = "2 * (1 + 2 / (cells[0] - 2))";
-	document.getElementById("volume-y").value = "3 * (1 + 2 / (cells[1] - 2))";
-	document.getElementById("volume-z").value = "2";
-	document.getElementById("start-x").value = "-volume[0]/2";
-	document.getElementById("start-y").value = "-volume[1]/2";
-	document.getElementById("start-z").value = "-volume[2]/2";
+	document.getElementById("cells").value = "{2*30 + 2, 3*30 + 2, 1}";
+	document.getElementById("volume").value = "{2 * (1 + 2 / (cells[0] - 2)), 3 * (1 + 2 / (cells[1] - 2)), 2}";
+	document.getElementById("start").value = "{-volume[0]/2, -volume[1]/2, -volume[2]/2}";
 	document.getElementById("default-mass").value = 0.01;
 	document.getElementById("default-velocity").value = "\"{x > 0 and y < 0.0625 and y > -0.0625 ? 0 : 1, 0, 0}\"";
 	document.getElementById("default-pressure").value = 0.0015;
@@ -1455,15 +1413,9 @@ blast_wave_maker.addEventListener("click", function() {
 	document.getElementById("periodic-x").selectedIndex = 1;
 	document.getElementById("periodic-y").selectedIndex = 1;
 	document.getElementById("periodic-z").selectedIndex = 0;
-	document.getElementById("cells-x").value = "100";
-	document.getElementById("cells-y").value = "100";
-	document.getElementById("cells-z").value = "1";
-	document.getElementById("volume-x").value = "1";
-	document.getElementById("volume-y").value = "1";
-	document.getElementById("volume-z").value = "1";
-	document.getElementById("start-x").value = "-0.5";
-	document.getElementById("start-y").value = "-0.5";
-	document.getElementById("start-z").value = "-0.5";
+	document.getElementById("cells").value = "{100, 100, 1}";
+	document.getElementById("volume").value = "{1, 1, 1}";
+	document.getElementById("start").value = "{-0.5, -0.5, -0.5}";
 	document.getElementById("default-mass").value = 1;
 	document.getElementById("default-velocity").value = "[0, 0, 0]";
 	document.getElementById("default-pressure").value = 0.1;
@@ -1505,15 +1457,9 @@ jet_injection_maker.addEventListener("click", function() {
 	document.getElementById("periodic-x").selectedIndex = 0;
 	document.getElementById("periodic-y").selectedIndex = 0;
 	document.getElementById("periodic-z").selectedIndex = 0;
-	document.getElementById("cells-x").value = "40 + 2";
-	document.getElementById("cells-y").value = "20 + 2";
-	document.getElementById("cells-z").value = "1";
-	document.getElementById("volume-x").value = "3 * (1 + 2 / (cells[0] - 2))";
-	document.getElementById("volume-y").value = "1.5 * (1 + 2 / (cells[1] - 2))";
-	document.getElementById("volume-z").value = "1";
-	document.getElementById("start-x").value = "-volume[0] / cells[0]";
-	document.getElementById("start-y").value = "-volume[1] / cells[1]";
-	document.getElementById("start-z").value = "0";
+	document.getElementById("cells").value = "{40 + 2, 20 + 2, 1}";
+	document.getElementById("volume").value = "{3 * (1 + 2 / (cells[0] - 2)), 1.5 * (1 + 2 / (cells[1] - 2)), 1}";
+	document.getElementById("start").value = "{-volume[0] / cells[0], -volume[1] / cells[1], 0}";
 	document.getElementById("default-mass").value = 1;
 	document.getElementById("default-velocity").value = "\"{2.7 - x/2, 0, 0}\"";
 	document.getElementById("default-pressure").value = 1;
@@ -1801,31 +1747,13 @@ All items are numbers.
 		<br>
 
 		Number of cells in x, y and z dimensions (> 0)
-		<input type="text" id="cells-x" name="cells-x">
-			<span id="cells-x-test"></span>
-		<input type="text" id="cells-y" name="cells-y">
-			<span id="cells-y-test"></span>
-		<input type="text" id="cells-z" name="cells-z">
-			<span id="cells-z-test"></span>
-		<br>
+		<input type="text" id="cells" name="cells"><br>
 
 		Volume in x, y and z dimensions (> 0)
-		<input type="text" id="volume-x" name="volume-x">
-			<span id="volume-x-test"></span>
-		<input type="text" id="volume-y" name="volume-y">
-			<span id="volume-y-test"></span>
-		<input type="text" id="volume-z" name="volume-z">
-			<span id="volume-z-test"></span>
-		<br>
+		<input type="text" id="volume" name="volume"><br>
 
 		Starting coordinate in x, y and z dimensions
-		<input type="text" id="start-x" name="start-x">
-			<span id="start-x-test"></span>
-		<input type="text" id="start-y" name="start-y">
-			<span id="start-y-test"></span>
-		<input type="text" id="start-z" name="start-z">
-			<span id="start-z-test"></span>
-		<br>
+		<input type="text" id="start" name="start"><br>
 	</fieldset>
 
 
