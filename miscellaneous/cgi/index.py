@@ -388,12 +388,14 @@ print 'Running simulation...'
 stdout.flush()
 
 proc = None
+stdout_ = open(os.path.join(log_dir, 'stdout'), 'w')
+stderr_ = open(os.path.join(log_dir, 'stderr'), 'w')
 try:
 	proc = subprocess.Popen( \
 		[mpiexec, '-n', str(processes), pamhd_mhd, config_name], \
 		universal_newlines = True, \
-		stdout = subprocess.PIPE, \
-		stderr = subprocess.PIPE \
+		stdout = stdout_, \
+		stderr = stderr_ \
 	)
 except:
 	print 'error starting simulation.<br>'
