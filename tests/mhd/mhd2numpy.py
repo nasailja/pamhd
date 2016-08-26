@@ -159,7 +159,7 @@ def load(file_name, mhd_data):
 	# until this point format decided by dccrg
 	# from this point onward format decided by save() call of tests/mhd/test.cpp
 
-	# read particle data
+	# read mhd data
 	for item in cell_ids_data_offsets:
 		cell_id = item[0]
 
