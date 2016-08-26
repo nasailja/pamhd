@@ -34,7 +34,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define PAMHD_BOUNDARIES_COPY_BOUNDARIES_HPP
 
 
-#include "array"
 #include "stdexcept"
 #include "string"
 #include "utility"
@@ -136,18 +135,18 @@ public:
 	const std::vector<Geometry_Id>& geometry_ids;
 
 	/*!
-	Data source of each cell located in a copy boundary.
+	Data sources of each cell located in a copy boundary.
 
 	copy_sources[N][0] == target cell inside copy boundary
-	copy_sources[N][1] == source cell outside of copy boundary
+	copy_sources[N][>0] == source cells outside of copy boundary
 	*/
-	const std::vector<std::array<Cell_Id, 2>>& copy_sources;
+	const std::vector<std::vector<Cell_Id>>& copy_sources;
 
 
 	/*!
-	Adds given copy cell and source cell to existing list of sources.
+	Adds given copy cell and source cells to existing list of sources.
 	*/
-	void push_back_source(const std::array<Cell_Id, 2>& source)
+	void push_back_source(const std::vector<Cell_Id>& source)
 	{
 		this->copy_sources_rw.push_back(source);
 	}
@@ -158,7 +157,7 @@ private:
 
 	std::vector<Geometry_Id> geometry_ids_rw;
 
-	std::vector<std::array<Cell_Id, 2>> copy_sources_rw;
+	std::vector<std::vector<Cell_Id>> copy_sources_rw;
 };
 
 }} // namespaces

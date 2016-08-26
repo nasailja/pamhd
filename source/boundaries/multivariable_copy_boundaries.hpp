@@ -34,7 +34,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define PAMHD_BOUNDARIES_MULTIVARIABLE_COPY_BOUNDARIES_HPP
 
 
-#include "array"
 #include "stdexcept"
 #include "string"
 #include "utility"
@@ -120,7 +119,7 @@ public:
 
 	\see Copy_Boundaries::copy_sources
 	*/
-	const std::vector<std::array<Cell_Id, 2>>& get_copy_sources(
+	const std::vector<std::vector<Cell_Id>>& get_copy_sources(
 		const Current_Variable&
 	) const {
 		return this->copy_boundaries.copy_sources;
@@ -132,7 +131,7 @@ public:
 	*/
 	void push_back_source(
 		const Current_Variable&,
-		const std::array<Cell_Id, 2>& source
+		const std::vector<Cell_Id>& source
 	) {
 		this->copy_boundaries.push_back_source(source);
 	}

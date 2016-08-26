@@ -416,7 +416,7 @@ int main(int argc, char* argv[])
 		return EXIT_FAILURE;
 	}
 
-	const std::set<std::array<uint64_t, 2>> ref_mass_copy_cells{
+	const std::set<std::vector<uint64_t>> ref_mass_copy_cells{
 		{49, 33}, // target, source
 		{50, 34}, {51, 35}, {52, 36}, {53, 37}, {54, 38},
 		{55, 39}, {56, 40}, {57, 41}, {58, 42},
@@ -517,12 +517,12 @@ int main(int argc, char* argv[])
 		return EXIT_FAILURE;
 	}
 
-	const std::set<std::array<uint64_t, 2>> ref_momentum_copy_cells{
+	const std::set<std::vector<uint64_t>> ref_momentum_copy_cells{
 		{8, 7}, // target, source
 		{12, 11}, {16, 15}, {24, 23}, {28, 27},
-		{32, 31}, {40, 39},
+		{32, 31}, {40, 39, 56},
 		{44, 60}, // neighbor in -x belongs to sphere value bdy
-		{48, 47}
+		{48, 47, 64}
 	};
 
 	for (const auto& item: boundaries.get_copy_boundary_cells(Momentum)) {

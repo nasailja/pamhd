@@ -233,7 +233,7 @@ public:
 				continue;
 			}
 
-			bool source_found = false;
+			std::vector<Cell_Id> source{cell_id};
 			i++;
 			while (i < cell_data_pointers.size()) {
 				const auto& neighbor_id = get<0>(cell_data_pointers[i]);
@@ -255,17 +255,17 @@ public:
 
 				auto* const neigh_data = get<1>(cell_data_pointers[i]);
 				if (Cell_Type(*neigh_data) == normal_cell) {
-					source_found = true;
-					this->copy_boundaries.push_back_source({cell_id, neighbor_id});
-					break;
+					source.push_back(neighbor_id);
 				}
 
 				i++;
 			}
 
 			// turn copy cell without sources into dont solve
-			if (not source_found) {
+			if (source.size() < 2) {
 				Cell_Type(*cell_data) = dont_solve_cell;
+			} else {
+				this->copy_boundaries.push_back_source(source);
 			}
 		}
 
@@ -297,7 +297,7 @@ public:
 		return this->value_bdy_cells;
 	}
 
-	const std::vector<std::array<Cell_Id, 2>>& get_copy_boundary_cells() const
+	const std::vector<std::vector<Cell_Id>>& get_copy_boundary_cells() const
 	{
 		return this->copy_boundaries.copy_sources;
 	}

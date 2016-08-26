@@ -308,7 +308,7 @@ int main(int argc, char* argv[])
 		return EXIT_FAILURE;
 	}
 
-	const std::set<std::array<uint64_t, 2>> ref_copy_cells{
+	const std::set<std::vector<uint64_t>> ref_copy_cells{
 		{49, 33}, // target, source
 		{50, 34}, {51, 35}, {52, 36}, {53, 37}, {54, 38},
 		{55, 39}, {56, 40}, {57, 41}, {58, 42},

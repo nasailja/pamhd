@@ -170,7 +170,7 @@ public:
 		return this->boundaries.get_value_boundary_cells();
 	}
 
-	const std::vector<std::array<Cell_Id, 2>>& get_copy_boundary_cells(
+	const std::vector<std::vector<Cell_Id>>& get_copy_boundary_cells(
 		const Current_Variable&
 	) const {
 		return this->boundaries.get_copy_boundary_cells();

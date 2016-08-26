@@ -229,7 +229,9 @@ data, in case several overlap in geometry so
 last one remains in effect.
 
 Copy boundaries are applied after all value
-boundaries.
+boundaries. In case of more than one normal
+neighbor their average is copied, vector
+variables are processed by component.
 */
 template<
 	class Cell_Data,
@@ -288,24 +290,30 @@ template<
 		}
 	}
 	for (const auto& item: boundaries.get_copy_boundary_cells(N)) {
-		const auto
-			&target_id = item[0],
-			&source_id = item[1];
+		if (item.size() < 2) {
+			std::cerr <<  __FILE__ << ":" << __LINE__ << std::endl;
+			abort();
+		}
 
-		auto
-			*target_data = grid[target_id],
-			*source_data = grid[source_id];
+		pamhd::mhd::Number_Density::data_type source_value = 0.0;
+		for (size_t i = 1; i < item.size(); i++) {
+			auto* source_data = grid[item[i]];
+			if (source_data == nullptr) {
+				std::cerr <<  __FILE__ << ":" << __LINE__ << std::endl;
+				abort();
+			}
 
+			source_value += Mas(*source_data);
+		}
+		source_value /= item.size() - 1;
+
+		auto *target_data = grid[item[0]];
 		if (target_data == nullptr) {
 			std::cerr <<  __FILE__ << ":" << __LINE__ << std::endl;
 			abort();
 		}
-		if (source_data == nullptr) {
-			std::cerr <<  __FILE__ << ":" << __LINE__ << std::endl;
-			abort();
-		}
 
-		Mas(*target_data) = Mas(*source_data);
+		Mas(*target_data) = source_value;
 	}
 
 	// velocity
@@ -341,29 +349,33 @@ template<
 		}
 	}
 	for (const auto& item: boundaries.get_copy_boundary_cells(V)) {
-		const auto
-			&target_id = item[0],
-			&source_id = item[1];
+		if (item.size() < 2) {
+			std::cerr <<  __FILE__ << ":" << __LINE__ << std::endl;
+			abort();
+		}
 
-		auto
-			*const target_data = grid[target_id],
-			*const source_data = grid[source_id];
+		pamhd::mhd::Velocity::data_type source_value{0, 0, 0};
+		for (size_t i = 1; i < item.size(); i++) {
+			auto* source_data = grid[item[i]];
+			if (source_data == nullptr) {
+				std::cerr <<  __FILE__ << ":" << __LINE__ << std::endl;
+				abort();
+			}
 
+			source_value += pamhd::mhd::get_velocity(
+				Mom(*source_data),
+				Mas(*source_data)
+			);
+		}
+		source_value /= item.size() - 1;
+
+		auto *target_data = grid[item[0]];
 		if (target_data == nullptr) {
 			std::cerr <<  __FILE__ << ":" << __LINE__ << std::endl;
 			abort();
 		}
-		if (source_data == nullptr) {
-			std::cerr <<  __FILE__ << ":" << __LINE__ << std::endl;
-			abort();
-		}
 
-		Mom(*target_data)
-			= Mas(*target_data)
-			* pamhd::mhd::get_velocity(
-				Mom(*source_data),
-				Mas(*source_data)
-			);
+		Mom(*target_data) = Mas(*target_data) * source_value;
 	}
 
 	// magnetic field
@@ -399,24 +411,30 @@ template<
 		}
 	}
 	for (const auto& item: boundaries.get_copy_boundary_cells(B)) {
-		const auto
-			&target_id = item[0],
-			&source_id = item[1];
+		if (item.size() < 2) {
+			std::cerr <<  __FILE__ << ":" << __LINE__ << std::endl;
+			abort();
+		}
 
-		auto
-			*target_data = grid[target_id],
-			*source_data = grid[source_id];
+		pamhd::mhd::Magnetic_Field::data_type source_value{0, 0, 0};
+		for (size_t i = 1; i < item.size(); i++) {
+			auto* source_data = grid[item[i]];
+			if (source_data == nullptr) {
+				std::cerr <<  __FILE__ << ":" << __LINE__ << std::endl;
+				abort();
+			}
 
+			source_value += Mag(*source_data);
+		}
+		source_value /= item.size() - 1;
+
+		auto *target_data = grid[item[0]];
 		if (target_data == nullptr) {
 			std::cerr <<  __FILE__ << ":" << __LINE__ << std::endl;
 			abort();
 		}
-		if (source_data == nullptr) {
-			std::cerr <<  __FILE__ << ":" << __LINE__ << std::endl;
-			abort();
-		}
 
-		Mag(*target_data) = Mag(*source_data);
+		Mag(*target_data) = source_value;
 	}
 
 	// pressure
@@ -462,31 +480,35 @@ template<
 		}
 	}
 	for (const auto& item: boundaries.get_copy_boundary_cells(P)) {
-		const auto
-			&target_id = item[0],
-			&source_id = item[1];
+		if (item.size() < 2) {
+			std::cerr <<  __FILE__ << ":" << __LINE__ << std::endl;
+			abort();
+		}
 
-		auto
-			*target_data = grid[target_id],
-			*source_data = grid[source_id];
+		pamhd::mhd::Pressure::data_type source_value = 0.0;
+		for (size_t i = 1; i < item.size(); i++) {
+			auto* source_data = grid[item[i]];
+			if (source_data == nullptr) {
+				std::cerr <<  __FILE__ << ":" << __LINE__ << std::endl;
+				abort();
+			}
 
+			source_value += pamhd::mhd::get_pressure(
+				Mas(*source_data),
+				Mom(*source_data),
+				Nrj(*source_data),
+				Mag(*source_data),
+				adiabatic_index,
+				vacuum_permeability
+			);
+		}
+		source_value /= item.size() - 1;
+
+		auto *target_data = grid[item[0]];
 		if (target_data == nullptr) {
 			std::cerr <<  __FILE__ << ":" << __LINE__ << std::endl;
 			abort();
 		}
-		if (source_data == nullptr) {
-			std::cerr <<  __FILE__ << ":" << __LINE__ << std::endl;
-			abort();
-		}
-
-		const auto source_pressure = pamhd::mhd::get_pressure(
-			Mas(*source_data),
-			Mom(*source_data),
-			Nrj(*source_data),
-			Mag(*source_data),
-			adiabatic_index,
-			vacuum_permeability
-		);
 
 		Nrj(*target_data) = pamhd::mhd::get_total_energy_density(
 			Mas(*target_data),
@@ -494,7 +516,7 @@ template<
 				Mom(*target_data),
 				Mas(*target_data)
 			),
-			source_pressure,
+			source_value,
 			Mag(*target_data),
 			adiabatic_index,
 			vacuum_permeability
