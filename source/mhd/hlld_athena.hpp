@@ -38,25 +38,17 @@ namespace athena {
 
 
 /*!
-Returns the flux between states and maximum signal speed from interface.
+See get_flux_hll() in hll_athena.hpp
 
-Throws std::domain_error if given states with
-non-positive mass density or pressure.
+Ignores background field.
 
 Takahiro Miyoshi, Kanya Kusano (M&K):
 A multi-state HLL approximate Riemann solver for ideal MHD,
 Journal of Computational Physics, 208, 315-344, 2005.
-
-\param [Mass_Density_T] Used to access mass density in MHD states
-\param [state_neg] MHD state in negative x direction from the face
-\param [state_pos] MHD state in positive x direction from the face
-\param [area] Area of the face shared by volumes of state_neg and state_pos
-\param [dt] Length of time for which flux is calculated
-\param [adiabatic_index] en.wikipedia.org/wiki/Heat_capacity_ratio
-\param [vacuum_permeability] en.wikipedia.org/wiki/Vacuum_permeability
 */
 template <
 	class MHD,
+	class Vector,
 	class Mass_Density_T,
 	class Momentum_Density_T,
 	class Total_Energy_Density_T,
@@ -64,11 +56,14 @@ template <
 > std::tuple<MHD, double> get_flux_hlld(
 	MHD& state_neg,
 	MHD& state_pos,
+	const Vector& /*bg_face_magnetic_field*/,
 	const double& area,
 	const double& dt,
 	const double& adiabatic_index,
 	const double& vacuum_permeability
 ) {
+	const Vector bg_face_magnetic_field{0, 0, 0};
+
 	// shorthand notation for accessing required variables
 	const Mass_Density_T Mas{};
 	const Momentum_Density_T Mom{};
@@ -190,6 +185,7 @@ template <
 				state_neg[Mom],
 				state_neg[Nrj],
 				state_neg[Mag],
+				bg_face_magnetic_field,
 				adiabatic_index,
 				vacuum_permeability
 			),
@@ -200,6 +196,7 @@ template <
 				state_pos[Mom],
 				state_pos[Nrj],
 				state_pos[Mag],
+				bg_face_magnetic_field,
 				adiabatic_index,
 				vacuum_permeability
 			),
@@ -230,6 +227,7 @@ template <
 		flux_neg
 			= get_flux(
 				state_neg,
+				bg_face_magnetic_field,
 				adiabatic_index,
 				vacuum_permeability,
 				Mas_g, Mom_g, Nrj_g, Mag_g
@@ -238,6 +236,7 @@ template <
 		flux_pos
 			= get_flux(
 				state_pos,
+				bg_face_magnetic_field,
 				adiabatic_index,
 				vacuum_permeability,
 				Mas_g, Mom_g, Nrj_g, Mag_g

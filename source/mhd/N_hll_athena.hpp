@@ -39,21 +39,16 @@ namespace athena {
 
 
 /*!
-Multi-population version of get_flux_hll().
+Multi-population version of get_flux_hll() in hll_athena.hpp.
 
 Splits returned flux into contributions from state_neg and state_pos
 to all populations based on their fraction of mass vs total mass.
 
-\param [Mass_Density_T] Used to access mass density in MHD states
-\param [state_neg] MHD state in negative x direction from the face
-\param [state_pos] MHD state in positive x direction from the face
-\param [area] Area of the face shared by volumes of state_neg and state_pos
-\param [dt] Length of time for which flux is calculated
-\param [adiabatic_index] en.wikipedia.org/wiki/Heat_capacity_ratio
-\param [vacuum_permeability] en.wikipedia.org/wiki/Vacuum_permeability
+Ignores background magnetic field.
 */
 template <
 	class MHD,
+	class Vector,
 	class Mass_Density_T,
 	class Momentum_Density_T,
 	class Total_Energy_Density_T,
@@ -61,11 +56,14 @@ template <
 > std::tuple<MHD, MHD, double> get_flux_N_hll(
 	const MHD& state_neg,
 	const MHD& state_pos,
+	const Vector& /*bg_face_magnetic_field*/,
 	const double& area,
 	const double& dt,
 	const double& adiabatic_index,
 	const double& vacuum_permeability
 ) {
+	const Vector bg_face_magnetic_field{0, 0, 0};
+
 	using std::isnormal;
 	using std::isfinite;
 
@@ -111,6 +109,7 @@ template <
 				state_neg[Mom],
 				state_neg[Nrj],
 				state_neg[Mag],
+				bg_face_magnetic_field,
 				adiabatic_index,
 				vacuum_permeability
 			),
@@ -121,6 +120,7 @@ template <
 				state_pos[Mom],
 				state_pos[Nrj],
 				state_pos[Mag],
+				bg_face_magnetic_field,
 				adiabatic_index,
 				vacuum_permeability
 			),

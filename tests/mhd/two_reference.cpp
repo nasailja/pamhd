@@ -347,6 +347,7 @@ template <
 			) = solver(
 				state_neg,
 				state_pos,
+				{0, 0, 0},
 				face_area,
 				dt,
 				adiabatic_index,
@@ -828,7 +829,8 @@ int main(int argc, char* argv[])
 			if (solver_str == "hll_athena") {
 
 				return pamhd::mhd::athena::get_flux_N_hll<
-					pamhd::mhd::MHD_State_Conservative::data_type,
+					pamhd::mhd::MHD_Conservative,
+					pamhd::mhd::Magnetic_Field::data_type,
 					pamhd::mhd::Mass_Density,
 					pamhd::mhd::Momentum_Density,
 					pamhd::mhd::Total_Energy_Density,
@@ -1007,7 +1009,7 @@ int main(int argc, char* argv[])
 	}
 
 	if (not no_verify) {
-		const std::string reference_name("mhd_" + solver_str + ".ref");
+		const std::string reference_name("2mhd_" + solver_str + ".ref");
 
 		if (verbose) {
 			cout << "Verifying result against file " << reference_name << endl;

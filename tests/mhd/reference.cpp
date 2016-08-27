@@ -179,6 +179,7 @@ template <
 	class Total_Energy_Density_Flux_Getter,
 	class Magnetic_Field_Flux_Getter
 > void initialize_mhd(
+	const std::string& solver,
 	Grid& grid,
 	const double adiabatic_index,
 	const double vacuum_permeability,
@@ -214,9 +215,16 @@ template <
 		Mag(cell_data)[0] =
 		Bg_Mag(cell_data)[1] = 0;
 
-		Bg_Mag(cell_data)[0] = 1.5e-9;
-		Mag(cell_data)[2] = 1e-9;
-		Bg_Mag(cell_data)[2] = -Mag(cell_data)[2];
+		if (solver == "hlld_athena" or solver == "roe_athena") {
+			Mag(cell_data)[0] = 1.5e-9;
+			Mag(cell_data)[2]    =
+			Bg_Mag(cell_data)[0] =
+			Bg_Mag(cell_data)[2] = 0;
+		} else {
+			Bg_Mag(cell_data)[0] = 1.5e-9;
+			Mag(cell_data)[2] = 1e-9;
+			Bg_Mag(cell_data)[2] = -Mag(cell_data)[2];
+		}
 
 		const double center = get_cell_center(cell_i);
 		double pressure = -1;
@@ -755,10 +763,10 @@ int main(int argc, char* argv[])
 					pamhd::mhd::Magnetic_Field
 				>;
 
-			}/* else if (solver_str == "hlld_athena") {
+			} else if (solver_str == "hlld_athena") {
 
 				return pamhd::mhd::athena::get_flux_hlld<
-					pamhd::mhd::MHD_State_Conservative::data_type,
+					pamhd::mhd::MHD_Conservative,
 					pamhd::mhd::Magnetic_Field::data_type,
 					pamhd::mhd::Mass_Density,
 					pamhd::mhd::Momentum_Density,
@@ -769,14 +777,15 @@ int main(int argc, char* argv[])
 			} else if (solver_str == "roe_athena") {
 
 				return pamhd::mhd::athena::get_flux_roe<
-					pamhd::mhd::MHD_State_Conservative::data_type,
+					pamhd::mhd::MHD_Conservative,
+					pamhd::mhd::Magnetic_Field::data_type,
 					pamhd::mhd::Mass_Density,
 					pamhd::mhd::Momentum_Density,
 					pamhd::mhd::Total_Energy_Density,
 					pamhd::mhd::Magnetic_Field
 				>;
 
-			}*/ else {
+			} else {
 
 				std::cerr <<  __FILE__ << "(" << __LINE__ << ") Invalid solver: "
 					<< solver_str << ", use --help to list available solvers"
@@ -791,6 +800,7 @@ int main(int argc, char* argv[])
 		cout << "Initializing MHD" << endl;
 	}
 	initialize_mhd(
+		solver_str,
 		grid,
 		adiabatic_index,
 		vacuum_permeability,

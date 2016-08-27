@@ -556,9 +556,12 @@ Cons1DS athena_roe_fluxes(
 
 /*!
 See get_flux_hll() in hll_athena.hpp
+
+Ignores background field.
 */
 template <
 	class MHD,
+	class Vector,
 	class Mass_Density_T,
 	class Momentum_Density_T,
 	class Total_Energy_Density_T,
@@ -566,11 +569,14 @@ template <
 > std::tuple<MHD, double> get_flux_roe(
 	MHD& state_neg,
 	MHD& state_pos,
+	const Vector& /*bg_face_magnetic_field*/,
 	const double& area,
 	const double& dt,
 	const double& adiabatic_index,
 	const double& vacuum_permeability
 ) {
+	const Vector bg_face_magnetic_field{0, 0, 0};
+
 	// shorthand notation for simulation variables
 	const Mass_Density_T Mas{};
 	const Momentum_Density_T Mom{};
@@ -764,6 +770,7 @@ template <
 				state_neg[Mom],
 				state_neg[Nrj],
 				state_neg[Mag],
+				bg_face_magnetic_field,
 				adiabatic_index,
 				vacuum_permeability
 			),
@@ -774,6 +781,7 @@ template <
 				state_pos[Mom],
 				state_pos[Nrj],
 				state_pos[Mag],
+				bg_face_magnetic_field,
 				adiabatic_index,
 				vacuum_permeability
 			),

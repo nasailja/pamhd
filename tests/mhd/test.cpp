@@ -243,52 +243,6 @@ int main(int argc, char* argv[])
 		}
 	}
 
-	const auto mhd_solver
-		= [&options_mhd](){
-			if (options_mhd.solver == "hll-athena") {
-
-				return pamhd::mhd::athena::get_flux_hll<
-					pamhd::mhd::MHD_Conservative,
-					pamhd::mhd::Magnetic_Field::data_type,
-					pamhd::mhd::Mass_Density,
-					pamhd::mhd::Momentum_Density,
-					pamhd::mhd::Total_Energy_Density,
-					pamhd::mhd::Magnetic_Field
-				>;
-
-			}/* else if (options_mhd.solver == "hlld-athena") {
-
-				return pamhd::mhd::athena::get_flux_hlld<
-					pamhd::mhd::MHD_Conservative,
-					pamhd::mhd::Magnetic_Field::data_type,
-					pamhd::mhd::Mass_Density,
-					pamhd::mhd::Momentum_Density,
-					pamhd::mhd::Total_Energy_Density,
-					pamhd::mhd::Magnetic_Field
-				>;
-
-			} else if (options_mhd.solver == "roe-athena") {
-
-				return pamhd::mhd::athena::get_flux_roe<
-					pamhd::mhd::MHD_Conservative,
-					pamhd::mhd::Mass_Density,
-					pamhd::mhd::Momentum_Density,
-					pamhd::mhd::Total_Energy_Density,
-					pamhd::mhd::Magnetic_Field
-				>;
-			}*/ else {
-				return pamhd::mhd::athena::get_flux_hll<
-					pamhd::mhd::MHD_Conservative,
-					pamhd::mhd::Magnetic_Field::data_type,
-					pamhd::mhd::Mass_Density,
-					pamhd::mhd::Momentum_Density,
-					pamhd::mhd::Total_Energy_Density,
-					pamhd::mhd::Magnetic_Field
-				>;
-			}
-		}();
-
-
 	using geometry_id_t = unsigned int;
 
 	pamhd::boundaries::Geometries<
@@ -322,6 +276,58 @@ int main(int argc, char* argv[])
 		pamhd::mhd::Magnetic_Field::data_type
 	> background_B;
 	background_B.set(document);
+
+
+	const auto mhd_solver
+		= [&options_mhd, &background_B, &rank](){
+			if (options_mhd.solver == "hll-athena") {
+
+				return pamhd::mhd::athena::get_flux_hll<
+					pamhd::mhd::MHD_Conservative,
+					pamhd::mhd::Magnetic_Field::data_type,
+					pamhd::mhd::Mass_Density,
+					pamhd::mhd::Momentum_Density,
+					pamhd::mhd::Total_Energy_Density,
+					pamhd::mhd::Magnetic_Field
+				>;
+
+			} else if (options_mhd.solver == "hlld-athena") {
+
+				if (background_B.exists() and rank == 0) {
+					std::cout << "NOTE: background magnetic field ignored by hlld-athena solver." << std::endl;
+				}
+
+				return pamhd::mhd::athena::get_flux_hlld<
+					pamhd::mhd::MHD_Conservative,
+					pamhd::mhd::Magnetic_Field::data_type,
+					pamhd::mhd::Mass_Density,
+					pamhd::mhd::Momentum_Density,
+					pamhd::mhd::Total_Energy_Density,
+					pamhd::mhd::Magnetic_Field
+				>;
+
+			} else if (options_mhd.solver == "roe-athena") {
+
+				if (background_B.exists() and rank == 0) {
+					std::cout << "NOTE: background magnetic field ignored by roe-athena solver." << std::endl;
+				}
+
+				return pamhd::mhd::athena::get_flux_roe<
+					pamhd::mhd::MHD_Conservative,
+					pamhd::mhd::Magnetic_Field::data_type,
+					pamhd::mhd::Mass_Density,
+					pamhd::mhd::Momentum_Density,
+					pamhd::mhd::Total_Energy_Density,
+					pamhd::mhd::Magnetic_Field
+				>;
+			} else {
+				std::cerr <<  __FILE__ << "(" << __LINE__ << "): "
+					<< "Unsupported solver: " << options_mhd.solver
+					<< std::endl;
+				abort();
+			}
+		}();
+
 
 	/*
 	Prepare resistivity

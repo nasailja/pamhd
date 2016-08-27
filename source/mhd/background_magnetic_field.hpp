@@ -44,6 +44,7 @@ private:
 	Vector constant = {0, 0, 0};
 	std::vector<std::pair<Vector, Vector>> dipole_moments_positions;
 	double min_distance = 0;
+	bool exists_ = false;
 
 
 public:
@@ -53,7 +54,12 @@ public:
 	Background_Magnetic_Field(const rapidjson::Value& object)
 	{
 		this->set(object);
-	};
+	}
+
+
+	bool exists() const {
+		return this->exists_;
+	}
 
 
 	void set(const rapidjson::Value& object) {
@@ -83,6 +89,14 @@ public:
 			this->constant[0] = value[0].GetDouble();
 			this->constant[1] = value[1].GetDouble();
 			this->constant[2] = value[2].GetDouble();
+
+			if (
+				this->constant[0] != 0
+				or this->constant[1] != 0
+				or this->constant[2] != 0
+			) {
+				this->exists_ = true;
+			}
 		}
 
 		if (bg_B.HasMember("minimum-distance")) {
@@ -132,6 +146,9 @@ public:
 					moment_json[1].GetDouble(),
 					moment_json[2].GetDouble(),
 				};
+				if (moment[0] != 0 or moment[1] != 0 or moment[2] != 0) {
+					this->exists_ = true;
+				}
 
 				if (not dipoles[i].HasMember("position")) {
 					throw std::invalid_argument(
