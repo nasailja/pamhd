@@ -302,8 +302,8 @@ int plot_1d(
 		<< boost::lexical_cast<std::string>(tube_dim + 1)
 		<< "'\nset xrange ["
 		<< boost::lexical_cast<std::string>(tube_start)
-		<< " : " << boost::lexical_cast<std::string>(tube_end)
-		<< "]\n" << density_pressure_cmd
+		<< ".0 : " << boost::lexical_cast<std::string>(tube_end)
+		<< ".0]\n" << density_pressure_cmd
 		<< "\nplot "
 		     "'-' using 1:2 axes x1y1 with line linewidth 2, "
 		     "'-' u 1:2 axes x1y2 w l lt 3 lw 2\n";
@@ -495,8 +495,8 @@ int plot_1d(
 		<< boost::lexical_cast<std::string>(tube_dim + 1)
 		<< "'\nset xrange ["
 		<< boost::lexical_cast<std::string>(tube_start)
-		<< " : " << boost::lexical_cast<std::string>(tube_end)
-		<< "]\nset ylabel \"Resistivity\" textcolor lt 1\n"
+		<< ".0 : " << boost::lexical_cast<std::string>(tube_end)
+		<< ".0]\nset ylabel \"Resistivity\" textcolor lt 1\n"
 		   "set y2label \"MPI rank\" textcolor lt 3"
 		   "\nunset key\n"
 		   "set ytics nomirror\n"
@@ -567,11 +567,11 @@ void write_gnuplot_cmd_2d(
 		<< "'\nset xlabel 'Dimension "
 		<< boost::lexical_cast<std::string>(dimensions[0] + 1)
 		<< "'\nset xrange["
-		<< boost::lexical_cast<std::string>(grid_start1) << " : "
-		<< boost::lexical_cast<std::string>(grid_start1 + grid_length1) << "]"
+		<< boost::lexical_cast<std::string>(grid_start1) << ".0 : "
+		<< boost::lexical_cast<std::string>(grid_start1 + grid_length1) << ".0]"
 		<< "\nset yrange["
-		<< boost::lexical_cast<std::string>(grid_start2) << " : "
-		<< boost::lexical_cast<std::string>(grid_start2 + grid_length2) << "]\n"
+		<< boost::lexical_cast<std::string>(grid_start2) << ".0 : "
+		<< boost::lexical_cast<std::string>(grid_start2 + grid_length2) << ".0]\n"
 		<< var_cmd
 		<< "\nplot '-' using ($1 / "
 		<< grid_size1 << " * " << grid_length1 << " + "
