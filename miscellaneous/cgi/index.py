@@ -235,6 +235,54 @@ while True:
 
 	break
 
+# background magnetic field
+if 'background-magnetic-field' in form_data:
+	bg_B = dict()
+
+	if not 'background-B-value-x' in form_data or not 'background-B-value-y' in form_data or not 'background-B-value-z' in form_data:
+		print 'background magnetic field value missing from form data:<br>'
+		print_form_data(form_data)
+		exit()
+	bg_B['values'] = [
+		float(form_data.getfirst('background-B-value-x')),
+		float(form_data.getfirst('background-B-value-y')),
+		float(form_data.getfirst('background-B-value-z'))
+	]
+
+	if 'dipole-min-distance' in form_data:
+		bg_B['dipole-min-distance'] = float(form_data.getfirst('dipole-min-distance'))
+
+	dipoles = []
+	dipole_nr = 0
+	while True:
+		dipole_str = 'dipole_' + str(dipole_nr)
+		if \
+			dipole_str + '-momentum-x' in form_data \
+			and dipole_str + '-momentum-y' in form_data \
+			and dipole_str + '-momentum-z' in form_data \
+			and dipole_str + '-position-x' in form_data \
+			and dipole_str + '-position-y' in form_data \
+			and dipole_str + '-position-z' in form_data \
+		:
+			dipole = dict()
+			dipole['moment'] = [
+				float(form_data.getfirst(dipole_str + '-momentum-x')),
+				float(form_data.getfirst(dipole_str + '-momentum-y')),
+				float(form_data.getfirst(dipole_str + '-momentum-z'))
+			]
+			dipole['position'] = [
+				float(form_data.getfirst(dipole_str + '-position-x')),
+				float(form_data.getfirst(dipole_str + '-position-y')),
+				float(form_data.getfirst(dipole_str + '-position-z'))
+			]
+			dipoles.append(dipole)
+			dipole_nr += 1
+			continue
+		break
+
+	bg_B['dipoles'] = dipoles
+	config_data['background-magnetic-field'] = bg_B
+
 
 # returns a list of expressions as strings
 def get_strings(string):
