@@ -102,10 +102,10 @@ public:
 
 		if (bg_B.HasMember("minimum-distance")) {
 			const auto& min_distance_json = bg_B["minimum-distance"];
-			if (not min_distance_json.IsDouble()) {
+			if (not min_distance_json.IsNumber()) {
 				throw std::invalid_argument(
 					std::string(__FILE__ "(") + std::to_string(__LINE__) + "): "
-					+ "Background magnetic field minimum distance is not a double."
+					+ "Background magnetic field minimum distance is not a number."
 				);
 			}
 
