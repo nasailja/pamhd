@@ -201,6 +201,45 @@ function is_valid_geometry_id()
 }
 
 
+// background magnetic field related stuff
+var nr_dipoles = 0;
+
+function remove_dipole()
+{
+	if (nr_dipoles <= 0) {
+		return;
+	}
+	nr_dipoles = nr_dipoles - 1;
+
+	dipole = document.getElementById("dipole_" + nr_dipoles.toString());
+	if (dipole != null) {
+		dipole.parentNode.removeChild(dipole);
+	}
+}
+dipole_remover = document.getElementById("remove_dipole");
+dipole_remover.addEventListener("click", remove_dipole);
+
+function add_dipole()
+{
+	fieldset = document.createElement("fieldset");
+	dipole_id = "dipole_" + nr_dipoles.toString();
+	fieldset.setAttribute("id", dipole_id);
+	fieldset.appendChild(document.createTextNode("Moment (A m^2) "));
+	fieldset.appendChild(make_input_element(dipole_id + "-moment-x"));
+	fieldset.appendChild(make_input_element(dipole_id + "-moment-y"));
+	fieldset.appendChild(make_input_element(dipole_id + "-moment-z"));
+	fieldset.appendChild(document.createElement("br"));
+	fieldset.appendChild(document.createTextNode("Position "));
+	fieldset.appendChild(make_input_element(dipole_id + "-position-x"));
+	fieldset.appendChild(make_input_element(dipole_id + "-position-y"));
+	fieldset.appendChild(make_input_element(dipole_id + "-position-z"));
+	document.getElementById("background_B").appendChild(fieldset);
+	nr_dipoles = nr_dipoles + 1;
+}
+dipole_adder = document.getElementById("add_dipole");
+dipole_adder.addEventListener("click", add_dipole);
+
+
 // creates an input set for a boundary
 function get_bdy_input_common(id_string, add_values, add_time_stamps)
 {
@@ -680,6 +719,7 @@ config_text_updater.addEventListener("click", function() {
 		+ document.getElementById("start").value + "&quot;<br>"
 		+ "},<br>";
 
+	// geometries
 	if (nr_geometries > 0) {
 		new_html += "&quot;geometries&quot;: [<br>"
 		for (i = 0; i < nr_geometries; i++) {
@@ -725,6 +765,49 @@ config_text_updater.addEventListener("click", function() {
 		}
 		new_html += "],<br>";
 	}
+
+
+	// background magnetic field
+	new_html
+		+= "&quot;background-magnetic-field&quot;: {<br>"
+		+ "&nbsp;&nbsp;&quot;value&quot;: ["
+		+ document.getElementById("background-B-value-x").value + ", "
+		+ document.getElementById("background-B-value-y").value + ", "
+		+ document.getElementById("background-B-value-z").value
+		+ "],<br>&nbsp;&nbsp;&quot;minimum-distance&quot;: "
+		+ document.getElementById("dipole-min-distance").value;
+	if (nr_dipoles > 0) {
+		new_html += ",<br>&nbsp;&nbsp;&quot;dipoles&quot;: [<br>";
+	} else {
+		new_html += "<br>";
+	}
+	for (i = 0; i < nr_dipoles; i++) {
+		dipole_id = "dipole_" + i.toString();
+		dipole = document.getElementById(dipole_id);
+		if (dipole != null) {
+			new_html
+				+= "&nbsp;&nbsp;&nbsp;&nbsp;{&quot;moment&quot;: ["
+				+ document.getElementById(dipole_id + "-moment-x").value + ", "
+				+ document.getElementById(dipole_id + "-moment-y").value + ", "
+				+ document.getElementById(dipole_id + "-moment-z").value
+				+ "],&quot;position&quot;: ["
+				+ document.getElementById(dipole_id + "-position-x").value + ", "
+				+ document.getElementById(dipole_id + "-position-y").value + ", "
+				+ document.getElementById(dipole_id + "-position-z").value
+				+ "]}";
+
+			if (i < nr_dipoles - 1) {
+				new_html += ",";
+			}
+			new_html += "<br>";
+			continue;
+		}
+	}
+	if (nr_dipoles > 0) {
+		new_html += "&nbsp;&nbsp;]<br>";
+	}
+	new_html += "},<br>";
+
 
 	// "number-density": { and "default": "",
 	new_html
@@ -777,8 +860,8 @@ config_text_updater.addEventListener("click", function() {
 				+ "&nbsp;&nbsp;&nbsp;&nbsp;&quot;time-stamps&quot;: ["
 				+ document.getElementById(id_string + "-time-stamps-id").value + "],<br>"
 				+ "&nbsp;&nbsp;&nbsp;&nbsp;&quot;values&quot;: ["
-				+ document.getElementById(id_string + "-value").value.replace(/\{/g, '"{').replace(/\}/g, '}"')
-				+ "]}";
+				+ '"' + document.getElementById(id_string + "-value").value.replace(/\,/g, '","')
+				+ '"]}';
 			if (i < nr_value_mass_items.n - 1) {
 				new_html += ",<br>";
 			} else {
@@ -956,8 +1039,8 @@ config_text_updater.addEventListener("click", function() {
 				+ "&nbsp;&nbsp;&nbsp;&nbsp;&quot;time-stamps&quot;: ["
 				+ document.getElementById(id_string + "-time-stamps-id").value + "],<br>"
 				+ "&nbsp;&nbsp;&nbsp;&nbsp;&quot;values&quot;: ["
-				+ document.getElementById(id_string + "-value").value.replace(/\{/g, '"{').replace(/\}/g, '}"')
-				+ "]}";
+				+ '"' + document.getElementById(id_string + "-value").value.replace(/\,/g, '","')
+				+ '"]}';
 			if (i < nr_value_pressure_items.n - 1) {
 				new_html += ",<br>";
 			} else {
@@ -1125,6 +1208,10 @@ shock_tube_maker.addEventListener("click", function() {
 	document.getElementById("box0-endx").value = -0.5;
 	document.getElementById("box0-endy").value = 99;
 	document.getElementById("box0-endz").value = 99;
+	document.getElementById("background-B-value-x").value = 0;
+	document.getElementById("background-B-value-y").value = 0;
+	document.getElementById("background-B-value-z").value = 0;
+	document.getElementById("dipole-min-distance").value = 1;
 	value_mass_adder.click();
 	document.getElementById("value-mass-0-geometry-id").value = 0;
 	document.getElementById("value-mass-0-time-stamps-id").value = 0;
@@ -1187,6 +1274,10 @@ kelvin_helmholtz_maker.addEventListener("click", function() {
 	document.getElementById("cells").value = "{50, 50, 1}";
 	document.getElementById("volume").value = "{1, 1, 1}";
 	document.getElementById("start").value = "{-volume[0]/2, -volume[1]/2, -volume[2]/2}";
+	document.getElementById("background-B-value-x").value = 0;
+	document.getElementById("background-B-value-y").value = 0;
+	document.getElementById("background-B-value-z").value = 0;
+	document.getElementById("dipole-min-distance").value = 1;
 	document.getElementById("default-mass").value = "abs(y) < 0.25 ? 2 : 15";
 	document.getElementById("default-pressure").value = 3;
 	document.getElementById("default-velocity").value = "{0.1 * sin(2*pi*x) + (abs(y) < 0.25 ? -0.5 : 0.5), 0.1 * cos(2*pi*x), 0}";
@@ -1225,6 +1316,10 @@ reconnection_maker.addEventListener("click", function() {
 	document.getElementById("box0-endx").value = 99;
 	document.getElementById("box0-endy").value = 99;
 	document.getElementById("box0-endz").value = 99;
+	document.getElementById("background-B-value-x").value = 0;
+	document.getElementById("background-B-value-y").value = 0;
+	document.getElementById("background-B-value-z").value = 0;
+	document.getElementById("dipole-min-distance").value = 1;
 	copy_mass_adder.click();
 	document.getElementById("copy-mass-0-geometry-id").value = 0;
 	copy_velocity_adder.click();
@@ -1271,6 +1366,10 @@ orszag_tang_maker.addEventListener("click", function() {
 	document.getElementById("cells").value = "{40, 40, 1}";
 	document.getElementById("volume").value = "{2*pi, 2*pi, 1}";
 	document.getElementById("start").value = "{0, 0, 0}";
+	document.getElementById("background-B-value-x").value = 0;
+	document.getElementById("background-B-value-y").value = 0;
+	document.getElementById("background-B-value-z").value = 0;
+	document.getElementById("dipole-min-distance").value = 1;
 	document.getElementById("default-mass").value = 1;
 	document.getElementById("default-velocity").value = "{-sin(y), sin(x), 0}";
 	document.getElementById("default-pressure").value = 1;
@@ -1302,6 +1401,10 @@ bow_shock_maker.addEventListener("click", function() {
 	document.getElementById("default-velocity").value = "{x > 0 and y < 0.0625 and y > -0.0625 ? 0 : 1, 0, 0}";
 	document.getElementById("default-pressure").value = 0.0015;
 	document.getElementById("default-magnetic-field").value = "{0, 0, 0}";
+	document.getElementById("background-B-value-x").value = 0;
+	document.getElementById("background-B-value-y").value = 0;
+	document.getElementById("background-B-value-z").value = 0;
+	document.getElementById("dipole-min-distance").value = 1;
 
 	sphere_geometry_adder.click();
 	document.getElementById("sphere0-centerx").value = 0;
@@ -1420,6 +1523,10 @@ blast_wave_maker.addEventListener("click", function() {
 	document.getElementById("default-velocity").value = "{0, 0, 0}";
 	document.getElementById("default-pressure").value = 0.1;
 	document.getElementById("default-magnetic-field").value = "{1/sqrt(2), 1/sqrt(2), 0}";
+	document.getElementById("background-B-value-x").value = 0;
+	document.getElementById("background-B-value-y").value = 0;
+	document.getElementById("background-B-value-z").value = 0;
+	document.getElementById("dipole-min-distance").value = 1;
 	sphere_geometry_adder.click();
 	document.getElementById("sphere0-centerx").value = 0;
 	document.getElementById("sphere0-centery").value = 0;
@@ -1464,6 +1571,10 @@ jet_injection_maker.addEventListener("click", function() {
 	document.getElementById("default-velocity").value = "{2.7 - x/2, 0, 0}";
 	document.getElementById("default-pressure").value = 1;
 	document.getElementById("default-magnetic-field").value = "{0, 0, 0}";
+	document.getElementById("background-B-value-x").value = 0;
+	document.getElementById("background-B-value-y").value = 0;
+	document.getElementById("background-B-value-z").value = 0;
+	document.getElementById("dipole-min-distance").value = 1;
 
 	box_geometry_adder.click();
 	document.getElementById("box0-startx").value = -99;
@@ -1672,7 +1783,7 @@ All items are numbers.
 			<option value="hll-athena">hll-athena</option>
 			<option value="hlld-athena">hlld-athena</option>
 			<option value="roe-athena" selected>roe-athena</option>
-		</select><br>
+		</select> (only hll-athena supports background field)<br>
 
 		Start time of simulation
 		<input type="text" id="time-start" name="time-start">
@@ -1770,6 +1881,28 @@ All items are numbers.
 		</button>
 
 		<button id="remove_geometry_btn" type="button">
+			Remove last
+		</button>
+	</fieldset>
+
+
+	<fieldset id="background_B">
+		<legend>Background magnetic field (curl-free, constant in time, ignored by solvers other than hll-athena)</legend>
+
+		Constant in space part (x, y, z)
+		<input type="text" id="background-B-value-x" name="background-B-value-x">
+		<input type="text" id="background-B-value-y" name="background-B-value-y">
+		<input type="text" id="background-B-value-z" name="background-B-value-z">
+		<br>
+
+		Minimum distance from dipole(s) (> 0)
+		<input type="text" id="dipole-min-distance" name="dipole-min-distance"><br>
+
+		<button id="add_dipole" type="button">
+			Add dipole
+		</button>
+
+		<button id="remove_dipole" type="button">
 			Remove last
 		</button>
 	</fieldset>
