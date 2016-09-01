@@ -23,6 +23,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 
 #include "cmath"
+#include "limits"
 #include "string"
 
 #include "rapidjson/document.h"
@@ -43,7 +44,7 @@ template<class Vector> class Background_Magnetic_Field
 private:
 	Vector constant = {0, 0, 0};
 	std::vector<std::pair<Vector, Vector>> dipole_moments_positions;
-	double min_distance = 0;
+	double min_distance = std::numeric_limits<double>::epsilon();
 	bool exists_ = false;
 
 
@@ -188,33 +189,31 @@ public:
 
 	Returns magnetic field from given sources at given position.
 	If given position is closer to a dipole than this->min_distance,
-	that dipole contributes 2/3*vacuum_permeability*moment instead.
+	that dipole contributes mu0/2/pi*moment/min_distance^3 instead.
 	*/
 	Vector get_background_field(
 		const Vector& field_position,
 		const double& vacuum_permeability
 	) const {
-		using std::pow;
-
 		Vector ret_val{this->constant};
 
 		for (const auto dip_mom_pos: this->dipole_moments_positions) {
 
 			const Vector r = field_position - dip_mom_pos.second;
-
-			if (r.squaredNorm() < pow(this->min_distance, 2)) {
-				ret_val += 2.0 / 3.0 * vacuum_permeability * dip_mom_pos.first;
-				continue;
+			const double r1 = r.norm();
+			if (r1 < this->min_distance) {
+				ret_val
+					+= vacuum_permeability * dip_mom_pos.first
+					/ (2 * M_PI * std::pow(this->min_distance, 3));
+			} else {
+				const Vector
+					r_unit = r / r1,
+					projected_dip_mom = dip_mom_pos.first.dot(r_unit) * r_unit;
+				ret_val
+					+= vacuum_permeability / (4 * M_PI)
+					* (3 * projected_dip_mom - dip_mom_pos.first)
+					/ (r1*r1*r1);
 			}
-
-			const double r3 = r.norm() * r.squaredNorm();
-			const Vector
-				r_unit = r / r.norm(),
-				projected_dip_mom = dip_mom_pos.first.dot(r_unit) * r_unit;
-
-			ret_val
-				+= vacuum_permeability / (4 * M_PI)
-				* (3 * projected_dip_mom - dip_mom_pos.first) / r3;
 		}
 
 		return ret_val;

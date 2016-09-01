@@ -38,8 +38,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "stdexcept"
 #include "string"
 
-#include "boost/lexical_cast.hpp"
-
 
 namespace pamhd {
 namespace mhd {
@@ -68,12 +66,12 @@ template <
 	const double adiabatic_index,
 	const double vacuum_permeability
 ) {
+	using std::to_string;
+
 	if (mass_density <= 0) {
 		throw std::domain_error(
 			std::string("Non-positive mass density given to ")
-			+ __func__
-			+ std::string(": ")
-			+ boost::lexical_cast<std::string>(mass_density)
+			+ __func__ + std::string(": ") + to_string(mass_density)
 		);
 	}
 
@@ -136,12 +134,12 @@ template <
 	const Total_Energy_Density_Getter Nrj,
 	const Magnetic_Field_Getter Mag
 ) {
+	using std::to_string;
+
 	if (Mas(data) <= 0) {
 		throw std::domain_error(
 			std::string("Non-positive mass density given to ")
-			+ __func__
-			+ std::string(": ")
-			+ boost::lexical_cast<std::string>(Mas(data))
+			+ __func__ + std::string(": ") + to_string(Mas(data))
 		);
 	}
 
@@ -226,12 +224,12 @@ template <
 	const double& adiabatic_index,
 	const double& vacuum_permeability
 ) {
+	using std::to_string;
+
 	if (mass_density <= 0) {
 		throw std::domain_error(
 			std::string("Non-positive mass density given to ")
-			+ __func__
-			+ std::string(": ")
-			+ boost::lexical_cast<std::string>(mass_density)
+			+ __func__ + std::string(": ") + to_string(mass_density)
 		);
 	}
 
@@ -239,7 +237,7 @@ template <
 		throw std::domain_error(
 			__func__
 			+ std::string("Adiabatic index must be > 1: ")
-			+ boost::lexical_cast<std::string>(adiabatic_index)
+			+ to_string(adiabatic_index)
 		);
 	}
 
@@ -247,7 +245,7 @@ template <
 		throw std::domain_error(
 			__func__
 			+ std::string("Vacuum permeability must be > 0: ")
-			+ boost::lexical_cast<std::string>(vacuum_permeability)
+			+ to_string(vacuum_permeability)
 		);
 	}
 
@@ -295,12 +293,12 @@ template <
 	const double adiabatic_index,
 	const double vacuum_permeability
 ) {
+	using std::to_string;
+
 	if (mass_density <= 0) {
 		throw std::domain_error(
 			std::string("Non-positive mass density given to ")
-			+ __func__
-			+ std::string(": ")
-			+ boost::lexical_cast<std::string>(mass_density)
+			+ __func__ + std::string(": ") + to_string(mass_density)
 		);
 	}
 
@@ -318,7 +316,7 @@ template <
 			std::string("Non-positive pressure given to ")
 			+ __func__
 			+ std::string(": ")
-			+ boost::lexical_cast<std::string>(pressure)
+			+ to_string(pressure)
 		);
 	}
 
@@ -343,13 +341,12 @@ template <
 ) {
 	using std::pow;
 	using std::sqrt;
+	using std::to_string;
 
 	if (mass_density <= 0) {
 		throw std::domain_error(
 			std::string("Non-positive mass density given to ")
-			+ __func__
-			+ std::string(": ")
-			+ boost::lexical_cast<std::string>(mass_density)
+			+ __func__ + std::string(": ") + to_string(mass_density)
 		);
 	}
 
@@ -452,12 +449,12 @@ template <
 	const Total_Energy_Density_Getter Nrj,
 	const C_Magnetic_Field_Getter Mag_c
 ) {
+	using std::to_string;
+
 	if (Mas_c(data) <= 0) {
 		throw std::domain_error(
 			std::string("Non-positive mass density given to ")
-			+ __func__
-			+ std::string(": ")
-			+ boost::lexical_cast<std::string>(Mas_c(data))
+			+ __func__ + std::string(": ") + to_string(Mas_c(data))
 		);
 	}
 
@@ -595,6 +592,8 @@ template <
 	const Total_Energy_Density_Flux_Getter Nrj_f,
 	const Magnetic_Field_Flux_Getter Mag_f
 ) {
+	using std::to_string;
+
 	Mas(data) += Mas_f(data) * factor;
 	Mom(data) += Mom_f(data) * factor;
 	Nrj(data) += Nrj_f(data) * factor;
@@ -602,8 +601,7 @@ template <
 
 	if (Mas(data) <= 0) {
 		throw std::domain_error(
-			"New state has negative mass density: "
-			+ boost::lexical_cast<std::string>(Mas(data))
+			"New state has negative mass density: " + to_string(Mas(data))
 		);
 	}
 
@@ -618,8 +616,7 @@ template <
 		);
 	if (pressure <= 0) {
 		throw std::domain_error(
-			"New state has negative pressure: "
-			+ boost::lexical_cast<std::string>(pressure)
+			"New state has negative pressure: " + to_string(pressure)
 		);
 	}
 }

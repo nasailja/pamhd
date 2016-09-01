@@ -25,9 +25,8 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 #include "cmath"
 #include "limits"
+#include "string"
 #include "tuple"
-
-#include "boost/lexical_cast.hpp"
 
 #include "mhd/common.hpp"
 
@@ -70,6 +69,7 @@ template <
 ) {
 	using std::isnormal;
 	using std::isfinite;
+	using std::to_string;
 
 	const Mass_Density Mas{};
 	const Momentum_Density Mom{};
@@ -147,38 +147,39 @@ template <
 	if (not isnormal(pressure_thermal_neg) or pressure_thermal_neg < 0) {
 		throw std::domain_error(
 			"Invalid thermal pressure in state_neg: "
-			+ boost::lexical_cast<std::string>(pressure_thermal_neg)
+			+ to_string(pressure_thermal_neg)
 		);
 	}
 	if (not isfinite(pressure_magnetic_neg) or pressure_magnetic_neg < 0) {
 		throw std::domain_error(
 			"Invalid magnetic pressure in state_neg: "
-			+ boost::lexical_cast<std::string>(pressure_magnetic_neg)
+			+ to_string(pressure_magnetic_neg)
 		);
 	}
 	if (not isfinite(max_signal_neg)) {
 		throw std::domain_error(
-			"Invalid max signal speed in state_neg: "
-			+ boost::lexical_cast<std::string>(max_signal_neg)
+			"Invalid max signal speed in state_neg: " + to_string(max_signal_neg)
+			+ ", max signal: " + to_string(max_signal)
+			+ ", flow_v_neg[0]: " + to_string(flow_v_neg[0])
 		);
 	}
 
 	if (not isnormal(pressure_thermal_pos) or pressure_thermal_pos < 0) {
 		throw std::domain_error(
 			"Invalid thermal pressure in state_pos: "
-			+ boost::lexical_cast<std::string>(pressure_thermal_pos)
+			+ to_string(pressure_thermal_pos)
 		);
 	}
 	if (not isfinite(pressure_magnetic_pos) or pressure_magnetic_pos < 0) {
 		throw std::domain_error(
 			"Invalid magnetic pressure in state_pos: "
-			+ boost::lexical_cast<std::string>(pressure_magnetic_pos)
+			+ to_string(pressure_magnetic_pos)
 		);
 	}
 	if (not isfinite(max_signal_pos)) {
 		throw std::domain_error(
 			"Invalid max signal speed in state_pos: "
-			+ boost::lexical_cast<std::string>(max_signal_pos)
+			+ to_string(max_signal_pos)
 		);
 	}
 
