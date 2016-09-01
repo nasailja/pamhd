@@ -39,7 +39,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "unordered_map"
 #include "vector"
 
-#include "boost/lexical_cast.hpp"
 #include "boost/optional.hpp"
 #include "boost/program_options.hpp"
 #include "dccrg_cartesian_geometry.hpp"
@@ -276,6 +275,8 @@ int plot_1d(
 	const std::string& magnetic_field_cmd,
 	const std::string& current_density_cmd
 ) {
+	using std::to_string;
+
 	const string gnuplot_file_name(output_file_name_prefix + ".dat");
 	ofstream gnuplot_file(gnuplot_file_name);
 
@@ -299,11 +300,10 @@ int plot_1d(
 		<< "\nset output '"
 		<< output_file_name_prefix + ".png"
 		<< "'\nset xlabel 'Dimension "
-		<< boost::lexical_cast<std::string>(tube_dim + 1)
-		<< "'\nset xrange ["
-		<< boost::lexical_cast<std::string>(tube_start)
-		<< ".0 : " << boost::lexical_cast<std::string>(tube_end)
-		<< ".0]\n" << density_pressure_cmd
+		<< to_string(tube_dim + 1)
+		<< "'\nset xrange [" << to_string(tube_start)
+		<< " : " << to_string(tube_end)
+		<< "]\n" << density_pressure_cmd
 		<< "\nplot "
 		     "'-' using 1:2 axes x1y1 with line linewidth 2, "
 		     "'-' u 1:2 axes x1y2 w l lt 3 lw 2\n";
@@ -492,11 +492,10 @@ int plot_1d(
 		<< "\nset output '"
 		<< output_file_name_prefix + "_R.png"
 		<< "'\nset xlabel 'Dimension "
-		<< boost::lexical_cast<std::string>(tube_dim + 1)
-		<< "'\nset xrange ["
-		<< boost::lexical_cast<std::string>(tube_start)
-		<< ".0 : " << boost::lexical_cast<std::string>(tube_end)
-		<< ".0]\nset ylabel \"Resistivity\" textcolor lt 1\n"
+		<< to_string(tube_dim + 1)
+		<< "'\nset xrange [" << to_string(tube_start)
+		<< " : " << to_string(tube_end)
+		<< "]\nset ylabel \"Resistivity\" textcolor lt 1\n"
 		   "set y2label \"MPI rank\" textcolor lt 3"
 		   "\nunset key\n"
 		   "set ytics nomirror\n"
@@ -563,15 +562,13 @@ void write_gnuplot_cmd_2d(
 		<< output_file_name_prefix + "_"
 		<< var_name << "." << output_file_name_suffix
 		<< "'\nset ylabel 'Dimension "
-		<< boost::lexical_cast<std::string>(dimensions[1] + 1)
+		<< to_string(dimensions[1] + 1)
 		<< "'\nset xlabel 'Dimension "
-		<< boost::lexical_cast<std::string>(dimensions[0] + 1)
-		<< "'\nset xrange["
-		<< boost::lexical_cast<std::string>(grid_start1) << ".0 : "
-		<< boost::lexical_cast<std::string>(grid_start1 + grid_length1) << ".0]"
-		<< "\nset yrange["
-		<< boost::lexical_cast<std::string>(grid_start2) << ".0 : "
-		<< boost::lexical_cast<std::string>(grid_start2 + grid_length2) << ".0]\n"
+		<< to_string(dimensions[0] + 1)
+		<< "'\nset xrange[" << to_string(grid_start1) << " : "
+		<< to_string(grid_start1 + grid_length1) << "]"
+		<< "\nset yrange[" << to_string(grid_start2) << " : "
+		<< to_string(grid_start2 + grid_length2) << "]\n"
 		<< var_cmd
 		<< "\nplot '-' using ($1 / "
 		<< grid_size1 << " * " << grid_length1 << " + "
@@ -612,6 +609,8 @@ int plot_2d(
 	const std::string& resistivity_cmd,
 	const std::string& bdy_cmd
 ) {
+	using std::to_string;
+
 	const auto& grid_size = geometry.length.get();
 
 	// indices of dimensions with more than one cell
@@ -870,9 +869,9 @@ int plot_2d(
 		<< "\nset output '"
 		<< output_file_name_prefix + "_V." << output_file_name_suffix
 		<< "'\nset ylabel 'Dimension "
-		<< boost::lexical_cast<std::string>(dimensions[1] + 1)
+		<< to_string(dimensions[1] + 1)
 		<< "'\nset xlabel 'Dimension "
-		<< boost::lexical_cast<std::string>(dimensions[0] + 1)
+		<< to_string(dimensions[0] + 1)
 		<< "'\nset title 'Velocity'\n"
 		   "plot '-' u 1:2:3:4 w vectors t ''\n";
 
