@@ -267,6 +267,7 @@ int plot_1d(
 	const unordered_map<uint64_t, Cell>& simulation_data,
 	const std::vector<uint64_t>& cells,
 	const std::string& output_file_name_prefix,
+	const double simulation_time,
 	const double adiabatic_index,
 	const double vacuum_permeability,
 	const std::string& common_cmd,
@@ -297,7 +298,8 @@ int plot_1d(
 	// mass density & pressure
 	gnuplot_file
 		<< common_cmd
-		<< "\nset output '"
+		<< "\nset title 'Time " << simulation_time << "'\n"
+		<< "set output '"
 		<< output_file_name_prefix + ".png"
 		<< "'\nset xlabel 'Dimension "
 		<< to_string(tube_dim + 1)
@@ -537,6 +539,7 @@ void write_gnuplot_cmd_2d(
 	const std::array<uint64_t, 3>& grid_size,
 	const std::array<size_t, 2>& dimensions,
 	const unordered_map<uint64_t, Cell>& simulation_data,
+	const double simulation_time,
 	const std::vector<uint64_t>& cells,
 	const std::string& common_cmd,
 	const std::string& output_file_name_prefix,
@@ -565,6 +568,7 @@ void write_gnuplot_cmd_2d(
 		<< to_string(dimensions[1] + 1)
 		<< "'\nset xlabel 'Dimension "
 		<< to_string(dimensions[0] + 1)
+		<< ", simulation time " << to_string(simulation_time)
 		<< "'\nset xrange[" << to_string(grid_start1) << " : "
 		<< to_string(grid_start1 + grid_length1) << "]"
 		<< "\nset yrange[" << to_string(grid_start2) << " : "
@@ -597,6 +601,7 @@ int plot_2d(
 	const std::vector<uint64_t>& cells,
 	const std::string& output_file_name_prefix,
 	const std::string& output_file_name_suffix,
+	const double simulation_time,
 	const double adiabatic_index,
 	const double vacuum_permeability,
 	const std::string& common_cmd,
@@ -656,6 +661,7 @@ int plot_2d(
 		grid_size,
 		dimensions,
 		simulation_data,
+		simulation_time,
 		cells,
 		common_cmd + "\n",
 		output_file_name_prefix,
@@ -1157,6 +1163,7 @@ int main(int argc, char* argv[])
 				simulation_data,
 				cells,
 				input_files[i].substr(0, input_files[i].size() - 3),
+				(*header)[0],
 				(*header)[1],
 				(*header)[3],
 				common_plot_1d,
@@ -1173,6 +1180,7 @@ int main(int argc, char* argv[])
 				cells,
 				input_files[i].substr(0, input_files[i].size() - 3),
 				"png",
+				(*header)[0],
 				(*header)[1],
 				(*header)[3],
 				common_plot_2d,
