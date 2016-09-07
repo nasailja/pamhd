@@ -36,6 +36,7 @@ CLEAN += tests/mhd_clean
 
 
 TEST_MHD_COMMON_DEPS = \
+  source/mhd/common.hpp \
   source/mhd/variables.hpp \
   source/mhd/hll_athena.hpp \
   source/mhd/hlld_athena.hpp \
@@ -60,7 +61,6 @@ TEST_MHD_PROGRAM_DEPS = \
   source/boundaries/value_boundaries.hpp \
   source/boundaries/value_boundary.hpp \
   source/mhd/background_magnetic_field.hpp \
-  source/mhd/common.hpp \
   source/mhd/boundaries.hpp \
   source/mhd/initialize.hpp \
   source/mhd/options.hpp \
