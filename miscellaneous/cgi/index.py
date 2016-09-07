@@ -107,6 +107,12 @@ if not 'time-length' in form_data:
 	exit()
 config_data['time-length'] = float(form_data.getfirst('time-length'))
 
+if not 'minimum-pressure' in form_data:
+	print 'minimum-pressure missing from form data:<br>'
+	print_form_data(form_data)
+	exit()
+config_data['minimum-pressure'] = float(form_data.getfirst('minimum-pressure'))
+
 if not 'solver-mhd' in form_data:
 	print 'solver-mhd missing from form data:<br>'
 	print_form_data(form_data)
