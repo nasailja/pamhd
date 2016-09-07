@@ -689,6 +689,8 @@ config_text_updater.addEventListener("click", function() {
 		+ document.getElementById("time-start").value + ",<br>"
 		+ "&quot;time-length&quot;: "
 		+ document.getElementById("time-length").value + ",<br>"
+		+ "&quot;minimum-pressure&quot;: "
+		+ document.getElementById("minimum-pressure").value + ",<br>"
 		+ "&quot;save-mhd-n&quot;: "
 		+ document.getElementById("save-mhd-n").value + ",<br>"
 		+ "&quot;resistivity&quot;: &quot;"
@@ -1183,6 +1185,7 @@ shock_tube_maker.addEventListener("click", function() {
 	document.getElementById("solver-mhd").selectedIndex = 2;
 	document.getElementById("time-start").value = 0;
 	document.getElementById("time-length").value = 1;
+	document.getElementById("minimum-pressure").value = 0;
 	document.getElementById("save-mhd-n").value = 0.1;
 	document.getElementById("resistivity").value = 0;
 	document.getElementById("remove-div-b-n").value = -1;
@@ -1260,6 +1263,7 @@ kelvin_helmholtz_maker.addEventListener("click", function() {
 	document.getElementById("solver-mhd").selectedIndex = 2;
 	document.getElementById("time-start").value = 0;
 	document.getElementById("time-length").value = 12;
+	document.getElementById("minimum-pressure").value = 0;
 	document.getElementById("save-mhd-n").value = 1;
 	document.getElementById("resistivity").value = 0;
 	document.getElementById("remove-div-b-n").value = 0.05;
@@ -1291,6 +1295,7 @@ reconnection_maker.addEventListener("click", function() {
 	document.getElementById("solver-mhd").selectedIndex = 2;
 	document.getElementById("time-start").value = 0;
 	document.getElementById("time-length").value = 20;
+	document.getElementById("minimum-pressure").value = 0;
 	document.getElementById("save-mhd-n").value = 1;
 	document.getElementById("resistivity").value = 0;
 	document.getElementById("remove-div-b-n").value = 0.2;
@@ -1352,6 +1357,7 @@ orszag_tang_maker.addEventListener("click", function() {
 	document.getElementById("solver-mhd").selectedIndex = 2;
 	document.getElementById("time-start").value = 0;
 	document.getElementById("time-length").value = 5;
+	document.getElementById("minimum-pressure").value = 0;
 	document.getElementById("save-mhd-n").value = 0.5;
 	document.getElementById("resistivity").value = 0;
 	document.getElementById("remove-div-b-n").value = 0.1;
@@ -1383,6 +1389,7 @@ bow_shock_maker.addEventListener("click", function() {
 	document.getElementById("solver-mhd").selectedIndex = 1;
 	document.getElementById("time-start").value = 0;
 	document.getElementById("time-length").value = 10;
+	document.getElementById("minimum-pressure").value = 0;
 	document.getElementById("save-mhd-n").value = 1;
 	document.getElementById("resistivity").value = 0;
 	document.getElementById("remove-div-b-n").value = -1;
@@ -1505,6 +1512,7 @@ blast_wave_maker.addEventListener("click", function() {
 	document.getElementById("solver-mhd").selectedIndex = 2;
 	document.getElementById("time-start").value = 0;
 	document.getElementById("time-length").value = 0.5;
+	document.getElementById("minimum-pressure").value = 0;
 	document.getElementById("save-mhd-n").value = 0.05;
 	document.getElementById("resistivity").value = 0;
 	document.getElementById("remove-div-b-n").value = 0.05;
@@ -1553,6 +1561,7 @@ jet_injection_maker.addEventListener("click", function() {
 	document.getElementById("solver-mhd").selectedIndex = 2;
 	document.getElementById("time-start").value = 0;
 	document.getElementById("time-length").value = 2;
+	document.getElementById("minimum-pressure").value = 0;
 	document.getElementById("save-mhd-n").value = 0.1;
 	document.getElementById("resistivity").value = 0;
 	document.getElementById("remove-div-b-n").value = -1;
@@ -1794,6 +1803,9 @@ All items are numbers.
 		<input type="text" id="time-length" name="time-length">
 			<span id="time-length-test"></span>
 		<br>
+
+		Minimum plasma pressure (>= 0)
+		<input type="text" id="minimum-pressure" name="minimum-pressure"><br>
 
 		Time interval for saving simulation results (< 0 skips saving)
 		<input type="text" id="save-mhd-n" name="save-mhd-n">
