@@ -375,6 +375,7 @@ template <
 	class Solver_Info_Getter
 > void apply_fluxes(
 	dccrg::Dccrg<Cell_Data, Geometry>& grid,
+	const double min_pressure,
 	const double adiabatic_index,
 	const double vacuum_permeability,
 	const Mass_Density_Getter Mas,
@@ -441,15 +442,14 @@ template <
 			adiabatic_index,
 			vacuum_permeability
 		);
-		if (pressure <= 0) {
-			const auto c = grid.geometry.get_center(cell.id);
-			throw std::domain_error(
-				"New state in cell " + to_string(cell.id)
-				+ " of type " + to_string(Sol_Info(*cell.data))
-				+ " at (" + to_string(c[0]) + ", "
-				+ to_string(c[1]) + ", " + to_string(c[2])
-				+ ") has negative pressure: "
-				+ std::to_string(pressure)
+		if (pressure < min_pressure) {
+			Nrj(*cell.data) = get_total_energy_density(
+				Mas(*cell.data),
+				get_velocity(Mom(*cell.data), Mas(*cell.data)),
+				min_pressure,
+				Mag(*cell.data),
+				adiabatic_index,
+				vacuum_permeability
 			);
 		}
 	}

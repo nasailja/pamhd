@@ -3,6 +3,7 @@
 	"time-start": 0,
 	"time-length": 5,
 	"resistivity": "0",
+	"minimum-pressure": 0,
 	"solver-mhd": "hlld-athena",
 	"load-balancer": "RANDOM",
 	"save-mhd-n": 1,

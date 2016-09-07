@@ -2,6 +2,7 @@
 	"output-directory": "results/magnetohydrodynamic/shock_tube/1d/+z/hll_athena",
 	"time-start": 0,
 	"time-length": 1,
+	"minimum-pressure": 0,
 	"resistivity": "0",
 	"solver-mhd": "hll-athena",
 	"load-balancer": "RANDOM",

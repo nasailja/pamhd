@@ -3,6 +3,7 @@
 	"output-directory": "results/hydrodynamic/blast_wave/2d/z1/hlld_athena",
 	"time-start": 0,
 	"time-length": 3.75,
+	"minimum-pressure": 0,
 	"resistivity": "0",
 	"solver-mhd": "hlld-athena",
 	"load-balancer": "RANDOM",

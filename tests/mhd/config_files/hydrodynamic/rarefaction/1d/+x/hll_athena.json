@@ -3,6 +3,7 @@
 	"output-directory": "results/hydrodynamic/rarefaction/1d/+x/hll_athena",
 	"time-start": 0,
 	"time-length": 0.2,
+	"minimum-pressure": 0,
 	"resistivity": "0",
 	"solver-mhd": "hll-athena",
 	"load-balancer": "RANDOM",

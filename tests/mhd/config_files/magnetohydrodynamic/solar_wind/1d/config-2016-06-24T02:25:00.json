@@ -3,6 +3,7 @@
 "solver-mhd": "roe-athena",
 "time-start": 0,
 "time-length": 10000.0,
+"minimum-pressure": 0,
 "load-balancer": "RCB",
 "save-mhd-n": 60,
 "resistivity": "0",

@@ -6,6 +6,7 @@
 	"output-directory": "results/magnetohydrodynamic/solar_wind/1d/density_10mHz_20%/roe_athena",
 	"time-start": 0,
 	"time-length": 1000,
+	"minimum-pressure": 0,
 	"resistivity": "0",
 	"solver-mhd": "roe-athena",
 	"load-balancer": "RANDOM",

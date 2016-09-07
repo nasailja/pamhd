@@ -562,65 +562,6 @@ template <
 >;
 
 
-/*!
-Positive flux adds to given cell multiplied with given factor.
-
-Throws std::domain_error if new state has non-positive
-mass density or pressure check_new_state == true.
-*/
-template <
-	class Container,
-	class Mass_Density_Getter,
-	class Momentum_Density_Getter,
-	class Total_Energy_Density_Getter,
-	class Magnetic_Field_Getter,
-	class Mass_Density_Flux_Getter,
-	class Momentum_Density_Flux_Getter,
-	class Total_Energy_Density_Flux_Getter,
-	class Magnetic_Field_Flux_Getter
-> void apply_fluxes(
-	Container& data,
-	const double factor,
-	const double adiabatic_index,
-	const double vacuum_permeability,
-	const Mass_Density_Getter Mas,
-	const Momentum_Density_Getter Mom,
-	const Total_Energy_Density_Getter Nrj,
-	const Magnetic_Field_Getter Mag,
-	const Mass_Density_Flux_Getter Mas_f,
-	const Momentum_Density_Flux_Getter Mom_f,
-	const Total_Energy_Density_Flux_Getter Nrj_f,
-	const Magnetic_Field_Flux_Getter Mag_f
-) {
-	using std::to_string;
-
-	Mas(data) += Mas_f(data) * factor;
-	Mom(data) += Mom_f(data) * factor;
-	Nrj(data) += Nrj_f(data) * factor;
-	Mag(data) += Mag_f(data) * factor;
-
-	if (Mas(data) <= 0) {
-		throw std::domain_error(
-			"New state has negative mass density: " + to_string(Mas(data))
-		);
-	}
-
-	const auto pressure
-		= get_pressure(
-			Mas(data),
-			Mom(data),
-			Nrj(data),
-			Mag(data),
-			adiabatic_index,
-			vacuum_permeability
-		);
-	if (pressure <= 0) {
-		throw std::domain_error(
-			"New state has negative pressure: " + to_string(pressure)
-		);
-	}
-}
-
 template <
 	class Container,
 	class Mass_Density_Getters,

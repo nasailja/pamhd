@@ -75,7 +75,8 @@ struct Options
 		poisson_norm_increase_max = 10,
 		adiabatic_index = 5.0 / 3.0,    
 		vacuum_permeability = 4e-7 * M_PI,
-		proton_mass = 1.672621777e-27;
+		proton_mass = 1.672621777e-27,
+		min_pressure = 0;
 
 	void set(const rapidjson::Value& object) {
 		using std::isnormal;
@@ -211,6 +212,21 @@ struct Options
 			);
 		}
 		lb_name = object["load-balancer"].GetString();
+
+		if (not object.HasMember("minimum-pressure")) {
+			throw std::invalid_argument(
+				std::string(__FILE__ "(") + std::to_string(__LINE__) + "): "
+				+ "JSON data doesn't have a minimum-pressure key."
+			);
+		}
+		const auto& min_pressure_json = object["minimum-pressure"];
+		if (not min_pressure_json.IsNumber()) {
+			throw std::invalid_argument(
+				std::string(__FILE__ "(") + std::to_string(__LINE__) + "): "
+				+ "JSON item minimum-pressure is not a number."
+			);
+		}
+		min_pressure = min_pressure_json.GetDouble();
 	}
 };
 

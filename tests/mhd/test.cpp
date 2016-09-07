@@ -708,6 +708,7 @@ int main(int argc, char* argv[])
 
 		pamhd::mhd::apply_fluxes<pamhd::mhd::Solver_Info>(
 			grid,
+			options_mhd.min_pressure,
 			options_mhd.adiabatic_index,
 			options_mhd.vacuum_permeability,
 			Mas, Mom, Nrj, Mag,
