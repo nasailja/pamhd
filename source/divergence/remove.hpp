@@ -148,9 +148,9 @@ template <
 		bool have_enough_neighbors = false;
 		for (auto dim = 0; dim < 3; dim++) {
 			if (
-				nr_neighbors[dim] == 2
-				or nr_neighbors[dim] == 5
-				or nr_neighbors[dim] == 8
+				nr_neighbors[dim] == 1 + 1
+				or nr_neighbors[dim] == 1 + 4
+				or nr_neighbors[dim] == 4 + 4
 			) {
 				have_enough_neighbors = true;
 				break;
@@ -290,9 +290,9 @@ template <
 		bool have_enough_neighbors = false;
 		for (auto dim = 0; dim < 3; dim++) {
 			if (
-				nr_neighbors[dim] == 2
-				or nr_neighbors[dim] == 5
-				or nr_neighbors[dim] == 8
+				nr_neighbors[dim] == 1 + 1
+				or nr_neighbors[dim] == 1 + 4
+				or nr_neighbors[dim] == 4 + 4
 			) {
 				have_enough_neighbors = true;
 				break;
