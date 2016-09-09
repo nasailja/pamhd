@@ -750,11 +750,21 @@ int main(int argc, char* argv[])
 				pamhd::mhd::MHD_State_Conservative(),
 				pamhd::mhd::Magnetic_Field_Divergence()
 			);
+
+			std::vector<uint64_t> bdy_cells, skip_cells;
+			for (const auto& cell: grid.cells) {
+				if ((Sol_Info(*cell.data) & pamhd::mhd::Solver_Info::dont_solve) > 0) {
+					skip_cells.push_back(cell.id);
+				} else if (Sol_Info(*cell.data) > 0) {
+					bdy_cells.push_back(cell.id);
+				}
+			}
+
 			const auto div_before
 				= pamhd::divergence::remove(
 					cells,
-					{},
-					{},
+					bdy_cells,
+					skip_cells,
 					grid,
 					Mag,
 					Mag_div,
