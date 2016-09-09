@@ -513,9 +513,24 @@ int main(int argc, char* argv[])
 		cout << "Done initializing MHD" << endl;
 	}
 
+	/*
+	Classify cells into normal, boundary and dont_solve
+	*/
+
 	pamhd::mhd::set_solver_info<pamhd::mhd::Solver_Info>(
 		grid, boundaries, geometries, Sol_Info
 	);
+	// make lists from above for divergence removal functions
+	std::vector<uint64_t> solve_cells, bdy_cells, skip_cells;
+	for (const auto& cell: grid.cells) {
+		if ((Sol_Info(*cell.data) & pamhd::mhd::Solver_Info::dont_solve) > 0) {
+			skip_cells.push_back(cell.id);
+		} else if (Sol_Info(*cell.data) > 0) {
+			bdy_cells.push_back(cell.id);
+		} else {
+			solve_cells.push_back(cell.id);
+		}
+	}
 
 	size_t simulated_steps = 0;
 	while (simulation_time < time_end) {
@@ -751,18 +766,9 @@ int main(int argc, char* argv[])
 				pamhd::mhd::Magnetic_Field_Divergence()
 			);
 
-			std::vector<uint64_t> bdy_cells, skip_cells;
-			for (const auto& cell: grid.cells) {
-				if ((Sol_Info(*cell.data) & pamhd::mhd::Solver_Info::dont_solve) > 0) {
-					skip_cells.push_back(cell.id);
-				} else if (Sol_Info(*cell.data) > 0) {
-					bdy_cells.push_back(cell.id);
-				}
-			}
-
 			const auto div_before
 				= pamhd::divergence::remove(
-					cells,
+					solve_cells,
 					bdy_cells,
 					skip_cells,
 					grid,
@@ -787,7 +793,7 @@ int main(int argc, char* argv[])
 			Cell::set_transfer_all(false, pamhd::mhd::MHD_State_Conservative());
 			const double div_after
 				= pamhd::divergence::get_divergence(
-					cells,
+					solve_cells,
 					grid,
 					Mag,
 					Mag_div
