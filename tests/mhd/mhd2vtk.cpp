@@ -313,13 +313,13 @@ void convert(
 	const MHD_State_Conservative MHD{};
 
 	const Mass_Density Mas{};
-	vtk_file << "SCALARS mass_density float 1\nlookup_table default\n";
+	vtk_file << "SCALARS mass_density double 1\nlookup_table default\n";
 	for (const auto& cell: cells) {
 		const auto density = simulation_data.at(cell)[MHD][Mas];
 		vtk_file << density << "\n";
 	}
 
-	vtk_file << "SCALARS pressure float 1\nlookup_table default\n";
+	vtk_file << "SCALARS pressure double 1\nlookup_table default\n";
 	for (const auto& cell: cells) {
 		const auto pressure
 			= get_pressure(
@@ -335,7 +335,7 @@ void convert(
 	}
 
 	const Momentum_Density Mom{};
-	vtk_file << "VECTORS velocity float\n";
+	vtk_file << "VECTORS velocity double\n";
 	for (const auto& cell: cells) {
 		const auto density = simulation_data.at(cell)[MHD][Mas];
 		if (not std::isnormal(density) or density < 0) {
@@ -351,7 +351,7 @@ void convert(
 	}
 
 	const Magnetic_Field Mag{};
-	vtk_file << "VECTORS magnetic_field float\n";
+	vtk_file << "VECTORS magnetic_field double\n";
 	for (const auto& cell: cells) {
 		const auto magnetic_field = simulation_data.at(cell)[MHD][Mag];
 		vtk_file
@@ -361,7 +361,7 @@ void convert(
 	}
 
 	const Electric_Current_Density Cur{};
-	vtk_file << "VECTORS current_density float\n";
+	vtk_file << "VECTORS current_density double\n";
 	for (const auto& cell: cells) {
 		const auto current_density = simulation_data.at(cell)[Cur];
 		vtk_file
@@ -381,7 +381,7 @@ void convert(
 	}
 
 	const Bg_Magnetic_Field_Pos_X BgBPX{};
-	vtk_file << "VECTORS background_B_pos_x float\n";
+	vtk_file << "VECTORS background_B_pos_x double\n";
 	for (const auto& cell: cells) {
 		const auto magnetic_field = simulation_data.at(cell)[BgBPX];
 		vtk_file
@@ -391,7 +391,7 @@ void convert(
 	}
 
 	const Bg_Magnetic_Field_Pos_Y BgBPY{};
-	vtk_file << "VECTORS background_B_pos_y float\n";
+	vtk_file << "VECTORS background_B_pos_y double\n";
 	for (const auto& cell: cells) {
 		const auto magnetic_field = simulation_data.at(cell)[BgBPY];
 		vtk_file
@@ -401,7 +401,7 @@ void convert(
 	}
 
 	const Bg_Magnetic_Field_Pos_Z BgBPZ{};
-	vtk_file << "VECTORS background_B_pos_z float\n";
+	vtk_file << "VECTORS background_B_pos_z double\n";
 	for (const auto& cell: cells) {
 		const auto magnetic_field = simulation_data.at(cell)[BgBPZ];
 		vtk_file
