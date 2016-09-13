@@ -190,14 +190,15 @@ struct Options
 		}
 		solver = object["solver-mhd"].GetString();
 		if (
-			solver != "hll-athena"
+			solver != "rusanov"
+			and solver != "hll-athena"
 			and solver != "hlld-athena"
 			and solver != "roe-athena"
 		) {
 			throw std::invalid_argument(
 				std::string(__FILE__ "(") + std::to_string(__LINE__) + "): "
 				+ "Invalid mhd solver: " + solver
-				+ ", should be one of hll-athena, hlld-athena, roe-athena."
+				+ ", should be one of rusanov, hll-athena, hlld-athena, roe-athena."
 			);
 		}
 

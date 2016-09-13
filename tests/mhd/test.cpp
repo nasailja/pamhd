@@ -57,6 +57,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "mhd/initialize.hpp"
 #include "mhd/options.hpp"
 #include "mhd/roe_athena.hpp"
+#include "mhd/rusanov.hpp"
 #include "mhd/save.hpp"
 #include "mhd/solve.hpp"
 #include "mhd/variables.hpp"
@@ -280,7 +281,18 @@ int main(int argc, char* argv[])
 
 	const auto mhd_solver
 		= [&options_mhd, &background_B, &rank](){
-			if (options_mhd.solver == "hll-athena") {
+			if (options_mhd.solver == "rusanov") {
+
+				return pamhd::mhd::get_flux_rusanov<
+					pamhd::mhd::MHD_Conservative,
+					pamhd::mhd::Magnetic_Field::data_type,
+					pamhd::mhd::Mass_Density,
+					pamhd::mhd::Momentum_Density,
+					pamhd::mhd::Total_Energy_Density,
+					pamhd::mhd::Magnetic_Field
+				>;
+
+			} else if (options_mhd.solver == "hll-athena") {
 
 				return pamhd::mhd::athena::get_flux_hll<
 					pamhd::mhd::MHD_Conservative,

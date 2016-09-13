@@ -41,6 +41,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 #include "mhd/hll_athena.hpp"
 #include "mhd/hlld_athena.hpp"
 #include "mhd/roe_athena.hpp"
+#include "mhd/rusanov.hpp"
 #include "mhd/variables.hpp"
 
 using namespace std;
@@ -717,7 +718,7 @@ int main(int argc, char* argv[])
 		("solver",
 			boost::program_options::value<std::string>(&solver_str)
 				->default_value(solver_str),
-			"Solver to use, available: hll_athena, hlld_athena, roe_athena")
+			"Solver to use, available: rusanov, hll_athena, hlld_athena, roe_athena")
 		("save", "Save end result to ascii file")
 		("plot", "Plot results using gnuplot")
 		("no-verify", "Do not verify against reference results")
@@ -752,7 +753,18 @@ int main(int argc, char* argv[])
 	const auto solver
 		= [&solver_str](){
 
-			if (solver_str == "hll_athena") {
+			if (solver_str == "rusanov") {
+
+				return pamhd::mhd::get_flux_rusanov<
+					pamhd::mhd::MHD_Conservative,
+					pamhd::mhd::Magnetic_Field::data_type,
+					pamhd::mhd::Mass_Density,
+					pamhd::mhd::Momentum_Density,
+					pamhd::mhd::Total_Energy_Density,
+					pamhd::mhd::Magnetic_Field
+				>;
+
+			} else if (solver_str == "hll_athena") {
 
 				return pamhd::mhd::athena::get_flux_hll<
 					pamhd::mhd::MHD_Conservative,

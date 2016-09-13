@@ -40,6 +40,10 @@ $RUN ./test.exe config_files/magnetohydrodynamic/magnetic_field_advection/1d/-z/
 $RUN ./mhd2gnuplot.exe results/magnetohydrodynamic/magnetic_field_advection/1d/-z/roe_athena/*dc 2> /dev/null
 
 # rarefaction
+echo rarefaction hd 1d +x rusanov
+$RUN ./test.exe config_files/hydrodynamic/rarefaction/1d/+x/rusanov.json
+$RUN ./mhd2gnuplot.exe results/hydrodynamic/rarefaction/1d/+x/rusanov/*dc 2> /dev/null
+
 echo rarefaction hd 1d +x hll_athena
 $RUN ./test.exe config_files/hydrodynamic/rarefaction/1d/+x/hll_athena.json
 $RUN ./mhd2gnuplot.exe results/hydrodynamic/rarefaction/1d/+x/hll_athena/*dc 2> /dev/null
@@ -92,6 +96,10 @@ echo shock_tube mhd 1d +y roe_athena
 $RUN ./test.exe config_files/magnetohydrodynamic/shock_tube/1d/+y/roe_athena.json
 $RUN ./mhd2gnuplot.exe results/magnetohydrodynamic/shock_tube/1d/+y/roe_athena/*dc 2> /dev/null
 
+
+echo shock_tube mhd 1d -y rusanov
+$RUN ./test.exe config_files/magnetohydrodynamic/shock_tube/1d/-y/rusanov.json
+$RUN ./mhd2gnuplot.exe results/magnetohydrodynamic/shock_tube/1d/-y/rusanov/*dc 2> /dev/null
 
 echo shock_tube mhd 1d -y hll_athena
 $RUN ./test.exe config_files/magnetohydrodynamic/shock_tube/1d/-y/hll_athena.json
@@ -156,6 +164,10 @@ $RUN ./mhd2gnuplot.exe results/magnetohydrodynamic/fast_magnetosonic_wave/1d/+x/
 
 
 # Kelvin-Helmholtz
+echo kelvin-helmholtz hd 2d z1 rusanov
+$RUN ./test.exe config_files/hydrodynamic/kelvin-helmholtz/2d/z1/rusanov.json
+$RUN ./mhd2gnuplot.exe results/hydrodynamic/kelvin-helmholtz/2d/z1/rusanov/*dc 2> /dev/null
+
 echo kelvin-helmholtz hd 2d z1 hll_athena
 $RUN ./test.exe config_files/hydrodynamic/kelvin-helmholtz/2d/z1/hll_athena.json
 $RUN ./mhd2gnuplot.exe results/hydrodynamic/kelvin-helmholtz/2d/z1/hll_athena/*dc 2> /dev/null
@@ -168,6 +180,10 @@ echo kelvin-helmholtz hd 2d z1 roe_athena
 $RUN ./test.exe config_files/hydrodynamic/kelvin-helmholtz/2d/z1/roe_athena.json
 $RUN ./mhd2gnuplot.exe results/hydrodynamic/kelvin-helmholtz/2d/z1/roe_athena/*dc 2> /dev/null
 
+
+echo kelvin-helmholtz mhd 2d z1 rusanov
+$RUN ./test.exe config_files/magnetohydrodynamic/kelvin-helmholtz/2d/z1/rusanov.json
+$RUN ./mhd2gnuplot.exe results/magnetohydrodynamic/kelvin-helmholtz/2d/z1/rusanov/*dc 2> /dev/null
 
 echo kelvin-helmholtz mhd 2d z1 hll_athena
 $RUN ./test.exe config_files/magnetohydrodynamic/kelvin-helmholtz/2d/z1/hll_athena.json
@@ -184,6 +200,10 @@ $RUN ./mhd2gnuplot.exe results/magnetohydrodynamic/kelvin-helmholtz/2d/z1/roe_at
 
 
 # Bow shock
+echo bow_shock hd 2d z1 rusanov
+$RUN ./test.exe config_files/hydrodynamic/bow_shock/2d/z1/rusanov.json
+$RUN ./mhd2gnuplot.exe results/hydrodynamic/bow_shock/2d/z1/rusanov/*dc 2> /dev/null
+
 echo bow_shock hd 2d z1 hll_athena
 $RUN ./test.exe config_files/hydrodynamic/bow_shock/2d/z1/hll_athena.json
 $RUN ./mhd2gnuplot.exe results/hydrodynamic/bow_shock/2d/z1/hll_athena/*dc 2> /dev/null
@@ -196,6 +216,10 @@ $RUN ./mhd2gnuplot.exe results/hydrodynamic/bow_shock/2d/z1/hlld_athena/*dc 2> /
 #$RUN ./test.exe config_files/hydrodynamic/bow_shock/2d/z1/roe_athena.json
 #$RUN ./mhd2gnuplot.exe results/hydrodynamic/bow_shock/2d/z1/roe_athena/*dc 2> /dev/null
 
+
+echo bow_shock mhd 2d z1 rusanov
+$RUN ./test.exe config_files/magnetohydrodynamic/bow_shock/2d/z1/rusanov.json
+$RUN ./mhd2gnuplot.exe results/magnetohydrodynamic/bow_shock/2d/z1/rusanov/*dc 2> /dev/null
 
 echo bow_shock mhd 2d z1 hll_athena
 $RUN ./test.exe config_files/magnetohydrodynamic/bow_shock/2d/z1/hll_athena.json
@@ -212,6 +236,10 @@ $RUN ./mhd2gnuplot.exe results/magnetohydrodynamic/bow_shock/2d/z1/roe_athena/*d
 
 
 # Blast wave
+echo blast_wave hd 2d z1 rusanov
+$RUN ./test.exe config_files/hydrodynamic/blast_wave/2d/z1/rusanov.json
+$RUN ./mhd2gnuplot.exe results/hydrodynamic/blast_wave/2d/z1/rusanov/*dc 2> /dev/null
+
 echo blast_wave hd 2d z1 hll_athena
 $RUN ./test.exe config_files/hydrodynamic/blast_wave/2d/z1/hll_athena.json
 $RUN ./mhd2gnuplot.exe results/hydrodynamic/blast_wave/2d/z1/hll_athena/*dc 2> /dev/null
@@ -224,6 +252,10 @@ echo blast_wave hd 2d z1 roe_athena
 $RUN ./test.exe config_files/hydrodynamic/blast_wave/2d/z1/roe_athena.json
 $RUN ./mhd2gnuplot.exe results/hydrodynamic/blast_wave/2d/z1/roe_athena/*dc 2> /dev/null
 
+
+echo blast_wave mhd 2d z1 rusanov
+$RUN ./test.exe config_files/magnetohydrodynamic/blast_wave/2d/z1/rusanov.json
+$RUN ./mhd2gnuplot.exe results/magnetohydrodynamic/blast_wave/2d/z1/rusanov/*dc 2> /dev/null
 
 echo blast_wave mhd 2d z1 hll_athena
 $RUN ./test.exe config_files/magnetohydrodynamic/blast_wave/2d/z1/hll_athena.json
@@ -239,6 +271,10 @@ $RUN ./mhd2gnuplot.exe results/magnetohydrodynamic/blast_wave/2d/z1/roe_athena/*
 
 
 # Reconnection
+echo reconnection mhd 2d y1 rusanov
+$RUN ./test.exe config_files/magnetohydrodynamic/reconnection/2d/y1/rusanov.json
+$RUN ./mhd2gnuplot.exe results/magnetohydrodynamic/reconnection/2d/y1/rusanov/*dc 2> /dev/null
+
 echo reconnection mhd 2d y1 hll_athena
 $RUN ./test.exe config_files/magnetohydrodynamic/reconnection/2d/y1/hll_athena.json
 $RUN ./mhd2gnuplot.exe results/magnetohydrodynamic/reconnection/2d/y1/hll_athena/*dc 2> /dev/null
@@ -253,6 +289,10 @@ $RUN ./mhd2gnuplot.exe results/magnetohydrodynamic/reconnection/2d/y1/roe_athena
 
 
 # Orszag-Tang
+echo orszag-tang mhd 2d z1 rusanov
+$RUN ./test.exe config_files/magnetohydrodynamic/orszag-tang/2d/z1/rusanov.json
+$RUN ./mhd2gnuplot.exe results/magnetohydrodynamic/orszag-tang/2d/z1/rusanov/*dc 2> /dev/null
+
 echo orszag-tang mhd 2d z1 hll_athena
 $RUN ./test.exe config_files/magnetohydrodynamic/orszag-tang/2d/z1/hll_athena.json
 $RUN ./mhd2gnuplot.exe results/magnetohydrodynamic/orszag-tang/2d/z1/hll_athena/*dc 2> /dev/null
