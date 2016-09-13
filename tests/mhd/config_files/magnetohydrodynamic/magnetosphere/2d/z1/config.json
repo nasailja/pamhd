@@ -5,7 +5,7 @@
 	"time-length": 9600,
 	"minimum-pressure": 0,
 	"resistivity": "0",
-	"solver-mhd": "hlld-athena",
+	"solver-mhd": "hll-athena",
 	"load-balancer": "RCB",
 	"save-mhd-n": 1200,
 	"adiabatic-index": 1.6666666666666667,
