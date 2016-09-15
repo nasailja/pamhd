@@ -39,13 +39,23 @@
 ; Fills meta_data with simulation time, adiabatic index,
 ; proton mass and vacuum premeability.
 ;
-; If given sort_data returned data is sorted in ascending order
+; If given sort_data, returned data is sorted in ascending order
 ; by rz then items with identical rz are sorted by ry and items
 ; with identical rz and ry are sorted by rx.
 ;
+; If given, volume must be an array of 6 doubles describing the volume
+; from which to return data. Array items are interpreted in order
+; min_x, max_x, min_y, ..., max_z. Simulation cells whose center
+; is outside given ranges are excluded from returned data.
+;
 ; Returns 0 on success, > 0 on failure
 ;
-function pamhd_read_mhd, filename, variable_names = variable_names, variable_descriptions = variable_descriptions, data_field = data_field, meta_data = meta_data, sort_data = sort_data
+; Example:
+; GDL> .run pamhd_read_mhd
+; ...
+; pamhd_read_mhd('mhd_0.000e+00_s.dc', variable_names = names, variable_descriptions = descriptions, data_field = data, meta_data = meta, volume = vol)
+;
+function pamhd_read_mhd, filename, variable_names = variable_names, variable_descriptions = variable_descriptions, data_field = data_field, meta_data = meta_data, sort_data = sort_data, volume = volume
 
 	variable_names = 'rx,ry,rz,dx,dy,dz,mas,momx,momy,momz,nrj,'
 	variable_names += 'magx,magy,magz,curx,cury,curz,res,rank,type,'
@@ -64,9 +74,9 @@ function pamhd_read_mhd, filename, variable_names = variable_names, variable_des
 	variable_descriptions += 'y component of momentum density, '
 	variable_descriptions += 'z component of momentum density, '
 	variable_descriptions += 'total energy density, '
-	variable_descriptions += 'x component of magnetic field, '
-	variable_descriptions += 'y component of magnetic field, '
-	variable_descriptions += 'z component of magnetic field, '
+	variable_descriptions += 'x component of perturbed magnetic field, '
+	variable_descriptions += 'y component of perturbed magnetic field, '
+	variable_descriptions += 'z component of perturbed magnetic field, '
 	variable_descriptions += 'x component of electric current density, '
 	variable_descriptions += 'y component of electric current density, '
 	variable_descriptions += 'z component of electric current density, '
@@ -253,47 +263,89 @@ function pamhd_read_mhd, filename, variable_names = variable_names, variable_des
 		return, 16
 	endif
 
+	if (~keyword_set(volume)) then begin
+		volume = make_array(6, /double)
+		volume[0] = -!values.d_infinity
+		volume[1] = +!values.d_infinity
+		volume[2] = -!values.d_infinity
+		volume[3] = +!values.d_infinity
+		volume[4] = -!values.d_infinity
+		volume[5] = +!values.d_infinity
+	endif
+
 	; read cell data into final array
-	data_field = make_array(29, total_cells, /double) ; returned to user
+	temp_data = make_array(29, total_cells, /double)
 	cell_data1 = make_array(11, /double)
 	cell_data2 = make_array(2, /long)
 	cell_data3 = make_array(1, /double)
 	cell_data4 = make_array(9, /double)
+	loaded_cells = ulong64(0)
 	for i = ulong64(0), total_cells - ulong64(1) do begin
 		cell_id = cell_ids_data_offsets[0, i]
-		data_offset = cell_ids_data_offsets[1, i]
 
-		point_lun, in_file, data_offset
-		readu, in_file, cell_data1, cell_data2, cell_data3, cell_data4, transfer_count = items_read
-		if (items_read ne 1) then begin
-			close, in_file
-			free_lun, in_file
-			print, "Couldn't read cell data at byte offset ", data_offset
-			print, items_read, " item sets read, should be 1"
-			return, 17
-		endif
-
-		data_field[6, i] = cell_data1
-		data_field[17, i] = cell_data3[0]
-		data_field[18, i] = double(cell_data2[1])
-		data_field[19, i] = double(cell_data2[0])
-		data_field[20, i] = cell_data4
-
-		; add derived data, defined by get_center() function in
+		; cell center, defined by get_center() function in
 		; dccrg_cartesian_geometry.hpp file of dccrg
 		cell_id = cell_id - 1
 		cell_x_index = cell_id mod grid_size_x
 		cell_y_index = cell_id / grid_size_x mod grid_size_y
 		cell_z_index = cell_id / (grid_size_x * grid_size_y)
+		cell_id = cell_id + 1
 
-		data_field[0, i] = grid_start_x + lvl_0_cell_length_x * (0.5 + cell_x_index)
-		data_field[1, i] = grid_start_y + lvl_0_cell_length_y * (0.5 + cell_y_index)
-		data_field[2, i] = grid_start_z + lvl_0_cell_length_z * (0.5 + cell_z_index)
+		cell_center_x = grid_start_x + lvl_0_cell_length_x * (0.5 + cell_x_index)
+		cell_center_y = grid_start_y + lvl_0_cell_length_y * (0.5 + cell_y_index)
+		cell_center_z = grid_start_z + lvl_0_cell_length_z * (0.5 + cell_z_index)
 
-		data_field[3, i] = lvl_0_cell_length_x
-		data_field[4, i] = lvl_0_cell_length_y
-		data_field[5, i] = lvl_0_cell_length_z
+		; don't load if cell outside requested volume
+		if (cell_center_x lt volume[0]) then begin
+			continue
+		endif
+		if (cell_center_x gt volume[1]) then begin
+			continue
+		endif
+		if (cell_center_y lt volume[2]) then begin
+			continue
+		endif
+		if (cell_center_y gt volume[3]) then begin
+			continue
+		endif
+		if (cell_center_z lt volume[4]) then begin
+			continue
+		endif
+		if (cell_center_z gt volume[5]) then begin
+			continue
+		endif
+
+		temp_data[0, loaded_cells] = cell_center_x
+		temp_data[1, loaded_cells] = cell_center_y
+		temp_data[2, loaded_cells] = cell_center_z
+		temp_data[3, loaded_cells] = lvl_0_cell_length_x
+		temp_data[4, loaded_cells] = lvl_0_cell_length_y
+		temp_data[5, loaded_cells] = lvl_0_cell_length_z
+
+		data_offset = cell_ids_data_offsets[1, i]
+
+		point_lun, in_file, data_offset
+		readu, in_file, cell_data1, cell_data2, cell_data3, cell_data4, transfer_count = items_read
+		if (items_read ne 9) then begin
+			close, in_file
+			free_lun, in_file
+			print, "Couldn't read cell ", cell_id, " data at byte offset ", data_offset
+			print, items_read, " item sets read, should be 1"
+			return, 17
+		endif
+
+		temp_data[6, loaded_cells] = cell_data1
+		temp_data[17, loaded_cells] = cell_data3[0]
+		temp_data[18, loaded_cells] = double(cell_data2[1])
+		temp_data[19, loaded_cells] = double(cell_data2[0])
+		temp_data[20, loaded_cells] = cell_data4
+
+		loaded_cells = loaded_cells + 1
 	endfor
+
+	; don't return too large array
+	data_field = make_array(29, loaded_cells, /double)
+	data_field = temp_data[*, 0:loaded_cells - 1]
 
 	close, in_file
 	free_lun, in_file
