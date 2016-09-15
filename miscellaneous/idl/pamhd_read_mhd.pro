@@ -50,9 +50,15 @@
 ;
 ; Returns 0 on success, > 0 on failure
 ;
-; Example:
-; GDL> .run pamhd_read_mhd
-; ...
+; Example when GDL/IDL started from this directory:
+; .run pamhd_read_mhd
+; vol = make_array(6,/double)
+; vol[0] = 0
+; vol[1] = 1
+; vol[2] = -!values.d_infinity
+; vol[3] = !values.d_infinity
+; vol[4] = -!values.d_infinity
+; vol[5] = !values.d_infinity
 ; pamhd_read_mhd('mhd_0.000e+00_s.dc', variable_names = names, variable_descriptions = descriptions, data_field = data, meta_data = meta, volume = vol)
 ;
 function pamhd_read_mhd, filename, variable_names = variable_names, variable_descriptions = variable_descriptions, data_field = data_field, meta_data = meta_data, sort_data = sort_data, volume = volume
