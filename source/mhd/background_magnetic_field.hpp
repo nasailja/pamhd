@@ -197,7 +197,7 @@ public:
 	) const {
 		Vector ret_val{this->constant};
 
-		for (const auto dip_mom_pos: this->dipole_moments_positions) {
+		for (const auto& dip_mom_pos: this->dipole_moments_positions) {
 
 			const Vector r = field_position - dip_mom_pos.second;
 			const double r1 = r.norm();
