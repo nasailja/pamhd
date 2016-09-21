@@ -64,8 +64,8 @@
 function pamhd_read_mhd, filename, variable_names = variable_names, variable_descriptions = variable_descriptions, data_field = data_field, meta_data = meta_data, sort_data = sort_data, volume = volume
 
 	variable_names = 'rx,ry,rz,dx,dy,dz,mas,momx,momy,momz,nrj,'
-	variable_names += 'magx,magy,magz,curx,cury,curz,res,rank,type,'
-	variable_names += 'pxbgmagx,pxbgmagy,pxbgmagz,'
+	variable_names += 'magx,magy,magz,curx,cury,curz,pressure,'
+	variable_names += 'res,rank,type,pxbgmagx,pxbgmagy,pxbgmagz,'
 	variable_names += 'pybgmagx,pybgmagy,pybgmagz,'
 	variable_names += 'pzbgmagx,pzbgmagy,pzbgmagz'
 
@@ -86,6 +86,7 @@ function pamhd_read_mhd, filename, variable_names = variable_names, variable_des
 	variable_descriptions += 'x component of electric current density, '
 	variable_descriptions += 'y component of electric current density, '
 	variable_descriptions += 'z component of electric current density, '
+	variable_descriptions += 'thermal pressure, '
 	variable_descriptions += 'electrical resistivity, '
 	variable_descriptions += 'owner of cell (MPI rank), '
 	variable_descriptions += 'cell type, '
@@ -280,12 +281,14 @@ function pamhd_read_mhd, filename, variable_names = variable_names, variable_des
 	endif
 
 	; read cell data into final array
-	temp_data = make_array(29, total_cells, /double)
+	temp_data = make_array(30, total_cells, /double)
 	cell_data1 = make_array(11, /double)
 	cell_data2 = make_array(2, /long)
 	cell_data3 = make_array(1, /double)
 	cell_data4 = make_array(9, /double)
 	loaded_cells = ulong64(0)
+	B = make_array(3, /double) ; magnetic field
+	M = make_array(3, /double) ; momentum density
 	for i = ulong64(0), total_cells - ulong64(1) do begin
 		cell_id = cell_ids_data_offsets[0, i]
 
@@ -341,16 +344,33 @@ function pamhd_read_mhd, filename, variable_names = variable_names, variable_des
 		endif
 
 		temp_data[6, loaded_cells] = cell_data1
-		temp_data[17, loaded_cells] = cell_data3[0]
-		temp_data[18, loaded_cells] = double(cell_data2[1])
-		temp_data[19, loaded_cells] = double(cell_data2[0])
-		temp_data[20, loaded_cells] = cell_data4
+		B[0] = cell_data1[5]
+		B[1] = cell_data1[6]
+		B[2] = cell_data1[7]
+		M[0] = cell_data1[1]
+		M[1] = cell_data1[2]
+		M[2] = cell_data1[3]
+		if (cell_data1[0] le 0) then begin
+			print, "Non-positive density in cell ", cell_id
+		end
+		pressure $
+			= (adiabatic_index - 1) $
+			* ( $
+				cell_data1[4] $
+				- (M[0]*M[0] + M[1]*M[1] + M[2]*M[2]) / 2 / cell_data1[0] $
+				- (B[0]*B[0] + B[1]*B[1] + B[2]*B[2]) / 2 / vacuum_permeability $
+			)
+		temp_data[17, loaded_cells] = pressure
+		temp_data[18, loaded_cells] = cell_data3[0]
+		temp_data[19, loaded_cells] = double(cell_data2[1])
+		temp_data[20, loaded_cells] = double(cell_data2[0])
+		temp_data[21, loaded_cells] = cell_data4
 
 		loaded_cells = loaded_cells + 1
 	endfor
 
 	; don't return too large array
-	data_field = make_array(29, loaded_cells, /double)
+	data_field = make_array(30, loaded_cells, /double)
 	data_field = temp_data[*, 0:loaded_cells - 1]
 
 	close, in_file
