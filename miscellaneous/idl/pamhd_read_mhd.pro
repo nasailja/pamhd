@@ -113,7 +113,7 @@ function pamhd_read_mhd, filename, variable_names = variable_names, variable_des
 		print, "Couldn't read file version", items_read
 		return, 1
 	endif
-	if (file_version ne 2) then begin
+	if (file_version lt 1 or file_version gt 2) then begin
 		close, in_file
 		free_lun, in_file
 		print, "Unsupported file version."
@@ -334,13 +334,25 @@ function pamhd_read_mhd, filename, variable_names = variable_names, variable_des
 		data_offset = cell_ids_data_offsets[1, i]
 
 		point_lun, in_file, data_offset
-		readu, in_file, cell_data1, cell_data2, cell_data3, cell_data4, transfer_count = items_read
-		if (items_read ne 9) then begin
-			close, in_file
-			free_lun, in_file
-			print, "Couldn't read cell ", cell_id, " data at byte offset ", data_offset
-			print, items_read, " item sets read, should be 1"
-			return, 17
+		if (file_version eq 2) then begin
+			readu, in_file, cell_data1, cell_data2, cell_data3, cell_data4, transfer_count = items_read
+			if (items_read ne 9) then begin
+				close, in_file
+				free_lun, in_file
+				print, "Couldn't read cell ", cell_id, " data at byte offset ", data_offset
+				print, items_read, " items read in last set, should be 9"
+				return, 17
+			endif
+		endif
+		if (file_version eq 1) then begin
+			readu, in_file, cell_data1, cell_data2, cell_data3, transfer_count = items_read
+			if (items_read ne 1) then begin
+				close, in_file
+				free_lun, in_file
+				print, "Couldn't read cell ", cell_id, " data at byte offset ", data_offset
+				print, items_read, " items read in last set, should be 1"
+				return, 17
+			endif
 		endif
 
 		temp_data[6, loaded_cells] = cell_data1
@@ -364,7 +376,20 @@ function pamhd_read_mhd, filename, variable_names = variable_names, variable_des
 		temp_data[18, loaded_cells] = cell_data3[0]
 		temp_data[19, loaded_cells] = double(cell_data2[1])
 		temp_data[20, loaded_cells] = double(cell_data2[0])
-		temp_data[21, loaded_cells] = cell_data4
+		if (file_version eq 2) then begin
+			temp_data[21, loaded_cells] = cell_data4
+		endif
+		if (file_version eq 1) then begin
+			temp_data[21, loaded_cells] = 0
+			temp_data[22, loaded_cells] = 0
+			temp_data[23, loaded_cells] = 0
+			temp_data[24, loaded_cells] = 0
+			temp_data[25, loaded_cells] = 0
+			temp_data[26, loaded_cells] = 0
+			temp_data[27, loaded_cells] = 0
+			temp_data[28, loaded_cells] = 0
+			temp_data[29, loaded_cells] = 0
+		endif
 
 		loaded_cells = loaded_cells + 1
 	endfor
