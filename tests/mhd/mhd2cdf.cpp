@@ -105,7 +105,7 @@ boost::optional<std::array<double, 4>> read_data(
 		MPI_STATUS_IGNORE
 	);
 	offset += sizeof(uint64_t);
-	if (file_version != 1) {
+	if (file_version != 2) {
 		cerr << "Process " << mpi_rank
 			<< " Unsupported file version: " << file_version
 			<< endl;

@@ -106,8 +106,8 @@ def load(file_name, mhd_data):
 
 	# read simulation header, given by source/mhd/save.hpp
 	file_version = numpy.fromfile(infile, dtype = 'uint64', count = 1)
-	if file_version > 1:
-		print('Warning file version is newer than expected...')
+	if file_version != 2:
+		exit('Unsupported file version: ' + str(file_version))
 	sim_params = numpy.fromfile(infile, dtype = '4double', count = 1)
 
 	# from this point onward format is given by dccrg's save_grid_data()
@@ -165,7 +165,7 @@ def load(file_name, mhd_data):
 
 		# calculate cell geometry, defined by get_center() function in 
 		# dccrg_cartesian_geometry.hpp file of dccrg
-		cell_id -= 1
+		cell_id = int(cell_id - 1)
 		cell_index = (
 			int(cell_id % ref_lvl_0_cells[0]),
 			int(cell_id / ref_lvl_0_cells[0] % ref_lvl_0_cells[1]),
@@ -177,7 +177,7 @@ def load(file_name, mhd_data):
 			grid_start[1] + lvl_0_cell_length[1] * (0.5 + cell_index[1]),
 			grid_start[2] + lvl_0_cell_length[2] * (0.5 + cell_index[2])
 		)
-		cell_id += 1
+		cell_id = int(cell_id + 1)
 
 		infile.seek(item[1], 0)
 		temp = numpy.fromfile(

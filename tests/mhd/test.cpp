@@ -902,7 +902,7 @@ int main(int argc, char* argv[])
 						boost::filesystem::path(options_mhd.output_directory)
 					).append("mhd_").generic_string(),
 					grid,
-					1,
+					2,
 					simulation_time,
 					options_mhd.adiabatic_index,
 					options_mhd.proton_mass,

@@ -113,7 +113,7 @@ function pamhd_read_mhd, filename, variable_names = variable_names, variable_des
 		print, "Couldn't read file version", items_read
 		return, 1
 	endif
-	if (file_version ne 1) then begin
+	if (file_version ne 2) then begin
 		close, in_file
 		free_lun, in_file
 		print, "Unsupported file version."
