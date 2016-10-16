@@ -343,10 +343,10 @@ int main(int argc, char* argv[])
 		return EXIT_SUCCESS;
 	}
 
-	for (size_t i = 0; i < input_files.size(); i += 2) {
+	for (size_t i = 1; i < input_files.size(); i += 2) {
 		extract(
+			input_files[i - 1],
 			input_files[i],
-			input_files[i + 1],
 			{min_x, min_y, min_z},
 			{max_x, max_y, max_z}
 		);
