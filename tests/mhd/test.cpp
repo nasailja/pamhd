@@ -213,6 +213,14 @@ int main(int argc, char* argv[])
 	}
 
 	std::ifstream json_file(argv[1]);
+	if (not json_file.good()) {
+		if (rank == 0) {
+			std::cerr << "Couldn't open configuration file " << argv[1] << std::endl;
+		}
+		MPI_Finalize();
+		return EXIT_FAILURE;
+	}
+
 	std::string json{
 		std::istreambuf_iterator<char>(json_file),
 		std::istreambuf_iterator<char>()
@@ -225,6 +233,7 @@ int main(int argc, char* argv[])
 			<< " at character position " << document.GetErrorOffset()
 			<< ": " << rapidjson::GetParseError_En(document.GetParseError())
 			<< std::endl;
+		MPI_Finalize();
 		return EXIT_FAILURE;
 	}
 
