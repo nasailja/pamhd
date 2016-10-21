@@ -263,18 +263,18 @@ if 'background-magnetic-field' in form_data:
 	while True:
 		dipole_str = 'dipole_' + str(dipole_nr)
 		if \
-			dipole_str + '-momentum-x' in form_data \
-			and dipole_str + '-momentum-y' in form_data \
-			and dipole_str + '-momentum-z' in form_data \
+			dipole_str + '-moment-x' in form_data \
+			and dipole_str + '-moment-y' in form_data \
+			and dipole_str + '-moment-z' in form_data \
 			and dipole_str + '-position-x' in form_data \
 			and dipole_str + '-position-y' in form_data \
 			and dipole_str + '-position-z' in form_data \
 		:
 			dipole = dict()
 			dipole['moment'] = [
-				float(form_data.getfirst(dipole_str + '-momentum-x')),
-				float(form_data.getfirst(dipole_str + '-momentum-y')),
-				float(form_data.getfirst(dipole_str + '-momentum-z'))
+				float(form_data.getfirst(dipole_str + '-moment-x')),
+				float(form_data.getfirst(dipole_str + '-moment-y')),
+				float(form_data.getfirst(dipole_str + '-moment-z'))
 			]
 			dipole['position'] = [
 				float(form_data.getfirst(dipole_str + '-position-x')),
