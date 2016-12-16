@@ -1847,6 +1847,542 @@ msphere_maker.addEventListener("click", function() {
 	update_config_text.click();
 });
 
+
+// retrieve and fill out list of runs when first clicked
+var run_list_retrieved = false;
+run_list_button = document.getElementById("run_list_selector");
+run_list_button.addEventListener("click", function() {
+	if (run_list_retrieved) {
+		return;
+	}
+
+	default_option = document.getElementById("default_selector_option");
+
+	if (JSON == null) {
+		alert("Browser doesn't support parsing JSON data");
+		while (run_list_button.firstChild) {
+			run_list_button.removeChild(run_list_button.firstChild);
+		}
+		default_option.innerHTML = 'Parsing JSON not supported by browser';
+		return;
+	}
+
+	if (default_option != null) {
+		default_option.innerHTML = 'Retrieving run list...';
+	}
+
+	request = new XMLHttpRequest();
+	request.open('POST', 'http://ccmc.gsfc.nasa.gov/ungrouped/LP/LP_search.php', false, 'pamhd', 'run_list_retrieval');
+	request.send('0=PAMHD&3=lp_model');
+	response = request.responseText;
+
+	if (default_option != null) {
+		default_option.parentNode.removeChild(default_option);
+	}
+
+	first = true;
+	temp = response.split('runnumber=');
+	for (i = 0; i < temp.length; i++) {
+		if (first) {
+			first = false;
+			continue;
+		}
+
+		run_id = temp[i].split('>')[0];
+
+		opt = document.createElement('option');
+		opt.id = run_id;
+		opt.value = run_id;
+		opt.innerHTML = run_id;
+		run_list_button.appendChild(opt);
+	}
+
+	run_list_retrieved = true;
+});
+
+// fill out configuration from selected run
+run_list_button.addEventListener("change", function() {
+
+	document.getElementById(this.value).innerHTML = 'retrieving configuration (' + this.value + ')';
+
+	request = new XMLHttpRequest();
+	request.open('GET', 'http://ccmc.gsfc.nasa.gov/results/viewrun.php?domain=LP&runnumber=' + this.value, false, 'pamhd', 'run_config_retrieval');
+	request.send();
+	response = request.responseText;
+
+	json_str = response.split('<pre>')[1].split('</pre>')[0].trim();
+	json = JSON.parse(json_str);
+
+	function set_config_item(item_str, run_id) {
+		if (json[item_str] == null) {
+			alert('Configuration of run ' + run_id.value + ' does not have a value for "' + item_str + '"');
+			document.getElementById(run_id.value).innerHTML = 'failed (' + run_id.value + ')';
+			return;
+		}
+		document.getElementById(item_str).value = json[item_str];
+	}
+
+	set_config_item('time-start', this);
+	set_config_item('time-length', this);
+	set_config_item('resistivity', this);
+	set_config_item('minimum-pressure', this);
+	set_config_item('save-mhd-n', this);
+	set_config_item('adiabatic-index', this);
+	set_config_item('vacuum-permeability', this);
+	set_config_item('proton-mass', this);
+	set_config_item('time-step-factor', this);
+
+	if (json['remove-div-B-n'] == null) {
+		alert('Configuration of run ' + this.value + ' does not have a "remove-div-B-n" item');
+		document.getElementById(this.value).innerHTML = 'failed (' + this.value + ')';
+		return;
+	}
+	document.getElementById("remove-div-b-n").value = json['remove-div-B-n'];
+
+	if (json['solver-mhd'] == null) {
+		alert('Configuration of run ' + this.value + ' does not have a "solver-mhd" item');
+		document.getElementById(this.value).innerHTML = 'failed (' + this.value + ')';
+		return;
+	}
+	mhd = json['solver-mhd'];
+	if (mhd == 'rusanov') {
+		document.getElementById('solver-mhd').selectedIndex = 0;
+	} else if (mhd == 'hll_athena') {
+		document.getElementById('solver-mhd').selectedIndex = 1;
+	} else if (mhd == 'hlld_athena') {
+		document.getElementById('solver-mhd').selectedIndex = 2;
+	} else if (mhd == 'hlld_athena') {
+		document.getElementById('solver-mhd').selectedIndex = 3;
+	} else if (mhd == 'roe_athena') {
+		document.getElementById('solver-mhd').selectedIndex = 4;
+	} else {
+		alert('Unexpected value for mhd solver in configuration of run ' + run_id.value + ': ' + mhd);
+		document.getElementById(this.value).innerHTML = 'failed (' + this.value + ')';
+		return;
+	}
+
+	if (json['grid-options'] == null) {
+		alert('Configuration of run ' + this.value + ' does not have a "grid-options" item');
+		document.getElementById(this.value).innerHTML = 'failed (' + this.value + ')';
+		return;
+	}
+	grid = json['grid-options'];
+
+	if (grid.periodic == null) {
+		alert('"grid-options" of run ' + this.value + ' does not have a "periodic" item');
+		document.getElementById(this.value).innerHTML = 'failed (' + this.value + ')';
+		return;
+	}
+	periodic = grid.periodic.split('{')[1].split('}')[0].split(', ');
+	if (periodic[0] == 'false') {
+		document.getElementById("periodic-x").selectedIndex = 0;
+	} else if (periodic[0] == 'true') {
+		document.getElementById("periodic-x").selectedIndex = 1;
+	} else {
+		alert('Unexpected value in "periodic-x" item of run ' + this.value + ': ' + periodic[0]);
+		document.getElementById(this.value).innerHTML = 'failed (' + this.value + ')';
+		return;
+	}
+	if (periodic[1] == 'false') {
+		document.getElementById("periodic-y").selectedIndex = 0;
+	} else if (periodic[1] == 'true') {
+		document.getElementById("periodic-y").selectedIndex = 1;
+	} else {
+		alert('Unexpected value in "periodic-y" item of run ' + this.value + ': ' + periodic[1]);
+		document.getElementById(this.value).innerHTML = 'failed (' + this.value + ')';
+		return;
+	}
+	if (periodic[2] == 'false') {
+		document.getElementById("periodic-z").selectedIndex = 0;
+	} else if (periodic[2] == 'true') {
+		document.getElementById("periodic-z").selectedIndex = 1;
+	} else {
+		alert('Unexpected value in "periodic-z" item of run ' + this.value + ': ' + periodic[2]);
+		document.getElementById(this.value).innerHTML = 'failed (' + this.value + ')';
+		return;
+	}
+
+	if (grid.cells == null) {
+		alert('"grid-options" of run ' + this.value + ' does not have a "cells" item');
+		document.getElementById(this.value).innerHTML = 'failed (' + this.value + ')';
+		return;
+	}
+	document.getElementById("cells").value = grid.cells;
+
+	if (grid.volume == null) {
+		alert('"grid-options" of run ' + this.value + ' does not have a "volume" item');
+		document.getElementById(this.value).innerHTML = 'failed (' + this.value + ')';
+		return;
+	}
+	document.getElementById("volume").value = grid.volume;
+
+	if (grid.start == null) {
+		alert('"grid-options" of run ' + this.value + ' does not have a "start" item');
+		document.getElementById(this.value).innerHTML = 'failed (' + this.value + ')';
+		return;
+	}
+	document.getElementById("start").value = grid.start;
+
+
+	if (json.geometries == null) {
+		alert('Configuration of run ' + this.value + ' does not have a "geometries" item');
+		document.getElementById(this.value).innerHTML = 'failed (' + this.value + ')';
+		return;
+	}
+	for (i = 0; i < json.geometries.length; i++) {
+		shape = json.geometries[i];
+		if (shape.box != null) {
+			box = shape.box;
+			if (box.start == null) {
+				alert('Box at geometry id ' + i.toString() + ' of run ' + this.value + "doesn't have a start item");
+				document.getElementById(this.value).innerHTML = 'failed (' + this.value + ')';
+				return;
+			}
+
+			if (box.end == null) {
+				alert('Box at geometry id ' + i.toString() + ' of run ' + this.value + "doesn't have an end item");
+				document.getElementById(this.value).innerHTML = 'failed (' + this.value + ')';
+				return;
+			}
+
+			box_geometry_adder.click();
+			box_id = 'box' + i.toString();
+			document.getElementById(box_id + '-startx').value = box.start[0];
+			document.getElementById(box_id + '-starty').value = box.start[1];
+			document.getElementById(box_id + '-startz').value = box.start[2];
+			document.getElementById(box_id + '-endx').value = box.end[0];
+			document.getElementById(box_id + '-endy').value = box.end[1];
+			document.getElementById(box_id + '-endz').value = box.end[2];
+		}
+
+		if (shape.sphere != null) {
+			sphere = shape.sphere;
+			if (sphere.radius == null) {
+				alert('Sphere at geometry id ' + i.toString() + ' of run ' + this.value + "doesn't have a radius item");
+				document.getElementById(this.value).innerHTML = 'failed (' + this.value + ')';
+				return;
+			}
+			if (sphere.center == null) {
+				alert('Sphere at geometry id ' + i.toString() + ' of run ' + this.value + "doesn't have a center item");
+				document.getElementById(this.value).innerHTML = 'failed (' + this.value + ')';
+				return;
+			}
+
+			sphere_geometry_adder.click();
+			sphere_id = 'sphere' + i.toString();
+			document.getElementById(sphere_id + '-centerx').value = sphere.center[0];
+			document.getElementById(sphere_id + '-centery').value = sphere.center[1];
+			document.getElementById(sphere_id + '-centerz').value = sphere.center[2];
+			document.getElementById(sphere_id + '-radius').value = sphere.radius;
+		}
+	}
+
+	// background magnetic field
+	document.getElementById("background-B-value-x").value = 0;
+	document.getElementById("background-B-value-y").value = 0;
+	document.getElementById("background-B-value-z").value = 0;
+	document.getElementById("dipole-min-distance").value = 1;
+	if (json['background-magnetic-field'] != null) {
+		bg_B = json['background-magnetic-field'];
+
+		if (bg_B.value != null) {
+			document.getElementById("background-B-value-x").value = bg_B.value[0];
+			document.getElementById("background-B-value-y").value = bg_B.value[1];
+			document.getElementById("background-B-value-z").value = bg_B.value[2];
+		}
+
+		if (bg_B['minimum-distance'] != null) {
+			document.getElementById("dipole-min-distance").value = bg_B['minimum-distance'];
+		}
+
+		if (bg_B.dipoles != null) {
+			for (i = 0; i < bg_B.dipoles.length; i++) {
+				dipole_adder.click();
+				dipole_id = 'dipole_' + i.toString();
+
+				dip = bg_B.dipoles[i];
+				if (!dip.moment) {
+					alert('Dipole ' + i.toString() + " doesn't have moment key");
+					document.getElementById(this.value).innerHTML = 'failed (' + this.value + ')';
+					return;
+				}
+				if (!dip.position) {
+					alert('Dipole ' + i.toString() + " doesn't have position key");
+					document.getElementById(this.value).innerHTML = 'failed (' + this.value + ')';
+					return;
+				}
+
+				document.getElementById(dipole_id + "-moment-x").value = dip.moment[0];
+				document.getElementById(dipole_id + "-moment-y").value = dip.moment[1];
+				document.getElementById(dipole_id + "-moment-z").value = dip.moment[2];
+				document.getElementById(dipole_id + "-position-x").value = dip.position[0];
+				document.getElementById(dipole_id + "-position-y").value = dip.position[1];
+				document.getElementById(dipole_id + "-position-z").value = dip.position[2];
+			}
+		}
+	}
+
+
+	if (json['number-density'] == null) {
+		alert('Run ' + this.value + " doesn't have number-density key");
+		document.getElementById(this.value).innerHTML = 'failed (' + this.value + ')';
+		return;
+	}
+	mass = json['number-density'];
+	document.getElementById("default-mass").value = mass.default;
+
+	if (mass['initial-conditions'] != null) {
+		init_mass = mass['initial-conditions'];
+
+		for (i = 0; i < init_mass.length; i++) {
+			initial_mass_adder.click();
+			id = 'inital-mass-' + i.toString();
+			document.getElementById(id_string + "-geometry-id").value = init_mass[i]['geometry-id'];
+			document.getElementById(id_string + "-value").value = init_mass[i].value;
+		}
+	}
+
+	if (mass['value-boundaries'] != null) {
+		value_mass = mass['value-boundaries'];
+
+		for (i = 0; i < value_mass.length; i++) {
+			value_mass_adder.click();
+			id = 'value-mass-' + i.toString();
+
+			document.getElementById(id_string + "-geometry-id").value = value_mass[i]['geometry-id'];
+
+			time_stamps_str = '';
+			for (j = 0; j < value_mass[i]['time-stamps'].length; j++) {
+				time_stamps_str = time_stamps_str + value_mass[i]['time-stamps'][j];
+				if (j < value_mass[i]['time-stamps'].length - 1) {
+					time_stamps_str = time_stamps_str + ', ';
+				}
+			}
+			document.getElementById(id_string + "-time-stamps-id").value = time_stamps_str;
+
+			if (value_mass[i].values == null) {
+				alert('Number density value boundary ' + i.toString() + ' of run ' + this.value + " doesn't have a values key");
+				document.getElementById(this.value).innerHTML = 'failed (' + this.value + ')';
+				return;
+			}
+
+			values_str = '';
+			for (j = 0; j < value_mass[i].values.length; j++) {
+				values_str = values_str + value_mass[i].values[j];
+				if (j < value_mass[i].values.length - 1) {
+					values_str = values_str + ', ';
+				}
+			}
+			document.getElementById(id_string + "-value").value = values_str;
+		}
+	}
+
+	if (mass['copy-boundaries'] != null) {
+		copy_mass = mass['copy-boundaries'];
+		for (i = 0; i < copy_mass.length; i++) {
+			copy_mass_adder.click();
+			id = 'copy-mass-' + i.toString();
+			document.getElementById(id_string + "-geometry-id").value = copy_mass[i]['geometry-id'];
+		}
+	}
+
+
+	if (json['velocity'] == null) {
+		alert('Run ' + this.value + " doesn't have velocity key");
+		document.getElementById(this.value).innerHTML = 'failed (' + this.value + ')';
+		return;
+	}
+	velocity = json['velocity'];
+	document.getElementById("default-velocity").value = velocity.default;
+
+	if (velocity['initial-conditions'] != null) {
+		init_velocity = velocity['initial-conditions'];
+
+		for (i = 0; i < init_velocity.length; i++) {
+			initial_velocity_adder.click();
+			id = 'inital-velocity-' + i.toString();
+			document.getElementById(id_string + "-geometry-id").value = init_velocity[i]['geometry-id'];
+			document.getElementById(id_string + "-value").value = init_velocity[i].value;
+		}
+	}
+
+	if (velocity['value-boundaries'] != null) {
+		value_velocity = velocity['value-boundaries'];
+
+		for (i = 0; i < value_velocity.length; i++) {
+			value_velocity_adder.click();
+			id = 'value-velocity-' + i.toString();
+
+			document.getElementById(id_string + "-geometry-id").value = value_velocity[i]['geometry-id'];
+
+			time_stamps_str = '';
+			for (j = 0; j < value_velocity[i]['time-stamps'].length; j++) {
+				time_stamps_str = time_stamps_str + value_velocity[i]['time-stamps'][j];
+				if (j < value_velocity[i]['time-stamps'].length - 1) {
+					time_stamps_str = time_stamps_str + ', ';
+				}
+			}
+			document.getElementById(id_string + "-time-stamps-id").value = time_stamps_str;
+
+			if (value_velocity[i].values == null) {
+				alert('Number density value boundary ' + i.toString() + ' of run ' + this.value + " doesn't have a values key");
+				document.getElementById(this.value).innerHTML = 'failed (' + this.value + ')';
+				return;
+			}
+
+			values_str = '';
+			for (j = 0; j < value_velocity[i].values.length; j++) {
+				values_str = values_str + value_velocity[i].values[j];
+				if (j < value_velocity[i].values.length - 1) {
+					values_str = values_str + ', ';
+				}
+			}
+			document.getElementById(id_string + "-value").value = values_str;
+		}
+	}
+
+	if (velocity['copy-boundaries'] != null) {
+		copy_velocity = velocity['copy-boundaries'];
+		for (i = 0; i < copy_velocity.length; i++) {
+			copy_velocity_adder.click();
+			id = 'copy-velocity-' + i.toString();
+			document.getElementById(id_string + "-geometry-id").value = copy_velocity[i]['geometry-id'];
+		}
+	}
+
+
+	if (json['pressure'] == null) {
+		alert('Run ' + this.value + " doesn't have pressure key");
+		document.getElementById(this.value).innerHTML = 'failed (' + this.value + ')';
+		return;
+	}
+	pressure = json['pressure'];
+	document.getElementById("default-pressure").value = pressure.default;
+
+	if (pressure['initial-conditions'] != null) {
+		init_pressure = pressure['initial-conditions'];
+
+		for (i = 0; i < init_pressure.length; i++) {
+			initial_pressure_adder.click();
+			id = 'inital-pressure-' + i.toString();
+			document.getElementById(id_string + "-geometry-id").value = init_pressure[i]['geometry-id'];
+			document.getElementById(id_string + "-value").value = init_pressure[i].value;
+		}
+	}
+
+	if (pressure['value-boundaries'] != null) {
+		value_pressure = pressure['value-boundaries'];
+
+		for (i = 0; i < value_pressure.length; i++) {
+			value_pressure_adder.click();
+			id = 'value-pressure-' + i.toString();
+
+			document.getElementById(id_string + "-geometry-id").value = value_pressure[i]['geometry-id'];
+
+			time_stamps_str = '';
+			for (j = 0; j < value_pressure[i]['time-stamps'].length; j++) {
+				time_stamps_str = time_stamps_str + value_pressure[i]['time-stamps'][j];
+				if (j < value_pressure[i]['time-stamps'].length - 1) {
+					time_stamps_str = time_stamps_str + ', ';
+				}
+			}
+			document.getElementById(id_string + "-time-stamps-id").value = time_stamps_str;
+
+			if (value_pressure[i].values == null) {
+				alert('Number density value boundary ' + i.toString() + ' of run ' + this.value + " doesn't have a values key");
+				document.getElementById(this.value).innerHTML = 'failed (' + this.value + ')';
+				return;
+			}
+
+			values_str = '';
+			for (j = 0; j < value_pressure[i].values.length; j++) {
+				values_str = values_str + value_pressure[i].values[j];
+				if (j < value_pressure[i].values.length - 1) {
+					values_str = values_str + ', ';
+				}
+			}
+			document.getElementById(id_string + "-value").value = values_str;
+		}
+	}
+
+	if (pressure['copy-boundaries'] != null) {
+		copy_pressure = pressure['copy-boundaries'];
+		for (i = 0; i < copy_pressure.length; i++) {
+			copy_pressure_adder.click();
+			id = 'copy-pressure-' + i.toString();
+			document.getElementById(id_string + "-geometry-id").value = copy_pressure[i]['geometry-id'];
+		}
+	}
+
+
+	if (json['magnetic-field'] == null) {
+		alert('Run ' + this.value + " doesn't have magnetic-field key");
+		document.getElementById(this.value).innerHTML = 'failed (' + this.value + ')';
+		return;
+	}
+	magnetic_field = json['magnetic-field'];
+	document.getElementById("default-magnetic-field").value = magnetic_field.default;
+
+	if (magnetic_field['initial-conditions'] != null) {
+		init_magnetic_field = magnetic_field['initial-conditions'];
+
+		for (i = 0; i < init_magnetic_field.length; i++) {
+			initial_magnetic_field_adder.click();
+			id = 'inital-magnetic-field-' + i.toString();
+			document.getElementById(id_string + "-geometry-id").value = init_magnetic_field[i]['geometry-id'];
+			document.getElementById(id_string + "-value").value = init_magnetic_field[i].value;
+		}
+	}
+
+	if (magnetic_field['value-boundaries'] != null) {
+		value_magnetic_field = magnetic_field['value-boundaries'];
+
+		for (i = 0; i < value_magnetic_field.length; i++) {
+			value_magnetic_field_adder.click();
+			id = 'value-magnetic-field-' + i.toString();
+
+			document.getElementById(id_string + "-geometry-id").value = value_magnetic_field[i]['geometry-id'];
+
+			time_stamps_str = '';
+			for (j = 0; j < value_magnetic_field[i]['time-stamps'].length; j++) {
+				time_stamps_str = time_stamps_str + value_magnetic_field[i]['time-stamps'][j];
+				if (j < value_magnetic_field[i]['time-stamps'].length - 1) {
+					time_stamps_str = time_stamps_str + ', ';
+				}
+			}
+			document.getElementById(id_string + "-time-stamps-id").value = time_stamps_str;
+
+			if (value_magnetic_field[i].values == null) {
+				alert('Number density value boundary ' + i.toString() + ' of run ' + this.value + " doesn't have a values key");
+				document.getElementById(this.value).innerHTML = 'failed (' + this.value + ')';
+				return;
+			}
+
+			values_str = '';
+			for (j = 0; j < value_magnetic_field[i].values.length; j++) {
+				values_str = values_str + value_magnetic_field[i].values[j];
+				if (j < value_magnetic_field[i].values.length - 1) {
+					values_str = values_str + ', ';
+				}
+			}
+			document.getElementById(id_string + "-value").value = values_str;
+		}
+	}
+
+	if (magnetic_field['copy-boundaries'] != null) {
+		copy_magnetic_field = magnetic_field['copy-boundaries'];
+		for (i = 0; i < copy_magnetic_field.length; i++) {
+			copy_magnetic_field_adder.click();
+			id = 'copy-magnetic-field-' + i.toString();
+			document.getElementById(id_string + "-geometry-id").value = copy_magnetic_field[i]['geometry-id'];
+		}
+	}
+
+	document.getElementById(this.value).innerHTML = 'configuration retrieved (' + this.value + ')';
+
+	update_config_text.click();
+});
+
 }
 
 </script>
@@ -1874,6 +2410,9 @@ If you have installed the model locally you can copy &amp; paste the configurati
 <button id="make_blast_wave" type="button">Blast wave</button>
 <button id="make_jet_injection" type="button">Jet injection</button>
 <button id="make_msphere" type="button">Earth's magnetosphere</button>
+<select id="run_list_selector">
+	<option id="default_selector_option">Import configuration from existing run</option>
+</select>
 </p>
 
 <h2>Configuration interface</h2>
