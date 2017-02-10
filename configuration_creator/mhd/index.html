@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html><head><meta charset="utf-8"></meta></head></html>
+<!-- copyright block start -->
 <!--
 Interactive interface for creating configuration files for MHD test of PAMHD.
 
-Copyright 2015, 2016 Ilja Honkonen
+Copyright 2015, 2016, 2017 Ilja Honkonen
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification,
@@ -31,6 +32,7 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 -->
+<!-- copyright block end -->
 <html>
 <head>
 <title>Interactive configuration file creator for MHD test program of PAMHD</title>
@@ -39,15 +41,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 div[id ^= "bdy_input"] {display: inline-block;}
 </style>
 
-<!-- javascript block start -->
-
+<!-- javascript functions start -->
 <noscript>
 	<p><h1>WARNING: This page does not work without javascript</h1></p>
 </noscript>
-<!-- javascript functions start -->
 <script name="script" type="text/javascript">
 
-
+// javascript block start
 window.onload = function() {
 
 
@@ -593,9 +593,11 @@ copy_magnetic_field_adder.addEventListener("click", add_copy_magnetic_field_item
 // clears current configuration
 var configuration_clearer = document.getElementById("clear");
 configuration_clearer.addEventListener("click", function() {
+	document.getElementById("run_configuration").value = "custom";
 	document.getElementById("solver-mhd").selectedIndex = 3;
 	document.getElementById("time-start").value = "";
 	document.getElementById("time-length").value = "";
+	document.getElementById("minimum-pressure").value = "";
 	document.getElementById("save-mhd-n").value = "";
 	document.getElementById("resistivity").value = "";
 	document.getElementById("remove-div-b-n").value = "";
@@ -617,6 +619,10 @@ configuration_clearer.addEventListener("click", function() {
 	while (nr_geometries > 0) {
 		remove_geometry();
 	}
+	document.getElementById("background-B-value-x").value = "";
+	document.getElementById("background-B-value-y").value = "";
+	document.getElementById("background-B-value-z").value = "";
+	document.getElementById("dipole-min-distance").value = "";
 	while (nr_dipoles > 0) {
 		remove_dipole();
 	}
@@ -1165,6 +1171,7 @@ config_text_updater.addEventListener("click", function() {
 var shock_tube_maker = document.getElementById("make_shock_tube");
 shock_tube_maker.addEventListener("click", function() {
 	configuration_clearer.click();
+	document.getElementById("run_configuration").value = "Shocktube";
 	document.getElementById("solver-mhd").selectedIndex = 3;
 	document.getElementById("time-start").value = 0;
 	document.getElementById("time-length").value = 1;
@@ -1243,6 +1250,7 @@ shock_tube_maker.addEventListener("click", function() {
 var kelvin_helmholtz_maker = document.getElementById("make_kelvin_helmholtz");
 kelvin_helmholtz_maker.addEventListener("click", function() {
 	configuration_clearer.click();
+	document.getElementById("run_configuration").value = "Kelvin-Helmholtz";
 	document.getElementById("solver-mhd").selectedIndex = 3;
 	document.getElementById("time-start").value = 0;
 	document.getElementById("time-length").value = 12;
@@ -1275,6 +1283,7 @@ kelvin_helmholtz_maker.addEventListener("click", function() {
 var reconnection_maker = document.getElementById("make_reconnection");
 reconnection_maker.addEventListener("click", function() {
 	configuration_clearer.click();
+	document.getElementById("run_configuration").value = "Reconnection";
 	document.getElementById("solver-mhd").selectedIndex = 3;
 	document.getElementById("time-start").value = 0;
 	document.getElementById("time-length").value = 20;
@@ -1337,6 +1346,7 @@ reconnection_maker.addEventListener("click", function() {
 var orszag_tang_maker = document.getElementById("make_orszag_tang");
 orszag_tang_maker.addEventListener("click", function() {
 	configuration_clearer.click();
+	document.getElementById("run_configuration").value = "Orszag-Tang";
 	document.getElementById("solver-mhd").selectedIndex = 3;
 	document.getElementById("time-start").value = 0;
 	document.getElementById("time-length").value = 5;
@@ -1369,6 +1379,7 @@ orszag_tang_maker.addEventListener("click", function() {
 var bow_shock_maker = document.getElementById("make_bow_shock");
 bow_shock_maker.addEventListener("click", function() {
 	configuration_clearer.click();
+	document.getElementById("run_configuration").value = "Bowshock";
 	document.getElementById("solver-mhd").selectedIndex = 2;
 	document.getElementById("time-start").value = 0;
 	document.getElementById("time-length").value = 10;
@@ -1492,6 +1503,7 @@ bow_shock_maker.addEventListener("click", function() {
 var blast_wave_maker = document.getElementById("make_blast_wave");
 blast_wave_maker.addEventListener("click", function() {
 	configuration_clearer.click();
+	document.getElementById("run_configuration").value = "Blastwave";
 	document.getElementById("solver-mhd").selectedIndex = 3;
 	document.getElementById("time-start").value = 0;
 	document.getElementById("time-length").value = 0.5;
@@ -1541,6 +1553,7 @@ blast_wave_maker.addEventListener("click", function() {
 var jet_injection_maker = document.getElementById("make_jet_injection");
 jet_injection_maker.addEventListener("click", function() {
 	configuration_clearer.click();
+	document.getElementById("run_configuration").value = "Jetinjection";
 	document.getElementById("solver-mhd").selectedIndex = 3;
 	document.getElementById("time-start").value = 0;
 	document.getElementById("time-length").value = 2;
@@ -1686,6 +1699,7 @@ jet_injection_maker.addEventListener("click", function() {
 var msphere_maker = document.getElementById("make_msphere");
 msphere_maker.addEventListener("click", function() {
 	configuration_clearer.click();
+	document.getElementById("run_configuration").value = "Magnetosphere";
 	document.getElementById("solver-mhd").selectedIndex = 0;
 	document.getElementById("time-start").value = 0;
 	document.getElementById("time-length").value = 7200;
@@ -1849,7 +1863,7 @@ msphere_maker.addEventListener("click", function() {
 
 
 // retrieve and fill out list of runs when first clicked
-var run_list_retrieved = false;
+var run_list_retrieved = false; // retrieval enabled at CCMC
 run_list_button = document.getElementById("run_list_selector");
 run_list_button.addEventListener("click", function() {
 	if (run_list_retrieved) {
@@ -1864,6 +1878,7 @@ run_list_button.addEventListener("click", function() {
 			run_list_button.removeChild(run_list_button.firstChild);
 		}
 		default_option.innerHTML = 'Parsing JSON not supported by browser';
+		run_list_retrieved = true;
 		return;
 	}
 
@@ -1872,30 +1887,26 @@ run_list_button.addEventListener("click", function() {
 	}
 
 	request = new XMLHttpRequest();
-	request.open('POST', 'http://ccmc.gsfc.nasa.gov/ungrouped/LP/LP_search.php', false, 'pamhd', 'run_list_retrieval');
-	request.send('0=PAMHD&3=lp_model');
+
+	request.open('GET', '/idl_images/PAMHD_run_list.txt', false, 'pamhd', 'run_list_retrieval');
+	//request.open('GET', 'run_list.txt', false, 'pamhd', 'run_list_retrieval');
+	request.send();
 	response = request.responseText;
 
-	if (default_option != null) {
-		default_option.parentNode.removeChild(default_option);
-	}
-
-	first = true;
-	temp = response.split('runnumber=');
+	temp = response.split('\n');
 	for (i = 0; i < temp.length; i++) {
-		if (first) {
-			first = false;
+		run_id = temp[i];
+		if (run_id.length == 0) {
 			continue;
 		}
-
-		run_id = temp[i].split('>')[0];
-
 		opt = document.createElement('option');
 		opt.id = run_id;
 		opt.value = run_id;
 		opt.innerHTML = run_id;
 		run_list_button.appendChild(opt);
 	}
+
+	default_option.parentNode.removeChild(default_option);
 
 	run_list_retrieved = true;
 });
@@ -1906,12 +1917,20 @@ run_list_button.addEventListener("change", function() {
 	document.getElementById(this.value).innerHTML = 'retrieving configuration (' + this.value + ')';
 
 	request = new XMLHttpRequest();
-	request.open('GET', 'http://ccmc.gsfc.nasa.gov/results/viewrun.php?domain=LP&runnumber=' + this.value, false, 'pamhd', 'run_config_retrieval');
+	request.open('GET', '/results/viewrun.php?domain=LP&runnumber=' + this.value, false, 'pamhd', 'run_config_retrieval');
+	//request.open('GET', 'run_page.html', false, 'pamhd', 'run_config_retrieval');
+
 	request.send();
 	response = request.responseText;
 
 	json_str = response.split('<pre>')[1].split('</pre>')[0].trim();
 	json = JSON.parse(json_str);
+
+	// TODO: clear only if new config ok
+	configuration_clearer.click();
+
+	cfg = document.getElementById('run_configuration');
+	cfg.value = 'custom-' + this.value;
 
 	function set_config_item(item_str, run_id) {
 		if (json[item_str] == null) {
@@ -1947,14 +1966,12 @@ run_list_button.addEventListener("change", function() {
 	mhd = json['solver-mhd'];
 	if (mhd == 'rusanov') {
 		document.getElementById('solver-mhd').selectedIndex = 0;
-	} else if (mhd == 'hll_athena') {
+	} else if (mhd == 'hll_athena' || mhd == 'hll-athena') {
 		document.getElementById('solver-mhd').selectedIndex = 1;
-	} else if (mhd == 'hlld_athena') {
+	} else if (mhd == 'hlld_athena' || mhd == 'hlld-athena') {
 		document.getElementById('solver-mhd').selectedIndex = 2;
-	} else if (mhd == 'hlld_athena') {
+	} else if (mhd == 'roe_athena' || mhd == 'roe-athena') {
 		document.getElementById('solver-mhd').selectedIndex = 3;
-	} else if (mhd == 'roe_athena') {
-		document.getElementById('solver-mhd').selectedIndex = 4;
 	} else {
 		alert('Unexpected value for mhd solver in configuration of run ' + run_id.value + ': ' + mhd);
 		document.getElementById(this.value).innerHTML = 'failed (' + this.value + ')';
@@ -2467,10 +2484,15 @@ All items are numbers.
 
 </p>
 
+<!-- configuration creator end -->
+
 <!-- form start -->
 
 <form method="get" id="form">
 	<input type="submit" value="Submit run"><br>
+
+<!-- form ccmc start -->
+	Run Configuration loaded: <input type="text" id="run_configuration" name="run_configuration" value='custom'>
 	<fieldset id="simulation">
 		<legend>General simulation parameters</legend>
 
@@ -2514,11 +2536,7 @@ All items are numbers.
 
 		<!-- outdir start -->
 		Output directory for results relative to current directory
-		<input
-			type="text"
-			id="output-directory"
-			name="output-directory">
-		<br>
+		<input id="output-directory" name="output-directory"><br>
 		<!-- outdir end -->
 	</fieldset>
 
@@ -2666,13 +2684,17 @@ All items are numbers.
 		</button>
 	</fieldset>
 
+<!-- form ccmc end -->
+
 </form>
+<!-- form end -->
+
+<!-- buttons start -->
 <button id="clear" type="button">Clear</button><br><br>
 
 <button id="update_config_text" type="button">View configuration</button> 
 <samp id="config_text"><br>Push the button above to see current configuration</samp>
-
-<!-- form end -->
+<!-- buttons end -->
 
 </body>
 </html>
