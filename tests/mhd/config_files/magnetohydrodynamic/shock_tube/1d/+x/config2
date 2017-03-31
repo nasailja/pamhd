@@ -1,0 +1,39 @@
+time-start = 0
+time-length = 1
+load-balancer = RANDOM
+save-mhd-n = 0.1
+remove-div-B-n = -1
+vacuum-permeability = 1
+adiabatic-index = 1.4
+
+[grid]
+periodic = {false, false, false}
+nr-cells = {1000 + 2, 1, 1}
+volume = {1 + 2 / 1000, 1, 1}
+start = {-1 / 1000, -0.5, -0.5}
+
+[initial]
+default.number-density = r[0] < 0.5 ? 1 : 0.125
+default.velocity = {0, 0, 0}
+default.pressure = r[0] < 0.5 ? 1 : 0.1
+default.magnetic-field = {0, r[0] < 0.5 ? 1 : -1, 0}
+
+[value-boundaries]
+nr-boxes = 2
+# Time-dependent state of negative end of the shock tube,
+# only one value for constant state
+box1.start = {-1, -0.5, -0.5}
+box1.end = {0, 0.5, 0.5}
+box1.time = 0
+box1.number-density = 1
+box1.velocity = {0, 0, 0}
+box1.pressure = 1
+box1.magnetic-field = {0, 1, 0}
+# positive end of the shock tube
+box2.start = {1, -0.5, -0.5}
+box2.end = {2, 0.5, 0.5}
+box2.time = 0
+box2.number-density = 0.125
+box2.velocity = {0, 0, 0}
+box2.pressure = 0.1
+box2.magnetic-field = {0, -1, 0}
